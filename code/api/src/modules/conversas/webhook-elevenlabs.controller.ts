@@ -1,4 +1,5 @@
 import {
+  Body,
   Controller,
   Headers,
   HttpCode,
@@ -6,6 +7,7 @@ import {
   Logger,
   Post,
   Req,
+  UseGuards,
 } from '@nestjs/common';
 import type { RawBodyRequest } from '@nestjs/common';
 import { ConfigService, ConfigType } from '@nestjs/config';
@@ -13,17 +15,21 @@ import type { Request } from 'express';
 import { ErroApi } from '../../common/erros.js';
 import { validar } from '../../common/validacao.js';
 import { webhooksConfig } from '../../config/configuration.js';
+import { SegredoAgenteGuard } from '../agent-tools/agente.guard.js';
 import {
   esquemaAudio,
   esquemaTranscricao,
   verificarAssinatura,
 } from './elevenlabs.js';
 import { FimChamadaService } from './fim-chamada.service.js';
+import { esquemaInicioChamada } from './retomar.js';
+import { RetomarService } from './retomar.service.js';
 
 /**
- * Webhook do fim da chamada (post-call) do ElevenLabs. Um só URL para a
- * transcrição e para o áudio; o `type` decide. Responde 200 depressa: o
- * resumo e o SMS vão para jobs.
+ * Webhooks do ElevenLabs. Início da chamada: o contexto para retomar a
+ * conversa. Fim da chamada (post-call): um só URL para a transcrição e para
+ * o áudio; o `type` decide. Responde 200 depressa: o resumo e o SMS vão
+ * para jobs.
  */
 @Controller('webhooks/elevenlabs')
 export class WebhookElevenLabsController {
@@ -31,8 +37,25 @@ export class WebhookElevenLabsController {
 
   constructor(
     private readonly fimChamada: FimChamadaService,
+    private readonly retomar: RetomarService,
     private readonly config: ConfigService,
   ) {}
+
+  /**
+   * Início da chamada (conversation initiation client data webhook): o
+   * ElevenLabs pede as variáveis dinâmicas enquanto o telefone ainda toca.
+   * Sem IA e sem escrever nada, para responder em < 300 ms. O ElevenLabs não
+   * assina este pedido: manda os headers configurados no webhook (segredo
+   * guardado no ElevenLabs), aqui o mesmo `X-Agente-Segredo` das ferramentas.
+   */
+  @Post('inicio-chamada')
+  @HttpCode(200)
+  @UseGuards(SegredoAgenteGuard)
+  inicioChamada(@Body() body: unknown) {
+    return this.retomar.inicioChamada(
+      validar(esquemaInicioChamada, body ?? {}),
+    );
+  }
 
   @Post('conversa-terminada')
   @HttpCode(200)

@@ -14,8 +14,10 @@ import { LinksCurtosService } from '../comunicacao/links-curtos.service.js';
 import { MensagensService } from '../comunicacao/mensagens.service.js';
 import { MunicipiosService } from '../municipios/municipios.service.js';
 import { Dados, primeiroDoTipo } from './formulario.js';
+import { comPrazos, EmFalta, emFaltaFalado, estadoPedido } from './avisos.js';
 import {
   correspondeNumero,
+  diaMes,
   Fase,
   FASE_EM_PALAVRAS,
   FASE_ROTULO,
@@ -48,11 +50,8 @@ export interface ProcessoCriado {
   link: string;
 }
 
-/** 'AAAA-MM-DD' → 'DD/MM' (o que se diz e se escreve num SMS). */
-export function diaMes(iso: string): string {
-  const [, m, d] = iso.split('-');
-  return `${d}/${m}`;
-}
+// Antes vivia aqui; quem o importa daqui continua a funcionar.
+export { diaMes };
 
 /**
  * Processos: criados quando o requerimento é entregue, consultados pelo
@@ -91,38 +90,71 @@ export class ProcessosService {
 
   /**
    * O que falta da parte do munícipe: obrigatórios do tipo por entregar e
-   * documentos pedidos pelo técnico depois dos quais ainda não chegou nada.
+   * pedidos do técnico por responder (vista `processo_pedidos_estado`: um
+   * pedido conta como respondido com um documento desse tipo, ou qualquer
+   * um num pedido livre, recebido depois do pedido e não rejeitado).
+   * `em_falta` junta a cada um o prazo do pedido, se o houver.
    */
   async emFalta(
     processo: { id: string; tipo_processo_id: string },
     q: Q = this.db,
-  ): Promise<{ tem: string[]; faltam: string[] }> {
+  ): Promise<{ tem: string[]; faltam: string[]; em_falta: EmFalta[] }> {
     const [exigidos, pedidos] = await Promise.all([
       this.tipos.documentos(
         processo.tipo_processo_id,
         { processoId: processo.id },
         q,
       ),
-      q.query<{ nome: string; satisfeito: boolean }>(
-        `SELECT e.dados->>'nome' AS nome,
-                EXISTS (
-                  SELECT 1 FROM documentos x
-                  WHERE x.processo_id = e.processo_id AND x.recebido_em > e.em
-                    AND x.verificacao_estado NOT IN ('documento_errado', 'ilegivel', 'fora_de_prazo')
-                    AND x.tipo_documento_id IS NOT DISTINCT FROM (e.dados->>'tipo_documento_id')::uuid
-                ) AS satisfeito
-         FROM processo_eventos e
-         WHERE e.processo_id = $1 AND e.tipo = 'documento_pedido'
-         ORDER BY e.em`,
+      q.query<{ descricao: string; prazo: string }>(
+        `SELECT descricao, to_char(prazo, 'YYYY-MM-DD') AS prazo
+         FROM processo_pedidos_estado
+         WHERE processo_id = $1 AND respondido_em IS NULL
+         ORDER BY pedido_em`,
         [processo.id],
       ),
     ]);
     const r = resumirDocumentos(exigidos);
     for (const p of pedidos) {
-      if (!p.satisfeito && p.nome && !r.faltam.includes(p.nome))
-        r.faltam.push(p.nome);
+      if (!r.faltam.includes(p.descricao)) r.faltam.push(p.descricao);
     }
-    return r;
+    return { ...r, em_falta: comPrazos(r.faltam, pedidos) };
+  }
+
+  /** Os pedidos ao munícipe, com prazo e estado (ficha do painel). */
+  async pedidos(municipioId: string, processoId: string, q: Q = this.db) {
+    const [linhas, feriados] = await Promise.all([
+      q.query<{
+        id: string;
+        evento_id: string;
+        descricao: string;
+        tipo_documento_id: string | null;
+        nota: string | null;
+        pedido_em: Date;
+        prazo: string;
+        respondido_em: Date | null;
+        lembrete_enviado_em: Date | null;
+      }>(
+        `SELECT id, evento_id, descricao, tipo_documento_id, nota, pedido_em,
+                to_char(prazo, 'YYYY-MM-DD') AS prazo, respondido_em, lembrete_enviado_em
+         FROM processo_pedidos_estado
+         WHERE processo_id = $1
+         ORDER BY pedido_em, id`,
+        [processoId],
+      ),
+      this.municipios.feriados(municipioId),
+    ]);
+    const hoje = hojeLisboa();
+    return linhas.map((l) => {
+      const estado = estadoPedido(l, hoje);
+      return {
+        ...l,
+        estado,
+        dias_uteis_restantes:
+          estado === 'respondido'
+            ? null
+            : diasUteisEntre(hoje, l.prazo, feriados),
+      };
+    });
   }
 
   /**
@@ -339,7 +371,8 @@ export class ProcessosService {
           fase: FASE_ROTULO[l.fase],
           dias_uteis_restantes: dias,
           prazo_fim: l.prazo_fim,
-          falta_da_sua_parte: docs.faltam,
+          // [{ nome, prazo }]: prazo (AAAA-MM-DD) para entregar o que o técnico pediu.
+          falta_da_sua_parte: docs.em_falta,
           ultimo_evento: l.ultimo_evento,
           decisao: l.decisao,
           resumo: resumoFalado(
@@ -347,7 +380,7 @@ export class ProcessosService {
             l.fase,
             l.prazo_fim,
             dias,
-            docs.faltam,
+            docs.em_falta,
             l.decisao,
           ),
         };
@@ -436,6 +469,8 @@ export class ProcessosService {
         // Sem início: o prazo só começa a contar com os documentos todos.
         a_contar: p.prazo_inicio !== null,
       },
+      // { tem, faltam, em_falta: [{ nome, prazo }] }: o prazo é o do pedido
+      // do técnico ("tem até dia 30 para entregar a certidão").
       documentos: docs,
       linha_do_tempo: eventos,
       // A página envia documentos pelo token do requerimento (POST /public/requerimentos/:token/documentos).
@@ -450,8 +485,9 @@ export function resumoFalado(
   fase: Fase,
   prazoFim: string | null,
   dias: number | null,
-  faltam: string[],
+  faltam: EmFalta[],
   decisao: string | null,
+  hoje: string = hojeLisboa(),
 ): string {
   const partes = [`O processo ${numero} ${FASE_EM_PALAVRAS[fase]}.`];
   if (decisao && FASES_FECHADAS.includes(fase)) {
@@ -474,6 +510,6 @@ export function resumoFalado(
     partes.push('O prazo ainda não começou a contar.');
   }
   if (faltam.length)
-    partes.push(`Da sua parte falta entregar: ${faltam.join(', ')}.`);
+    partes.push(`Da sua parte falta entregar: ${emFaltaFalado(faltam, hoje)}.`);
   return partes.join(' ');
 }

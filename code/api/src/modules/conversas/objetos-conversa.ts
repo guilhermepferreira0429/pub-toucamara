@@ -117,9 +117,9 @@ export async function objetosDaConversa(
   return r;
 }
 
-/** Linhas curtas para o modelo saber o que ficou registado na chamada. */
-export function descreverObjetos(o: ObjetosConversa): string {
-  const linhas = [
+/** O que ficou registado na conversa, uma linha por objeto (sem tokens). */
+export function linhasObjetos(o: ObjetosConversa): string[] {
+  return [
     ...o.requerimentos.map(
       (r) =>
         `Requerimento "${r.tipo}" (${r.estado})${r.campos_em_falta.length ? `, falta: ${r.campos_em_falta.join(', ')}` : ''}`,
@@ -143,5 +143,10 @@ export function descreverObjetos(o: ObjetosConversa): string {
       (p) => `Passada a funcionário (motivo: ${p.motivo}, ${p.estado})`,
     ),
   ];
+}
+
+/** Linhas curtas para o modelo saber o que ficou registado na chamada. */
+export function descreverObjetos(o: ObjetosConversa): string {
+  const linhas = linhasObjetos(o);
   return linhas.length ? linhas.map((l) => `- ${l}`).join('\n') : '- Nada';
 }

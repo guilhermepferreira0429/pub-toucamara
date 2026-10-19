@@ -39,9 +39,38 @@ export function blocoMunicipio(c: ConfigAgente): string {
   ].join('\n');
 }
 
-/** Contexto que vai antes da primeira mensagem (fixo para a sessão inteira). */
-export function contextoSessao(dataInicio: string): string {
-  return `<contexto>Conversa iniciada em ${dataInicio}, hora local do município. Usa esta data para "hoje" e para prazos.</contexto>`;
+/** A conversa anterior (retomar), já resumida e com a data falada. */
+export interface ConversaAnterior {
+  quando: string;
+  resumo: string;
+  proximos_passos: string[];
+}
+
+/**
+ * Contexto que vai antes da primeira mensagem (fixo para a sessão inteira;
+ * só muda uma vez, se a pessoa se identificar e houver conversa anterior).
+ */
+export function contextoSessao(
+  dataInicio: string,
+  anterior?: ConversaAnterior | null,
+): string {
+  const linhas = [
+    `Conversa iniciada em ${dataInicio}, hora local do município. Usa esta data para "hoje" e para prazos.`,
+  ];
+  if (anterior) {
+    linhas.push(
+      `Esta pessoa já falou com a câmara ${anterior.quando}. Resumo dessa conversa: ${anterior.resumo || 'sem resumo.'}`,
+    );
+    if (anterior.proximos_passos.length > 0) {
+      linhas.push(
+        `Próximos passos combinados: ${anterior.proximos_passos.join('; ')}.`,
+      );
+    }
+    linhas.push(
+      'Se ela voltar ao assunto, continua daí sem pedir que repita; para mais pormenor usa conversa_anterior. Não tragas o assunto se ela vier por outra coisa.',
+    );
+  }
+  return `<contexto>${linhas.join('\n')}</contexto>`;
 }
 
 export const SAUDACAO_OMISSAO =

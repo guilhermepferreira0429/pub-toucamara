@@ -1,16 +1,19 @@
 import { HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Observable } from 'rxjs';
+import { hojeLisboa } from '../../common/dias-uteis.js';
 import { ErroApi } from '../../common/erros.js';
 import { DatabaseService, Tx } from '../../database/database.service.js';
 import { ContextoFerramenta } from '../../ferramentas/ferramenta.js';
+import { ClaudeService } from '../../ia/claude.service.js';
+import { MimeVisao, VisaoService } from '../../ia/visao.service.js';
 import { JobsService } from '../../jobs/jobs.service.js';
 import { ArmazenamentoService } from '../armazenamento/armazenamento.service.js';
 import { AuditoriaService } from '../auditoria/auditoria.service.js';
 import { LinksCurtosService } from '../comunicacao/links-curtos.service.js';
 import { MensagensService } from '../comunicacao/mensagens.service.js';
 import { ConversasService } from '../conversas/conversas.service.js';
-import { MunicipesService } from '../municipes/municipes.service.js';
+import { MunicipesService, nifValido } from '../municipes/municipes.service.js';
 import { MunicipiosService } from '../municipios/municipios.service.js';
 import {
   camposEmFalta,
@@ -24,14 +27,35 @@ import {
   Valor,
 } from '../processos/formulario.js';
 import { ProcessosService } from '../processos/processos.service.js';
-import { resumirDocumentos } from '../processos/regras.js';
 import {
   TipoProcesso,
   TiposProcessoService,
 } from '../processos/tipos-processo.service.js';
 import { gerarPdfRequerimento } from './requerimento-pdf.js';
+import {
+  aplicarTraducao,
+  camposATraduzir,
+  esquemaTraducao,
+  idiomaCanonico,
+  linhaSmsNaLingua,
+  precisaTraducao,
+  SISTEMA_TRADUCAO,
+} from './traducao.js';
+import {
+  avaliarDocumento,
+  DocumentoComEstado,
+  fraseVerificacao,
+  lerVerificacoes,
+  MAXIMO_IMAGEM_BYTES,
+  MAXIMO_PDF_BYTES,
+  mimePelosBytes,
+  resumirEntregas,
+  resumirParaAgente,
+  verificacoesEmPalavras,
+} from './verificacao-documentos.js';
 
 export const JOB_PDF = 'gerar_pdf_requerimento';
+export const JOB_TRADUZIR = 'traduzir_requerimento';
 
 type Estado = 'a_preencher' | 'pronto' | 'assinado' | 'entregue' | 'cancelado';
 
@@ -42,6 +66,8 @@ interface LinhaRequerimento {
   conversa_id: string | null;
   tipo_processo_id: string;
   dados: Dados;
+  dados_originais: Dados | null;
+  idioma_conversa: string;
   campos_em_falta: string[];
   estado: Estado;
   assinatura: string | null;
@@ -54,7 +80,7 @@ interface LinhaRequerimento {
 }
 
 const COLUNAS = `r.id, r.municipio_id, r.municipe_id, r.conversa_id, r.tipo_processo_id, r.dados,
-  r.campos_em_falta, r.estado, r.assinatura, r.assinado_em, r.pdf_key, r.token_publico,
+  r.dados_originais, r.idioma_conversa, r.campos_em_falta, r.estado, r.assinatura, r.assinado_em, r.pdf_key, r.token_publico,
   r.processo_id, r.criado_em, r.atualizado_em`;
 
 /** Ficheiros aceites no envio de documentos (fotografia ou PDF). */
@@ -62,6 +88,7 @@ export const MIMES_DOCUMENTO: Record<string, string> = {
   'image/jpeg': 'jpg',
   'image/png': 'png',
   'image/webp': 'webp',
+  'image/gif': 'gif',
   'image/heic': 'heic',
   'image/heif': 'heif',
   'application/pdf': 'pdf',
@@ -98,11 +125,40 @@ export class RequerimentosService {
     private readonly armazenamento: ArmazenamentoService,
     private readonly auditoria: AuditoriaService,
     private readonly jobs: JobsService,
+    private readonly claude: ClaudeService,
+    private readonly visao: VisaoService,
   ) {}
+
+  /**
+   * Documentos exigidos pelo tipo com o melhor estado do que já chegou
+   * (no requerimento ou no processo). Ver `resumirEntregas`.
+   */
+  private documentosComEstado(
+    tipoId: string,
+    requerimentoId: string,
+    processoId: string | null,
+    q: Pick<Tx, 'query'> = this.db,
+  ): Promise<DocumentoComEstado[]> {
+    return q.query<DocumentoComEstado>(
+      `SELECT d.id, d.nome, d.obrigatorio, d.gerado_pelo_sistema,
+              (SELECT x.verificacao_estado FROM documentos x
+               WHERE x.tipo_documento_id = d.id
+                 AND (x.requerimento_id = $2 OR x.processo_id = $3)
+               ORDER BY (x.verificacao_estado = 'valido') DESC,
+                        (x.verificacao_estado = 'por_verificar') DESC,
+                        x.recebido_em DESC
+               LIMIT 1) AS estado
+       FROM tipo_processo_documentos d
+       WHERE d.tipo_processo_id = $1
+       ORDER BY d.ordem`,
+      [tipoId, requerimentoId, processoId],
+    );
+  }
 
   // ---------------------------------------------------------------- agente
 
-  async iniciar(ctx: ContextoFerramenta, textoTipo: string) {
+  async iniciar(ctx: ContextoFerramenta, textoTipo: string, idioma?: string) {
+    const lingua = idiomaCanonico(idioma);
     const r = await this.tipos.resolver(ctx.municipio.id, textoTipo);
     if (!('tipo' in r)) {
       return {
@@ -135,7 +191,7 @@ export class RequerimentosService {
         `INSERT INTO requerimentos (municipio_id, municipe_id, conversa_id, tipo_processo_id,
            dados, campos_em_falta, idioma_conversa)
          VALUES ($1, $2, $3, $4, $5, $6,
-           coalesce((SELECT idioma FROM conversas WHERE id = $3), 'pt-PT'))
+           coalesce($7, (SELECT idioma FROM conversas WHERE id = $3), 'pt-PT'))
          RETURNING ${COLUNAS.replace(/r\./g, '')}`,
         [
           ctx.municipio.id,
@@ -144,6 +200,7 @@ export class RequerimentosService {
           tipo.id,
           JSON.stringify(dados),
           camposEmFalta(tipo.formulario, dados),
+          lingua,
         ],
       );
       await this.conversas.momento(ctx.conversaId, 'requerimento', {
@@ -151,14 +208,20 @@ export class RequerimentosService {
         tipo: tipo.codigo,
         acao: 'iniciado',
       });
+    } else if (lingua && lingua !== req.idioma_conversa) {
+      // A pessoa mudou de língua a meio: o que conta é a última.
+      await this.db.query(
+        'UPDATE requerimentos SET idioma_conversa = $2 WHERE id = $1',
+        [req.id, lingua],
+      );
+      req.idioma_conversa = lingua;
     }
 
-    const docs = await this.tipos.documentos(tipo.id, {
-      requerimentoId: req.id,
-    });
+    const docs = await this.documentosComEstado(tipo.id, req.id, null);
     const emFalta = camposEmFalta(tipo.formulario, req.dados);
     return {
       requerimento_id: req.id,
+      idioma: req.idioma_conversa,
       tipo: { codigo: tipo.codigo, nome: tipo.nome },
       frase_do_agente: tipo.frase_do_agente,
       campos: tipo.formulario.map((c) => ({
@@ -175,7 +238,13 @@ export class RequerimentosService {
       documentos_exigidos: docs
         .filter((d) => !d.gerado_pelo_sistema)
         .map((d) => ({ nome: d.nome, obrigatorio: d.obrigatorio })),
-      documentos: resumirDocumentos(docs),
+      documentos: resumirParaAgente(docs),
+      ...(precisaTraducao(req.idioma_conversa)
+        ? {
+            nota_idioma:
+              'Fale com o munícipe na língua dele e grave as respostas como ele as disse: o requerimento é traduzido para português ao concluir.',
+          }
+        : {}),
     };
   }
 
@@ -304,16 +373,26 @@ export class RequerimentosService {
       const emFalta = camposEmFalta(tipo.formulario, dados);
       const estado: Estado = emFalta.length ? 'a_preencher' : req.estado;
       if (gravados.length) {
+        // Um campo dito de novo perde o original antigo (volta a traduzir-se).
         await tx.query(
           `UPDATE requerimentos SET dados = $2, campos_em_falta = $3, estado = $4,
-             municipe_id = $5, atualizado_em = now()
+             municipe_id = $5, atualizado_em = now(),
+             dados_originais = nullif(dados_originais - $6::text[], '{}'::jsonb)
            WHERE id = $1`,
-          [req.id, JSON.stringify(dados), emFalta, estado, municipeId],
+          [
+            req.id,
+            JSON.stringify(dados),
+            emFalta,
+            estado,
+            municipeId,
+            gravados,
+          ],
         );
       }
-      const docs = await this.tipos.documentos(
+      const docs = await this.documentosComEstado(
         tipo.id,
-        { requerimentoId: req.id },
+        req.id,
+        req.processo_id,
         tx,
       );
       const proxima = proximaPergunta(tipo.formulario, emFalta);
@@ -324,7 +403,7 @@ export class RequerimentosService {
         ...(erros.length ? { erros } : {}),
         campos_em_falta: emFalta,
         proxima_pergunta: proxima?.pergunta ?? null,
-        documentos: resumirDocumentos(docs),
+        documentos: resumirParaAgente(docs),
         ...(emFalta.length === 0
           ? {
               instrucao:
@@ -379,11 +458,13 @@ export class RequerimentosService {
         );
       }
       const link = await this.linkRequerimento(ctx.municipio.id, req.id, tx);
-      const { faltam } = resumirDocumentos(
-        await this.tipos.documentos(tipo.id, { requerimentoId: req.id }, tx),
+      const { faltam } = resumirParaAgente(
+        await this.documentosComEstado(tipo.id, req.id, req.processo_id, tx),
       );
       const telefone =
         (await this.processos.telefoneDe(req.municipe_id, tx)) ?? ctx.telefone;
+      // O SMS vai em português; noutra língua, mais uma linha curta na dele.
+      const linhaLingua = linhaSmsNaLingua(req.idioma_conversa);
       if (telefone && req.estado !== 'entregue') {
         await this.mensagens.sms(
           {
@@ -394,7 +475,8 @@ export class RequerimentosService {
             corpo:
               `${ctx.municipio.nome}: o seu pedido de ${tipo.nome} está pronto. ` +
               `Reveja e assine aqui: ${link}` +
-              (faltam.length ? `. Falta entregar: ${faltam.join(', ')}.` : ''),
+              (faltam.length ? `. Falta entregar: ${faltam.join(', ')}.` : '') +
+              (linhaLingua ? `\n${linhaLingua}` : ''),
             relacionado: {
               requerimento_id: req.id,
               ...(ctx.conversaId ? { conversa_id: ctx.conversaId } : {}),
@@ -415,12 +497,21 @@ export class RequerimentosService {
       return { req, link, faltam, sms: !!telefone };
     });
 
-    // Depois do COMMIT: o job tem de ver o requerimento já 'pronto'.
-    await this.jobs.enviar(
-      JOB_PDF,
-      { requerimentoId: r.req.id },
-      { singletonKey: `pdf:${r.req.id}:pronto` },
-    );
+    // Depois do COMMIT: o job tem de ver o requerimento já 'pronto'. Noutra
+    // língua, primeiro a tradução; é ela que põe o PDF na fila.
+    if (precisaTraducao(r.req.idioma_conversa)) {
+      await this.jobs.enviar(
+        JOB_TRADUZIR,
+        { requerimentoId: r.req.id },
+        { singletonKey: `traduzir:${r.req.id}` },
+      );
+    } else {
+      await this.jobs.enviar(
+        JOB_PDF,
+        { requerimentoId: r.req.id },
+        { singletonKey: `pdf:${r.req.id}:pronto` },
+      );
+    }
 
     const ja = r.req.estado === 'assinado' || r.req.estado === 'entregue';
     return {
@@ -468,27 +559,37 @@ export class RequerimentosService {
     tipo: TipoProcesso,
     numero: string | null,
   ) {
-    const docs = await this.tipos.documentos(tipo.id, {
-      requerimentoId: req.id,
-      processoId: req.processo_id,
-    });
+    const docs = await this.documentosComEstado(
+      tipo.id,
+      req.id,
+      req.processo_id,
+    );
     const emFalta = camposEmFalta(tipo.formulario, req.dados);
+    // Os valores como foram ditos, ao lado dos traduzidos (se houve tradução).
+    const originais = req.dados_originais
+      ? dadosComRotulos(tipo.formulario, req.dados_originais).filter(
+          (c) => c.valor !== null && c.chave in req.dados_originais!,
+        )
+      : [];
     return {
       id: req.id,
       estado: req.estado,
       tipo: { codigo: tipo.codigo, nome: tipo.nome },
+      idioma_conversa: req.idioma_conversa,
       campos: dadosComRotulos(tipo.formulario, req.dados),
+      campos_originais: originais.length
+        ? originais.map((c) => ({
+            chave: c.chave,
+            rotulo: c.rotulo,
+            valor: c.valor,
+          }))
+        : null,
       campos_em_falta: tipo.formulario
         .filter((c) => emFalta.includes(c.chave))
         .map((c) => ({ chave: c.chave, rotulo: c.rotulo })),
       proxima_pergunta:
         proximaPergunta(tipo.formulario, emFalta)?.pergunta ?? null,
-      documentos: {
-        tem: docs.filter((d) => d.tem).map((d) => ({ id: d.id, nome: d.nome })),
-        faltam: docs
-          .filter((d) => !d.tem && !d.gerado_pelo_sistema)
-          .map((d) => ({ id: d.id, nome: d.nome, obrigatorio: d.obrigatorio })),
-      },
+      documentos: resumirEntregas(docs),
       assinatura: {
         tipo: req.assinatura,
         simulada: req.assinatura === 'simulada',
@@ -782,7 +883,238 @@ export class RequerimentosService {
     };
   }
 
+  /**
+   * "Tira a foto e o sistema diz o que está mal": a IA lê o documento, as
+   * regras de `tipo_processo_documentos.verificacoes` decidem o estado. Com
+   * armazenamento, a foto fica guardada e a linha em `documentos` criada (ou
+   * atualizada, se a última foto deste documento tinha sido rejeitada). Sem
+   * armazenamento devolve só o resultado (`guardado: false`): `ficheiro_key`
+   * é obrigatório e não se finge que se guardou.
+   */
+  async verificarDocumento(
+    token: string,
+    b: { tipo_documento_id: string; mime: MimeVisao; imagem_base64: string },
+  ) {
+    const req = await this.porToken(token);
+    const [esperado] = await this.db.query<{
+      id: string;
+      nome: string;
+      verificacoes: unknown;
+    }>(
+      `SELECT id, nome, verificacoes FROM tipo_processo_documentos
+       WHERE id = $1 AND tipo_processo_id = $2 AND NOT gerado_pelo_sistema`,
+      [b.tipo_documento_id, req.tipo_processo_id],
+    );
+    if (!esperado) {
+      throw new ErroApi(
+        HttpStatus.BAD_REQUEST,
+        'documento_desconhecido',
+        'Esse documento não é pedido neste requerimento.',
+      );
+    }
+
+    const ficheiro = Buffer.from(b.imagem_base64, 'base64');
+    const maximo =
+      b.mime === 'application/pdf' ? MAXIMO_PDF_BYTES : MAXIMO_IMAGEM_BYTES;
+    if (ficheiro.length > maximo) {
+      throw new ErroApi(
+        HttpStatus.PAYLOAD_TOO_LARGE,
+        'imagem_grande',
+        'O ficheiro é demasiado grande: tire outra fotografia com menos resolução.',
+        { maximo_bytes: maximo },
+      );
+    }
+    if (mimePelosBytes(ficheiro) !== b.mime) {
+      throw new ErroApi(
+        HttpStatus.BAD_REQUEST,
+        'ficheiro_invalido',
+        'O ficheiro não é uma imagem (JPEG, PNG, WebP, GIF) ou PDF válido.',
+      );
+    }
+
+    const verificacoes = lerVerificacoes(esperado.verificacoes);
+    const leitura = await this.visao.lerDocumento({
+      ficheiro,
+      mime: b.mime,
+      esperado: esperado.nome,
+      verificacoes: verificacoesEmPalavras(verificacoes),
+    });
+
+    // NIF: compara-se pelo hash (porNif), nunca se decifra o do requerente
+    // nem se guarda o lido. Sem NIF do requerente → null (por confirmar).
+    const nifLido = leitura.nif_visivel?.replace(/\D/g, '') ?? '';
+    let nifCorresponde: boolean | null = null;
+    if (
+      verificacoes.some((v) => v.tipo === 'nif_requerente') &&
+      nifValido(nifLido) &&
+      req.municipe_id
+    ) {
+      const requerente = await this.municipes.porId(req.municipe_id);
+      if (requerente?.tem_nif) {
+        const dono = await this.municipes.porNif(req.municipio_id, nifLido);
+        nifCorresponde = dono?.id === req.municipe_id;
+      }
+    }
+    const avaliacao = avaliarDocumento({
+      leitura,
+      verificacoes,
+      hoje: hojeLisboa(),
+      nifVisivel: nifValido(nifLido),
+      nifCorresponde,
+    });
+
+    let documentoId: string | null = null;
+    if (this.armazenamento.disponivel) {
+      const municipio = await this.municipios.porId(req.municipio_id);
+      const chave = this.armazenamento.chave(
+        municipio.slug,
+        'documentos',
+        MIMES_DOCUMENTO[b.mime],
+      );
+      await this.armazenamento.guardar(chave, ficheiro, b.mime);
+      documentoId = await this.db.transaction(async (tx) => {
+        const valores = [
+          chave,
+          b.mime,
+          ficheiro.length,
+          avaliacao.estado,
+          JSON.stringify(avaliacao.regras),
+          avaliacao.emitido_em,
+        ];
+        // A foto anterior rejeitada deste documento dá lugar à nova.
+        const [atualizado] = await tx.query<{ id: string }>(
+          `UPDATE documentos SET ficheiro_key = $3, mime = $4, tamanho = $5,
+             verificacao_estado = $6, verificacao = $7, emitido_em = $8,
+             processo_id = coalesce(processo_id, $9), recebido_em = now()
+           WHERE id = (
+             SELECT id FROM documentos
+             WHERE requerimento_id = $1 AND tipo_documento_id = $2 AND origem = 'foto'
+               AND verificacao_estado IN ('fora_de_prazo', 'documento_errado', 'ilegivel')
+             ORDER BY recebido_em DESC LIMIT 1)
+           RETURNING id`,
+          [req.id, esperado.id, ...valores, req.processo_id],
+        );
+        const [doc] = atualizado
+          ? [atualizado]
+          : await tx.query<{ id: string }>(
+              `INSERT INTO documentos (requerimento_id, tipo_documento_id, ficheiro_key, mime,
+                 tamanho, verificacao_estado, verificacao, emitido_em, processo_id,
+                 municipio_id, origem)
+               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'foto') RETURNING id`,
+              [
+                req.id,
+                esperado.id,
+                ...valores,
+                req.processo_id,
+                req.municipio_id,
+              ],
+            );
+        // Acorda o ecrã ao vivo.
+        await tx.query(
+          'UPDATE requerimentos SET atualizado_em = now() WHERE id = $1',
+          [req.id],
+        );
+        return doc.id;
+      });
+    }
+
+    const docs = await this.documentosComEstado(
+      req.tipo_processo_id,
+      req.id,
+      req.processo_id,
+    );
+    return {
+      documento: { id: esperado.id, nome: esperado.nome },
+      estado: avaliacao.estado,
+      valido: avaliacao.estado === 'valido',
+      mensagem: fraseVerificacao(esperado.nome, avaliacao),
+      regras: avaliacao.regras,
+      lido: {
+        tipo_reconhecido: leitura.tipo_reconhecido,
+        emitido_em: avaliacao.emitido_em,
+        entidade_emissora: leitura.entidade_emissora,
+        observacoes: leitura.observacoes,
+      },
+      guardado: documentoId !== null,
+      documento_id: documentoId,
+      ...(documentoId
+        ? {}
+        : {
+            aviso:
+              'A fotografia foi verificada mas não ficou guardada: entregue este documento mais tarde.',
+          }),
+      documentos: resumirEntregas(docs),
+    };
+  }
+
   // ------------------------------------------------------------------- job
+
+  /**
+   * O trabalho `traduzir_requerimento`: os campos de texto (e moradas,
+   * normalizadas) para português de Portugal, guardando os originais. No fim
+   * põe o PDF na fila. Sem IA, ou se a IA falhar, segue sem traduzir.
+   */
+  async traduzir(requerimentoId: string): Promise<void> {
+    const [req] = await this.db.query<LinhaRequerimento>(
+      `SELECT ${COLUNAS} FROM requerimentos r WHERE r.id = $1`,
+      [requerimentoId],
+    );
+    if (!req) {
+      this.logger.warn(`Tradução: requerimento ${requerimentoId} não existe.`);
+      return;
+    }
+    const tipo = await this.tipos.porId(req.municipio_id, req.tipo_processo_id);
+    const pedidos = camposATraduzir(
+      tipo.formulario,
+      req.dados,
+      req.dados_originais,
+    );
+    if (pedidos.length && !this.claude.disponivel) {
+      this.logger.warn(
+        `Requerimento ${req.id} (${req.idioma_conversa}) não traduzido: IA não configurada.`,
+      );
+    } else if (pedidos.length) {
+      try {
+        const traducao = await this.claude.extrair(esquemaTraducao, {
+          sistema: SISTEMA_TRADUCAO,
+          conteudo: JSON.stringify({
+            idioma_origem: req.idioma_conversa,
+            campos: pedidos,
+          }),
+          esforco: 'low',
+        });
+        const r = aplicarTraducao(
+          tipo.formulario,
+          req.dados,
+          req.dados_originais,
+          pedidos,
+          traducao,
+        );
+        if (r.traduzidos.length) {
+          // Só se ninguém mexeu entretanto (o agente pode ter corrigido um campo).
+          await this.db.query(
+            `UPDATE requerimentos SET dados = $2, dados_originais = $3, atualizado_em = now()
+             WHERE id = $1 AND dados = $4::jsonb`,
+            [
+              req.id,
+              JSON.stringify(r.dados),
+              JSON.stringify(r.originais),
+              JSON.stringify(req.dados),
+            ],
+          );
+        }
+      } catch (e) {
+        this.logger.warn(
+          `Requerimento ${req.id} não traduzido: ${(e as Error).message}`,
+        );
+      }
+    }
+    await this.jobs.enviar(
+      JOB_PDF,
+      { requerimentoId: req.id },
+      { singletonKey: `pdf:${req.id}:traduzido` },
+    );
+  }
 
   /** O trabalho `gerar_pdf_requerimento`. Sem armazenamento: avisa e termina. */
   async gerarPdf(requerimentoId: string): Promise<void> {
@@ -817,11 +1149,9 @@ export class RequerimentosService {
       req.municipe_id
         ? this.municipes.nifEmClaro(req.municipe_id)
         : Promise.resolve(null),
-      this.tipos.documentos(req.tipo_processo_id, {
-        requerimentoId: req.id,
-        processoId: req.processo_id,
-      }),
+      this.documentosComEstado(req.tipo_processo_id, req.id, req.processo_id),
     ]);
+    const entregas = resumirParaAgente(docs);
     const pdf = await gerarPdfRequerimento({
       municipio: municipio.nome,
       tipo: { codigo: tipo.codigo, nome: tipo.nome },
@@ -834,7 +1164,12 @@ export class RequerimentosService {
         email: req.email,
       },
       campos: dadosComRotulos(tipo.formulario, req.dados),
-      documentos: resumirDocumentos(docs),
+      documentos: {
+        tem: entregas.tem.map((n) =>
+          entregas.por_verificar.includes(n) ? `${n} (por verificar)` : n,
+        ),
+        faltam: entregas.faltam,
+      },
       assinatura: { tipo: req.assinatura, em: req.assinado_em },
     });
     const chave = this.armazenamento.chave(

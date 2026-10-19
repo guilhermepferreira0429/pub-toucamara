@@ -107,7 +107,7 @@ describe('resumoFalado', () => {
         'documentos',
         null,
         null,
-        ['Termo de responsabilidade'],
+        [{ nome: 'Termo de responsabilidade', prazo: null }],
         null,
       ),
     ).toBe(
@@ -132,6 +132,25 @@ describe('resumoFalado', () => {
     expect(
       resumoFalado('X 1/2026', 'entrada', '2026-10-01', -3, [], null),
     ).toContain('terminou a 01/10');
+  });
+
+  it('diz até quando tem de entregar o que foi pedido', () => {
+    expect(
+      resumoFalado(
+        'CP 1/2026',
+        'apreciacao',
+        '2026-11-16',
+        12,
+        [
+          { nome: 'Certidão', prazo: '2026-10-30' },
+          { nome: 'Planta', prazo: null },
+        ],
+        null,
+        '2026-10-20',
+      ),
+    ).toContain(
+      'Da sua parte falta entregar: Certidão (tem até dia 30 de outubro), Planta.',
+    );
   });
 
   it('diaMes', () => {

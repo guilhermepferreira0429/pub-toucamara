@@ -11,7 +11,9 @@ import { MensagensService } from '../comunicacao/mensagens.service.js';
 import { mascararTelefone } from '../municipes/municipes.service.js';
 import type { Municipio } from '../municipios/municipios.service.js';
 import { MunicipiosService } from '../municipios/municipios.service.js';
+import { avisoPedido, PRAZO_PEDIDO_DIAS_UTEIS } from './avisos.js';
 import { dadosComRotulos, Dados } from './formulario.js';
+import { ProcessosAvisosService } from './processos-avisos.service.js';
 import { ProcessosService } from './processos.service.js';
 import {
   Fase,
@@ -31,6 +33,11 @@ export const esquemaListaProcessos = esquemaPaginacao.extend({
     .transform((v) => v === 'true')
     .optional(),
   texto: z.string().trim().min(1).max(100).optional(),
+  /** Em 'documentos' ou com um pedido ao munícipe por responder. */
+  aguarda_municipe: z
+    .enum(['true', 'false'])
+    .transform((v) => v === 'true')
+    .optional(),
 });
 
 export const esquemaAtualizarProcesso = z
@@ -51,6 +58,13 @@ export const esquemaPedirDocumento = z
     tipo_documento_id: z.uuid().optional(),
     nome: z.string().trim().min(2).max(200).optional(),
     nota: z.string().trim().max(500).optional(),
+    /** Prazo do munícipe para responder; por omissão 10 dias úteis (CPA). */
+    prazo_dias_uteis: z
+      .number()
+      .int()
+      .min(1)
+      .max(120)
+      .default(PRAZO_PEDIDO_DIAS_UTEIS),
   })
   .refine((b) => b.tipo_documento_id || b.nome, {
     message: 'Indique o documento (tipo_documento_id ou nome).',
@@ -79,17 +93,26 @@ interface LinhaProcesso {
   atualizado_em: Date;
 }
 
-const SELECT_PROCESSO = `
-  SELECT p.id, p.numero, p.tipo_processo_id, t.codigo AS tipo_codigo, t.nome AS tipo_nome,
+const COLUNAS_PROCESSO = `
+  p.id, p.numero, p.tipo_processo_id, t.codigo AS tipo_codigo, t.nome AS tipo_nome,
          t.prazo_dias_uteis, p.assunto, p.morada, p.freguesia, p.fase, p.decisao, p.decidido_em,
          p.tecnico_id, u.nome AS tecnico_nome, p.municipe_id, mu.nome AS municipe_nome,
          to_char(p.prazo_inicio, 'YYYY-MM-DD') AS prazo_inicio,
          to_char(p.prazo_fim, 'YYYY-MM-DD') AS prazo_fim,
-         p.criado_em, p.atualizado_em
+         p.criado_em, p.atualizado_em`;
+
+const DE_PROCESSO = `
   FROM processos p
   JOIN tipos_processo t ON t.id = p.tipo_processo_id
   LEFT JOIN utilizadores u ON u.id = p.tecnico_id
   LEFT JOIN municipes mu ON mu.id = p.municipe_id`;
+
+const SELECT_PROCESSO = `SELECT ${COLUNAS_PROCESSO} ${DE_PROCESSO}`;
+
+/** O prazo mais próximo dos pedidos ao munícipe ainda por responder. */
+const PRAZO_MUNICIPE = `(
+  SELECT to_char(min(pe.prazo), 'YYYY-MM-DD') FROM processo_pedidos_estado pe
+  WHERE pe.processo_id = p.id AND pe.respondido_em IS NULL)`;
 
 /** O back-office dos processos (secção 5.7): lista, ficha e ações do técnico. */
 @Injectable()
@@ -104,6 +127,7 @@ export class ProcessosPainelService {
     private readonly armazenamento: ArmazenamentoService,
     private readonly auditoria: AuditoriaService,
     private readonly mensagens: MensagensService,
+    private readonly avisos: ProcessosAvisosService,
   ) {}
 
   /**
@@ -117,8 +141,11 @@ export class ProcessosPainelService {
   ) {
     const tecnico = f.tecnico_id === 'eu' ? u.id : (f.tecnico_id ?? null);
     const ordem = `coalesce(p.prazo_fim, 'infinity'::date)`;
-    const linhas = await this.db.query<LinhaProcesso>(
-      `${SELECT_PROCESSO}
+    const linhas = await this.db.query<
+      LinhaProcesso & { prazo_municipe: string | null }
+    >(
+      `SELECT ${COLUNAS_PROCESSO}, ${PRAZO_MUNICIPE} AS prazo_municipe
+       ${DE_PROCESSO}
        WHERE p.municipio_id = $1
          AND ($2::fase_processo IS NULL OR p.fase = $2)
          AND ($3::uuid IS NULL OR p.tecnico_id = $3)
@@ -126,6 +153,8 @@ export class ProcessosPainelService {
          AND ($6::text IS NULL OR p.numero ILIKE '%' || $6 || '%' OR p.assunto ILIKE '%' || $6 || '%'
               OR p.morada ILIKE '%' || $6 || '%')
          AND ($7::date IS NULL OR (${ordem}, p.id) > ($7::date, $8::uuid))
+         AND (NOT $10::boolean OR (p.fase NOT IN ('notificado', 'arquivado')
+              AND (p.fase = 'documentos' OR ${PRAZO_MUNICIPE} IS NOT NULL)))
        ORDER BY ${ordem}, p.id
        LIMIT $9`,
       [
@@ -138,6 +167,7 @@ export class ProcessosPainelService {
         f.cursor?.em ?? null,
         f.cursor?.id ?? null,
         f.limite + 1,
+        f.aguarda_municipe ?? false,
       ],
     );
     const r = pagina(linhas, f.limite, (l) => ({
@@ -170,6 +200,10 @@ export class ProcessosPainelService {
             !!l.prazo_fim &&
             l.prazo_fim < hoje &&
             !FASES_FECHADAS.includes(l.fase),
+          aguarda_municipe:
+            !FASES_FECHADAS.includes(l.fase) &&
+            (l.fase === 'documentos' || l.prazo_municipe !== null),
+          prazo_municipe: l.prazo_municipe,
           criado_em: l.criado_em,
         })),
       ),
@@ -199,67 +233,76 @@ export class ProcessosPainelService {
   /** A ficha completa (eventos internos incluídos). */
   async detalhe(municipio: Municipio, id: string) {
     const p = await this.carregar(municipio.id, id);
-    const [eventos, documentos, docs, dias, requerimentos, municipe, tipo] =
-      await Promise.all([
-        this.db.query<Record<string, unknown>>(
-          `SELECT e.id, e.tipo, e.descricao, e.interno, e.ator_tipo, e.ator_id,
+    const [
+      eventos,
+      documentos,
+      docs,
+      dias,
+      requerimentos,
+      municipe,
+      tipo,
+      pedidos,
+    ] = await Promise.all([
+      this.db.query<Record<string, unknown>>(
+        `SELECT e.id, e.tipo, e.descricao, e.interno, e.ator_tipo, e.ator_id,
                 u.nome AS ator_nome, e.dados, e.em
          FROM processo_eventos e
          LEFT JOIN utilizadores u ON e.ator_tipo = 'utilizador' AND u.id = e.ator_id
          WHERE e.processo_id = $1 ORDER BY e.em, e.id`,
-          [id],
-        ),
-        this.db.query<{
-          id: string;
-          tipo_documento_id: string | null;
-          tipo_documento: string | null;
-          ficheiro_key: string;
-          mime: string;
-          tamanho: number | null;
-          origem: string;
-          verificacao_estado: string;
-          verificacao: unknown;
-          emitido_em: string | null;
-          recebido_em: Date;
-        }>(
-          `SELECT d.id, d.tipo_documento_id, td.nome AS tipo_documento, d.ficheiro_key, d.mime, d.tamanho,
+        [id],
+      ),
+      this.db.query<{
+        id: string;
+        tipo_documento_id: string | null;
+        tipo_documento: string | null;
+        ficheiro_key: string;
+        mime: string;
+        tamanho: number | null;
+        origem: string;
+        verificacao_estado: string;
+        verificacao: unknown;
+        emitido_em: string | null;
+        recebido_em: Date;
+      }>(
+        `SELECT d.id, d.tipo_documento_id, td.nome AS tipo_documento, d.ficheiro_key, d.mime, d.tamanho,
                 d.origem, d.verificacao_estado, d.verificacao,
                 to_char(d.emitido_em, 'YYYY-MM-DD') AS emitido_em, d.recebido_em
          FROM documentos d
          LEFT JOIN tipo_processo_documentos td ON td.id = d.tipo_documento_id
          WHERE d.processo_id = $1 ORDER BY d.recebido_em`,
-          [id],
-        ),
-        this.processos.emFalta(p),
-        this.processos.diasRestantes(municipio.id, p.prazo_fim, p.fase),
-        this.db.query<{
-          id: string;
-          estado: string;
-          dados: Dados;
-          assinatura: string | null;
-          assinado_em: Date | null;
-          pdf_key: string | null;
-          conversa_id: string | null;
-          criado_em: Date;
-        }>(
-          `SELECT id, estado, dados, assinatura, assinado_em, pdf_key, conversa_id, criado_em
+        [id],
+      ),
+      this.processos.emFalta(p),
+      this.processos.diasRestantes(municipio.id, p.prazo_fim, p.fase),
+      this.db.query<{
+        id: string;
+        estado: string;
+        dados: Dados;
+        assinatura: string | null;
+        assinado_em: Date | null;
+        pdf_key: string | null;
+        conversa_id: string | null;
+        criado_em: Date;
+      }>(
+        `SELECT id, estado, dados, assinatura, assinado_em, pdf_key, conversa_id, criado_em
          FROM requerimentos WHERE processo_id = $1 ORDER BY criado_em`,
-          [id],
-        ),
-        p.municipe_id
-          ? this.db.query<{
-              nome: string | null;
-              telefone_e164: string | null;
-              email: string | null;
-              tem_nif: boolean;
-            }>(
-              `SELECT nome, telefone_e164, email, nif_hash IS NOT NULL AS tem_nif
+        [id],
+      ),
+      p.municipe_id
+        ? this.db.query<{
+            nome: string | null;
+            telefone_e164: string | null;
+            email: string | null;
+            tem_nif: boolean;
+          }>(
+            `SELECT nome, telefone_e164, email, nif_hash IS NOT NULL AS tem_nif
              FROM municipes WHERE id = $1`,
-              [p.municipe_id],
-            )
-          : Promise.resolve([]),
-        this.tipos.porId(municipio.id, p.tipo_processo_id),
-      ]);
+            [p.municipe_id],
+          )
+        : Promise.resolve([]),
+      this.tipos.porId(municipio.id, p.tipo_processo_id),
+      this.processos.pedidos(municipio.id, id),
+    ]);
 
     const urlLeitura = async (chave: string | null) =>
       chave && this.armazenamento.disponivel
@@ -322,6 +365,9 @@ export class ProcessosPainelService {
         })),
       ),
       documentos_resumo: docs,
+      // Pedidos ao munícipe: prazo, estado (por_responder | respondido |
+      // fora_de_prazo), dias úteis que faltam e se já levou lembrete.
+      pedidos,
       armazenamento_disponivel: this.armazenamento.disponivel,
       eventos,
       criado_em: p.criado_em,
@@ -350,6 +396,9 @@ export class ProcessosPainelService {
    * Fase, técnico e decisão. Cada mudança fica na linha do tempo; a decisão,
    * ao chegar a 'decisao'/'notificado', vai por SMS ao munícipe (uma vez por
    * decisão). Sair de 'documentos' com o prazo por começar começa-o hoje.
+   * Entrar numa fase que o munícipe percebe (documentos, apreciação,
+   * pareceres externos) avisa-o uma vez por fase (ProcessosAvisosService).
+   * Mudar de técnico ou escrever notas não avisa ninguém.
    */
   async atualizar(
     municipio: Municipio,
@@ -357,6 +406,8 @@ export class ProcessosPainelService {
     id: string,
     b: z.output<typeof esquemaAtualizarProcesso>,
   ) {
+    // Atribuída dentro da transação (o TS não segue a atribuição no callback).
+    let novaFase = null as Fase | null;
     await this.db.transaction(async (tx) => {
       const p = await this.carregar(municipio.id, id, tx, true);
 
@@ -409,6 +460,7 @@ export class ProcessosPainelService {
 
       const fase = b.fase ?? p.fase;
       if (b.fase && b.fase !== p.fase) {
+        novaFase = b.fase;
         await tx.query('UPDATE processos SET fase = $2 WHERE id = $1', [
           id,
           b.fase,
@@ -489,6 +541,17 @@ export class ProcessosPainelService {
         await this.smsDecisao(tx, municipio, p, decisao);
       }
     });
+    // Depois do COMMIT: o prazo novo já está gravado e uma falha no aviso
+    // não desfaz a mudança de fase.
+    if (novaFase) {
+      try {
+        await this.avisos.avisarFase(municipio, id, novaFase);
+      } catch (e) {
+        this.logger.warn(
+          `Processo ${id}: aviso da fase ${novaFase} falhou: ${(e as Error).message}`,
+        );
+      }
+    }
     return this.detalhe(municipio, id);
   }
 
@@ -546,7 +609,11 @@ export class ProcessosPainelService {
     });
   }
 
-  /** Evento visível 'documento_pedido' + SMS com o link do processo. */
+  /**
+   * Evento visível 'documento_pedido', o pedido com o prazo do munícipe
+   * (`processo_pedidos`, por omissão PRAZO_PEDIDO_DIAS_UTEIS dias úteis) e o
+   * aviso com o prazo e o link do processo (SMS, ou email se o preferir).
+   */
   async pedirDocumento(
     municipio: Municipio,
     u: UtilizadorPainel,
@@ -570,44 +637,70 @@ export class ProcessosPainelService {
         }
         nome = nome ?? d.nome;
       }
+      const descricao = nome!;
+      const prazo = somarDiasUteis(
+        hojeLisboa(),
+        b.prazo_dias_uteis,
+        await this.municipios.feriados(municipio.id),
+      );
       const e = await this.evento(
         tx,
         id,
         u,
         'documento_pedido',
-        `Pedido ao munícipe: ${nome}${b.nota ? ` (${b.nota})` : ''}.`,
+        `Pedido ao munícipe: ${descricao}${b.nota ? ` (${b.nota})` : ''}, até ${prazo.split('-').reverse().join('/')}.`,
         false,
         {
-          nome,
+          nome: descricao,
           tipo_documento_id: b.tipo_documento_id ?? null,
           nota: b.nota ?? null,
+          prazo,
         },
+      );
+      const [pedido] = await tx.query<{ id: string }>(
+        `INSERT INTO processo_pedidos (processo_id, evento_id, descricao, tipo_documento_id, nota,
+           pedido_em, prazo, criado_por)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`,
+        [
+          id,
+          e.id,
+          descricao,
+          b.tipo_documento_id ?? null,
+          b.nota ?? null,
+          e.em,
+          prazo,
+          u.id,
+        ],
       );
       await tx.query(
         'UPDATE processos SET atualizado_em = now() WHERE id = $1',
         [id],
       );
 
-      const telefone = await this.processos.telefoneDe(p.municipe_id, tx);
-      let smsId: string | null = null;
-      if (telefone) {
-        const link = await this.processos.linkProcesso(municipio.id, id, tx);
-        smsId = await this.mensagens.sms(
-          {
-            municipioId: municipio.id,
-            municipeId: p.municipe_id,
-            destino: telefone,
-            motivo: 'processo',
-            corpo:
-              `${municipio.nome}: no processo ${p.numero} precisamos de: ${nome}.` +
-              `${b.nota ? ` ${b.nota}` : ''} Envie aqui: ${link}`,
-            relacionado: { processo_id: id },
-            chave: `processo_pedido:${e.id}`,
-          },
-          tx,
-        );
-      }
-      return { evento_id: e.id, em: e.em, sms_enviado: smsId !== null };
+      const link = await this.processos.linkProcesso(municipio.id, id, tx);
+      const canal = await this.avisos.enviar(tx, {
+        municipioId: municipio.id,
+        municipeId: p.municipe_id,
+        aviso: avisoPedido({
+          municipio: municipio.nome,
+          numero: p.numero,
+          link,
+          nome: descricao,
+          nota: b.nota ?? null,
+          prazo,
+        }),
+        motivo: 'processo',
+        chave: `processo_pedido:${e.id}`,
+        relacionado: { processo_id: id, pedido_id: pedido.id },
+      });
+      return {
+        evento_id: e.id,
+        em: e.em,
+        pedido_id: pedido.id,
+        prazo,
+        aviso: canal,
+        sms_enviado: canal === 'sms',
+      };
     });
   }
 }

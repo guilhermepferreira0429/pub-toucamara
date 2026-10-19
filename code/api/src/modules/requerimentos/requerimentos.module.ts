@@ -7,7 +7,11 @@ import {
   RequerimentosPublicoController,
 } from './requerimentos.controller.js';
 import { ferramentasRequerimentos } from './requerimentos.ferramentas.js';
-import { JOB_PDF, RequerimentosService } from './requerimentos.service.js';
+import {
+  JOB_PDF,
+  JOB_TRADUZIR,
+  RequerimentosService,
+} from './requerimentos.service.js';
 
 @Module({
   imports: [ProcessosModule],
@@ -28,6 +32,11 @@ export class RequerimentosModule implements OnModuleInit {
       JOB_PDF,
       ({ requerimentoId }) => this.requerimentos.gerarPdf(requerimentoId),
       { concorrencia: 1 },
+    );
+    this.jobs.trabalhar<{ requerimentoId: string }>(
+      JOB_TRADUZIR,
+      ({ requerimentoId }) => this.requerimentos.traduzir(requerimentoId),
+      { concorrencia: 2 },
     );
   }
 }

@@ -14,6 +14,8 @@ import {
   TurnoNovo,
   WebhookTranscricao,
 } from './elevenlabs.js';
+import { anteriorDaChamada } from './retomar.js';
+import { RetomarService } from './retomar.service.js';
 
 export const FILA_RESUMIR = 'resumir_conversa';
 export const FILA_SMS_FIM = 'sms_fim_chamada';
@@ -39,6 +41,7 @@ export class FimChamadaService {
     private readonly horario: HorarioService,
     private readonly armazenamento: ArmazenamentoService,
     private readonly jobs: JobsService,
+    private readonly retomar: RetomarService,
   ) {}
 
   /** O município: pela conversa já criada pelas ferramentas ou pelo agent_id. */
@@ -78,6 +81,9 @@ export class FimChamadaService {
       providerId: d.conversation_id,
       telefone: telefoneDaChamada(d),
     });
+    // O contexto dado no início da chamada volta nas variáveis dinâmicas:
+    // o agente começou a conversa a saber da anterior, fica ligada a ela.
+    await this.retomar.ligarContinuacao(conversaId, anteriorDaChamada(d));
 
     const duracaoS =
       d.metadata?.call_duration_secs != null

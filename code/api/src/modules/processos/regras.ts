@@ -41,6 +41,12 @@ export const FASE_ROTULO: Record<Fase, string> = {
 /** Fases em que o prazo já não corre (não há atraso a mostrar). */
 export const FASES_FECHADAS: readonly Fase[] = ['notificado', 'arquivado'];
 
+/** 'AAAA-MM-DD' → 'DD/MM' (o que se diz e se escreve num SMS). */
+export function diaMes(iso: string): string {
+  const [, m, d] = iso.split('-');
+  return `${d}/${m}`;
+}
+
 export function formatarNumero(codigo: string, n: number, ano: number): string {
   return `${codigo} ${n}/${ano}`;
 }

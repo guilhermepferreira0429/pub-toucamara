@@ -28,7 +28,7 @@ export class ChatController {
   @Post()
   @HttpCode(201)
   criar(@Body() body: unknown, @Ip() ip: string) {
-    const { municipio, idioma } = validar(
+    const { municipio, idioma, sessao_anterior } = validar(
       z.object({
         municipio: z.string().trim().min(1).max(64),
         idioma: z
@@ -36,10 +36,17 @@ export class ChatController {
           .trim()
           .regex(/^[a-z]{2,3}(-[A-Z]{2})?$/, 'Idioma inválido (ex.: pt-PT).')
           .optional(),
+        // Retomar: o token da sessão anterior que o browser guardou.
+        sessao_anterior: esquemaToken.optional(),
       }),
       body,
     );
-    return this.chat.criarSessao({ municipio, idioma, ip });
+    return this.chat.criarSessao({
+      municipio,
+      idioma,
+      ip,
+      sessaoAnterior: sessao_anterior,
+    });
   }
 
   /**

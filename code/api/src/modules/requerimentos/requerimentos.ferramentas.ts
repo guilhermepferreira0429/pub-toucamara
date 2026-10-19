@@ -27,8 +27,17 @@ export function ferramentasRequerimentos(requerimentos: RequerimentosService) {
           .describe(
             'O código do tipo de processo (ex.: "CP") ou o pedido por palavras do munícipe (ex.: "obras de alteração na cozinha").',
           ),
+        idioma: z
+          .string()
+          .trim()
+          .regex(/^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})*$/, 'Código BCP 47.')
+          .optional()
+          .describe(
+            'A língua em que o munícipe está a falar, em BCP 47 (ex.: "en", "es", "fr", "uk"). Omitir se for português. O requerimento sai sempre em português.',
+          ),
       }),
-      executar: (ctx, { tipo }) => requerimentos.iniciar(ctx, tipo),
+      executar: (ctx, { tipo, idioma }) =>
+        requerimentos.iniciar(ctx, tipo, idioma),
     }),
 
     ferramenta({

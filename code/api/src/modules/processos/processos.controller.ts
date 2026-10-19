@@ -29,7 +29,7 @@ import { TiposProcessoService } from './tipos-processo.service.js';
 export class ProcessosPainelController {
   constructor(private readonly painel: ProcessosPainelService) {}
 
-  /** ?fase=&tecnico_id=(uuid|eu)&atrasados=true&texto=&limite=&cursor= */
+  /** ?fase=&tecnico_id=(uuid|eu)&atrasados=true&aguarda_municipe=true&texto=&limite=&cursor= */
   @Get()
   listar(
     @MunicipioAtual() m: Municipio,
@@ -74,7 +74,7 @@ export class ProcessosPainelController {
     return this.painel.nota(m, u, id, validar(esquemaNota, body));
   }
 
-  /** { tipo_documento_id? | nome?, nota? } → evento + SMS com o link. */
+  /** { tipo_documento_id? | nome?, nota?, prazo_dias_uteis? (10) } → evento, pedido com prazo e aviso com o link. */
   @Post(':id/pedir-documento')
   @HttpCode(200)
   pedirDocumento(

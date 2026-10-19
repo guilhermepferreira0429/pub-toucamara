@@ -9,6 +9,10 @@ import { AuditoriaService } from '../auditoria/auditoria.service.js';
 import { LinksCurtosService } from '../comunicacao/links-curtos.service.js';
 import { mascararTelefone } from '../municipes/municipes.service.js';
 import { objetosDaConversa } from './objetos-conversa.js';
+import { resumoCurto } from './retomar.js';
+
+/** Conversas anteriores no detalhe ("histórico do munícipe"). */
+const MAX_HISTORICO = 10;
 
 export interface FiltrosConversas {
   canal?: string;
@@ -176,20 +180,21 @@ export class PainelConversasService {
     ip: string,
   ) {
     const c = await this.conversa(municipioId, id);
-    const [turnos, momentos, citacoes, ficha, objetos] = await Promise.all([
-      this.db.query(
-        `SELECT id::text, ordem, papel, texto, inicio_ms, fim_ms
+    const [turnos, momentos, citacoes, ficha, objetos, historico] =
+      await Promise.all([
+        this.db.query(
+          `SELECT id::text, ordem, papel, texto, inicio_ms, fim_ms
          FROM conversa_turnos WHERE conversa_id = $1 ORDER BY ordem`,
-        [id],
-      ),
-      this.db.query(
-        `SELECT id::text, tipo, em_ms, turno_id::text, dados, criado_em
+          [id],
+        ),
+        this.db.query(
+          `SELECT id::text, tipo, em_ms, turno_id::text, dados, criado_em
          FROM conversa_momentos WHERE conversa_id = $1
          ORDER BY em_ms NULLS LAST, id`,
-        [id],
-      ),
-      this.db.query(
-        `SELECT ct.turno_id::text, tr.id AS trecho_id, tr.referencia,
+          [id],
+        ),
+        this.db.query(
+          `SELECT ct.turno_id::text, tr.id AS trecho_id, tr.referencia,
                 left(tr.texto, 400) AS trecho, fo.titulo AS fonte, fo.url,
                 e.nome AS entidade, fv.lida_em
          FROM citacoes ct
@@ -200,24 +205,25 @@ export class PainelConversasService {
          JOIN entidades e ON e.id = fo.entidade_id
          WHERE tu.conversa_id = $1
          ORDER BY tu.ordem`,
-        [id],
-      ),
-      c.municipe_id
-        ? this.db.query<{
-            id: string;
-            nome: string | null;
-            telefone: string | null;
-            conversas_anteriores: number;
-          }>(
-            `SELECT m.id, m.nome, m.telefone_e164 AS telefone,
+          [id],
+        ),
+        c.municipe_id
+          ? this.db.query<{
+              id: string;
+              nome: string | null;
+              telefone: string | null;
+              conversas_anteriores: number;
+            }>(
+              `SELECT m.id, m.nome, m.telefone_e164 AS telefone,
                     (SELECT count(*)::int FROM conversas o
                      WHERE o.municipe_id = m.id AND o.id <> $2 AND o.iniciada_em < $3) AS conversas_anteriores
              FROM municipes m WHERE m.id = $1`,
-            [c.municipe_id, id, c.iniciada_em],
-          )
-        : Promise.resolve([]),
-      objetosDaConversa(this.db, id),
-    ]);
+              [c.municipe_id, id, c.iniciada_em],
+            )
+          : Promise.resolve([]),
+        objetosDaConversa(this.db, id),
+        this.historicoMunicipe(municipioId, c),
+      ]);
 
     await this.auditoria.registar({
       municipioId,
@@ -245,6 +251,7 @@ export class PainelConversasService {
       resumo_sms: c.resumo_sms,
       resumida_em: c.resumida_em,
       continuacao_de: c.continuacao_de,
+      historico_municipe: historico,
       agente_versao: c.agente_versao,
       consentimento_em: c.consentimento_em,
       tem_gravacao: c.gravacao_key !== null,
@@ -280,6 +287,50 @@ export class PainelConversasService {
         passagens: objetos.passagens,
       },
     };
+  }
+
+  /**
+   * Histórico do munícipe: as conversas anteriores a esta (todos os canais),
+   * da mais recente para trás. A de que esta é continuação vem marcada.
+   */
+  private async historicoMunicipe(
+    municipioId: string,
+    c: {
+      id: string;
+      municipe_id: string | null;
+      iniciada_em: Date;
+      continuacao_de: string | null;
+    },
+  ) {
+    if (!c.municipe_id) return [];
+    const linhas = await this.db.query<{
+      id: string;
+      canal: string;
+      iniciada_em: Date;
+      resultado: string;
+      tema_id: string | null;
+      tema: string | null;
+      resumo_sms: string | null;
+      resumo: string | null;
+    }>(
+      `SELECT o.id, o.canal, o.iniciada_em, o.resultado, o.tema_id, t.nome AS tema,
+              o.resumo_sms, o.resumo
+       FROM conversas o LEFT JOIN temas t ON t.id = o.tema_id
+       WHERE o.municipio_id = $1 AND o.municipe_id = $2 AND o.id <> $3
+         AND o.iniciada_em < $4
+       ORDER BY o.iniciada_em DESC
+       LIMIT $5`,
+      [municipioId, c.municipe_id, c.id, c.iniciada_em, MAX_HISTORICO],
+    );
+    return linhas.map((l) => ({
+      id: l.id,
+      canal: l.canal,
+      iniciada_em: l.iniciada_em,
+      resultado: l.resultado,
+      tema: l.tema_id ? { id: l.tema_id, nome: l.tema } : null,
+      resumo: resumoCurto(l.resumo_sms, l.resumo, 200) || null,
+      continuada_por_esta: l.id === c.continuacao_de,
+    }));
   }
 
   /** URL de 5 minutos; cada acesso fica na auditoria ("X ouviu a gravação"). */

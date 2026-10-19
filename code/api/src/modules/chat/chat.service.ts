@@ -10,6 +10,8 @@ import { RegistoFerramentas } from '../../ferramentas/registo-ferramentas.servic
 import { AbrirFluxo, correrTurno, EventoAgente } from '../../ia/agente-chat.js';
 import { MensagensService } from '../comunicacao/mensagens.service.js';
 import { ConversasService } from '../conversas/conversas.service.js';
+import { quandoFalado } from '../conversas/retomar.js';
+import { RetomarService } from '../conversas/retomar.service.js';
 import {
   mascararTelefone,
   MunicipesService,
@@ -88,6 +90,7 @@ export class ChatService {
     private readonly municipes: MunicipesService,
     private readonly conversas: ConversasService,
     private readonly mensagens: MensagensService,
+    private readonly retomar: RetomarService,
   ) {
     const cfg = config.getOrThrow<ConfigType<typeof iaConfig>>('ia');
     this.modelo = cfg.modelo;
@@ -102,7 +105,14 @@ export class ChatService {
     municipio: string;
     idioma?: string;
     ip?: string;
-  }): Promise<{ sessao: string; saudacao: string; agente: string }> {
+    /** Token da sessão anterior guardado no browser (retomar). */
+    sessaoAnterior?: string;
+  }): Promise<{
+    sessao: string;
+    saudacao: string;
+    agente: string;
+    retomada: boolean;
+  }> {
     if (args.ip && !this.limiteSessoes.permitir(args.ip)) {
       throw demasiados('Demasiadas sessões novas. Tente daqui a pouco.');
     }
@@ -127,7 +137,19 @@ export class ChatService {
         [conversaId, saudacao],
       );
     });
-    return { sessao: token, saudacao, agente: cfg?.nome ?? 'Tou, Câmara?' };
+    const retomada = args.sessaoAnterior
+      ? await this.retomar.continuarChat(
+          conversaId,
+          municipio.id,
+          args.sessaoAnterior,
+        )
+      : false;
+    return {
+      sessao: token,
+      saudacao,
+      agente: cfg?.nome ?? 'Tou, Câmara?',
+      retomada,
+    };
   }
 
   /** A sessão do token. 404 se não existe; 410 se já expirou. */
@@ -212,16 +234,28 @@ export class ChatService {
   ): Promise<void> {
     try {
       await this.inserirTurno(sessao.conversaId, 'municipe', texto);
-      const [cfg, turnos] = await Promise.all([
+      const [cfg, turnos, anterior] = await Promise.all([
         this.configAgente(sessao.municipio.id),
         this.db.query<TurnoGuardado>(
           `SELECT papel, texto FROM conversa_turnos
            WHERE conversa_id = $1 ORDER BY ordem`,
           [sessao.conversaId],
         ),
+        this.retomar.anteriorParaContexto(sessao.conversaId),
       ]);
+      // A data falada conta a partir do início da sessão: o contexto não
+      // muda de pedido para pedido (cache).
       const contexto = contextoSessao(
         dataLocal(sessao.iniciadaEm, sessao.municipio.fuso),
+        anterior && {
+          quando: quandoFalado(
+            anterior.iniciada_em,
+            sessao.iniciadaEm,
+            sessao.municipio.fuso,
+          ),
+          resumo: anterior.resumo,
+          proximos_passos: anterior.proximos_passos,
+        },
       );
       const ctx: ContextoFerramenta = {
         municipio: sessao.municipio,
@@ -420,6 +454,9 @@ export class ChatService {
       );
       if (!municipe) return { estado: 'sem_codigo' as const };
       await this.conversas.ligarMunicipe(sessao.conversaId, municipe.id, tx);
+      // Retomar: a última conversa deste munícipe (telefone ou chat) passa
+      // a ir no contexto da primeira mensagem.
+      await this.retomar.ligarUltimaDoMunicipe(sessao.conversaId, tx);
       return { estado: 'ok' as const, telefone: c.telefone_e164 };
     });
 
