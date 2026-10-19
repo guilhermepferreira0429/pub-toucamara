@@ -1,0 +1,20 @@
+services:
+  toucamara-web:
+    build:
+      context: ../../
+      dockerfile: env/prod/Dockerfile.web
+    restart: unless-stopped
+    expose:
+      - '3000'
+    env_file:
+      - ../../code/web/.env.production
+
+  toucamara-api:
+    build:
+      context: ../../
+      dockerfile: env/prod/Dockerfile.api
+    restart: unless-stopped
+    expose:
+      - '80'
+    env_file:
+      - ../../code/api/.env.production
