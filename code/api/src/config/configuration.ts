@@ -27,6 +27,12 @@ export const databaseConfig = registerAs('database', () => ({
   max: parseInt(process.env.DB_POOL_MAX || '10', 10),
 }));
 
+export const agenteConfig = registerAs('agente', () => ({
+  // Segredo que o ElevenLabs (e o chat) mandam no header X-Agente-Segredo
+  // ao chamar /v1/agent/tools/*. Vazio: em dev deixa passar, em produção recusa.
+  segredo: process.env.AGENTE_SEGREDO || '',
+}));
+
 export const iaConfig = registerAs('ia', () => ({
   // Sem chave, o que depende de IA fora da chamada (resumos, classificação) desliga-se.
   apiKey: process.env.ANTHROPIC_API_KEY || '',
@@ -40,4 +46,41 @@ export const embeddingsConfig = registerAs('embeddings', () => ({
   modelo: process.env.EMBEDDINGS_MODEL || '',
   // Só para o ollama, ex.: http://localhost:11434
   url: (process.env.EMBEDDINGS_URL || '').replace(/\/$/, ''),
+}));
+
+export const authConfig = registerAs('auth', () => ({
+  jwtSecret: process.env.JWT_SECRET || '',
+  validadeHoras: parseInt(process.env.JWT_VALIDADE_HORAS || '12', 10),
+}));
+
+export const jobsConfig = registerAs('jobs', () => ({
+  workers: process.env.JOBS_WORKERS !== 'false',
+}));
+
+export const comunicacaoConfig = registerAs('comunicacao', () => ({
+  smsProvider: process.env.SMS_PROVIDER || '',
+  smsRemetente: process.env.SMS_REMETENTE || 'TouCamara',
+  smsTransliterar: process.env.SMS_TRANSLITERAR === 'true',
+  smtp: {
+    host: process.env.SMTP_HOST || '',
+    port: parseInt(process.env.SMTP_PORT || '587', 10),
+    secure: process.env.SMTP_SECURE === 'true',
+    user: process.env.SMTP_USER || '',
+    password: process.env.SMTP_PASSWORD || '',
+    from: process.env.SMTP_FROM || 'Tou, Câmara? <nao-responder@toucamara.pt>',
+  },
+}));
+
+export const armazenamentoConfig = registerAs('armazenamento', () => ({
+  endpoint: process.env.S3_ENDPOINT || '',
+  region: process.env.S3_REGION || 'eu-west-1',
+  bucket: process.env.S3_BUCKET || '',
+  accessKey: process.env.S3_ACCESS_KEY || '',
+  secretKey: process.env.S3_SECRET_KEY || '',
+}));
+
+export const webhooksConfig = registerAs('webhooks', () => ({
+  elevenlabsSegredo: process.env.ELEVENLABS_WEBHOOK_SECRET || '',
+  elevenlabsApiKey: process.env.ELEVENLABS_API_KEY || '',
+  pagamentosSegredo: process.env.PAGAMENTOS_WEBHOOK_SECRET || '',
 }));

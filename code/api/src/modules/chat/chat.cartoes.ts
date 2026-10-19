@@ -1,0 +1,127 @@
+/**
+ * Cartões do chat: o que o ecrã mostra além do texto, construído a partir do
+ * resultado das ferramentas. O mapeamento é por nome de ferramenta;
+ * ferramentas desconhecidas não geram cartão.
+ */
+export type TipoCartao =
+  | 'fonte'
+  | 'contacto'
+  | 'marcacao'
+  | 'simulacao'
+  | 'pagamento'
+  | 'rascunho'
+  | 'emergencia'
+  | 'requerimento'
+  | 'ocorrencia';
+
+export interface FonteCartao {
+  titulo: string;
+  url: string;
+  entidade: string;
+  referencia: string | null;
+}
+
+export type Cartao =
+  | { tipo: 'fonte'; fontes: FonteCartao[] }
+  | { tipo: 'emergencia'; telefone: '112'; dados: Record<string, unknown> }
+  | {
+      tipo: Exclude<TipoCartao, 'fonte' | 'emergencia'>;
+      ferramenta: string;
+      dados: Record<string, unknown>;
+    };
+
+const POR_FERRAMENTA: Record<
+  string,
+  Exclude<TipoCartao, 'fonte' | 'emergencia'>
+> = {
+  encaminhar: 'contacto',
+  marcar: 'marcacao',
+  agendar_recolha: 'marcacao',
+  simular_taxa: 'simulacao',
+  criar_pagamento: 'pagamento',
+  redigir: 'rascunho',
+  iniciar_requerimento: 'requerimento',
+  preencher_campo: 'requerimento',
+  concluir_requerimento: 'requerimento',
+  registar_ocorrencia: 'ocorrencia',
+};
+
+function objeto(v: unknown): Record<string, unknown> {
+  return v !== null && typeof v === 'object' && !Array.isArray(v)
+    ? (v as Record<string, unknown>)
+    : {};
+}
+
+function lista(v: unknown): Record<string, unknown>[] {
+  return Array.isArray(v) ? v.map(objeto) : [];
+}
+
+function texto(v: unknown): string | null {
+  return typeof v === 'string' && v.trim() ? v : null;
+}
+
+/** As fontes de um resultado de `procurar_conhecimento`, sem repetidos. */
+export function fontesDe(resultado: unknown): FonteCartao[] {
+  const r = objeto(resultado);
+  const brutas = [
+    ...lista(r.respostas).flatMap((x) => lista(x.fontes)),
+    ...lista(r.trechos),
+  ];
+  const vistas = new Set<string>();
+  const fontes: FonteCartao[] = [];
+  for (const f of brutas) {
+    const titulo = texto(f.titulo);
+    const url = texto(f.url);
+    if (!titulo || !url) continue;
+    const referencia = texto(f.referencia);
+    const chave = `${url}#${referencia ?? ''}`;
+    if (vistas.has(chave)) continue;
+    vistas.add(chave);
+    fontes.push({
+      titulo,
+      url,
+      entidade: texto(f.entidade) ?? '',
+      referencia,
+    });
+  }
+  return fontes;
+}
+
+/** Os trechos devolvidos por `procurar_conhecimento`, para gravar em `citacoes`. */
+export function trechosDe(resultado: unknown): string[] {
+  const r = objeto(resultado);
+  const ids = [
+    ...lista(r.respostas).flatMap((x) => lista(x.fontes)),
+    ...lista(r.trechos),
+  ]
+    .map((t) => texto(t.trecho_id))
+    .filter((id): id is string => id !== null);
+  return [...new Set(ids)];
+}
+
+/**
+ * O cartão do resultado de uma ferramenta, ou null. Uma ferramenta que falhou
+ * não gera cartão, exceto a emergência: o 112 aparece sempre.
+ */
+export function cartaoDe(
+  nome: string,
+  resultado: unknown,
+  erro = false,
+): Cartao | null {
+  if (nome === 'emergencia') {
+    return {
+      tipo: 'emergencia',
+      telefone: '112',
+      dados: erro ? {} : objeto(resultado),
+    };
+  }
+  if (erro) return null;
+  if (nome === 'procurar_conhecimento') {
+    if (objeto(resultado).sem_fonte === true) return null;
+    const fontes = fontesDe(resultado);
+    return fontes.length > 0 ? { tipo: 'fonte', fontes } : null;
+  }
+  const tipo = POR_FERRAMENTA[nome];
+  if (!tipo) return null;
+  return { tipo, ferramenta: nome, dados: objeto(resultado) };
+}
