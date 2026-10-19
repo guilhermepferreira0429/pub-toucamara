@@ -1,0 +1,17 @@
+# Dev: Postgres 17 com pgvector. Porta 54330 (a 5432 já está ocupada por outro projeto).
+#   docker compose -f env/dev/docker-compose.yml up -d
+services:
+  toucamara-postgres:
+    image: pgvector/pgvector:pg17
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: toucamara
+      POSTGRES_PASSWORD: toucamara
+      POSTGRES_DB: toucamara
+    ports:
+      - '54330:5432'
+    volumes:
+      - toucamara-pg:/var/lib/postgresql/data
+
+volumes:
+  toucamara-pg:
