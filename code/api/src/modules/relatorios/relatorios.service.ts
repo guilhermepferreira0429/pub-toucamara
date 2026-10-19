@@ -5,6 +5,7 @@ import type { Cursor } from '../../common/paginacao.js';
 import { DatabaseService } from '../../database/database.service.js';
 import { ArmazenamentoService } from '../armazenamento/armazenamento.service.js';
 import { MensagensService } from '../comunicacao/mensagens.service.js';
+import { MelhoriasService } from '../conhecimento/melhorias.service.js';
 import type { Municipio } from '../municipios/municipios.service.js';
 import { PainelDadosService } from '../painel/painel-dados.service.js';
 import { hojeNoFuso, Periodo } from '../painel/periodos.js';
@@ -44,6 +45,7 @@ export class RelatoriosService {
     private readonly dados: PainelDadosService,
     private readonly armazenamento: ArmazenamentoService,
     private readonly mensagens: MensagensService,
+    private readonly melhorias: MelhoriasService,
   ) {}
 
   /** O trabalho `relatorio_semanal` / `relatorio_mensal`: todos os municípios. */
@@ -122,6 +124,7 @@ export class RelatoriosService {
       semResposta,
       abertas,
       processos,
+      melhorias,
     ] = await Promise.all([
       this.dados.resultadosPorCanal(m.id, p),
       this.dados.resultadosPorCanal(m.id, anterior),
@@ -132,8 +135,9 @@ export class RelatoriosService {
       this.dados.semResposta(m.id, 10),
       this.dados.ocorrenciasAbertas(m.id),
       this.dados.processosFases(m.id),
+      this.melhorias.resumo(m.id, p.de, p.ate),
     ]);
-    return montarDados({
+    const dados = montarDados({
       municipio: { nome: m.nome, slug: m.slug },
       tipo,
       periodo: p,
@@ -145,6 +149,8 @@ export class RelatoriosService {
       ocorrenciasAbertas: abertas,
       processos,
     });
+    // Melhorias ao portal no período (para a reunião com o vereador).
+    return { ...dados, melhorias_portal: melhorias };
   }
 
   /** Sem armazenamento guarda-se só os dados (o PDF segue no email na mesma). */

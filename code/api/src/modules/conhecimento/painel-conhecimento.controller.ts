@@ -16,6 +16,8 @@ import type { UtilizadorPainel } from '../../common/pedido.js';
 import { validar } from '../../common/validacao.js';
 import { Painel } from '../auth/painel.guard.js';
 import type { Municipio } from '../municipios/municipios.service.js';
+import { ESTADOS_MELHORIA } from './melhorias.js';
+import { MelhoriasService } from './melhorias.service.js';
 import {
   exigirEquipaInterna,
   PainelConhecimentoService,
@@ -74,7 +76,10 @@ const TIPOS_FONTE = [
  */
 @Controller('painel/conhecimento')
 export class PainelConhecimentoController {
-  constructor(private readonly svc: PainelConhecimentoService) {}
+  constructor(
+    private readonly svc: PainelConhecimentoService,
+    private readonly melhorias: MelhoriasService,
+  ) {}
 
   @Get('mapa')
   @Painel('conhecimento_ver')
@@ -190,6 +195,92 @@ export class PainelConhecimentoController {
       body,
     );
     return this.svc.atualizarSemResposta(m.id, u, id, d);
+  }
+
+  // --- Melhorias ao portal (perguntas sem resposta → portal) ---------------
+
+  /** Métrica: propostas, enviadas, publicadas e perguntas resolvidas por elas. */
+  @Get('melhorias/resumo')
+  @Painel('conhecimento_ver')
+  resumoMelhorias(@MunicipioAtual() m: Municipio, @Query() q: unknown) {
+    const f = validar(
+      z.object({ de: data.optional(), ate: data.optional() }),
+      q,
+    );
+    return this.melhorias.resumo(m.id, f.de, f.ate);
+  }
+
+  @Get('melhorias')
+  @Painel('conhecimento_ver')
+  listarMelhorias(@MunicipioAtual() m: Municipio, @Query() q: unknown) {
+    const f = validar(
+      esquemaPaginacao.extend({ estado: z.enum(ESTADOS_MELHORIA).optional() }),
+      q,
+    );
+    return this.melhorias.listar(m.id, f.estado, f.limite, f.cursor);
+  }
+
+  /** Põe o job `propor_melhorias` na fila para o município (sem IA: 503). */
+  @Post('melhorias/gerar')
+  @HttpCode(202)
+  @Painel('conhecimento')
+  gerarMelhorias(
+    @MunicipioAtual() m: Municipio,
+    @UtilizadorAtual() u: UtilizadorPainel,
+  ) {
+    return this.melhorias.gerar(m.id, u);
+  }
+
+  @Get('melhorias/:id')
+  @Painel('conhecimento_ver')
+  melhoria(@MunicipioAtual() m: Municipio, @Param('id', uuid) id: string) {
+    return this.melhorias.ver(m.id, id);
+  }
+
+  /** Publicada → as perguntas abertas ligadas passam a 'resolvida'. */
+  @Patch('melhorias/:id')
+  @Painel('conhecimento')
+  atualizarMelhoria(
+    @MunicipioAtual() m: Municipio,
+    @UtilizadorAtual() u: UtilizadorPainel,
+    @Param('id', uuid) id: string,
+    @Body() body: unknown,
+  ) {
+    const d = validar(
+      z
+        .object({
+          estado: z.enum(ESTADOS_MELHORIA).optional(),
+          titulo: texto(200).optional(),
+          sugestao: texto(8000).optional(),
+          onde: z.string().trim().max(300).nullable().optional(),
+          entidade_id: z.uuid().nullable().optional(),
+          servico_id: z.uuid().nullable().optional(),
+          notas: z.string().trim().max(2000).nullable().optional(),
+        })
+        .refine((x) => Object.keys(x).length > 0, 'Nada para mudar.'),
+      body,
+    );
+    return this.melhorias.atualizar(m.id, u, id, d);
+  }
+
+  /**
+   * Corpo opcional: { email? }. Sem email vai para o do serviço ou, sem
+   * serviço, para o da entidade responsável.
+   */
+  @Post('melhorias/:id/enviar')
+  @HttpCode(200)
+  @Painel('conhecimento')
+  enviarMelhoria(
+    @MunicipioAtual() m: Municipio,
+    @UtilizadorAtual() u: UtilizadorPainel,
+    @Param('id', uuid) id: string,
+    @Body() body: unknown,
+  ) {
+    const { email } = validar(
+      z.object({ email: z.email().optional() }),
+      body ?? {},
+    );
+    return this.melhorias.enviar(m.id, u, id, email);
   }
 
   // --- Fontes --------------------------------------------------------------

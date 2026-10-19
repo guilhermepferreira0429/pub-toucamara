@@ -25,6 +25,7 @@ import { assinaturaValida } from './multibanco.js';
 import { PagamentosService } from './pagamentos.service.js';
 
 const estadoPag = z.enum(['pendente', 'pago', 'expirado', 'cancelado']);
+const metodoPag = z.enum(['multibanco', 'mbway', 'cartao']);
 
 /**
  * Corpo genérico do webhook de pagamentos (o fornecedor real ainda não está
@@ -36,6 +37,11 @@ const estadoPag = z.enum(['pendente', 'pago', 'expirado', 'cancelado']);
  *     "valor_cent": 12340, "estado": "pago" }
  *
  * Basta `provider_ref` ou `mb_referencia`. `estado`: pago | expirado | cancelado.
+ *
+ * MB WAY: o mesmo corpo, com o `provider_ref` do pedido (sem `mb_*`).
+ * `pago` paga o pagamento por MB WAY; `expirado` ou `cancelado` (recusado
+ * na app) fecham só o pedido e o pagamento continua pendente (paga-se por
+ * Multibanco ou com outro pedido).
  */
 const esquemaWebhook = z
   .object({
@@ -123,9 +129,46 @@ export class PagamentosPublicoController {
   simular(@Param('codigo') codigo: string) {
     return this.pagamentos.simularPagamentoPublico(codigo);
   }
+
+  /** Trocar de método no mesmo pagamento (MB WAY precisa do telemóvel). */
+  @Post(':codigo/metodo')
+  @HttpCode(200)
+  metodo(@Param('codigo') codigo: string, @Body() body: unknown) {
+    return this.pagamentos.trocarMetodoPublico(
+      codigo,
+      validar(esquemaMetodo, body),
+    );
+  }
+
+  /** Só modo de teste e dentro da validade: "aceitar" o pedido MB WAY na demo. */
+  @Post(':codigo/mbway/aceitar')
+  @HttpCode(200)
+  aceitarMbway(@Param('codigo') codigo: string) {
+    return this.pagamentos.aceitarMbwayPublico(codigo);
+  }
+
+  /** Novo pedido MB WAY de teste, se o anterior expirou (máximo 3). */
+  @Post(':codigo/mbway/reenviar')
+  @HttpCode(200)
+  reenviarMbway(@Param('codigo') codigo: string) {
+    return this.pagamentos.reenviarMbwayPublico(codigo);
+  }
 }
 
-const filtrosLista = esquemaPaginacao.extend({ estado: estadoPag.optional() });
+const esquemaMetodo = z
+  .object({
+    metodo: z.enum(['multibanco', 'mbway']),
+    telemovel: z.string().trim().min(9).max(20).optional(),
+  })
+  .refine((b) => b.metodo !== 'mbway' || b.telemovel, {
+    message: 'Para MB WAY indique o telemovel.',
+    path: ['telemovel'],
+  });
+
+const filtrosLista = esquemaPaginacao.extend({
+  estado: estadoPag.optional(),
+  metodo: metodoPag.optional(),
+});
 
 @Controller('painel')
 @Painel('processos')

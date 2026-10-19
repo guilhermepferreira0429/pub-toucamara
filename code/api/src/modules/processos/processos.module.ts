@@ -1,20 +1,26 @@
 import { Module, OnModuleInit } from '@nestjs/common';
 import { RegistoFerramentas } from '../../ferramentas/registo-ferramentas.service.js';
 import { JobsService } from '../../jobs/jobs.service.js';
+import { ConhecimentoModule } from '../conhecimento/conhecimento.module.js';
 import {
   ProcessosPainelController,
   ProcessosPublicoController,
+  RascunhosController,
   TiposProcessoController,
 } from './processos.controller.js';
 import { ferramentasProcessos } from './processos.ferramentas.js';
+import { ProcessosApoioService } from './processos-apoio.service.js';
 import { ProcessosAvisosService } from './processos-avisos.service.js';
 import { ProcessosPainelService } from './processos-painel.service.js';
 import { ProcessosService } from './processos.service.js';
 import { TiposProcessoService } from './tipos-processo.service.js';
 
 @Module({
+  // Pesquisa no conhecimento para o regulamento aplicável.
+  imports: [ConhecimentoModule],
   controllers: [
     ProcessosPainelController,
+    RascunhosController,
     TiposProcessoController,
     ProcessosPublicoController,
   ],
@@ -22,6 +28,7 @@ import { TiposProcessoService } from './tipos-processo.service.js';
     ProcessosService,
     ProcessosPainelService,
     ProcessosAvisosService,
+    ProcessosApoioService,
     TiposProcessoService,
   ],
   exports: [ProcessosService, TiposProcessoService],

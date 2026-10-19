@@ -1,5 +1,6 @@
 import { Module, OnModuleInit } from '@nestjs/common';
 import { JobsService } from '../../jobs/jobs.service.js';
+import { ConhecimentoModule } from '../conhecimento/conhecimento.module.js';
 import { PainelModule } from '../painel/painel.module.js';
 import { RelatoriosController } from './relatorios.controller.js';
 import { RelatoriosService } from './relatorios.service.js';
@@ -9,7 +10,7 @@ import { RelatoriosService } from './relatorios.service.js';
  * (dia 1, 08:00), mais o pedido manual no painel.
  */
 @Module({
-  imports: [PainelModule],
+  imports: [PainelModule, ConhecimentoModule],
   controllers: [RelatoriosController],
   providers: [RelatoriosService],
 })

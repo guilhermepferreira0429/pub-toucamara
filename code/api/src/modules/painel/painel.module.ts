@@ -1,5 +1,6 @@
 import { Module, OnModuleInit } from '@nestjs/common';
 import { JobsService } from '../../jobs/jobs.service.js';
+import { ConhecimentoModule } from '../conhecimento/conhecimento.module.js';
 import { AgenteController } from './agente.controller.js';
 import { AgenteService } from './agente.service.js';
 import { EquipaController } from './equipa.controller.js';
@@ -15,6 +16,7 @@ import { VisaoGeralController } from './visao-geral.controller.js';
  * às 03:30.
  */
 @Module({
+  imports: [ConhecimentoModule],
   controllers: [VisaoGeralController, EquipaController, AgenteController],
   providers: [
     PainelDadosService,

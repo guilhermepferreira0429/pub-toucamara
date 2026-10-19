@@ -18,6 +18,11 @@ import {
   JOB_INGESTAO,
   JOB_PROPOR,
 } from './ingestao.service.js';
+import {
+  DadosMelhorias,
+  JOB_MELHORIAS,
+  MelhoriasService,
+} from './melhorias.service.js';
 import { PainelConhecimentoController } from './painel-conhecimento.controller.js';
 import {
   JOB_REINDEXAR,
@@ -31,7 +36,9 @@ import { DadosPropor, PropostasService } from './propostas.service.js';
  *
  * Jobs: `ingestao_fontes` (03:00 e "Ler agora"), `propor_respostas` (depois
  * de uma alteração com respostas afetadas), `detetar_contradicoes` (depois
- * de uma ingestão com mudanças) e `reindexar_embeddings` (manual).
+ * de uma ingestão com mudanças), `reindexar_embeddings` (manual) e
+ * `propor_melhorias` (segunda 07:00, antes do relatório semanal das 08:00, e
+ * "Gerar agora" no painel).
  */
 @Module({
   controllers: [PainelConhecimentoController],
@@ -44,8 +51,9 @@ import { DadosPropor, PropostasService } from './propostas.service.js';
     ContradicoesService,
     PainelConhecimentoService,
     AvaliacaoService,
+    MelhoriasService,
   ],
-  exports: [ConhecimentoService, EmbeddingsService],
+  exports: [ConhecimentoService, EmbeddingsService, MelhoriasService],
 })
 export class ConhecimentoModule implements OnModuleInit {
   constructor(
@@ -57,6 +65,7 @@ export class ConhecimentoModule implements OnModuleInit {
     private readonly propostas: PropostasService,
     private readonly contradicoes: ContradicoesService,
     private readonly indexacao: IndexacaoService,
+    private readonly melhorias: MelhoriasService,
   ) {}
 
   onModuleInit() {
@@ -89,5 +98,11 @@ export class ConhecimentoModule implements OnModuleInit {
       },
       { concorrencia: 1 },
     );
+    this.jobs.trabalhar<DadosMelhorias>(
+      JOB_MELHORIAS,
+      (d) => this.melhorias.correr(d),
+      { concorrencia: 1 },
+    );
+    this.jobs.agendar(JOB_MELHORIAS, '0 7 * * 1');
   }
 }

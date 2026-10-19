@@ -15,6 +15,12 @@ import { validar } from '../../common/validacao.js';
 import { Painel } from '../auth/painel.guard.js';
 import type { Municipio } from '../municipios/municipios.service.js';
 import {
+  esquemaAtualizarCache,
+  esquemaEditarRascunho,
+  esquemaNovoRascunho,
+  ProcessosApoioService,
+} from './processos-apoio.service.js';
+import {
   esquemaAtualizarProcesso,
   esquemaListaProcessos,
   esquemaNota,
@@ -27,7 +33,10 @@ import { TiposProcessoService } from './tipos-processo.service.js';
 @Controller('painel/processos')
 @Painel('processos')
 export class ProcessosPainelController {
-  constructor(private readonly painel: ProcessosPainelService) {}
+  constructor(
+    private readonly painel: ProcessosPainelService,
+    private readonly apoio: ProcessosApoioService,
+  ) {}
 
   /** ?fase=&tecnico_id=(uuid|eu)&atrasados=true&aguarda_municipe=true&texto=&limite=&cursor= */
   @Get()
@@ -89,6 +98,105 @@ export class ProcessosPainelController {
       id,
       validar(esquemaPedirDocumento, body),
     );
+  }
+
+  /** Resumo do processo numa página (IA, em cache até o processo mudar). ?atualizar=true força. */
+  @Get(':id/resumo')
+  resumo(
+    @MunicipioAtual() m: Municipio,
+    @UtilizadorAtual() u: UtilizadorPainel,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Query() query: unknown,
+  ) {
+    return this.apoio.resumo(
+      m,
+      u,
+      id,
+      validar(esquemaAtualizarCache, query).atualizar,
+    );
+  }
+
+  /** Regulamento aplicável com as frases destacadas (sem IA: os trechos sem destaques). */
+  @Get(':id/regulamento')
+  regulamento(
+    @MunicipioAtual() m: Municipio,
+    @UtilizadorAtual() u: UtilizadorPainel,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Query() query: unknown,
+  ) {
+    return this.apoio.regulamento(
+      m,
+      u,
+      id,
+      validar(esquemaAtualizarCache, query).atualizar,
+    );
+  }
+
+  @Get(':id/rascunhos')
+  rascunhos(
+    @MunicipioAtual() m: Municipio,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.apoio.listarRascunhos(m, id);
+  }
+
+  /** { tipo: oficio|pedido_elementos|notificacao_sms, instrucoes?, modelo_id?, documentos_pedidos?, prazo_dias_uteis? } */
+  @Post(':id/rascunhos')
+  criarRascunho(
+    @MunicipioAtual() m: Municipio,
+    @UtilizadorAtual() u: UtilizadorPainel,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: unknown,
+  ) {
+    return this.apoio.criarRascunho(
+      m,
+      u,
+      id,
+      validar(esquemaNovoRascunho, body),
+    );
+  }
+}
+
+/** Rascunhos de ofício, pedido de elementos e SMS: o técnico edita, aprova ou descarta. */
+@Controller('painel/rascunhos')
+@Painel('processos')
+export class RascunhosController {
+  constructor(private readonly apoio: ProcessosApoioService) {}
+
+  /** { corpo } → nova versão (as anteriores ficam). */
+  @Patch(':id')
+  editar(
+    @MunicipioAtual() m: Municipio,
+    @UtilizadorAtual() u: UtilizadorPainel,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: unknown,
+  ) {
+    return this.apoio.editarRascunho(
+      m,
+      u,
+      id,
+      validar(esquemaEditarRascunho, body),
+    );
+  }
+
+  @Post(':id/aprovar')
+  @HttpCode(200)
+  aprovar(
+    @MunicipioAtual() m: Municipio,
+    @UtilizadorAtual() u: UtilizadorPainel,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.apoio.aprovarRascunho(m, u, id);
+  }
+
+  @Post(':id/descartar')
+  @HttpCode(200)
+  descartar(
+    @MunicipioAtual() m: Municipio,
+    @UtilizadorAtual() u: UtilizadorPainel,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.apoio.descartarRascunho(m, u, id);
   }
 }
 

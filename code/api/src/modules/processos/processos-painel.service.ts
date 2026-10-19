@@ -11,6 +11,7 @@ import { MensagensService } from '../comunicacao/mensagens.service.js';
 import { mascararTelefone } from '../municipes/municipes.service.js';
 import type { Municipio } from '../municipios/municipios.service.js';
 import { MunicipiosService } from '../municipios/municipios.service.js';
+import { HASH_PROCESSO, HASH_REGULAMENTO } from './apoio.js';
 import { avisoPedido, PRAZO_PEDIDO_DIAS_UTEIS } from './avisos.js';
 import { dadosComRotulos, Dados } from './formulario.js';
 import { ProcessosAvisosService } from './processos-avisos.service.js';
@@ -211,7 +212,7 @@ export class ProcessosPainelService {
     };
   }
 
-  private async carregar(
+  async carregar(
     municipioId: string,
     id: string,
     q: Pick<Tx, 'query'> = this.db,
@@ -242,6 +243,7 @@ export class ProcessosPainelService {
       municipe,
       tipo,
       pedidos,
+      apoio,
     ] = await Promise.all([
       this.db.query<Record<string, unknown>>(
         `SELECT e.id, e.tipo, e.descricao, e.interno, e.ator_tipo, e.ator_id,
@@ -302,6 +304,7 @@ export class ProcessosPainelService {
         : Promise.resolve([]),
       this.tipos.porId(municipio.id, p.tipo_processo_id),
       this.processos.pedidos(municipio.id, id),
+      this.estadoApoio(id),
     ]);
 
     const urlLeitura = async (chave: string | null) =>
@@ -370,12 +373,44 @@ export class ProcessosPainelService {
       pedidos,
       armazenamento_disponivel: this.armazenamento.disponivel,
       eventos,
+      // Resumo, regulamento destacado e rascunhos: se existem e se o resumo
+      // em cache ainda corresponde ao processo. Não gera nada.
+      apoio,
       criado_em: p.criado_em,
       atualizado_em: p.atualizado_em,
     };
   }
 
-  private async evento(
+  /** O que há de apoio ao técnico para o processo (só leitura, sem IA). */
+  async estadoApoio(processoId: string) {
+    const [r] = await this.db.query<{
+      resumo: { gerado_em: string; atualizado: boolean } | null;
+      regulamento: { gerado_em: string; atualizado: boolean } | null;
+      rascunhos: {
+        total: number;
+        rascunho: number;
+        aprovado: number;
+        descartado: number;
+      };
+    }>(
+      `SELECT
+         (SELECT json_build_object('gerado_em', ap.gerado_em, 'atualizado', ap.estado_hash = ${HASH_PROCESSO})
+          FROM processo_apoio ap WHERE ap.processo_id = p.id AND ap.tipo = 'resumo') AS resumo,
+         (SELECT json_build_object('gerado_em', ap.gerado_em, 'atualizado', ap.estado_hash = ${HASH_REGULAMENTO})
+          FROM processo_apoio ap WHERE ap.processo_id = p.id AND ap.tipo = 'regulamento') AS regulamento,
+         (SELECT json_build_object(
+            'total', count(*),
+            'rascunho', count(*) FILTER (WHERE g.estado = 'rascunho'),
+            'aprovado', count(*) FILTER (WHERE g.estado IN ('aprovado', 'assinado', 'enviado')),
+            'descartado', count(*) FILTER (WHERE g.estado = 'descartado'))
+          FROM documentos_gerados g WHERE g.processo_id = p.id) AS rascunhos
+       FROM processos p WHERE p.id = $1`,
+      [processoId],
+    );
+    return r;
+  }
+
+  async evento(
     tx: Tx,
     processoId: string,
     u: UtilizadorPainel,
@@ -622,85 +657,134 @@ export class ProcessosPainelService {
   ) {
     return this.db.transaction(async (tx) => {
       const p = await this.carregar(municipio.id, id, tx, true);
-      let nome = b.nome ?? null;
-      if (b.tipo_documento_id) {
-        const [d] = await tx.query<{ nome: string }>(
-          'SELECT nome FROM tipo_processo_documentos WHERE id = $1 AND tipo_processo_id = $2',
-          [b.tipo_documento_id, p.tipo_processo_id],
-        );
-        if (!d) {
-          throw new ErroApi(
-            HttpStatus.BAD_REQUEST,
-            'documento_desconhecido',
-            'Esse documento não é deste tipo de processo.',
-          );
-        }
-        nome = nome ?? d.nome;
-      }
-      const descricao = nome!;
-      const prazo = somarDiasUteis(
-        hojeLisboa(),
-        b.prazo_dias_uteis,
-        await this.municipios.feriados(municipio.id),
-      );
-      const e = await this.evento(
-        tx,
-        id,
-        u,
-        'documento_pedido',
-        `Pedido ao munícipe: ${descricao}${b.nota ? ` (${b.nota})` : ''}, até ${prazo.split('-').reverse().join('/')}.`,
-        false,
-        {
-          nome: descricao,
-          tipo_documento_id: b.tipo_documento_id ?? null,
-          nota: b.nota ?? null,
-          prazo,
-        },
-      );
-      const [pedido] = await tx.query<{ id: string }>(
-        `INSERT INTO processo_pedidos (processo_id, evento_id, descricao, tipo_documento_id, nota,
-           pedido_em, prazo, criado_por)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`,
-        [
-          id,
-          e.id,
-          descricao,
-          b.tipo_documento_id ?? null,
-          b.nota ?? null,
-          e.em,
-          prazo,
-          u.id,
-        ],
-      );
-      await tx.query(
-        'UPDATE processos SET atualizado_em = now() WHERE id = $1',
-        [id],
-      );
-
-      const link = await this.processos.linkProcesso(municipio.id, id, tx);
-      const canal = await this.avisos.enviar(tx, {
-        municipioId: municipio.id,
-        municipeId: p.municipe_id,
-        aviso: avisoPedido({
-          municipio: municipio.nome,
-          numero: p.numero,
-          link,
-          nome: descricao,
-          nota: b.nota ?? null,
-          prazo,
-        }),
-        motivo: 'processo',
-        chave: `processo_pedido:${e.id}`,
-        relacionado: { processo_id: id, pedido_id: pedido.id },
+      const r = await this.registarPedido(tx, municipio, u, p, b);
+      const canal = await this.avisarPedido(tx, municipio, p, {
+        nome: r.nome,
+        nota: b.nota ?? null,
+        prazo: r.prazo,
+        chave: `processo_pedido:${r.evento_id}`,
+        pedidoId: r.pedido_id,
       });
       return {
-        evento_id: e.id,
-        em: e.em,
-        pedido_id: pedido.id,
-        prazo,
+        evento_id: r.evento_id,
+        em: r.em,
+        pedido_id: r.pedido_id,
+        prazo: r.prazo,
         aviso: canal,
         sms_enviado: canal === 'sms',
       };
+    });
+  }
+
+  /**
+   * O pedido sem o aviso, dentro da transação de quem chama (com o processo
+   * já bloqueado): evento visível 'documento_pedido' e linha em
+   * `processo_pedidos`. Também o usa a aprovação de um pedido de elementos,
+   * que avisa uma só vez por todos os documentos.
+   */
+  async registarPedido(
+    tx: Tx,
+    municipio: Municipio,
+    u: UtilizadorPainel,
+    p: { id: string; tipo_processo_id: string },
+    b: {
+      tipo_documento_id?: string;
+      nome?: string;
+      nota?: string;
+      prazo_dias_uteis: number;
+    },
+  ) {
+    const id = p.id;
+    let nome = b.nome ?? null;
+    if (b.tipo_documento_id) {
+      const [d] = await tx.query<{ nome: string }>(
+        'SELECT nome FROM tipo_processo_documentos WHERE id = $1 AND tipo_processo_id = $2',
+        [b.tipo_documento_id, p.tipo_processo_id],
+      );
+      if (!d) {
+        throw new ErroApi(
+          HttpStatus.BAD_REQUEST,
+          'documento_desconhecido',
+          'Esse documento não é deste tipo de processo.',
+        );
+      }
+      nome = nome ?? d.nome;
+    }
+    const descricao = nome!;
+    const prazo = somarDiasUteis(
+      hojeLisboa(),
+      b.prazo_dias_uteis,
+      await this.municipios.feriados(municipio.id),
+    );
+    const e = await this.evento(
+      tx,
+      id,
+      u,
+      'documento_pedido',
+      `Pedido ao munícipe: ${descricao}${b.nota ? ` (${b.nota})` : ''}, até ${prazo.split('-').reverse().join('/')}.`,
+      false,
+      {
+        nome: descricao,
+        tipo_documento_id: b.tipo_documento_id ?? null,
+        nota: b.nota ?? null,
+        prazo,
+      },
+    );
+    const [pedido] = await tx.query<{ id: string }>(
+      `INSERT INTO processo_pedidos (processo_id, evento_id, descricao, tipo_documento_id, nota,
+         pedido_em, prazo, criado_por)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`,
+      [
+        id,
+        e.id,
+        descricao,
+        b.tipo_documento_id ?? null,
+        b.nota ?? null,
+        e.em,
+        prazo,
+        u.id,
+      ],
+    );
+    await tx.query('UPDATE processos SET atualizado_em = now() WHERE id = $1', [
+      id,
+    ]);
+    return {
+      evento_id: e.id,
+      em: e.em,
+      pedido_id: pedido.id,
+      nome: descricao,
+      prazo,
+    };
+  }
+
+  /** O aviso do pedido (SMS, ou email se o munícipe o preferir), com o prazo e o link. */
+  async avisarPedido(
+    tx: Tx,
+    municipio: Municipio,
+    p: { id: string; numero: string; municipe_id: string | null },
+    a: {
+      nome: string;
+      nota: string | null;
+      prazo: string;
+      chave: string;
+      pedidoId: string;
+    },
+  ) {
+    const link = await this.processos.linkProcesso(municipio.id, p.id, tx);
+    return this.avisos.enviar(tx, {
+      municipioId: municipio.id,
+      municipeId: p.municipe_id,
+      aviso: avisoPedido({
+        municipio: municipio.nome,
+        numero: p.numero,
+        link,
+        nome: a.nome,
+        nota: a.nota,
+        prazo: a.prazo,
+      }),
+      motivo: 'processo',
+      chave: a.chave,
+      relacionado: { processo_id: p.id, pedido_id: a.pedidoId },
     });
   }
 }

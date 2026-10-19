@@ -78,6 +78,9 @@ export function ferramentasPagamentos(pagamentos: PagamentosService) {
       nome: 'criar_pagamento',
       descricao:
         'Gera a referência Multibanco para pagar as taxas de um requerimento ou processo e manda-a por SMS. ' +
+        'Se o munícipe preferir MB WAY, usa metodo "mbway": serve o telemóvel de onde liga; se não for um telemóvel português ' +
+        '(dá falta_telemovel ou telemovel_invalido), pergunta o número do MB WAY e passa-o em telemovel. ' +
+        'Com MB WAY diz a frase em "dizer" (o pedido de teste aceita-se no link do SMS em poucos minutos; a referência MB fica como alternativa). ' +
         'Usa depois de o requerimento estar entregue e de o munícipe aceitar pagar; sem ids, usa o requerimento desta conversa. ' +
         'O valor é recalculado aqui (passa as mesmas quantidades da simulação). ' +
         'Diz o valor_por_extenso, que a referência seguiu por SMS e o prazo (pagar_ate_dito). ' +
@@ -89,6 +92,19 @@ export function ferramentasPagamentos(pagamentos: PagamentosService) {
         tipo_processo: tipoProcesso,
         taxas,
         quantidades,
+        metodo: z
+          .enum(['multibanco', 'mbway'])
+          .optional()
+          .describe('Como quer pagar; por omissão multibanco.'),
+        telemovel: z
+          .string()
+          .trim()
+          .min(9)
+          .max(20)
+          .optional()
+          .describe(
+            'Telemóvel do MB WAY dito pelo munícipe (ex.: "912345678"), se não for o número de onde liga.',
+          ),
       }),
       executar: (ctx, entrada) => pagamentos.criar(ctx, entrada),
     }),

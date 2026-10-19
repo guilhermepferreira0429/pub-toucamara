@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { diasUteisEntre, somarDiasUteis } from '../../common/dias-uteis.js';
+import { MelhoriasService } from '../conhecimento/melhorias.service.js';
 import { DatabaseService } from '../../database/database.service.js';
 import {
   Municipio,
@@ -44,6 +45,7 @@ export class PainelService {
     private readonly db: DatabaseService,
     private readonly dados: PainelDadosService,
     private readonly municipios: MunicipiosService,
+    private readonly melhorias: MelhoriasService,
   ) {}
 
   hoje(m: Municipio): string {
@@ -61,6 +63,7 @@ export class PainelService {
       temasAtual,
       temasAnterior,
       atencao,
+      melhorias,
     ] = await Promise.all([
       this.dados.resultadosPorCanal(m.id, p),
       this.dados.resultadosPorCanal(m.id, anterior),
@@ -69,6 +72,7 @@ export class PainelService {
       this.dados.temas(m.id, p),
       this.dados.temas(m.id, anterior),
       this.atencao(m),
+      this.melhorias.resumo(m.id, p.de, p.ate),
     ]);
     return {
       periodo: p,
@@ -81,6 +85,8 @@ export class PainelService {
       quando_ligam: mapaCalor(porHora),
       o_que_perguntam: topTemas(temasAtual, temasAnterior),
       atencao,
+      // "Perguntas sem resposta que levaram a melhorar o portal" (métrica do PRD).
+      melhorias_portal: melhorias,
     };
   }
 
