@@ -127,6 +127,10 @@ export class PainelConhecimentoController {
     return this.svc.novaVersao(m.id, u, id, validar(esquemaVersao, body));
   }
 
+  /**
+   * Corpo: { versao_id, forcar? }. Só publica com uma avaliação do agente
+   * (versão atual, taxa ≥ 80%); `forcar` salta o gate (equipa interna, auditado).
+   */
   @Post('respostas/:id/publicar')
   @HttpCode(200)
   @Painel('conhecimento')
@@ -137,8 +141,11 @@ export class PainelConhecimentoController {
     @Body() body: unknown,
   ) {
     exigirEquipaInterna(u);
-    const { versao_id } = validar(z.object({ versao_id: z.uuid() }), body);
-    return this.svc.publicar(m.id, u, id, versao_id);
+    const { versao_id, forcar } = validar(
+      z.object({ versao_id: z.uuid(), forcar: z.boolean().default(false) }),
+      body,
+    );
+    return this.svc.publicar(m.id, u, id, versao_id, forcar);
   }
 
   // --- Perguntas sem resposta ---------------------------------------------
@@ -281,7 +288,10 @@ export class PainelConhecimentoController {
     return this.svc.alteracao(m.id, id);
   }
 
-  /** Corpo opcional: { rejeitar: [resposta_id] } para não publicar algumas propostas. */
+  /**
+   * Corpo opcional: { rejeitar: [resposta_id], forcar? }. Publicar propostas
+   * passa pelo mesmo gate de avaliação que `respostas/:id/publicar`.
+   */
   @Post('alteracoes/:id/aprovar')
   @HttpCode(200)
   @Painel('conhecimento')
@@ -291,11 +301,14 @@ export class PainelConhecimentoController {
     @Param('id', uuid) id: string,
     @Body() body: unknown,
   ) {
-    const { rejeitar } = validar(
-      z.object({ rejeitar: z.array(z.uuid()).max(200).default([]) }),
+    const { rejeitar, forcar } = validar(
+      z.object({
+        rejeitar: z.array(z.uuid()).max(200).default([]),
+        forcar: z.boolean().default(false),
+      }),
       body ?? {},
     );
-    return this.svc.aprovar(m.id, u, id, rejeitar);
+    return this.svc.aprovar(m.id, u, id, rejeitar, forcar);
   }
 
   @Post('alteracoes/:id/ignorar')
@@ -343,6 +356,7 @@ export class PainelConhecimentoController {
     return this.svc.atualizarContradicao(m.id, u, id, d);
   }
 
+  /** Resultados do avaliador para o nosso agente (nunca sistemas de outros). */
   @Get('qualidade')
   @Painel('conhecimento_ver')
   qualidade(@MunicipioAtual() m: Municipio) {

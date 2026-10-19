@@ -1,0 +1,27 @@
+{
+  "name": "avaliador",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Avaliador do Tou, Câmara?: as mesmas perguntas, o mesmo gabarito e o mesmo juiz para o nosso agente e para sistemas de outros",
+  "type": "module",
+  "scripts": {
+    "avaliador": "tsx src/cli.ts",
+    "test": "tsx --test \"src/**/*.test.ts\"",
+    "typecheck": "tsc --noEmit",
+    "format": "prettier --write \"src/**/*.ts\""
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.135.0",
+    "dotenv": "^18.0.8",
+    "pg": "^8.23.1",
+    "playwright": "^1.64.1",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.5",
+    "@types/pg": "^8.23.1",
+    "prettier": "^3.9.10",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
+  }
+}

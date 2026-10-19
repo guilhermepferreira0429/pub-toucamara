@@ -5,6 +5,8 @@ import type { UtilizadorPainel } from '../../common/pedido.js';
 import { DatabaseService, Tx } from '../../database/database.service.js';
 import { JobsService } from '../../jobs/jobs.service.js';
 import { AuditoriaService } from '../auditoria/auditoria.service.js';
+import { erroPublicacao } from './avaliacao.js';
+import { AvaliacaoService } from './avaliacao.service.js';
 import { IndexacaoService } from './indexacao.service.js';
 import { IngestaoService, JOB_INGESTAO } from './ingestao.service.js';
 import { FONTE_JSON } from './sql.js';
@@ -63,6 +65,7 @@ export class PainelConhecimentoService {
     private readonly auditoria: AuditoriaService,
     private readonly ingestao: IngestaoService,
     private readonly indexacao: IndexacaoService,
+    private readonly avaliacao: AvaliacaoService,
   ) {}
 
   // -------------------------------------------------------------------------
@@ -339,23 +342,41 @@ export class PainelConhecimentoService {
   }
 
   /**
-   * Põe uma versão no ar. Sem runner de evals ainda: publica direto (só a
-   * equipa interna). Quando houver `correr_evals`, isto passa a criar a
-   * execução com motivo 'publicacao' e só publica se `passou`
-   * (secção 6.3), guardando `eval_execucao_id` na versão.
+   * Põe uma versão no ar, se o gate deixar (`exigirAvaliacao`): a versão
+   * fica com `eval_execucao_id` da execução que a deixou passar.
    */
   async publicar(
     municipioId: string,
     u: UtilizadorPainel,
     respostaId: string,
     versaoId: string,
+    forcar = false,
   ) {
     await this.db.transaction(async (tx) => {
+      // 404 antes do gate: não faz sentido pedir uma avaliação para nada.
+      const [existe] = await tx.query(
+        `SELECT 1 FROM resposta_versoes rv JOIN respostas r ON r.id = rv.resposta_id
+         WHERE rv.id = $1 AND rv.resposta_id = $2 AND r.municipio_id = $3`,
+        [versaoId, respostaId, municipioId],
+      );
+      if (!existe) throw naoEncontrada('versão');
+      const execucaoId = await this.exigirAvaliacao(
+        tx,
+        municipioId,
+        u,
+        forcar,
+        {
+          objetoTipo: 'resposta',
+          objetoId: respostaId,
+          dados: { versao_id: versaoId },
+        },
+      );
       const ok = await this.publicarVersao(
         tx,
         municipioId,
         respostaId,
         versaoId,
+        execucaoId,
       );
       if (!ok) throw naoEncontrada('versão');
       await this.auditoria.registar(
@@ -366,7 +387,7 @@ export class PainelConhecimentoService {
           acao: 'publicar',
           objetoTipo: 'resposta',
           objetoId: respostaId,
-          dados: { versao_id: versaoId },
+          dados: { versao_id: versaoId, eval_execucao_id: execucaoId },
         },
         tx,
       );
@@ -374,18 +395,63 @@ export class PainelConhecimentoService {
     return this.resposta(municipioId, respostaId);
   }
 
+  /**
+   * Gate de publicação (spec do avaliador, secção 9). Devolve a execução que
+   * deixa publicar; sem ela, 409 `avaliacao_em_falta` ou 422
+   * `avaliacao_abaixo_do_limiar`. `forcar` (só equipa interna) publica na
+   * mesma, sem execução, e fica na auditoria como 'publicar_sem_avaliacao'.
+   */
+  private async exigirAvaliacao(
+    tx: Tx,
+    municipioId: string,
+    u: UtilizadorPainel,
+    forcar: boolean,
+    objeto: {
+      objetoTipo: string;
+      objetoId: string;
+      dados: Record<string, unknown>;
+    },
+  ): Promise<string | null> {
+    const estado = await this.avaliacao.estadoPublicacao(municipioId, tx);
+    const d = estado.decisao;
+    if (d.permitir) return d.execucao_id;
+    if (!forcar) throw erroPublicacao(d, estado);
+    exigirEquipaInterna(u);
+    await this.auditoria.registar(
+      {
+        municipioId,
+        atorTipo: 'utilizador',
+        atorId: u.id,
+        acao: 'publicar_sem_avaliacao',
+        ...objeto,
+        dados: {
+          ...objeto.dados,
+          motivo: d.motivo,
+          causa: d.causa,
+          execucao_id: d.execucao_id,
+          taxa: d.taxa,
+          versao_atual: estado.versao_atual,
+        },
+      },
+      tx,
+    );
+    return null;
+  }
+
   private async publicarVersao(
     tx: Tx,
     municipioId: string,
     respostaId: string,
     versaoId: string,
+    execucaoId: string | null,
   ): Promise<boolean> {
     const [v] = await tx.query<{ id: string }>(
-      `UPDATE resposta_versoes rv SET publicada_em = coalesce(rv.publicada_em, now())
+      `UPDATE resposta_versoes rv SET publicada_em = coalesce(rv.publicada_em, now()),
+              eval_execucao_id = $4
        FROM respostas r
        WHERE rv.id = $1 AND rv.resposta_id = $2 AND r.id = rv.resposta_id AND r.municipio_id = $3
        RETURNING rv.id`,
-      [versaoId, respostaId, municipioId],
+      [versaoId, respostaId, municipioId, execucaoId],
     );
     if (!v) return false;
     await tx.query(
@@ -783,12 +849,14 @@ export class PainelConhecimentoService {
    * vão para o ar. Publicar respostas é só da equipa interna (V1); sem
    * propostas prontas basta o recurso 'conhecimento'. Afetadas ainda sem
    * proposta ficam 'proposta' (continuam marcadas para rever na resposta).
+   * Publicar propostas passa pelo mesmo gate de avaliação que `publicar`.
    */
   async aprovar(
     municipioId: string,
     u: UtilizadorPainel,
     id: string,
     rejeitar: string[],
+    forcar = false,
   ) {
     await this.db.transaction(async (tx) => {
       const a = await this.bloquearAlteracao(tx, municipioId, id);
@@ -803,7 +871,15 @@ export class PainelConhecimentoService {
       const publicar = propostas.filter(
         (p) => p.proposta_versao_id && !rejeitar.includes(p.resposta_id),
       );
-      if (publicar.length) exigirEquipaInterna(u);
+      let execucaoId: string | null = null;
+      if (publicar.length) {
+        exigirEquipaInterna(u);
+        execucaoId = await this.exigirAvaliacao(tx, municipioId, u, forcar, {
+          objetoTipo: 'alteracao',
+          objetoId: id,
+          dados: { versoes: publicar.map((p) => p.proposta_versao_id) },
+        });
+      }
 
       for (const p of publicar) {
         await this.publicarVersao(
@@ -811,6 +887,7 @@ export class PainelConhecimentoService {
           municipioId,
           p.resposta_id,
           p.proposta_versao_id!,
+          execucaoId,
         );
       }
       await tx.query(
@@ -837,6 +914,7 @@ export class PainelConhecimentoService {
           dados: {
             publicadas: publicar.map((p) => p.proposta_versao_id),
             rejeitadas: rejeitar,
+            eval_execucao_id: execucaoId,
           },
         },
         tx,
@@ -968,16 +1046,9 @@ export class PainelConhecimentoService {
     return c;
   }
 
-  /** Últimas execuções de evals (vazio enquanto não houver runner). */
-  async qualidade(municipioId: string) {
-    const execucoes = await this.db.query(
-      `SELECT id, agente_versao, motivo, iniciada_em, terminada_em, total, certas,
-              passadas_bem, erradas, limiar::float8 AS limiar, taxa::float8 AS taxa, passou
-       FROM eval_execucoes WHERE municipio_id = $1
-       ORDER BY iniciada_em DESC LIMIT 20`,
-      [municipioId],
-    );
-    return { execucoes };
+  /** Página "Qualidade": resultados do avaliador para o nosso agente. */
+  qualidade(municipioId: string) {
+    return this.avaliacao.qualidade(municipioId);
   }
 
   async reindexar(municipioId: string, todos: boolean) {

@@ -1,0 +1,18 @@
+[
+  {
+    "ordem": 2,
+    "categoria": "Água e saneamento",
+    "texto": "Estou sem água em casa, para onde ligo?",
+    "comportamento": "encaminhar",
+    "entidade_esperada": "Vimágua"
+  },
+  {
+    "ordem": 1,
+    "categoria": "Obras e urbanismo",
+    "texto": "Quero fazer obras na cozinha, preciso de licença?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  }
+]

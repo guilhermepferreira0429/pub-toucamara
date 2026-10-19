@@ -1,0 +1,223 @@
+import { Injectable } from '@nestjs/common';
+import { DatabaseService, Tx } from '../../database/database.service.js';
+import {
+  decidirPublicacao,
+  DecisaoPublicacao,
+  ExecucaoGate,
+  LIMIAR_PUBLICACAO,
+} from './avaliacao.js';
+
+export interface EstadoPublicacao {
+  decisao: DecisaoPublicacao;
+  versao_atual: string | null;
+  /** Nome do sistema `tou-chat` do município (para o comando do avaliador). */
+  sistema: string | null;
+}
+
+/** Uma execução com o total (NULL nas contagens se ainda não tem respostas). */
+interface ResumoExecucao {
+  execucao_id: string;
+  sistema: string;
+  agente_versao: string | null;
+  motivo: string;
+  iniciada_em: Date;
+  terminada_em: Date | null;
+  total: number | null;
+  certas: number | null;
+  passadas_bem: number | null;
+  erradas: number | null;
+  sem_resposta: number | null;
+  por_responder: number | null;
+  por_avaliar: number | null;
+  taxa: number | null;
+}
+
+/** Colunas de `avaliacao.resultados` que o painel mostra (taxa em número). */
+const COLUNAS_RESULTADO = `r.total, r.certas, r.passadas_bem, r.erradas, r.sem_resposta,
+  r.por_responder, r.por_avaliar, r.taxa::float8 AS taxa`;
+
+/**
+ * Resultados do avaliador (`code/avaliador`, esquema `avaliacao`) vistos pela
+ * API: só lê, nunca chama o avaliador. Aqui só entra o NOSSO agente do
+ * município; sistemas de outras câmaras são do relatório de vendas.
+ */
+@Injectable()
+export class AvaliacaoService {
+  constructor(private readonly db: DatabaseService) {}
+
+  /**
+   * A execução que decide a publicação: a mais recente `tou-chat`, terminada,
+   * não amostra, sobre a versão atual do agente, de um conjunto genérico ou
+   * do município (sem nenhuma da versão atual, a última, para o motivo).
+   */
+  async estadoPublicacao(
+    municipioId: string,
+    tx?: Tx,
+  ): Promise<EstadoPublicacao> {
+    const [l] = await (tx ?? this.db).query<
+      Partial<ExecucaoGate> & {
+        versao_atual: string | null;
+        sistema_chat: string | null;
+      }
+    >(
+      `SELECT a.versao AS versao_atual,
+              (SELECT s.nome FROM avaliacao.sistemas s
+               WHERE s.nosso AND s.adaptador = 'tou-chat' AND s.municipio_id = $1
+               ORDER BY s.criado_em LIMIT 1) AS sistema_chat,
+              e.id AS execucao_id, e.sistema, e.agente_versao, e.terminada_em,
+              r.taxa::float8 AS taxa, r.total, r.por_avaliar
+       FROM (SELECT $1::uuid AS municipio_id) m
+       LEFT JOIN agente_config a ON a.municipio_id = m.municipio_id
+       LEFT JOIN LATERAL (
+         SELECT e.id, s.nome AS sistema, e.agente_versao, e.terminada_em
+         FROM avaliacao.execucoes e
+         JOIN avaliacao.sistemas s ON s.id = e.sistema_id
+         JOIN avaliacao.conjuntos c ON c.id = e.conjunto_id
+         WHERE s.nosso AND s.adaptador = 'tou-chat' AND s.municipio_id = m.municipio_id
+           AND (c.municipio_id IS NULL OR c.municipio_id = m.municipio_id)
+           AND e.estado = 'terminada' AND NOT e.amostra
+         -- A da versão atual, se houver; senão a última (para dizer porquê).
+         ORDER BY (e.agente_versao = a.versao) IS TRUE DESC, e.terminada_em DESC NULLS LAST
+         LIMIT 1
+       ) e ON true
+       LEFT JOIN avaliacao.resultados r ON r.execucao_id = e.id AND r.categoria IS NULL`,
+      [municipioId],
+    );
+    const execucao: ExecucaoGate | null = l?.execucao_id
+      ? {
+          execucao_id: l.execucao_id,
+          sistema: l.sistema!,
+          agente_versao: l.agente_versao ?? null,
+          terminada_em: l.terminada_em ?? null,
+          taxa: l.taxa ?? null,
+          total: l.total ?? 0,
+          por_avaliar: l.por_avaliar ?? 0,
+        }
+      : null;
+    const versao = l?.versao_atual ?? null;
+    return {
+      decisao: decidirPublicacao(execucao, versao),
+      versao_atual: versao,
+      sistema: execucao?.sistema ?? l?.sistema_chat ?? null,
+    };
+  }
+
+  /**
+   * Página "Qualidade": última execução do chat (total e por categoria),
+   * evolução das últimas 20, as erradas da última e a última amostra de voz.
+   */
+  async qualidade(municipioId: string) {
+    const ultimas = await this.db.query<ResumoExecucao>(
+      `SELECT e.id AS execucao_id, s.nome AS sistema, e.agente_versao, e.motivo,
+              e.iniciada_em, e.terminada_em, ${COLUNAS_RESULTADO}
+       FROM avaliacao.execucoes e
+       JOIN avaliacao.sistemas s ON s.id = e.sistema_id
+       LEFT JOIN avaliacao.resultados r ON r.execucao_id = e.id AND r.categoria IS NULL
+       WHERE s.nosso AND s.adaptador = 'tou-chat' AND s.municipio_id = $1
+         AND e.estado = 'terminada' AND NOT e.amostra
+       ORDER BY e.terminada_em DESC NULLS LAST, e.id DESC
+       LIMIT 20`,
+      [municipioId],
+    );
+    const [estado, voz] = await Promise.all([
+      this.estadoPublicacao(municipioId),
+      this.ultimaVoz(municipioId),
+    ]);
+
+    // Da mais antiga para a mais recente, para o gráfico.
+    const evolucao = ultimas
+      .map((e) => ({ ...e, passou: passou(e.taxa) }))
+      .reverse();
+
+    let ultima: Record<string, unknown> | null = null;
+    let erradas: unknown[] = [];
+    const u = ultimas[0];
+    if (u) {
+      const [categorias, linhas] = await Promise.all([
+        this.db.query(
+          `SELECT r.categoria, ${COLUNAS_RESULTADO}
+           FROM avaliacao.resultados r
+           WHERE r.execucao_id = $1 AND r.categoria IS NOT NULL
+           ORDER BY r.taxa ASC NULLS LAST, r.categoria`,
+          [u.execucao_id],
+        ),
+        this.erradas(municipioId, u.execucao_id),
+      ]);
+      ultima = {
+        ...u,
+        perguntas:
+          (u.total ?? 0) + (u.por_responder ?? 0) + (u.por_avaliar ?? 0),
+        passou: passou(u.taxa),
+        categorias,
+      };
+      erradas = linhas;
+    }
+
+    const d = estado.decisao;
+    return {
+      limiar: LIMIAR_PUBLICACAO,
+      versao_atual: estado.versao_atual,
+      publicacao: d.permitir
+        ? {
+            pode_publicar: true,
+            motivo: null,
+            causa: null,
+            execucao_id: d.execucao_id,
+          }
+        : {
+            pode_publicar: false,
+            motivo: d.motivo,
+            causa: d.causa,
+            execucao_id: d.execucao_id,
+          },
+      ultima,
+      evolucao,
+      erradas,
+      voz,
+    };
+  }
+
+  /** Respostas erradas ou sem resposta, com o gabarito que o juiz usou. */
+  private erradas(municipioId: string, execucaoId: string) {
+    return this.db.query(
+      `SELECT r.id AS resposta_id, p.id AS pergunta_id, p.ordem, p.categoria,
+              p.texto AS pergunta, p.comportamento, r.texto AS resposta,
+              f.veredicto, coalesce(g.resposta, ga.resposta) AS gabarito,
+              f.factos_em_falta, f.factos_errados, f.justificacao, f.avaliador,
+              r.latencia_ms, r.respondida_em
+       FROM avaliacao.respostas r
+       JOIN avaliacao.perguntas p ON p.id = r.pergunta_id
+       JOIN avaliacao.avaliacao_final f ON f.resposta_id = r.id
+       LEFT JOIN avaliacao.gabarito g ON g.id = f.gabarito_id
+       LEFT JOIN avaliacao.gabarito ga ON f.gabarito_id IS NULL AND ga.pergunta_id = p.id
+            AND ga.municipio_id = $2 AND ga.estado = 'aprovado'
+       WHERE r.execucao_id = $1 AND r.erro IS NULL
+         AND f.veredicto IN ('errada', 'sem_resposta')
+       ORDER BY p.ordem`,
+      [execucaoId, municipioId],
+    );
+  }
+
+  /** Última amostra de voz (`tou-voz`) terminada, com a latência média. */
+  private async ultimaVoz(municipioId: string) {
+    const [v] = await this.db.query<{ taxa: number | null }>(
+      `SELECT e.id AS execucao_id, s.nome AS sistema, e.agente_versao, e.amostra,
+              e.iniciada_em, e.terminada_em, ${COLUNAS_RESULTADO},
+              (SELECT round(avg(x.latencia_ms))::int FROM avaliacao.respostas x
+               WHERE x.execucao_id = e.id AND x.erro IS NULL AND x.latencia_ms IS NOT NULL) AS latencia_media_ms
+       FROM avaliacao.execucoes e
+       JOIN avaliacao.sistemas s ON s.id = e.sistema_id
+       LEFT JOIN avaliacao.resultados r ON r.execucao_id = e.id AND r.categoria IS NULL
+       WHERE s.nosso AND s.adaptador = 'tou-voz' AND s.municipio_id = $1
+         AND e.estado = 'terminada'
+       ORDER BY e.terminada_em DESC NULLS LAST, e.id DESC
+       LIMIT 1`,
+      [municipioId],
+    );
+    return v ? { ...v, passou: passou(v.taxa) } : null;
+  }
+}
+
+function passou(taxa: number | null): boolean {
+  return taxa !== null && taxa >= LIMIAR_PUBLICACAO;
+}

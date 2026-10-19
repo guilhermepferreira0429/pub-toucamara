@@ -8,6 +8,7 @@ import { DatabaseService } from '../../database/database.service.js';
 import { ContextoFerramenta } from '../../ferramentas/ferramenta.js';
 import { RegistoFerramentas } from '../../ferramentas/registo-ferramentas.service.js';
 import { AbrirFluxo, correrTurno, EventoAgente } from '../../ia/agente-chat.js';
+import { segredoIgual } from '../agent-tools/agente.guard.js';
 import { MensagensService } from '../comunicacao/mensagens.service.js';
 import { ConversasService } from '../conversas/conversas.service.js';
 import { quandoFalado } from '../conversas/retomar.js';
@@ -100,6 +101,12 @@ export class ChatService {
   // ------------------------------------------------------------------
   // Sessões
   // ------------------------------------------------------------------
+
+  /** Pedido com o segredo do agente (o avaliador). Sem segredo configurado, nunca. */
+  eAvaliador(segredo: string | undefined): boolean {
+    const esperado = this.config.get<string>('agente.segredo') ?? '';
+    return !!segredo && !!esperado && segredoIgual(segredo, esperado);
+  }
 
   async criarSessao(args: {
     municipio: string;

@@ -1,0 +1,32 @@
+event: ferramenta
+data: {"nome":"procurar_conhecimento"}
+
+event: cartao
+data: {"tipo":"fonte","fontes":[{"titulo":"Licenciamento de obras","url":"https://www.cm-guimaraes.pt/servicos/obras","entidade":"Câmara Municipal de Guimarães","referencia":null},{"titulo":"Regulamento Municipal de Urbanização e Edificação","url":"https://www.cm-guimaraes.pt/regulamentos/rmue.pdf","entidade":"Câmara Municipal de Guimarães","referencia":"art. 6.º"}]}
+
+: vivo
+
+event: texto
+data: {"texto":"Obras só no interior da cozinha, sem mexer na estrutura, "}
+
+event: texto
+data: {"texto":"estão isentas de licença (obras de escassa relevância urbanística).\n\nSe mexer em paredes-mestras ou na fachada, "}
+
+event: ferramenta
+data: {"nome":"procurar_conhecimento"}
+
+event: cartao
+data: {"tipo":"fonte","fontes":[{"titulo":"Licenciamento de obras","url":"https://www.cm-guimaraes.pt/servicos/obras","entidade":"Câmara Municipal de Guimarães","referencia":null}]}
+
+event: ferramenta
+data: {"nome":"encaminhar"}
+
+event: cartao
+data: {"tipo":"contacto","ferramenta":"encaminhar","dados":{"entidade":"Divisão de Urbanismo","telefone":"253 421 200"}}
+
+event: texto
+data: {"texto":"já precisa de comunicação prévia. A Divisão de Urbanismo atende pelo 253 421 200."}
+
+event: fim
+data: {"turno_id":"6f1d2c3b-0000-4000-8000-000000000001"}
+

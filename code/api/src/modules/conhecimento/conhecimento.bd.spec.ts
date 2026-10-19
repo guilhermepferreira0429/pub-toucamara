@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-argument */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-call */
 import { readFileSync } from 'fs';
 import { createServer, Server } from 'http';
 import { AddressInfo } from 'net';
@@ -11,6 +11,7 @@ import type { ClaudeService } from '../../ia/claude.service.js';
 import type { JobsService } from '../../jobs/jobs.service.js';
 import type { ArmazenamentoService } from '../armazenamento/armazenamento.service.js';
 import { AuditoriaService } from '../auditoria/auditoria.service.js';
+import { AvaliacaoService } from './avaliacao.service.js';
 import { ConhecimentoService } from './conhecimento.service.js';
 import { ContradicoesService } from './contradicoes.service.js';
 import { DIMENSAO, EmbeddingsService } from './embeddings.service.js';
@@ -24,6 +25,8 @@ import { PropostasService } from './propostas.service.js';
  * (nada fica na BD). Só corre com TESTE_BD=1:
  *
  *   TESTE_BD=1 npx jest src/modules/conhecimento/conhecimento.bd.spec.ts
+ *
+ * Outra BD (já com todas as migrações): DB_NAME=toucamara_mig.
  *
  * Embeddings e IA são falsos (vetores determinísticos, texto fixo); as
  * fontes vêm de um servidor HTTP local.
@@ -79,7 +82,7 @@ correr('conhecimento (BD)', () => {
       port: Number(process.env.DB_PORT ?? 54330),
       user: 'toucamara',
       password: process.env.DB_PASSWORD ?? 'toucamara',
-      database: 'toucamara',
+      database: process.env.DB_NAME ?? 'toucamara',
     });
     await client.connect();
     await client.query('BEGIN');
@@ -154,6 +157,7 @@ correr('conhecimento (BD)', () => {
       new AuditoriaService(db),
       ingestao,
       indexacao,
+      new AvaliacaoService(db),
     );
 
     [{ id: municipio }] = await db.query<{ id: string }>(
@@ -196,6 +200,54 @@ correr('conhecimento (BD)', () => {
 
   let fonteReg: string;
   let respostaId: string;
+
+  /**
+   * Uma execução terminada do nosso tou-chat com `certas` certas em 10
+   * (categoria 'Taxas' as 5 primeiras, 'Água' as outras).
+   */
+  async function execucaoFalsa(
+    versao: string,
+    certas: number,
+    o: { amostra?: boolean; adaptador?: string } = {},
+  ): Promise<string> {
+    const adaptador = o.adaptador ?? 'tou-chat';
+    const nome = `Tou · Teste · ${adaptador}`;
+    await db.query(
+      `INSERT INTO avaliacao.sistemas (nome, municipio_id, adaptador, nosso)
+       VALUES ($1, $2, $3, true) ON CONFLICT (nome) DO NOTHING`,
+      [nome, municipio, adaptador],
+    );
+    const [{ id: conjunto }] = await db.query<{ id: string }>(
+      `INSERT INTO avaliacao.conjuntos (nome, municipio_id) VALUES ('Teste', $1)
+       ON CONFLICT (nome, versao, municipio_id) DO UPDATE SET nome = EXCLUDED.nome
+       RETURNING id`,
+      [municipio],
+    );
+    await db.query(
+      `INSERT INTO avaliacao.perguntas (conjunto_id, ordem, categoria, texto, comportamento)
+       SELECT $1, i, CASE WHEN i <= 5 THEN 'Taxas' ELSE 'Água' END, 'Pergunta ' || i, 'responder'
+       FROM generate_series(1, 10) i ON CONFLICT DO NOTHING`,
+      [conjunto],
+    );
+    const [{ id }] = await db.query<{ id: string }>(
+      `INSERT INTO avaliacao.execucoes (sistema_id, conjunto_id, agente_versao, amostra, estado, terminada_em)
+       SELECT s.id, $2, $3, $4, 'terminada', clock_timestamp()
+       FROM avaliacao.sistemas s WHERE s.nome = $1 RETURNING id`,
+      [nome, conjunto, versao, o.amostra ?? false],
+    );
+    await db.query(
+      `WITH r AS (
+         INSERT INTO avaliacao.respostas (execucao_id, pergunta_id, texto, latencia_ms)
+         SELECT $1, p.id, 'Resposta ' || p.ordem, 1000 + p.ordem FROM avaliacao.perguntas p
+         WHERE p.conjunto_id = $2 RETURNING id, pergunta_id)
+       INSERT INTO avaliacao.avaliacoes (resposta_id, rubrica_versao, veredicto, factos_em_falta, justificacao)
+       SELECT r.id, '1', CASE WHEN p.ordem <= $3 THEN 'certa' ELSE 'errada' END,
+              CASE WHEN p.ordem <= $3 THEN '{}' ELSE '{preço}' END::text[], 'Falta o preço.'
+       FROM r JOIN avaliacao.perguntas p ON p.id = r.pergunta_id`,
+      [id, conjunto, certas],
+    );
+    return id;
+  }
 
   it('lê uma fonte HTML: versão, trechos por artigo e vetores', async () => {
     paginas['/taxas'] = {
@@ -275,7 +327,41 @@ correr('conhecimento (BD)', () => {
     expect(criada.frases).toHaveLength(2);
     const versao = (criada.versoes as { id: string }[])[0];
 
+    // Gate: sem avaliação, outra versão ou abaixo do limiar não publica.
+    await db.query(
+      `INSERT INTO agente_config (municipio_id, saudacao, versao) VALUES ($1, 'Olá', 'v1')`,
+      [municipio],
+    );
+    const codigo = (p: Promise<unknown>) =>
+      p.then(
+        () => 'publicou',
+        (e: { codigo?: string }) => e.codigo,
+      );
+    expect(
+      await codigo(painel.publicar(municipio, u, respostaId, versao.id)),
+    ).toBe('avaliacao_em_falta');
+    await execucaoFalsa('v0', 10);
+    expect(
+      await codigo(painel.publicar(municipio, u, respostaId, versao.id)),
+    ).toBe('avaliacao_em_falta');
+    await execucaoFalsa('v1', 7);
+    expect(
+      await codigo(painel.publicar(municipio, u, respostaId, versao.id)),
+    ).toBe('avaliacao_abaixo_do_limiar');
+    const camaraU = { ...u, perfil: 'chefe_divisao' } as UtilizadorPainel;
+    expect(
+      await codigo(
+        painel.publicar(municipio, camaraU, respostaId, versao.id, true),
+      ),
+    ).toBe('so_equipa_interna');
+    const aprovada = await execucaoFalsa('v1', 9);
+
     await painel.publicar(municipio, u, respostaId, versao.id);
+    const [pub] = await db.query<{ eval_execucao_id: string }>(
+      `SELECT eval_execucao_id FROM resposta_versoes WHERE id = $1`,
+      [versao.id],
+    );
+    expect(pub.eval_execucao_id).toBe(aprovada);
     const r = await pesquisa.procurar(
       municipio,
       'qual é o preço da licença de obras',
@@ -313,7 +399,23 @@ correr('conhecimento (BD)', () => {
     );
     expect(r.trechos.every((x) => !x.texto.includes('10 euros'))).toBe(true);
 
-    await painel.aprovar(municipio, u, alt.id, []);
+    // Versão nova do agente: a avaliação deixa de valer; forçar fica auditado.
+    await db.query(
+      `UPDATE agente_config SET versao = 'v2' WHERE municipio_id = $1`,
+      [municipio],
+    );
+    await expect(
+      painel.aprovar(municipio, u, alt.id, []),
+    ).rejects.toMatchObject({
+      codigo: 'avaliacao_em_falta',
+    });
+    await painel.aprovar(municipio, u, alt.id, [], true);
+    const [aud] = await db.query<{ n: number }>(
+      `SELECT count(*)::int AS n FROM audit_log
+       WHERE acao = 'publicar_sem_avaliacao' AND objeto_id = $1`,
+      [alt.id],
+    );
+    expect(aud.n).toBe(1);
     const resp = (await painel.resposta(municipio, respostaId)) as any;
     expect(resp.versoes[0].numero).toBe(2);
     expect(resp.versao_no_ar_id).toBe(resp.versoes[0].id);
@@ -451,7 +553,33 @@ correr('conhecimento (BD)', () => {
     });
     expect((pe as any).estado).toBe('com_equipa');
 
-    expect((await painel.qualidade(municipio)).execucoes).toEqual([]);
+    await execucaoFalsa('v2', 4, { amostra: true, adaptador: 'tou-voz' });
+    const q = (await painel.qualidade(municipio)) as any;
+    expect(q.limiar).toBe(80);
+    expect(q.versao_atual).toBe('v2');
+    expect(q.publicacao).toMatchObject({
+      pode_publicar: false,
+      causa: 'outra_versao',
+    });
+    expect(q.ultima).toMatchObject({
+      taxa: 90,
+      perguntas: 10,
+      passou: true,
+      agente_versao: 'v1',
+    });
+    expect(q.ultima.categorias.map((c: any) => [c.categoria, c.taxa])).toEqual([
+      ['Água', 80],
+      ['Taxas', 100],
+    ]);
+    expect(q.evolucao.map((e: any) => e.taxa)).toEqual([100, 70, 90]);
+    expect(q.erradas).toHaveLength(1);
+    expect(q.erradas[0]).toMatchObject({
+      ordem: 10,
+      categoria: 'Água',
+      veredicto: 'errada',
+      factos_em_falta: ['preço'],
+    });
+    expect(q.voz).toMatchObject({ taxa: 40, latencia_media_ms: 1006 });
   });
 
   it('reindexar preenche vetores em falta', async () => {

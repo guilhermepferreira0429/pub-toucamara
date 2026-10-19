@@ -2,6 +2,7 @@ import { Module, OnModuleInit } from '@nestjs/common';
 import { RegistoFerramentas } from '../../ferramentas/registo-ferramentas.service.js';
 import { JobsService } from '../../jobs/jobs.service.js';
 import { ConversasService } from '../conversas/conversas.service.js';
+import { AvaliacaoService } from './avaliacao.service.js';
 import { ferramentasConhecimento } from './conhecimento.ferramentas.js';
 import { ConhecimentoService } from './conhecimento.service.js';
 import {
@@ -42,6 +43,7 @@ import { DadosPropor, PropostasService } from './propostas.service.js';
     PropostasService,
     ContradicoesService,
     PainelConhecimentoService,
+    AvaliacaoService,
   ],
   exports: [ConhecimentoService, EmbeddingsService],
 })

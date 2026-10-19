@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Headers,
   HttpCode,
   Ip,
   Param,
@@ -27,7 +28,11 @@ export class ChatController {
 
   @Post()
   @HttpCode(201)
-  criar(@Body() body: unknown, @Ip() ip: string) {
+  criar(
+    @Body() body: unknown,
+    @Ip() ip: string,
+    @Headers('x-agente-segredo') segredo: string | undefined,
+  ) {
     const { municipio, idioma, sessao_anterior } = validar(
       z.object({
         municipio: z.string().trim().min(1).max(64),
@@ -44,7 +49,9 @@ export class ChatController {
     return this.chat.criarSessao({
       municipio,
       idioma,
-      ip,
+      // O avaliador (uma sessão por pergunta) identifica-se com o segredo do
+      // agente e fica fora do limite de sessões por IP.
+      ip: this.chat.eAvaliador(segredo) ? undefined : ip,
       sessaoAnterior: sessao_anterior,
     });
   }

@@ -1,0 +1,6 @@
+event: texto
+data: {"texto":"Um momento"}
+
+event: erro
+data: {"codigo":"ia_indisponivel","mensagem":"O chat está indisponível de momento."}
+

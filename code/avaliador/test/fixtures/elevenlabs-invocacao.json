@@ -1,0 +1,71 @@
+{
+  "id": "inv_01",
+  "agent_id": "agent_01",
+  "test_runs": [
+    {
+      "test_run_id": "run_01",
+      "test_invocation_id": "inv_01",
+      "agent_id": "agent_01",
+      "status": "passed",
+      "test_id": "test_01",
+      "test_name": "avaliador",
+      "agent_responses": [
+        {
+          "role": "agent",
+          "message": "Olá! Fala com o Tou, Câmara? de Guimarães. Em que posso ajudar?",
+          "time_in_call_secs": 0,
+          "tool_calls": [],
+          "conversation_turn_metrics": null
+        },
+        {
+          "role": "user",
+          "message": "Quero fazer obras na cozinha, preciso de licença?",
+          "time_in_call_secs": 4,
+          "tool_calls": [],
+          "conversation_turn_metrics": null
+        },
+        {
+          "role": "agent",
+          "message": "Deixe-me ver isso.",
+          "time_in_call_secs": 6,
+          "tool_calls": [
+            { "request_id": "r1", "tool_name": "procurar_conhecimento", "params_as_json": "{}" }
+          ],
+          "conversation_turn_metrics": {
+            "metrics": {
+              "convai_llm_service_ttfb": { "elapsed_time": 0.412 },
+              "convai_llm_service_ttf_sentence": { "elapsed_time": 0.655 },
+              "convai_tts_service_ttfb": { "elapsed_time": 0.188 }
+            }
+          }
+        },
+        {
+          "role": "agent",
+          "message": "Se for só no interior, sem mexer na estrutura, não precisa de licença. Se mexer em paredes-mestras, precisa de comunicação prévia.",
+          "time_in_call_secs": 9,
+          "tool_calls": [
+            { "request_id": "r2", "tool_name": "encaminhar", "params_as_json": "{}" }
+          ],
+          "conversation_turn_metrics": {
+            "metrics": { "convai_llm_service_ttfb": { "elapsed_time": 0.5 } }
+          }
+        },
+        {
+          "role": "user",
+          "message": "Obrigado, era só isso. Bom dia.",
+          "time_in_call_secs": 18,
+          "tool_calls": [],
+          "conversation_turn_metrics": null
+        },
+        {
+          "role": "agent",
+          "message": "Bom dia, obrigado por ligar.",
+          "time_in_call_secs": 20,
+          "tool_calls": [],
+          "conversation_turn_metrics": null
+        }
+      ],
+      "condition_result": { "result": "success", "rationale": { "summary": "ok", "messages": [] } }
+    }
+  ]
+}

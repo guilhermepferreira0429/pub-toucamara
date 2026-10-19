@@ -1,0 +1,1622 @@
+[
+  {
+    "ordem": 1,
+    "categoria": "Obras e urbanismo",
+    "texto": "Quero fazer obras na cozinha, preciso de licença?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 2,
+    "categoria": "Obras e urbanismo",
+    "texto": "Posso trocar as janelas de casa sem pedir nada à câmara?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 3,
+    "categoria": "Obras e urbanismo",
+    "texto": "Quero construir um anexo no quintal, o que tenho de fazer?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 4,
+    "categoria": "Obras e urbanismo",
+    "texto": "Qual é a diferença entre licenciamento e comunicação prévia?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 5,
+    "categoria": "Obras e urbanismo",
+    "texto": "Quanto tempo demora a aprovação de um projeto de uma moradia?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 6,
+    "categoria": "Obras e urbanismo",
+    "texto": "Que documentos preciso para pedir licença de construção?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 7,
+    "categoria": "Obras e urbanismo",
+    "texto": "Preciso de arquiteto para fazer um muro?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 8,
+    "categoria": "Obras e urbanismo",
+    "texto": "Posso pintar a fachada de outra cor?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 9,
+    "categoria": "Obras e urbanismo",
+    "texto": "Moro no centro histórico, há regras especiais para obras?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 10,
+    "categoria": "Obras e urbanismo",
+    "texto": "Como peço a licença de utilização depois de acabar a casa?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 11,
+    "categoria": "Obras e urbanismo",
+    "texto": "Comprei uma casa antiga sem licença de utilização, o que faço?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 12,
+    "categoria": "Obras e urbanismo",
+    "texto": "Quero pôr painéis solares no telhado, preciso de autorização?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 13,
+    "categoria": "Obras e urbanismo",
+    "texto": "Como sei se o meu terreno é construível?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 14,
+    "categoria": "Obras e urbanismo",
+    "texto": "Onde consulto o PDM de Guimarães?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 15,
+    "categoria": "Obras e urbanismo",
+    "texto": "Preciso de uma planta de localização, onde a peço?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 16,
+    "categoria": "Obras e urbanismo",
+    "texto": "Quero pôr um andaime na rua para obras, como faço?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 17,
+    "categoria": "Obras e urbanismo",
+    "texto": "O meu vizinho está a fazer obras sem licença, a quem faço queixa?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 18,
+    "categoria": "Obras e urbanismo",
+    "texto": "A minha licença de obras vai acabar e ainda não terminei, posso prolongar?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 19,
+    "categoria": "Obras e urbanismo",
+    "texto": "Quero fazer uma piscina, que licença preciso?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 20,
+    "categoria": "Obras e urbanismo",
+    "texto": "Como peço uma certidão de que a casa é anterior a 1951?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 21,
+    "categoria": "Licenças de atividade, comércio e espaço público",
+    "texto": "Quero abrir um café, que licenças preciso?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 22,
+    "categoria": "Licenças de atividade, comércio e espaço público",
+    "texto": "Tenho um restaurante e quero pôr esplanada, como peço?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 23,
+    "categoria": "Licenças de atividade, comércio e espaço público",
+    "texto": "Quanto custa a licença de esplanada por ano?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 24,
+    "categoria": "Licenças de atividade, comércio e espaço público",
+    "texto": "Posso pôr um reclamo luminoso na minha loja?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 25,
+    "categoria": "Licenças de atividade, comércio e espaço público",
+    "texto": "Quero abrir um alojamento local em Guimarães, o que faço?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 26,
+    "categoria": "Licenças de atividade, comércio e espaço público",
+    "texto": "Posso ter alojamento local no centro histórico?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 27,
+    "categoria": "Licenças de atividade, comércio e espaço público",
+    "texto": "Quero vender na feira semanal, como arranjo lugar?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 28,
+    "categoria": "Licenças de atividade, comércio e espaço público",
+    "texto": "Preciso de licença para ter uma roulotte de comida num evento?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 29,
+    "categoria": "Licenças de atividade, comércio e espaço público",
+    "texto": "Vou fazer uma festa de aniversário com música num salão, preciso de licença de ruído?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 30,
+    "categoria": "Licenças de atividade, comércio e espaço público",
+    "texto": "A minha associação quer fazer uma festa na rua, o que temos de pedir?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 31,
+    "categoria": "Licenças de atividade, comércio e espaço público",
+    "texto": "Com quanto tempo de antecedência peço licença para um evento?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 32,
+    "categoria": "Licenças de atividade, comércio e espaço público",
+    "texto": "Quero fazer uma corrida solidária nas ruas da cidade, a quem peço?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 33,
+    "categoria": "Licenças de atividade, comércio e espaço público",
+    "texto": "Posso distribuir folhetos na rua?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 34,
+    "categoria": "Licenças de atividade, comércio e espaço público",
+    "texto": "Quero mudar o horário do meu bar para fechar mais tarde, posso?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 35,
+    "categoria": "Licenças de atividade, comércio e espaço público",
+    "texto": "Como peço para ocupar um lugar de estacionamento para uma mudança?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 36,
+    "categoria": "Licenças de atividade, comércio e espaço público",
+    "texto": "Tenho uma oficina em casa, preciso de licença?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 37,
+    "categoria": "Licenças de atividade, comércio e espaço público",
+    "texto": "Como registo um estabelecimento de comércio na câmara?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 38,
+    "categoria": "Licenças de atividade, comércio e espaço público",
+    "texto": "Quero pendurar um toldo na montra, preciso de autorização?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 39,
+    "categoria": "Taxas e pagamentos",
+    "texto": "Como pago uma taxa da câmara, posso pagar por MB WAY?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 40,
+    "categoria": "Taxas e pagamentos",
+    "texto": "Recebi uma guia para pagar, até quando tenho de pagar?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 41,
+    "categoria": "Taxas e pagamentos",
+    "texto": "Perdi a referência multibanco, como peço outra?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 42,
+    "categoria": "Taxas e pagamentos",
+    "texto": "Quanto custa pedir uma licença de obras?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 43,
+    "categoria": "Taxas e pagamentos",
+    "texto": "Há descontos nas taxas para idosos ou desempregados?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 44,
+    "categoria": "Taxas e pagamentos",
+    "texto": "Posso pagar uma taxa em prestações?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 45,
+    "categoria": "Taxas e pagamentos",
+    "texto": "Paguei a mais, como peço o dinheiro de volta?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 46,
+    "categoria": "Taxas e pagamentos",
+    "texto": "O IMI é pago à câmara?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 47,
+    "categoria": "Taxas e pagamentos",
+    "texto": "Qual é a taxa de IMI em Guimarães este ano?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 48,
+    "categoria": "Taxas e pagamentos",
+    "texto": "Tenho filhos, tenho desconto no IMI?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 49,
+    "categoria": "Taxas e pagamentos",
+    "texto": "Onde vejo a tabela de taxas municipais?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 50,
+    "categoria": "Taxas e pagamentos",
+    "texto": "Preciso de fatura com NIF da taxa que paguei, onde a peço?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 51,
+    "categoria": "Taxas e pagamentos",
+    "texto": "Quanto custa pedir uma certidão?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 52,
+    "categoria": "Taxas e pagamentos",
+    "texto": "Paguei uma taxa mas o pagamento não aparece, o que faço?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 53,
+    "categoria": "Lixo, ambiente e limpeza",
+    "texto": "Em que dia passa a recolha do lixo na minha rua?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 54,
+    "categoria": "Lixo, ambiente e limpeza",
+    "texto": "Tenho um sofá velho, como me livro dele?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 55,
+    "categoria": "Lixo, ambiente e limpeza",
+    "texto": "A câmara recolhe monos em casa? É pago?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 56,
+    "categoria": "Lixo, ambiente e limpeza",
+    "texto": "Onde fica o ecocentro mais próximo?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 57,
+    "categoria": "Lixo, ambiente e limpeza",
+    "texto": "Onde ponho roupa velha que já não dá para usar?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 58,
+    "categoria": "Lixo, ambiente e limpeza",
+    "texto": "O contentor da minha rua está sempre cheio, a quem digo?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 59,
+    "categoria": "Lixo, ambiente e limpeza",
+    "texto": "Onde deito o óleo de cozinha usado?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 60,
+    "categoria": "Lixo, ambiente e limpeza",
+    "texto": "Onde entrego pilhas e lâmpadas?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 61,
+    "categoria": "Lixo, ambiente e limpeza",
+    "texto": "Tenho restos de obras, onde os deixo?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 62,
+    "categoria": "Lixo, ambiente e limpeza",
+    "texto": "Posso pedir um compostor doméstico à câmara?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 63,
+    "categoria": "Lixo, ambiente e limpeza",
+    "texto": "Posso fazer uma queimada no meu terreno?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 64,
+    "categoria": "Lixo, ambiente e limpeza",
+    "texto": "Tenho de limpar o mato à volta da minha casa, até quando?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 65,
+    "categoria": "Lixo, ambiente e limpeza",
+    "texto": "O terreno do vizinho está cheio de mato, quem obriga a limpar?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 66,
+    "categoria": "Lixo, ambiente e limpeza",
+    "texto": "Há um carro abandonado na minha rua há meses, o que faço?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 67,
+    "categoria": "Lixo, ambiente e limpeza",
+    "texto": "Alguém despejou lixo no meio do mato, a quem comunico?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 68,
+    "categoria": "Lixo, ambiente e limpeza",
+    "texto": "Como peço um contentor para a minha empresa?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 69,
+    "categoria": "Água e saneamento",
+    "texto": "Estou sem água em casa, para onde ligo?",
+    "idioma": "pt-PT",
+    "comportamento": "encaminhar",
+    "entidade_esperada": "Vimágua",
+    "nota": null
+  },
+  {
+    "ordem": 70,
+    "categoria": "Água e saneamento",
+    "texto": "Há uma rotura de água na estrada, a quem aviso?",
+    "idioma": "pt-PT",
+    "comportamento": "encaminhar",
+    "entidade_esperada": "Vimágua",
+    "nota": null
+  },
+  {
+    "ordem": 71,
+    "categoria": "Água e saneamento",
+    "texto": "Como faço um contrato de água para a casa nova?",
+    "idioma": "pt-PT",
+    "comportamento": "encaminhar",
+    "entidade_esperada": "Vimágua",
+    "nota": null
+  },
+  {
+    "ordem": 72,
+    "categoria": "Água e saneamento",
+    "texto": "Como dou a leitura do contador?",
+    "idioma": "pt-PT",
+    "comportamento": "encaminhar",
+    "entidade_esperada": "Vimágua",
+    "nota": null
+  },
+  {
+    "ordem": 73,
+    "categoria": "Água e saneamento",
+    "texto": "A minha fatura da água veio muito alta, o que faço?",
+    "idioma": "pt-PT",
+    "comportamento": "encaminhar",
+    "entidade_esperada": "Vimágua",
+    "nota": null
+  },
+  {
+    "ordem": 74,
+    "categoria": "Água e saneamento",
+    "texto": "Como mudo o titular do contrato da água?",
+    "idioma": "pt-PT",
+    "comportamento": "encaminhar",
+    "entidade_esperada": "Vimágua",
+    "nota": null
+  },
+  {
+    "ordem": 75,
+    "categoria": "Água e saneamento",
+    "texto": "Tenho direito a tarifário social da água?",
+    "idioma": "pt-PT",
+    "comportamento": "encaminhar",
+    "entidade_esperada": "Vimágua",
+    "nota": null
+  },
+  {
+    "ordem": 76,
+    "categoria": "Água e saneamento",
+    "texto": "A minha casa não tem saneamento, posso ligar à rede?",
+    "idioma": "pt-PT",
+    "comportamento": "encaminhar",
+    "entidade_esperada": "Vimágua",
+    "nota": null
+  },
+  {
+    "ordem": 77,
+    "categoria": "Água e saneamento",
+    "texto": "Quanto custa ligar a casa ao saneamento?",
+    "idioma": "pt-PT",
+    "comportamento": "encaminhar",
+    "entidade_esperada": "Vimágua",
+    "nota": null
+  },
+  {
+    "ordem": 78,
+    "categoria": "Água e saneamento",
+    "texto": "A fossa está cheia, quem a limpa?",
+    "idioma": "pt-PT",
+    "comportamento": "encaminhar",
+    "entidade_esperada": "Vimágua",
+    "nota": null
+  },
+  {
+    "ordem": 79,
+    "categoria": "Água e saneamento",
+    "texto": "A água da torneira está com cor estranha, é seguro beber?",
+    "idioma": "pt-PT",
+    "comportamento": "encaminhar",
+    "entidade_esperada": "Vimágua",
+    "nota": null
+  },
+  {
+    "ordem": 80,
+    "categoria": "Água e saneamento",
+    "texto": "Qual é o horário do balcão da Vimágua?",
+    "idioma": "pt-PT",
+    "comportamento": "encaminhar",
+    "entidade_esperada": "Vimágua",
+    "nota": null
+  },
+  {
+    "ordem": 81,
+    "categoria": "Trânsito e estacionamento",
+    "texto": "Como peço o dístico de residente para estacionar perto de casa?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 82,
+    "categoria": "Trânsito e estacionamento",
+    "texto": "Quanto custa o dístico de residente?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 83,
+    "categoria": "Trânsito e estacionamento",
+    "texto": "Levei uma multa de estacionamento, como pago?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 84,
+    "categoria": "Trânsito e estacionamento",
+    "texto": "Acho que a multa está errada, como reclamo?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 85,
+    "categoria": "Trânsito e estacionamento",
+    "texto": "O meu carro foi rebocado, onde o vou buscar?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 86,
+    "categoria": "Trânsito e estacionamento",
+    "texto": "Quero um lugar de estacionamento para pessoa com deficiência à porta de casa, como peço?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 87,
+    "categoria": "Trânsito e estacionamento",
+    "texto": "A que horas é pago o estacionamento no centro?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 88,
+    "categoria": "Trânsito e estacionamento",
+    "texto": "Posso pagar o estacionamento pelo telemóvel?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 89,
+    "categoria": "Trânsito e estacionamento",
+    "texto": "Faz falta uma passadeira na minha rua, a quem peço?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 90,
+    "categoria": "Trânsito e estacionamento",
+    "texto": "Os carros passam muito rápido à frente da escola, podem pôr lombas?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 91,
+    "categoria": "Trânsito e estacionamento",
+    "texto": "O semáforo do cruzamento está avariado, a quem aviso?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 92,
+    "categoria": "Trânsito e estacionamento",
+    "texto": "A rua vai estar cortada por causa de obras, até quando?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 93,
+    "categoria": "Trânsito e estacionamento",
+    "texto": "Quero cortar a rua um dia para uma festa, como faço?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 94,
+    "categoria": "Trânsito e estacionamento",
+    "texto": "Onde vejo os horários dos autocarros urbanos?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 95,
+    "categoria": "Educação e ação social",
+    "texto": "Como inscrevo o meu filho no pré-escolar público?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 96,
+    "categoria": "Educação e ação social",
+    "texto": "Quando abrem as inscrições para as refeições escolares?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 97,
+    "categoria": "Educação e ação social",
+    "texto": "Tenho direito a refeição gratuita para o meu filho?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 98,
+    "categoria": "Educação e ação social",
+    "texto": "Moro longe da escola, a câmara dá transporte escolar?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 99,
+    "categoria": "Educação e ação social",
+    "texto": "Como peço o passe escolar?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 100,
+    "categoria": "Educação e ação social",
+    "texto": "Há apoio para comprar material escolar?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 101,
+    "categoria": "Educação e ação social",
+    "texto": "O meu filho pode ficar na escola depois das aulas, há atividades?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 102,
+    "categoria": "Educação e ação social",
+    "texto": "Há atividades para as crianças nas férias de verão?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 103,
+    "categoria": "Educação e ação social",
+    "texto": "Estou desempregado e não consigo pagar a renda, a câmara ajuda?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 104,
+    "categoria": "Educação e ação social",
+    "texto": "O meu pai é idoso e vive sozinho, há algum apoio da câmara?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 105,
+    "categoria": "Educação e ação social",
+    "texto": "Existe cartão municipal do idoso? Que descontos dá?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 106,
+    "categoria": "Educação e ação social",
+    "texto": "Há bolsas de estudo da câmara para a universidade?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 107,
+    "categoria": "Educação e ação social",
+    "texto": "Como peço apoio para pagar a fatura da luz?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 108,
+    "categoria": "Educação e ação social",
+    "texto": "Há transporte para idosos irem ao médico?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 109,
+    "categoria": "Educação e ação social",
+    "texto": "Onde fica o gabinete de ação social?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 110,
+    "categoria": "Educação e ação social",
+    "texto": "Acabei de chegar a Portugal, a câmara ajuda imigrantes?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 111,
+    "categoria": "Cultura, desporto e eventos",
+    "texto": "Como reservo o pavilhão municipal para um jogo de futebol?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 112,
+    "categoria": "Cultura, desporto e eventos",
+    "texto": "Quanto custa a entrada nas piscinas municipais?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 113,
+    "categoria": "Cultura, desporto e eventos",
+    "texto": "A piscina tem aulas de natação para bebés?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 114,
+    "categoria": "Cultura, desporto e eventos",
+    "texto": "Que eventos há em Guimarães este fim de semana?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 115,
+    "categoria": "Cultura, desporto e eventos",
+    "texto": "Onde compro bilhetes para o Centro Cultural Vila Flor?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 116,
+    "categoria": "Cultura, desporto e eventos",
+    "texto": "A biblioteca municipal abre ao sábado?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 117,
+    "categoria": "Cultura, desporto e eventos",
+    "texto": "Como faço o cartão da biblioteca?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 118,
+    "categoria": "Cultura, desporto e eventos",
+    "texto": "A minha associação pode pedir apoio financeiro à câmara?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 119,
+    "categoria": "Cultura, desporto e eventos",
+    "texto": "Como inscrevo a minha associação no registo municipal?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 120,
+    "categoria": "Cultura, desporto e eventos",
+    "texto": "Posso usar um auditório da câmara para uma palestra?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 121,
+    "categoria": "Cultura, desporto e eventos",
+    "texto": "Quando são as Festas Gualterianas este ano?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 122,
+    "categoria": "Cultura, desporto e eventos",
+    "texto": "O Paço dos Duques tem entrada grátis em algum dia?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 123,
+    "categoria": "Cultura, desporto e eventos",
+    "texto": "Há parques infantis cobertos na cidade?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 124,
+    "categoria": "Cultura, desporto e eventos",
+    "texto": "A câmara organiza atividades desportivas para seniores?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 125,
+    "categoria": "Atendimento, documentos e contactos",
+    "texto": "A que horas abre o balcão de atendimento da câmara?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 126,
+    "categoria": "Atendimento, documentos e contactos",
+    "texto": "Preciso de marcação para ir ao balcão?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 127,
+    "categoria": "Atendimento, documentos e contactos",
+    "texto": "Onde fica o edifício da câmara e onde posso estacionar?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 128,
+    "categoria": "Atendimento, documentos e contactos",
+    "texto": "Posso tratar disto online em vez de ir lá?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 129,
+    "categoria": "Atendimento, documentos e contactos",
+    "texto": "Como entro nos serviços online da câmara?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 130,
+    "categoria": "Atendimento, documentos e contactos",
+    "texto": "Posso usar a Chave Móvel Digital?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 131,
+    "categoria": "Atendimento, documentos e contactos",
+    "texto": "Como peço uma certidão de residência?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 132,
+    "categoria": "Atendimento, documentos e contactos",
+    "texto": "Preciso de um atestado de residência, é na câmara ou na junta?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 133,
+    "categoria": "Atendimento, documentos e contactos",
+    "texto": "Entreguei um pedido há dois meses, como sei em que ponto está?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 134,
+    "categoria": "Atendimento, documentos e contactos",
+    "texto": "Recebi uma carta da câmara a pedir documentos, quanto tempo tenho?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 135,
+    "categoria": "Atendimento, documentos e contactos",
+    "texto": "Como faço uma reclamação sobre um serviço da câmara?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 136,
+    "categoria": "Atendimento, documentos e contactos",
+    "texto": "Quero falar com o presidente da câmara, como marco?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 137,
+    "categoria": "Atendimento, documentos e contactos",
+    "texto": "Qual é o email do departamento de urbanismo?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 138,
+    "categoria": "Atendimento, documentos e contactos",
+    "texto": "Como peço para consultar um processo antigo no arquivo?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 139,
+    "categoria": "Atendimento, documentos e contactos",
+    "texto": "Quando é a próxima reunião de câmara aberta ao público?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 140,
+    "categoria": "Atendimento, documentos e contactos",
+    "texto": "Qual é a junta de freguesia da minha morada?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 141,
+    "categoria": "Animais, cemitérios e habitação",
+    "texto": "Encontrei um cão perdido na rua, para onde ligo?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 142,
+    "categoria": "Animais, cemitérios e habitação",
+    "texto": "Como adoto um animal no canil municipal?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 143,
+    "categoria": "Animais, cemitérios e habitação",
+    "texto": "A câmara faz esterilização de gatos de rua?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 144,
+    "categoria": "Animais, cemitérios e habitação",
+    "texto": "O cão do vizinho ladra a noite toda, a quem me queixo?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 145,
+    "categoria": "Animais, cemitérios e habitação",
+    "texto": "Preciso de registar o meu cão na câmara?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 146,
+    "categoria": "Animais, cemitérios e habitação",
+    "texto": "Há vacinação antirrábica organizada pela câmara?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 147,
+    "categoria": "Animais, cemitérios e habitação",
+    "texto": "Como compro uma sepultura no cemitério municipal?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 148,
+    "categoria": "Animais, cemitérios e habitação",
+    "texto": "A concessão da campa da minha mãe vai acabar, o que faço?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 149,
+    "categoria": "Animais, cemitérios e habitação",
+    "texto": "Quanto custa a trasladação de restos mortais para outro cemitério?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 150,
+    "categoria": "Animais, cemitérios e habitação",
+    "texto": "A que horas abre o cemitério?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 151,
+    "categoria": "Animais, cemitérios e habitação",
+    "texto": "Como me candidato a uma casa da habitação municipal?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 152,
+    "categoria": "Animais, cemitérios e habitação",
+    "texto": "Estou na lista de espera da habitação social, como sei a minha posição?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 153,
+    "categoria": "Animais, cemitérios e habitação",
+    "texto": "Moro numa casa da câmara e tenho uma infiltração, quem repara?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 154,
+    "categoria": "Animais, cemitérios e habitação",
+    "texto": "A renda da minha casa municipal subiu, porquê?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 155,
+    "categoria": "Animais, cemitérios e habitação",
+    "texto": "Há apoio para jovens arrendarem casa em Guimarães?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 156,
+    "categoria": "Animais, cemitérios e habitação",
+    "texto": "Posso pedir apoio para fazer obras numa casa degradada?",
+    "idioma": "pt-PT",
+    "comportamento": "responder",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 157,
+    "categoria": "Ocorrências na via pública",
+    "texto": "Há um buraco enorme na estrada, a quem aviso?",
+    "idioma": "pt-PT",
+    "comportamento": "ocorrencia",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 158,
+    "categoria": "Ocorrências na via pública",
+    "texto": "O candeeiro da minha rua está apagado há uma semana.",
+    "idioma": "pt-PT",
+    "comportamento": "ocorrencia",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 159,
+    "categoria": "Ocorrências na via pública",
+    "texto": "Caiu uma árvore no passeio depois da tempestade.",
+    "idioma": "pt-PT",
+    "comportamento": "ocorrencia",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 160,
+    "categoria": "Ocorrências na via pública",
+    "texto": "A tampa de esgoto da rua está partida e é perigosa.",
+    "idioma": "pt-PT",
+    "comportamento": "ocorrencia",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 161,
+    "categoria": "Ocorrências na via pública",
+    "texto": "O passeio está levantado e a minha mãe caiu.",
+    "idioma": "pt-PT",
+    "comportamento": "ocorrencia",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 162,
+    "categoria": "Ocorrências na via pública",
+    "texto": "Há grafitis na parede da escola.",
+    "idioma": "pt-PT",
+    "comportamento": "ocorrencia",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 163,
+    "categoria": "Ocorrências na via pública",
+    "texto": "O parque infantil tem um baloiço partido.",
+    "idioma": "pt-PT",
+    "comportamento": "ocorrencia",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 164,
+    "categoria": "Ocorrências na via pública",
+    "texto": "A sarjeta está entupida e a rua inunda quando chove.",
+    "idioma": "pt-PT",
+    "comportamento": "ocorrencia",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 165,
+    "categoria": "Ocorrências na via pública",
+    "texto": "Partiu-se um banco de jardim na praça.",
+    "idioma": "pt-PT",
+    "comportamento": "ocorrencia",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 166,
+    "categoria": "Ocorrências na via pública",
+    "texto": "O sinal de stop foi arrancado.",
+    "idioma": "pt-PT",
+    "comportamento": "ocorrencia",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 167,
+    "categoria": "Ocorrências na via pública",
+    "texto": "Já fiz uma queixa sobre o buraco há um mês e ninguém resolveu.",
+    "idioma": "pt-PT",
+    "comportamento": "ocorrencia",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 168,
+    "categoria": "Ocorrências na via pública",
+    "texto": "Os ramos de uma árvore pública estão a bater na minha janela.",
+    "idioma": "pt-PT",
+    "comportamento": "ocorrencia",
+    "entidade_esperada": null,
+    "nota": null
+  },
+  {
+    "ordem": 169,
+    "categoria": "Perguntas difíceis",
+    "texto": "Quero renovar o cartão de cidadão.",
+    "idioma": "pt-PT",
+    "comportamento": "fora_ambito",
+    "entidade_esperada": "IRN",
+    "nota": "não é da câmara"
+  },
+  {
+    "ordem": 170,
+    "categoria": "Perguntas difíceis",
+    "texto": "Como pago o IUC do meu carro?",
+    "idioma": "pt-PT",
+    "comportamento": "fora_ambito",
+    "entidade_esperada": "Finanças",
+    "nota": "Finanças"
+  },
+  {
+    "ordem": 171,
+    "categoria": "Perguntas difíceis",
+    "texto": "Preciso de uma consulta no centro de saúde.",
+    "idioma": "pt-PT",
+    "comportamento": "fora_ambito",
+    "entidade_esperada": "SNS",
+    "nota": "SNS"
+  },
+  {
+    "ordem": 172,
+    "categoria": "Perguntas difíceis",
+    "texto": "Tenho uma licença.",
+    "idioma": "pt-PT",
+    "comportamento": "perguntar",
+    "entidade_esperada": null,
+    "nota": "vaga, tem de perguntar qual"
+  },
+  {
+    "ordem": 173,
+    "categoria": "Perguntas difíceis",
+    "texto": "O meu processo número 1234 de 2025 já foi aprovado?",
+    "idioma": "pt-PT",
+    "comportamento": "passar_humano",
+    "entidade_esperada": null,
+    "nota": "precisa de identificação ou de funcionário"
+  },
+  {
+    "ordem": 174,
+    "categoria": "Perguntas difíceis",
+    "texto": "O vizinho construíu em cima do meu terreno, quem tem razão?",
+    "idioma": "pt-PT",
+    "comportamento": "passar_humano",
+    "entidade_esperada": null,
+    "nota": "questão legal entre particulares"
+  },
+  {
+    "ordem": 175,
+    "categoria": "Perguntas difíceis",
+    "texto": "Quero contestar uma decisão da câmara, o que digo no recurso?",
+    "idioma": "pt-PT",
+    "comportamento": "passar_humano",
+    "entidade_esperada": null,
+    "nota": "aconselhamento jurídico, passar a humano"
+  },
+  {
+    "ordem": 176,
+    "categoria": "Perguntas difíceis",
+    "texto": "Porque é que o presidente aprovou aquela obra?",
+    "idioma": "pt-PT",
+    "comportamento": "fora_ambito",
+    "entidade_esperada": null,
+    "nota": "política, não opinar"
+  },
+  {
+    "ordem": 177,
+    "categoria": "Perguntas difíceis",
+    "texto": "Está a sair fumo de uma casa na minha rua!",
+    "idioma": "pt-PT",
+    "comportamento": "emergencia",
+    "entidade_esperada": "112",
+    "nota": "emergência, mandar ligar 112"
+  },
+  {
+    "ordem": 178,
+    "categoria": "Perguntas difíceis",
+    "texto": "Quero falar com uma pessoa.",
+    "idioma": "pt-PT",
+    "comportamento": "passar_humano",
+    "entidade_esperada": null,
+    "nota": "passar logo a funcionário"
+  },
+  {
+    "ordem": 179,
+    "categoria": "Perguntas difíceis",
+    "texto": "Fala inglês? I need help with a permit.",
+    "idioma": "en",
+    "comportamento": "outra_lingua",
+    "entidade_esperada": null,
+    "nota": "responder em inglês"
+  },
+  {
+    "ordem": 180,
+    "categoria": "Perguntas difíceis",
+    "texto": "Quanto ganha um funcionário da câmara?",
+    "idioma": "pt-PT",
+    "comportamento": "fora_ambito",
+    "entidade_esperada": null,
+    "nota": "fora do âmbito"
+  }
+]
