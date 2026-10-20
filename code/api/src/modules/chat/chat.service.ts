@@ -119,6 +119,7 @@ export class ChatService {
     saudacao: string;
     agente: string;
     retomada: boolean;
+    municipio: { slug: string; nome: string };
   }> {
     if (args.ip && !this.limiteSessoes.permitir(args.ip)) {
       throw demasiados('Demasiadas sessões novas. Tente daqui a pouco.');
@@ -156,6 +157,7 @@ export class ChatService {
       saudacao,
       agente: cfg?.nome ?? 'Tou, Câmara?',
       retomada,
+      municipio: { slug: municipio.slug, nome: municipio.nome },
     };
   }
 

@@ -50,6 +50,7 @@ describe('Chat (e2e)', () => {
         saudacao: 'Olá, fala com o Tou, Câmara?',
         agente: expect.any(String),
         retomada: false,
+        municipio: { slug: MUNICIPIO, nome: expect.any(String) },
       });
       const c = await linha(
         ctx.db,

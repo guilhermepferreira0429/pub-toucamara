@@ -133,6 +133,41 @@ export function lerHorario(json: unknown): Horario | null {
   return semana.some((d) => d.length > 0) ? { sempre: false, semana } : null;
 }
 
+/** Dias pela ordem da semana portuguesa (segunda primeiro). */
+export const DIAS_SEMANA = [
+  'seg',
+  'ter',
+  'qua',
+  'qui',
+  'sex',
+  'sab',
+  'dom',
+] as const;
+export type DiaSemana = (typeof DIAS_SEMANA)[number];
+
+/** O horário num formato simples para ecrãs: `{dias:{seg:[["09:00","17:00"]],…}}`. */
+export interface HorarioSimples {
+  /** Sempre aberto (24h, todos os dias); `dias` vem vazio. */
+  sempre: boolean;
+  dias: Record<DiaSemana, [string, string][]>;
+}
+
+function hhmm(min: number): string {
+  return `${String(Math.floor(min / 60)).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`;
+}
+
+export function horarioSimples(h: Horario): HorarioSimples {
+  const dias = Object.fromEntries(
+    DIAS_SEMANA.map((d) => [
+      d,
+      (h.semana[DIAS.indexOf(d)] ?? []).map(
+        ([i, f]) => [hhmm(i), hhmm(f)] as [string, string],
+      ),
+    ]),
+  ) as HorarioSimples['dias'];
+  return { sempre: h.sempre, dias };
+}
+
 // ---------------------------------------------------------------------------
 // Fuso horário: o servidor corre em UTC, o horário é na hora do município.
 // ---------------------------------------------------------------------------

@@ -210,6 +210,8 @@ export interface ConversaLista {
   tema: { id: string; nome: string | null } | null;
   municipe: { id: string; nome: string | null; telefone: string | null } | null;
   momentos: number;
+  /** A primeira fonte citada na conversa, ou null. */
+  fonte?: { titulo: string; url: string; referencia: string | null } | null;
 }
 
 export interface Turno {

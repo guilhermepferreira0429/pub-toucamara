@@ -26,7 +26,7 @@ bun run test && bun run lint
 
 | Prefixo | Quem chama | Autenticação |
 |---|---|---|
-| `POST /v1/agent/tools/{nome}` | ElevenLabs durante a chamada | `X-Agente-Segredo` + `X-Municipio` (+ `X-Conversa-Id`, `X-Telefone`) |
+| `POST /v1/agent/tools/{nome}` | ElevenLabs durante a chamada | `X-Agente-Segredo` + `X-Municipio` (+ `X-Conversa-Id`, `X-Telefone`, `X-Telefone-Web`) |
 | `GET /v1/agent/tools` | Nós, para configurar o ElevenLabs | `X-Agente-Segredo` |
 | `/v1/webhooks/*` | ElevenLabs, SMS, pagamentos, email | Assinatura de cada fornecedor (`req.rawBody`) |
 | `/v1/public/*` | Páginas dos links do SMS | Token do objeto (`token_publico`) ou código do link |
@@ -66,6 +66,18 @@ db/migrations/   NNNN_nome.sql, aplicadas por ordem; uma aplicada nunca se edita
 **SQL**: `this.db.query<Linha>(sql, params)` ou `this.db.transaction(async (tx) => ...)`. Parâmetros sempre `$n`, nunca concatenar valores. Serviços que podem correr dentro de uma transação aceitam `tx?: Tx`.
 
 **Ferramentas do agente**: definidas com `ferramenta({ nome, descricao, entrada, executar })` num `<dominio>.ferramentas.ts` e registadas no `onModuleInit` do módulo com `RegistoFerramentas.registar(...)` (ver `modules/conhecimento`). A descrição é para o modelo: quando usar e o que fazer com o resultado. O resultado volta ao modelo: curto e com o que ele tem de dizer. Orçamento p95 < 400 ms; o que é lento vai para jobs. O chat corre as mesmas ferramentas.
+
+Headers a configurar em cada ferramenta (webhook) do agente no ElevenLabs:
+
+| Header | Valor | Para quê |
+|---|---|---|
+| `X-Agente-Segredo` | o `AGENTE_SEGREDO` | só o ElevenLabs chama as ferramentas |
+| `X-Municipio` | o slug do município (ex.: `guimaraes`) | escolhe o município |
+| `X-Conversa-Id` | `{{system__conversation_id}}` | liga tudo à conversa |
+| `X-Telefone` | `{{system__caller_id}}` | o munícipe pelo número de onde liga |
+| `X-Telefone-Web` | `{{telefone}}` | chamada pelo browser (página `/ligar`): aí não há `system__caller_id` e a página manda o número na variável dinâmica `telefone`. Só se usa quando o `X-Telefone` vem vazio ou inválido |
+
+No fim da chamada (webhook `post_call_transcription`) vale a mesma regra: o número é o `system__caller_id` e, sem ele (ou inválido), o `telefone` das `dynamic_variables`. A variável `telefone` tem de existir no agente (valor por omissão vazio) para o ElevenLabs não recusar as chamadas por telefone.
 
 **Painel**: `@Controller('painel/...')` + `@Painel('recurso')` (permissões em `modules/auth/permissoes.ts`), `@MunicipioAtual()` e `@UtilizadorAtual()`. Listas com `esquemaPaginacao` + `pagina()` → `{ itens, proximo_cursor }`. Ações sensíveis (ouvir gravação, reatribuir, aprovar) vão para `AuditoriaService.registar`.
 

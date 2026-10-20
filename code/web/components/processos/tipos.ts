@@ -45,7 +45,34 @@ export interface ProcessoResumo {
   atrasado: boolean;
   aguarda_municipe: boolean;
   prazo_municipe: string | null;
+  /** Documentos obrigatórios entregues (válidos) de quantos exigidos. */
+  documentos?: { entregues: number; exigidos: number };
+  freguesia?: string | null;
   criado_em: string;
+}
+
+/** `GET /v1/painel/processos/resumo`: totais por separador. */
+export interface ResumoProcessos {
+  todos: number;
+  meus: number;
+  atrasados: number;
+  aguarda_municipe: number;
+  a_terminar: number;
+  a_terminar_ate: string;
+}
+
+export type EstadoGestaoDocumental =
+  | "nao_aplicavel"
+  | "por_sincronizar"
+  | "sincronizado"
+  | "erro";
+
+export interface GestaoDocumental {
+  estado: EstadoGestaoDocumental;
+  tentativas: number;
+  gd_id: string | null;
+  ultimo_erro: string | null;
+  ultimo_erro_em?: string | null;
 }
 
 export type EstadoVerificacao =
@@ -110,6 +137,10 @@ export interface ProcessoDetalhe {
   assunto: string;
   morada: string | null;
   freguesia: string | null;
+  lat?: number | null;
+  lng?: number | null;
+  /** Sincronização com a gestão documental (V2). */
+  gestao_documental?: GestaoDocumental;
   fase: Fase;
   fase_rotulo: string;
   decisao: "admitido" | "indeferido" | null;

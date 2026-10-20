@@ -2,21 +2,54 @@
 
 import { useSessao } from "@/lib/sessao";
 import { useDados } from "./dados";
-import type { Carga, Pessoa, Servico } from "./tipos";
+import type { Pessoa, Servico } from "./tipos";
 
-interface MembroEquipa {
+/** Um membro ativo da câmara em `GET /v1/painel/servicos`. */
+export interface MembroServico {
   id: string;
   nome: string;
   perfil: string;
-  servico_id: string | null;
-  servico: string | null;
-  ativo: boolean;
+  foto_url: string | null;
+}
+
+/** Um serviço do município com os membros ativos (`GET /v1/painel/servicos`). */
+export interface ServicoComEquipa {
+  id: string;
+  nome: string;
+  entidade: string | null;
+  email: string | null;
+  telefone: string | null;
+  tecnicos: MembroServico[];
+}
+
+export interface ServicosEquipa {
+  itens: ServicoComEquipa[];
+  /** Membros ativos sem serviço atribuído. */
+  sem_servico: MembroServico[];
+}
+
+/** Perfis a quem se encaminha ou atribui trabalho. */
+export const PERFIS_ATRIBUIVEIS = ["tecnico", "atendimento", "chefe_divisao"];
+
+/** Todos os membros (com o serviço de cada um), por nome. */
+export function membrosDe(
+  d: ServicosEquipa | undefined | null,
+  perfis: readonly string[] = PERFIS_ATRIBUIVEIS,
+): (MembroServico & { servico_id: string | null; servico: string | null })[] {
+  if (!d) return [];
+  return [
+    ...d.itens.flatMap((s) =>
+      s.tecnicos.map((t) => ({ ...t, servico_id: s.id, servico: s.nome })),
+    ),
+    ...d.sem_servico.map((t) => ({ ...t, servico_id: null, servico: null })),
+  ]
+    .filter((m) => perfis.includes(m.perfil))
+    .sort((a, b) => a.nome.localeCompare(b.nome, "pt"));
 }
 
 /**
- * Serviços e pessoas para encaminhar e atribuir. A API não tem (ainda) uma
- * lista de serviços aberta a todos: usa-se a Equipa (quem a gere) ou a
- * carga da Gestão (quem vê Indicadores). Sem nenhuma, fica vazio.
+ * Serviços e pessoas para encaminhar e atribuir, de `GET /v1/painel/servicos`
+ * (qualquer perfil do painel).
  */
 export function useServicosEPessoas(ativo = true): {
   servicos: Servico[];
@@ -24,33 +57,19 @@ export function useServicosEPessoas(ativo = true): {
   disponivel: boolean;
 } {
   const { pode } = useSessao();
-  const porEquipa = ativo && pode("equipa");
-  const porCarga = ativo && !porEquipa && pode("indicadores");
-  const equipa = useDados<{ itens: MembroEquipa[] }>(porEquipa ? "/v1/painel/equipa" : null);
-  const carga = useDados<Carga>(porCarga ? "/v1/painel/gestao/carga" : null);
-
-  if (equipa.dados) {
-    const ativos = equipa.dados.itens.filter((m) => m.ativo);
-    const servicos = new Map<string, string>();
-    for (const m of ativos) if (m.servico_id && m.servico) servicos.set(m.servico_id, m.servico);
-    return {
-      disponivel: true,
-      servicos: [...servicos].map(([id, nome]) => ({ id, nome })).sort((a, b) => a.nome.localeCompare(b.nome, "pt")),
-      pessoas: ativos
-        .filter((m) => ["tecnico", "atendimento", "chefe_divisao"].includes(m.perfil))
-        .map((m) => ({ id: m.id, nome: m.nome, servico_id: m.servico_id })),
-    };
-  }
-  if (carga.dados) {
-    return {
-      disponivel: true,
-      servicos: carga.dados.servicos
-        .filter((s) => s.servico_id)
-        .map((s) => ({ id: s.servico_id!, nome: s.servico })),
-      pessoas: carga.dados.tecnicos
-        .filter((t) => t.tecnico_id)
-        .map((t) => ({ id: t.tecnico_id!, nome: t.tecnico, servico_id: t.servico_id })),
-    };
-  }
-  return { disponivel: false, servicos: [], pessoas: [] };
+  const r = useDados<ServicosEquipa>(
+    ativo && pode("visao_geral") ? "/v1/painel/servicos" : null,
+  );
+  if (!r.dados) return { disponivel: false, servicos: [], pessoas: [] };
+  return {
+    disponivel: true,
+    servicos: r.dados.itens
+      .map((s) => ({ id: s.id, nome: s.nome }))
+      .sort((a, b) => a.nome.localeCompare(b.nome, "pt")),
+    pessoas: membrosDe(r.dados).map((m) => ({
+      id: m.id,
+      nome: m.nome,
+      servico_id: m.servico_id,
+    })),
+  };
 }

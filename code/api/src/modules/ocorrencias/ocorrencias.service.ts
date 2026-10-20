@@ -524,12 +524,14 @@ export class OcorrenciasService {
       f.desde ?? null,
     ];
     const duplicados = `(SELECT count(*)::int FROM ocorrencias d WHERE d.duplicada_de = o.id) AS duplicados`;
+    // Por onde chegou: o canal da conversa de origem (null se não há).
+    const canal = `(SELECT cv.canal::text FROM conversas cv WHERE cv.id = o.conversa_id) AS canal`;
 
     if (f.bbox) {
       const [minLng, minLat, maxLng, maxLat] = f.bbox;
       const linhas = await this.db.query<{ id: string }>(
         `SELECT o.id, o.numero, o.lat, o.lng, o.estado, o.categoria_id,
-                c.nome AS categoria, c.icone, o.criada_em, ${duplicados}
+                c.nome AS categoria, c.icone, o.criada_em, ${duplicados}, ${canal}
          FROM ocorrencias o
          JOIN categorias_ocorrencia c ON c.id = o.categoria_id
          WHERE ${filtros} AND o.lat IS NOT NULL
@@ -548,7 +550,7 @@ export class OcorrenciasService {
       `SELECT o.id, o.numero, o.estado, o.categoria_id, c.nome AS categoria, c.icone,
               o.descricao, o.morada, o.lat, o.lng, o.servico_id, s.nome AS servico,
               o.prevista_para::text AS prevista_para, o.criada_em, o.resolvida_em,
-              o.duplicada_de, ${duplicados},
+              o.duplicada_de, ${duplicados}, ${canal},
               (SELECT count(*)::int FROM ocorrencia_fotos fo WHERE fo.ocorrencia_id = o.id) AS fotos
        FROM ocorrencias o
        JOIN categorias_ocorrencia c ON c.id = o.categoria_id

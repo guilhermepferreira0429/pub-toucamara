@@ -30,6 +30,15 @@ import {
  * detalhe com as ações.
  */
 
+const CANAL_ROTULO: Record<string, string> = {
+  telefone: "por telefone",
+  chat: "pelo chat",
+  sms: "por SMS",
+  email: "por email",
+  balcao: "ao balcão",
+  whatsapp: "por WhatsApp",
+};
+
 const Mapa = dynamic(() => import("./mapa-ocorrencias"), {
   ssr: false,
   loading: () => (
@@ -146,7 +155,7 @@ export function PainelOcorrencias() {
             onSelecionar={setSelecionado}
             onBbox={setBbox}
           />
-          <div className="pointer-events-none absolute left-4 top-4 z-[500] flex flex-wrap gap-3 rounded-xl bg-[#FFFDF8E6] px-3 py-2">
+          <div className="pointer-events-none absolute right-4 top-4 z-[500] flex flex-wrap gap-3 rounded-xl bg-[#FFFDF8E6] px-3 py-2">
             {(["nova", "com_equipa", "resolvida"] as const).map((e) => (
               <span key={e} className="flex items-center gap-1.5 text-xs font-semibold text-tinta-2">
                 <span className="size-2.5 rounded-full" style={{ background: ESTADO_COR[e] }} aria-hidden />
@@ -232,6 +241,7 @@ export function PainelOcorrencias() {
                             <span className="flex flex-wrap items-center gap-1.5 pt-0.5">
                               <span className="text-[11px] text-tinta-3">
                                 {diaHora(o.criada_em)}
+                                {o.canal ? ` · ${CANAL_ROTULO[o.canal] ?? o.canal}` : ""}
                                 {o.fotos ? ` · ${o.fotos === 1 ? "com foto" : `${o.fotos} fotos`}` : ""}
                                 {o.duplicados ? ` · ${o.duplicados + 1} avisos` : ""}
                                 {num(o.lat) === null ? " · sem local no mapa" : ""}

@@ -1,3 +1,4 @@
+import type { DiaSemana, HorarioBalcao } from "@/lib/sessao";
 import { numero, variacaoPct } from "./formatos";
 import type { TemaTop } from "./tipos";
 
@@ -8,14 +9,60 @@ import type { TemaTop } from "./tipos";
  */
 
 /**
- * Horário de atendimento presencial assumido (a API ainda não o devolve):
- * dias úteis, das 9h às 17h.
+ * Horário do balcão por omissão (o mesmo da API sem horário configurado):
+ * dias úteis, das 9h às 17h. O real vem em `eu.municipio.horario_balcao`.
  */
 export const HORARIO_BALCAO = { inicio: 9, fim: 17 };
 
-export function balcaoAberto(hora: number, diaSemana?: number) {
-  const util = diaSemana === undefined || diaSemana < 5;
-  return util && hora >= HORARIO_BALCAO.inicio && hora < HORARIO_BALCAO.fim;
+/** Segunda primeiro (0 = segunda, como o mapa de calor). */
+const DIAS_BALCAO: DiaSemana[] = ["seg", "ter", "qua", "qui", "sex", "sab", "dom"];
+
+const minutos = (hhmm: string) => {
+  const [h, m] = hhmm.split(":").map(Number);
+  return (h || 0) * 60 + (m || 0);
+};
+
+/**
+ * Se o balcão está aberto no início desta hora. Sem `diaSemana`: aberto em
+ * algum dia útil. Sem horário (ainda a carregar), dias úteis das 9h às 17h.
+ */
+export function balcaoAberto(
+  hora: number,
+  diaSemana?: number,
+  horario?: HorarioBalcao | null,
+) {
+  if (!horario) {
+    const util = diaSemana === undefined || diaSemana < 5;
+    return util && hora >= HORARIO_BALCAO.inicio && hora < HORARIO_BALCAO.fim;
+  }
+  if (horario.sempre) return true;
+  const dias = diaSemana === undefined ? DIAS_BALCAO.slice(0, 5) : [DIAS_BALCAO[diaSemana]];
+  const m = hora * 60;
+  return dias.some((d) =>
+    (horario.dias[d] ?? []).some(([i, f]) => m >= minutos(i) && m < minutos(f)),
+  );
+}
+
+const ROTULO_DIA: Record<DiaSemana, string> = {
+  seg: "segunda",
+  ter: "terça",
+  qua: "quarta",
+  qui: "quinta",
+  sex: "sexta",
+  sab: "sábado",
+  dom: "domingo",
+};
+
+/** "segunda: 09:00–17:00; …" para leitores de ecrã. */
+export function textoHorarioBalcao(horario?: HorarioBalcao | null): string {
+  if (!horario) {
+    return `dias úteis das ${HORARIO_BALCAO.inicio}h às ${HORARIO_BALCAO.fim}h`;
+  }
+  if (horario.sempre) return "sempre aberto";
+  const partes = DIAS_BALCAO.filter((d) => (horario.dias[d] ?? []).length).map(
+    (d) => `${ROTULO_DIA[d]}: ${horario.dias[d].map(([i, f]) => `${i}–${f}`).join(", ")}`,
+  );
+  return partes.length ? partes.join("; ") : "fechado";
 }
 
 /** Totais por hora (somando os 7 dias do mapa de calor). */
@@ -38,7 +85,13 @@ export function horaDePico(horas: number[]): number | null {
 }
 
 /** "Quando ligam e escrevem": 24 barras, terracota com o balcão fechado. */
-export function BarrasPorHora({ horas }: { horas: number[] }) {
+export function BarrasPorHora({
+  horas,
+  horario,
+}: {
+  horas: number[];
+  horario?: HorarioBalcao | null;
+}) {
   const max = Math.max(1, ...horas);
   return (
     <figure className="flex flex-col gap-2">
@@ -48,7 +101,7 @@ export function BarrasPorHora({ horas }: { horas: number[] }) {
             <div className="flex w-full flex-1 flex-col justify-end">
               <div
                 className={`w-full rounded-t ${
-                  balcaoAberto(h) ? "bg-tinta-3" : "bg-terracota"
+                  balcaoAberto(h, undefined, horario) ? "bg-tinta-3" : "bg-terracota"
                 }`}
                 style={{ height: `${v ? Math.max(2, (v / max) * 100) : 0}%` }}
                 title={`${String(h).padStart(2, "0")}h: ${numero(v)}`}

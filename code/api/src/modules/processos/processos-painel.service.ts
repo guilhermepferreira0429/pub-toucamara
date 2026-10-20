@@ -21,19 +21,38 @@ import {
   FASE_ROTULO,
   FASES,
   FASES_FECHADAS,
+  limiteATerminar,
   mascararNome,
 } from './regras.js';
 import { TiposProcessoService } from './tipos-processo.service.js';
 
-export const esquemaListaProcessos = esquemaPaginacao.extend({
+const verdadeiro = z
+  .enum(['true', 'false'])
+  .transform((v) => v === 'true')
+  .optional();
+
+/** Filtros comuns à lista e ao resumo (totais por separador). */
+const filtrosProcessos = {
   fase: z.enum(FASES).optional(),
+  texto: z.string().trim().min(1).max(100).optional(),
+  tipo_processo_id: z.guid().optional(),
+  /** O serviço do tipo de processo. */
+  servico_id: z.guid().optional(),
+  freguesia: z.string().trim().min(1).max(120).optional(),
+};
+
+export const esquemaResumoProcessos = z.object(filtrosProcessos);
+
+export const esquemaListaProcessos = esquemaPaginacao.extend({
+  ...filtrosProcessos,
+  /** Abertos com o prazo nos próximos DIAS_A_TERMINAR dias úteis. */
+  a_terminar: verdadeiro,
   /** 'eu' = os meus. */
   tecnico_id: z.union([z.uuid(), z.literal('eu')]).optional(),
   atrasados: z
     .enum(['true', 'false'])
     .transform((v) => v === 'true')
     .optional(),
-  texto: z.string().trim().min(1).max(100).optional(),
   /** Em 'documentos' ou com um pedido ao munícipe por responder. */
   aguarda_municipe: z
     .enum(['true', 'false'])
@@ -115,6 +134,53 @@ const PRAZO_MUNICIPE = `(
   SELECT to_char(min(pe.prazo), 'YYYY-MM-DD') FROM processo_pedidos_estado pe
   WHERE pe.processo_id = p.id AND pe.respondido_em IS NULL)`;
 
+/** Os documentos obrigatórios (os que o munícipe entrega) e quantos já há válidos. */
+const DOCUMENTOS_CONTAGEM = `(
+  SELECT json_build_object(
+    'exigidos', count(*)::int,
+    'entregues', (count(*) FILTER (WHERE EXISTS (
+      SELECT 1 FROM documentos x
+      WHERE x.tipo_documento_id = d.id AND x.processo_id = p.id
+        AND x.verificacao_estado NOT IN ('documento_errado', 'ilegivel', 'fora_de_prazo'))))::int)
+  FROM tipo_processo_documentos d
+  WHERE d.tipo_processo_id = p.tipo_processo_id
+    AND d.obrigatorio AND NOT d.gerado_pelo_sistema)`;
+
+/** Aberto: nem notificado nem arquivado. */
+const ABERTO = `p.fase NOT IN ('notificado', 'arquivado')`;
+
+/** À espera do munícipe: em 'documentos' ou com um pedido por responder. */
+const AGUARDA_MUNICIPE = `(${ABERTO} AND (p.fase = 'documentos' OR ${PRAZO_MUNICIPE} IS NOT NULL))`;
+
+/**
+ * Filtros comuns (lista e resumo), com os parâmetros a partir de `$n`:
+ * município, fase, texto, tipo, serviço e freguesia (6 parâmetros).
+ */
+function filtrosSql(n: number): string {
+  const $ = (i: number) => `$${n + i}`;
+  return `p.municipio_id = ${$(0)}
+         AND (${$(1)}::fase_processo IS NULL OR p.fase = ${$(1)})
+         AND (${$(2)}::text IS NULL OR p.numero ILIKE '%' || ${$(2)} || '%' OR p.assunto ILIKE '%' || ${$(2)} || '%'
+              OR p.morada ILIKE '%' || ${$(2)} || '%')
+         AND (${$(3)}::uuid IS NULL OR p.tipo_processo_id = ${$(3)})
+         AND (${$(4)}::uuid IS NULL OR t.servico_id = ${$(4)})
+         AND (${$(5)}::text IS NULL OR lower(p.freguesia) = lower(${$(5)}))`;
+}
+
+function paramsFiltros(
+  municipio: Municipio,
+  f: z.output<typeof esquemaResumoProcessos>,
+): unknown[] {
+  return [
+    municipio.id,
+    f.fase ?? null,
+    f.texto ?? null,
+    f.tipo_processo_id ?? null,
+    f.servico_id ?? null,
+    f.freguesia ?? null,
+  ];
+}
+
 /** O back-office dos processos (secção 5.7): lista, ficha e ações do técnico. */
 @Injectable()
 export class ProcessosPainelService {
@@ -142,40 +208,43 @@ export class ProcessosPainelService {
   ) {
     const tecnico = f.tecnico_id === 'eu' ? u.id : (f.tecnico_id ?? null);
     const ordem = `coalesce(p.prazo_fim, 'infinity'::date)`;
+    const hoje = hojeLisboa();
+    const limite = f.a_terminar
+      ? limiteATerminar(hoje, await this.municipios.feriados(municipio.id))
+      : null;
     const linhas = await this.db.query<
-      LinhaProcesso & { prazo_municipe: string | null }
+      LinhaProcesso & {
+        prazo_municipe: string | null;
+        documentos: { entregues: number; exigidos: number };
+      }
     >(
-      `SELECT ${COLUNAS_PROCESSO}, ${PRAZO_MUNICIPE} AS prazo_municipe
+      `SELECT ${COLUNAS_PROCESSO}, ${PRAZO_MUNICIPE} AS prazo_municipe,
+              ${DOCUMENTOS_CONTAGEM} AS documentos
        ${DE_PROCESSO}
-       WHERE p.municipio_id = $1
-         AND ($2::fase_processo IS NULL OR p.fase = $2)
-         AND ($3::uuid IS NULL OR p.tecnico_id = $3)
-         AND (NOT $4::boolean OR (p.prazo_fim < $5::date AND p.fase NOT IN ('notificado', 'arquivado')))
-         AND ($6::text IS NULL OR p.numero ILIKE '%' || $6 || '%' OR p.assunto ILIKE '%' || $6 || '%'
-              OR p.morada ILIKE '%' || $6 || '%')
-         AND ($7::date IS NULL OR (${ordem}, p.id) > ($7::date, $8::uuid))
-         AND (NOT $10::boolean OR (p.fase NOT IN ('notificado', 'arquivado')
-              AND (p.fase = 'documentos' OR ${PRAZO_MUNICIPE} IS NOT NULL)))
+       WHERE ${filtrosSql(1)}
+         AND ($7::uuid IS NULL OR p.tecnico_id = $7)
+         AND (NOT $8::boolean OR (p.prazo_fim < $9::date AND ${ABERTO}))
+         AND (NOT $10::boolean OR ${AGUARDA_MUNICIPE})
+         AND ($11::date IS NULL OR (${ABERTO} AND p.prazo_fim BETWEEN $9::date AND $11::date))
+         AND ($12::date IS NULL OR (${ordem}, p.id) > ($12::date, $13::uuid))
        ORDER BY ${ordem}, p.id
-       LIMIT $9`,
+       LIMIT $14`,
       [
-        municipio.id,
-        f.fase ?? null,
+        ...paramsFiltros(municipio, f),
         tecnico,
         f.atrasados ?? false,
-        hojeLisboa(),
-        f.texto ?? null,
+        hoje,
+        f.aguarda_municipe ?? false,
+        limite,
         f.cursor?.em ?? null,
         f.cursor?.id ?? null,
         f.limite + 1,
-        f.aguarda_municipe ?? false,
       ],
     );
     const r = pagina(linhas, f.limite, (l) => ({
       em: l.prazo_fim ?? 'infinity',
       id: l.id,
     }));
-    const hoje = hojeLisboa();
     return {
       itens: await Promise.all(
         r.itens.map(async (l) => ({
@@ -205,11 +274,49 @@ export class ProcessosPainelService {
             !FASES_FECHADAS.includes(l.fase) &&
             (l.fase === 'documentos' || l.prazo_municipe !== null),
           prazo_municipe: l.prazo_municipe,
+          // Documentos obrigatórios entregues (válidos) de quantos exigidos.
+          documentos: l.documentos,
+          freguesia: l.freguesia,
           criado_em: l.criado_em,
         })),
       ),
       proximo_cursor: r.proximo_cursor,
     };
+  }
+
+  /**
+   * Totais por separador da lista, com os mesmos filtros (fase, texto, tipo,
+   * serviço, freguesia): todos, os meus, atrasados, à espera do munícipe e a
+   * terminar (abertos com prazo nos próximos DIAS_A_TERMINAR dias úteis).
+   */
+  async resumo(
+    municipio: Municipio,
+    u: UtilizadorPainel,
+    f: z.output<typeof esquemaResumoProcessos>,
+  ) {
+    const hoje = hojeLisboa();
+    const limite = limiteATerminar(
+      hoje,
+      await this.municipios.feriados(municipio.id),
+    );
+    const [r] = await this.db.query<{
+      todos: number;
+      meus: number;
+      atrasados: number;
+      aguarda_municipe: number;
+      a_terminar: number;
+    }>(
+      `SELECT count(*)::int AS todos,
+              count(*) FILTER (WHERE p.tecnico_id = $7)::int AS meus,
+              count(*) FILTER (WHERE p.prazo_fim < $8::date AND ${ABERTO})::int AS atrasados,
+              count(*) FILTER (WHERE ${AGUARDA_MUNICIPE})::int AS aguarda_municipe,
+              count(*) FILTER (WHERE ${ABERTO} AND p.prazo_fim BETWEEN $8::date AND $9::date)::int AS a_terminar
+       FROM processos p
+       JOIN tipos_processo t ON t.id = p.tipo_processo_id
+       WHERE ${filtrosSql(1)}`,
+      [...paramsFiltros(municipio, f), u.id, hoje, limite],
+    );
+    return { ...r, a_terminar_ate: limite };
   }
 
   async carregar(
@@ -244,6 +351,7 @@ export class ProcessosPainelService {
       tipo,
       pedidos,
       apoio,
+      [extra],
     ] = await Promise.all([
       this.db.query<Record<string, unknown>>(
         `SELECT e.id, e.tipo, e.descricao, e.interno, e.ator_tipo, e.ator_id,
@@ -305,6 +413,21 @@ export class ProcessosPainelService {
       this.tipos.porId(municipio.id, p.tipo_processo_id),
       this.processos.pedidos(municipio.id, id),
       this.estadoApoio(id),
+      this.db.query<{
+        lat: number | null;
+        lng: number | null;
+        gd_estado: string;
+        gd_tentativas: number;
+        gd_id: string | null;
+        ultimo_erro: string | null;
+        ultimo_erro_em: Date | null;
+      }>(
+        `SELECT p.lat, p.lng, p.gd_estado, p.gd_tentativas, p.gd_id, s.ultimo_erro,
+                s.ultimo_erro_em
+         FROM processos p LEFT JOIN gd_sincronizacoes s ON s.processo_id = p.id
+         WHERE p.id = $1`,
+        [id],
+      ),
     ]);
 
     const urlLeitura = async (chave: string | null) =>
@@ -326,10 +449,21 @@ export class ProcessosPainelService {
       assunto: p.assunto,
       morada: p.morada,
       freguesia: p.freguesia,
+      lat: extra?.lat ?? null,
+      lng: extra?.lng ?? null,
       fase: p.fase,
       fase_rotulo: FASE_ROTULO[p.fase],
       decisao: p.decisao,
       decidido_em: p.decidido_em,
+      // Sincronização com a gestão documental (V2): nao_aplicavel |
+      // por_sincronizar | sincronizado | erro.
+      gestao_documental: {
+        estado: extra?.gd_estado ?? 'nao_aplicavel',
+        tentativas: extra?.gd_tentativas ?? 0,
+        gd_id: extra?.gd_id ?? null,
+        ultimo_erro: extra?.ultimo_erro ?? null,
+        ultimo_erro_em: extra?.ultimo_erro_em ?? null,
+      },
       tecnico: p.tecnico_id ? { id: p.tecnico_id, nome: p.tecnico_nome } : null,
       prazo: {
         inicio: p.prazo_inicio,

@@ -57,6 +57,36 @@ describe('cartaoDe', () => {
     ).toBeNull();
   });
 
+  it('passagem, vagas e processo levam o resultado da ferramenta', () => {
+    const passagem = {
+      passagem_id: 'p1',
+      fora_de_horas: true,
+      responder_ate: '2026-10-21T10:00:00.000Z',
+      dizer: 'Respondemos até amanhã às 11h.',
+    };
+    expect(cartaoDe('passar_a_humano', passagem)).toEqual({
+      tipo: 'passagem',
+      ferramenta: 'passar_a_humano',
+      dados: passagem,
+    });
+    const vagas = {
+      agenda: { agenda_id: 'a1', nome: 'Urbanismo', local: 'Balcão 2' },
+      vagas: [{ inicio: '2026-10-22T09:00:00+01:00', dito: 'quinta às 9h' }],
+      sem_vagas: false,
+    };
+    expect(cartaoDe('ver_vagas', vagas)).toMatchObject({
+      tipo: 'vagas',
+      dados: vagas,
+    });
+    expect(
+      cartaoDe('estado_processo', { precisa_identificacao: true }),
+    ).toMatchObject({
+      tipo: 'processo',
+      dados: { precisa_identificacao: true },
+    });
+    expect(cartaoDe('ver_vagas', vagas, true)).toBeNull();
+  });
+
   it('mapeia cada ferramenta conhecida para o seu cartão', () => {
     const casos: [string, string][] = [
       ['encaminhar', 'contacto'],
@@ -79,7 +109,7 @@ describe('cartaoDe', () => {
   });
 
   it('ferramentas desconhecidas e erros não geram cartão', () => {
-    expect(cartaoDe('ver_vagas', { vagas: [] })).toBeNull();
+    expect(cartaoDe('identificar_municipe', { identificado: true })).toBeNull();
     expect(cartaoDe('inventada', {})).toBeNull();
     expect(cartaoDe('marcar', { erro: {} }, true)).toBeNull();
   });

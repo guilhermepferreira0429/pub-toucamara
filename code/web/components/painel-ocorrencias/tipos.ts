@@ -38,6 +38,8 @@ export interface Pin {
   icone: string | null;
   criada_em: string;
   duplicados: number;
+  /** Canal da conversa de origem (telefone, chat…), ou null. */
+  canal?: string | null;
 }
 
 export interface OcorrenciaLista extends Pin {

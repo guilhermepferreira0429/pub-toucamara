@@ -577,6 +577,83 @@ describe('Requerimentos e processos (e2e)', () => {
       for (const i of r.body.itens) expect(i.aguarda_municipe).toBe(true);
     });
 
+    it('lista: contagem de documentos e filtros por tipo, serviço e freguesia; ficha com lat/lng e gestão documental', async () => {
+      const d = await ctx
+        .http()
+        .get(`/v1/painel/processos/${processoId}`)
+        .set(painel)
+        .expect(estado(200));
+      expect(d.body).toMatchObject({
+        lat: null,
+        lng: null,
+        gestao_documental: {
+          estado: expect.stringMatching(
+            /^(nao_aplicavel|por_sincronizar|sincronizado|erro)$/,
+          ),
+          tentativas: expect.any(Number),
+          gd_id: null,
+          ultimo_erro: null,
+        },
+      });
+
+      const listar = (query: Record<string, string>) =>
+        ctx
+          .http()
+          .get('/v1/painel/processos')
+          .query({ texto: numero, limite: 200, ...query })
+          .set(painel)
+          .expect(estado(200))
+          .then((r) => r.body.itens as { id: string }[]);
+      const [item] = (await listar({})).filter((i) => i.id === processoId);
+      expect(item).toMatchObject({ documentos: { entregues: 0, exigidos: 2 } });
+
+      const tipoId = d.body.tipo.id as string;
+      expect(
+        (await listar({ tipo_processo_id: tipoId })).map((i) => i.id),
+      ).toContain(processoId);
+      expect(await listar({ tipo_processo_id: randomUUID() })).toEqual([]);
+      expect(await listar({ servico_id: randomUUID() })).toEqual([]);
+      expect(await listar({ freguesia: 'Freguesia que não existe' })).toEqual(
+        [],
+      );
+      await ctx
+        .http()
+        .get('/v1/painel/processos')
+        .query({ servico_id: 'nao-e-uuid' })
+        .set(painel)
+        .expect(estado(400));
+    });
+
+    it('GET /v1/painel/processos/resumo dá os totais por separador', async () => {
+      const r = await ctx
+        .http()
+        .get('/v1/painel/processos/resumo')
+        .query({ texto: numero })
+        .set(painel)
+        .expect(estado(200));
+      expect(r.body).toEqual({
+        todos: 1,
+        meus: expect.any(Number),
+        atrasados: 0,
+        aguarda_municipe: 1,
+        a_terminar: expect.any(Number),
+        a_terminar_ate: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/),
+      });
+      const geral = await ctx
+        .http()
+        .get('/v1/painel/processos/resumo')
+        .set(painel)
+        .expect(estado(200));
+      expect(geral.body.todos).toBeGreaterThanOrEqual(1);
+      const a = await ctx
+        .http()
+        .get('/v1/painel/processos')
+        .query({ a_terminar: 'true', limite: 200 })
+        .set(painel)
+        .expect(estado(200));
+      expect(Array.isArray(a.body.itens)).toBe(true);
+    });
+
     it('foto de um documento que não é deste requerimento → 400 documento_desconhecido', async () => {
       // O 503 sem IA está no teste seguinte: os ids dos documentos do seed
       // não passam no z.uuid() da rota.

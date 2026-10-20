@@ -46,6 +46,16 @@ export class EquipaController {
     return this.equipa.listar(m).then((itens) => ({ itens }));
   }
 
+  /**
+   * Serviços com os técnicos ativos (id, nome, perfil, foto_url), para os
+   * seletores de serviço e técnico. Qualquer perfil do painel.
+   */
+  @Get('servicos')
+  @Painel('visao_geral')
+  servicos(@MunicipioAtual() m: Municipio) {
+    return this.equipa.servicosComEquipa(m);
+  }
+
   /** Convidar: cria o utilizador e manda-lhe o link mágico. */
   @Post('equipa')
   @Painel('equipa')

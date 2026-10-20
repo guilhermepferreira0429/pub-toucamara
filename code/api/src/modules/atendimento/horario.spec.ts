@@ -3,6 +3,7 @@ import {
   estaAberto,
   HORARIO_POR_OMISSAO,
   horarioPorExtenso,
+  horarioSimples,
   instanteLocal,
   lerHorario,
   lerIntervalos,
@@ -219,5 +220,46 @@ describe('por extenso', () => {
       horarioPorExtenso({ 'seg-sex': '9:00-12:30,14:00-17:00', dom: false }),
     ).toBe('seg-sex 9:00-12:30 e 14:00-17:00; dom fechado');
     expect(horarioPorExtenso(null)).toBeNull();
+  });
+});
+
+describe('horarioSimples', () => {
+  it('dias da semana (segunda primeiro) com intervalos HH:MM', () => {
+    const h = horarioSimples(
+      lerHorario({ 'seg-sex': '9:00-12:30,14:00-17:00', sab: '9h-12h' })!,
+    );
+    expect(Object.keys(h.dias)).toEqual([
+      'seg',
+      'ter',
+      'qua',
+      'qui',
+      'sex',
+      'sab',
+      'dom',
+    ]);
+    expect(h).toMatchObject({
+      sempre: false,
+      dias: {
+        seg: [
+          ['09:00', '12:30'],
+          ['14:00', '17:00'],
+        ],
+        sab: [['09:00', '12:00']],
+        dom: [],
+      },
+    });
+  });
+
+  it('por omissão: dias úteis 9h-17h; sempre aberto vem com dias vazios', () => {
+    expect(horarioSimples(HORARIO_POR_OMISSAO).dias.qua).toEqual([
+      ['09:00', '17:00'],
+    ]);
+    const sempre = horarioSimples(lerHorario({ sempre: true })!);
+    expect(sempre.sempre).toBe(true);
+    expect(sempre.dias.seg).toEqual([]);
+    // Até à meia-noite fica 24:00.
+    expect(
+      horarioSimples(lerHorario({ sex: '20:00-02:00' })!).dias,
+    ).toMatchObject({ sex: [['20:00', '24:00']], sab: [['00:00', '02:00']] });
   });
 });

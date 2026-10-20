@@ -28,7 +28,12 @@ import {
   useAcao,
   useDados,
 } from "./comum";
-import { FormularioResposta, linhas, usePodeEditarRespostas } from "./formulario-resposta";
+import {
+  FormularioResposta,
+  linhas,
+  trechosDe,
+  usePodeEditarRespostas,
+} from "./formulario-resposta";
 import { Diferencas, eErroDeAvaliacao, ErroPublicacao, PrecisaDe } from "./publicacao";
 import type { EstadoVersao, Historico, Resposta, VersaoHistorico } from "./tipos";
 
@@ -437,6 +442,7 @@ export function EditorResposta({ id, onMudou }: { id: string; onMudou: () => voi
               texto_sms: (ultima ?? mostrada).texto_sms ?? "",
               passa_a_pessoa_quando: (ultima ?? mostrada).passa_a_pessoa_quando.join("\n"),
               frases: "",
+              fontes: (ultima ?? mostrada).fontes,
             }}
             aCorrer={guardar.aCorrer}
             erro={guardar.erro}
@@ -449,6 +455,7 @@ export function EditorResposta({ id, onMudou }: { id: string; onMudou: () => voi
                     texto_sms: v.texto_sms.trim() || null,
                     passa_a_pessoa_quando: linhas(v.passa_a_pessoa_quando),
                     frases: linhas(v.frases),
+                    trechos: trechosDe(v),
                   },
                 }),
               );

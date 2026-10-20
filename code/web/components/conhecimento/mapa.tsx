@@ -184,8 +184,9 @@ export function MapaConhecimento() {
             </span>
           </div>
           <p className="text-[13px] text-white/60">
-            {numero(m.resumo.respostas_no_ar)} respostas no ar · {numero(m.resumo.fontes)} fontes de{" "}
-            {numero(porEntidade.size)} entidades do concelho
+            {plural(m.resumo.respostas_no_ar, "resposta", "respostas")} no ar ·{" "}
+            {plural(m.resumo.fontes, "fonte", "fontes")} de{" "}
+            {plural(porEntidade.size, "entidade", "entidades")} do concelho
             {ingestao ? ` · lidas ${quando(ingestao.iniciada_em)}` : ""}
           </p>
         </div>
@@ -282,7 +283,7 @@ export function MapaConhecimento() {
               O concelho inteiro, não só o site da câmara
             </h2>
             <p className="text-[13px] text-tinta-2">
-              {numero(m.resumo.fontes)} fontes lidas automaticamente. O munícipe só precisa de um
+              {plural(m.resumo.fontes, "fonte lida", "fontes lidas")} automaticamente. O munícipe só precisa de um
               número.
             </p>
           </div>
@@ -375,4 +376,9 @@ export function MapaConhecimento() {
       </div>
     </div>
   );
+}
+
+/** "1 fonte" / "3 fontes" (números formatados como no resto do ecrã). */
+function plural(n: number, um: string, varios: string): string {
+  return `${numero(n)} ${n === 1 ? um : varios}`;
 }

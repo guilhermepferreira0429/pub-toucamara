@@ -12,7 +12,10 @@ export type TipoCartao =
   | 'rascunho'
   | 'emergencia'
   | 'requerimento'
-  | 'ocorrencia';
+  | 'ocorrencia'
+  | 'passagem'
+  | 'vagas'
+  | 'processo';
 
 export interface FonteCartao {
   titulo: string;
@@ -44,6 +47,12 @@ const POR_FERRAMENTA: Record<
   preencher_campo: 'requerimento',
   concluir_requerimento: 'requerimento',
   registar_ocorrencia: 'ocorrencia',
+  // Passagem a pessoa: responder_ate, fora_de_horas e o "dizer".
+  passar_a_humano: 'passagem',
+  // As vagas (inicio, dito) e a agenda; ou precisa_escolher com as agendas.
+  ver_vagas: 'vagas',
+  // Os processos (fase, prazo, o que falta) ou precisa_identificacao.
+  estado_processo: 'processo',
 };
 
 function objeto(v: unknown): Record<string, unknown> {

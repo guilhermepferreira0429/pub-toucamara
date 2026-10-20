@@ -259,6 +259,38 @@ describe('Painel (e2e)', () => {
       });
     });
 
+    it('GET /painel/auth/eu: o município traz a linha e o horário do balcão', async () => {
+      const r = await ctx
+        .http()
+        .get('/v1/painel/auth/eu')
+        .set(atendimento)
+        .expect(200);
+      expect(r.body.municipio).toMatchObject({
+        id: MUNICIPIO_ID,
+        telefone_linha: '+351253000000',
+        horario_balcao: {
+          sempre: expect.any(Boolean),
+          dias: {
+            seg: expect.any(Array),
+            ter: expect.any(Array),
+            qua: expect.any(Array),
+            qui: expect.any(Array),
+            sex: expect.any(Array),
+            sab: expect.any(Array),
+            dom: expect.any(Array),
+          },
+        },
+      });
+      for (const intervalos of Object.values(
+        r.body.municipio.horario_balcao.dias as Record<string, string[][]>,
+      )) {
+        for (const [i, f] of intervalos) {
+          expect(i).toMatch(/^\d{2}:\d{2}$/);
+          expect(f).toMatch(/^\d{2}:\d{2}$/);
+        }
+      }
+    });
+
     it('sem sessão ou com JWT inválido → 401 nao_autenticado', async () => {
       const sem = await ctx.http().get('/v1/painel/auth/eu').expect(401);
       expect(sem.body.erro.codigo).toBe('nao_autenticado');
@@ -615,6 +647,44 @@ describe('Painel (e2e)', () => {
         .send({ perfil: 'tecnico' })
         .expect(404);
       expect(nao.body.erro.codigo).toBe('utilizador_nao_encontrado');
+    });
+
+    it('GET /painel/servicos: serviços com os membros ativos, para qualquer perfil', async () => {
+      const tecnicoId = await criarUtilizador(ctx, 'tecnico');
+      const inativoId = await criarUtilizador(ctx, 'tecnico');
+      await ctx.db.query(
+        'UPDATE utilizadores SET servico_id = $2 WHERE id = ANY($1::uuid[])',
+        [[tecnicoId, inativoId], SERVICO],
+      );
+      await ctx.db.query(
+        'UPDATE utilizadores SET ativo = false WHERE id = $1',
+        [inativoId],
+      );
+      const r = await ctx
+        .http()
+        .get('/v1/painel/servicos')
+        .set(atendimento)
+        .expect(200);
+      const servico = r.body.itens.find(
+        (s: { id: string }) => s.id === SERVICO,
+      );
+      expect(servico).toMatchObject({
+        nome: 'Obras (painel e2e)',
+        entidade: 'Câmara (painel e2e)',
+      });
+      const ids = servico.tecnicos.map((t: { id: string }) => t.id);
+      expect(ids).toContain(tecnicoId);
+      expect(ids).not.toContain(inativoId);
+      expect(
+        servico.tecnicos.find((t: { id: string }) => t.id === tecnicoId),
+      ).toEqual({
+        id: tecnicoId,
+        nome: 'Teste tecnico',
+        perfil: 'tecnico',
+        foto_url: null,
+      });
+      expect(Array.isArray(r.body.sem_servico)).toBe(true);
+      await ctx.http().get('/v1/painel/servicos').expect(401);
     });
 
     it('GET /painel/rgpd: políticas de retenção com a última execução', async () => {
@@ -1119,6 +1189,58 @@ describe('Painel (e2e)', () => {
         mudou: false,
         versao_id: c.body.versao_id,
       });
+    });
+
+    it('GET /conhecimento/trechos: pesquisa os trechos em vigor para escolher fontes', async () => {
+      const palavra = palavraUnica();
+      const f = await ctx
+        .http()
+        .post('/v1/painel/conhecimento/fontes')
+        .set(chefe)
+        .send({
+          entidade_id: ENTIDADE_CAMARA,
+          titulo: `Regulamento dos ${palavra}`,
+          tipo: 'regulamento',
+          url: `https://exemplo.pt/trechos-${randomUUID()}`,
+          leitura_automatica: false,
+        })
+        .expect(estado(201));
+      await ctx
+        .http()
+        .post(`/v1/painel/conhecimento/fontes/${f.body.id}/texto`)
+        .set(chefe)
+        .send({
+          texto: `Artigo 1.º Os ${palavra} municipais abrem às 9h00 e fecham às 18h00, de segunda a sexta-feira.`,
+        })
+        .expect(200);
+
+      const r = await ctx
+        .http()
+        .get('/v1/painel/conhecimento/trechos')
+        .query({ q: palavra, limite: 5 })
+        .set(atendimento)
+        .expect(200);
+      expect(r.body.itens.length).toBeGreaterThan(0);
+      expect(r.body.itens[0]).toMatchObject({
+        trecho_id: expect.any(String),
+        titulo: `Regulamento dos ${palavra}`,
+        tipo_fonte: 'regulamento',
+        texto: expect.stringContaining(palavra),
+      });
+
+      const nada = await ctx
+        .http()
+        .get('/v1/painel/conhecimento/trechos')
+        .query({ q: palavraUnica() })
+        .set(atendimento)
+        .expect(200);
+      expect(nada.body.itens).toEqual([]);
+      await ctx
+        .http()
+        .get('/v1/painel/conhecimento/trechos')
+        .query({ q: 'a' })
+        .set(atendimento)
+        .expect(400);
     });
 
     it('texto curto → 400; fonte de outro sítio → 404; atendimento não escreve (403)', async () => {

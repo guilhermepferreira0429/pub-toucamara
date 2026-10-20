@@ -25,6 +25,7 @@ import {
   esquemaListaProcessos,
   esquemaNota,
   esquemaPedirDocumento,
+  esquemaResumoProcessos,
   ProcessosPainelService,
 } from './processos-painel.service.js';
 import { ProcessosService } from './processos.service.js';
@@ -38,7 +39,17 @@ export class ProcessosPainelController {
     private readonly apoio: ProcessosApoioService,
   ) {}
 
-  /** ?fase=&tecnico_id=(uuid|eu)&atrasados=true&aguarda_municipe=true&texto=&limite=&cursor= */
+  /** Totais por separador: ?fase=&texto=&tipo_processo_id=&servico_id=&freguesia= */
+  @Get('resumo')
+  totais(
+    @MunicipioAtual() m: Municipio,
+    @UtilizadorAtual() u: UtilizadorPainel,
+    @Query() query: unknown,
+  ) {
+    return this.painel.resumo(m, u, validar(esquemaResumoProcessos, query));
+  }
+
+  /** ?fase=&tecnico_id=(uuid|eu)&atrasados=true&aguarda_municipe=true&a_terminar=true&texto=&tipo_processo_id=&servico_id=&freguesia=&limite=&cursor= */
   @Get()
   listar(
     @MunicipioAtual() m: Municipio,

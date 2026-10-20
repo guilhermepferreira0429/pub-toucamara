@@ -14,7 +14,7 @@ import { MunicipioAtual } from '../../common/pedido.js';
 import { ContextoFerramenta } from '../../ferramentas/ferramenta.js';
 import { RegistoFerramentas } from '../../ferramentas/registo-ferramentas.service.js';
 import { ConversasService } from '../conversas/conversas.service.js';
-import { normalizarTelefone } from '../municipes/municipes.service.js';
+import { telefoneComAlternativa } from '../municipes/municipes.service.js';
 import type { Municipio } from '../municipios/municipios.service.js';
 import { MunicipioGuard, SegredoAgenteGuard } from './agente.guard.js';
 
@@ -26,6 +26,9 @@ import { MunicipioGuard, SegredoAgenteGuard } from './agente.guard.js';
  * Headers que o ElevenLabs manda (variáveis dinâmicas do sistema):
  * - `X-Conversa-Id`: {{system__conversation_id}} → liga tudo à conversa
  * - `X-Telefone`: {{system__caller_id}} → munícipe pelo número
+ * - `X-Telefone-Web`: {{telefone}} → o número que a página `/ligar` manda
+ *   (numa chamada pelo browser não há caller_id); usado quando o
+ *   `X-Telefone` vem vazio ou inválido
  */
 @Controller('agent/tools')
 @UseGuards(SegredoAgenteGuard)
@@ -50,10 +53,11 @@ export class AgentToolsController {
     @MunicipioAtual() municipio: Municipio,
     @Headers('x-conversa-id') conversaRef: string | undefined,
     @Headers('x-telefone') telefoneBruto: string | undefined,
+    @Headers('x-telefone-web') telefoneWeb: string | undefined,
     @Body() body: unknown,
   ) {
     this.registo.obter(nome); // 404 antes de criar a conversa
-    const telefone = normalizarTelefone(telefoneBruto);
+    const telefone = telefoneComAlternativa(telefoneBruto, telefoneWeb);
     const conversa = conversaRef
       ? await this.conversas.garantir({
           municipioId: municipio.id,

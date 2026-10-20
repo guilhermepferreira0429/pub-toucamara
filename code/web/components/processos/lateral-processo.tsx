@@ -12,18 +12,18 @@ import {
   RefreshCw,
   Save,
 } from "lucide-react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useState } from "react";
 import { Botao } from "@/components/ui/botao";
-import { API_URL, ErroApi } from "@/lib/api";
-import { municipioEscolhido, useSessao } from "@/lib/sessao";
+import { membrosDe, type ServicosEquipa } from "@/components/atendimento/equipa";
+import { useSessao } from "@/lib/sessao";
 import { diaCurto, diaHora, diaLongo, textoDiasUteis } from "./formatos";
 import {
   FASE_ROTULO,
   FASES,
   type DocumentoProcesso,
   type Fase,
-  type MembroEquipa,
   type ProcessoDetalhe,
   type ResultadoSincronizacao,
 } from "./tipos";
@@ -111,8 +111,8 @@ export function CartaoGerir({
   onAtualizado: (d: ProcessoDetalhe, mensagem: string) => void;
 }) {
   const { pedido, pode, eu } = useSessao();
-  const equipa = usePedido<{ itens: MembroEquipa[] }>(
-    pode("equipa") ? "/v1/painel/equipa" : null,
+  const equipa = usePedido<ServicosEquipa>(
+    pode("visao_geral") ? "/v1/painel/servicos" : null,
   );
   const [fase, setFase] = useState<Fase>(p.fase);
   const [tecnico, setTecnico] = useState(p.tecnico?.id ?? "");
@@ -122,8 +122,8 @@ export function CartaoGerir({
 
   // Quem pode escolher: a equipa (com permissão), senão o atual e "eu".
   const opcoesTecnico = new Map<string, string>();
-  for (const m of equipa.dados?.itens ?? []) {
-    if (m.ativo) opcoesTecnico.set(m.id, m.nome);
+  for (const m of membrosDe(equipa.dados, ["tecnico", "chefe_divisao"])) {
+    opcoesTecnico.set(m.id, m.nome);
   }
   if (p.tecnico) opcoesTecnico.set(p.tecnico.id, p.tecnico.nome ?? "Técnico");
   if (eu) opcoesTecnico.set(eu.utilizador.id, `${eu.utilizador.nome} (eu)`);
@@ -421,6 +421,15 @@ export function CartaoRequerente({ p }: { p: ProcessoDetalhe }) {
 
 // ---------------------------------------------------------------------------
 
+const MapaProcesso = dynamic(() => import("./mapa-processo"), {
+  ssr: false,
+  loading: () => (
+    <div className="flex size-full items-center justify-center bg-creme-2 text-xs text-tinta-3">
+      A carregar o mapa…
+    </div>
+  ),
+});
+
 /** Planta de localização: JSON com o documento, ou o PDF sem guardar. */
 export function CartaoLocalizacao({
   p,
@@ -429,7 +438,7 @@ export function CartaoLocalizacao({
   p: ProcessoDetalhe;
   onPlanta: () => void;
 }) {
-  const { token } = useSessao();
+  const { pedidoFicheiro } = useSessao();
   const [aGerar, setAGerar] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
@@ -444,35 +453,18 @@ export function CartaoLocalizacao({
     setErro(null);
     setAviso(null);
     try {
-      const headers: Record<string, string> = {
-        "Content-Type": "application/json",
-      };
-      if (token) headers.Authorization = `Bearer ${token}`;
-      const municipio = municipioEscolhido();
-      if (municipio) headers["X-Municipio"] = municipio;
-      const res = await fetch(`${API_URL}/v1/painel/processos/${p.id}/planta`, {
-        method: "POST",
-        headers,
-        body: "{}",
-      });
-      if (!res.ok) {
-        const j = (await res.json().catch(() => null)) as {
-          erro?: { codigo?: string; mensagem?: string };
-        } | null;
-        throw new ErroApi(
-          res.status,
-          j?.erro?.codigo ?? "erro",
-          j?.erro?.mensagem ?? "Não foi possível gerar a planta.",
-        );
-      }
-      if ((res.headers.get("Content-Type") ?? "").includes("application/pdf")) {
-        const url = URL.createObjectURL(await res.blob());
+      const r = await pedidoFicheiro<{ url: string | null; geocodificada: boolean }>(
+        `/v1/painel/processos/${p.id}/planta`,
+        { corpo: {} },
+      );
+      if (r.tipo === "ficheiro") {
+        const url = URL.createObjectURL(r.blob);
         window.open(url, "_blank", "noopener");
         setAviso(
           "Sem armazenamento configurado: a planta abriu numa janela nova e não ficou guardada no processo.",
         );
       } else {
-        const j = (await res.json()) as { url: string | null; geocodificada: boolean };
+        const j = r.dados;
         if (j.url) window.open(j.url, "_blank", "noopener");
         setAviso(
           j.geocodificada
@@ -506,6 +498,11 @@ export function CartaoLocalizacao({
         )}
       </div>
       <p className="text-[13px] text-tinta">{local || "Sem morada registada."}</p>
+      {typeof p.lat === "number" && typeof p.lng === "number" && (
+        <div className="h-[160px] overflow-hidden rounded-xl border border-linha">
+          <MapaProcesso lat={p.lat} lng={p.lng} rotulo={local || p.numero} />
+        </div>
+      )}
       <div className="flex flex-wrap items-center gap-1.5">
         {planta ? (
           <>
@@ -552,8 +549,9 @@ export interface EstadoSync {
 }
 
 /**
- * O estado da gestão documental deste processo. A ficha não o traz: lê-se do
- * último evento 'sync_erro' e do resultado do "sincronizar já" desta visita.
+ * O estado da gestão documental deste processo: o resultado do "sincronizar
+ * já" desta visita, senão `gestao_documental` da ficha (o último evento
+ * 'sync_erro' só dá a hora do erro quando a API não a traz).
  */
 export function estadoSync(
   p: ProcessoDetalhe,
@@ -583,6 +581,40 @@ export function estadoSync(
     return null;
   }
   const ultimo = [...p.eventos].reverse().find((e) => e.tipo === "sync_erro");
+  const g = p.gestao_documental;
+  if (g) {
+    if (g.estado === "erro") {
+      const n = g.tentativas;
+      return {
+        erro: true,
+        texto: `Gestão documental: por sincronizar${
+          n ? ` · ${n} ${n === 1 ? "tentativa" : "tentativas"}` : ""
+        }`,
+        detalhe: g.ultimo_erro,
+        em: g.ultimo_erro_em ?? ultimo?.em ?? null,
+        tentativa: n || null,
+      };
+    }
+    if (g.estado === "sincronizado") {
+      return {
+        erro: false,
+        texto: `Na gestão documental${g.gd_id ? `: n.º ${g.gd_id}` : ""}`,
+        detalhe: null,
+        em: null,
+        tentativa: null,
+      };
+    }
+    if (g.estado === "por_sincronizar") {
+      return {
+        erro: false,
+        texto: "Gestão documental: por sincronizar",
+        detalhe: null,
+        em: null,
+        tentativa: null,
+      };
+    }
+    return null;
+  }
   if (!ultimo) return null;
   const dados = (ultimo.dados ?? {}) as { tentativa?: number; erro?: string };
   return {

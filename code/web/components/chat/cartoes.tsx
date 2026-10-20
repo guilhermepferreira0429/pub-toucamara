@@ -5,6 +5,7 @@ import {
   Calendar,
   Check,
   ClipboardList,
+  Clock,
   Copy,
   CreditCard,
   Droplets,
@@ -20,6 +21,7 @@ import {
   Send,
   Siren,
   TriangleAlert,
+  UserRound,
   type LucideIcon,
 } from "lucide-react";
 import { useState } from "react";
@@ -732,6 +734,164 @@ function CartaoOcorrencia({ dados }: { dados: Dados }) {
 }
 
 /* ------------------------------------------------------------------ */
+/* Passagem a um funcionário (passar_a_humano)                          */
+/* ------------------------------------------------------------------ */
+
+const dataHora = (iso: string | null) => {
+  if (!iso) return null;
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime())
+    ? null
+    : new Intl.DateTimeFormat("pt-PT", {
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+        hour: "2-digit",
+        minute: "2-digit",
+      }).format(d);
+};
+
+function CartaoPassagem({ dados }: { dados: Dados }) {
+  const ate = dataHora(txt(dados.responder_ate));
+  const dizer = txt(dados.dizer);
+  if (!ate && !dizer) return null;
+  return (
+    <div className={`${CAIXA} gap-2.5 border-linha p-4`}>
+      <p className="flex items-center gap-2.5">
+        <span className="flex size-8 items-center justify-center rounded-full bg-tinta" aria-hidden>
+          <UserRound className="size-4 text-white" />
+        </span>
+        <span className="text-[15px] font-bold text-tinta">Passado a um funcionário</span>
+      </p>
+      {dizer && <p className="text-[13px] leading-[1.45] text-tinta">{dizer}</p>}
+      {ate && (
+        <p className="flex items-center gap-1.5 text-xs text-tinta-2">
+          <Clock className="size-3.5" aria-hidden />
+          <span className="first-letter:uppercase">Resposta até {ate}</span>
+        </p>
+      )}
+      {dados.fora_de_horas === true && (
+        <span className="self-start rounded-[11px] bg-ambar-suave px-[9px] py-1 text-[11px] font-semibold text-ambar">
+          Fora do horário de atendimento
+        </span>
+      )}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Vagas para atendimento marcado (ver_vagas)                           */
+/* ------------------------------------------------------------------ */
+
+function CartaoVagas({ dados, acoes }: { dados: Dados; acoes: AcoesCartao }) {
+  if (dados.precisa_escolher === true) {
+    const agendas = lista(dados.agendas).filter((a) => txt(a.nome));
+    if (!agendas.length) return null;
+    return (
+      <div className={`${CAIXA} gap-2.5 border-linha p-4`}>
+        <p className="flex items-center gap-2 text-sm font-bold text-tinta">
+          <Calendar className="size-4 text-terracota-escuro" aria-hidden />
+          Para que serviço?
+        </p>
+        <div className="flex flex-col gap-1.5">
+          {agendas.map((a) => (
+            <BotaoCartao
+              key={txt(a.agenda_id) ?? txt(a.nome)}
+              disabled={acoes.ocupado}
+              onClick={() => acoes.enviar(`Quero marcar para ${txt(a.nome)}.`)}
+            >
+              {txt(a.nome)}
+            </BotaoCartao>
+          ))}
+        </div>
+      </div>
+    );
+  }
+  const agenda = obj(dados.agenda);
+  const vagas = lista(dados.vagas).filter((v) => txt(v.inicio) && txt(v.dito));
+  return (
+    <div className={`${CAIXA} gap-2.5 border-linha p-4`}>
+      <p className="flex items-center gap-2 text-sm font-bold text-tinta">
+        <Calendar className="size-4 text-terracota-escuro" aria-hidden />
+        {txt(agenda.nome) ?? "Vagas"}
+      </p>
+      {txt(agenda.local) && (
+        <p className="flex items-center gap-1.5 text-xs text-tinta-2">
+          <MapPin className="size-3.5" aria-hidden />
+          {txt(agenda.local)}
+        </p>
+      )}
+      {vagas.length > 0 ? (
+        <div className="flex flex-col gap-1.5">
+          {vagas.map((v) => (
+            <BotaoCartao
+              key={txt(v.inicio)}
+              disabled={acoes.ocupado}
+              onClick={() => acoes.enviar(`Prefiro ${txt(v.dito)}.`)}
+            >
+              <span className="first-letter:uppercase">{txt(v.dito)}</span>
+            </BotaoCartao>
+          ))}
+        </div>
+      ) : (
+        <p className="text-[13px] text-tinta-2">
+          {txt(dados.mensagem) ?? "Não há vagas nestes dias."}
+        </p>
+      )}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Estado de processos (estado_processo)                                */
+/* ------------------------------------------------------------------ */
+
+function CartaoProcesso({ dados }: { dados: Dados }) {
+  // A identificação por SMS aparece à parte (IdentificacaoSms).
+  if (dados.precisa_identificacao === true) return null;
+  const processos = lista(dados.processos).filter((p) => txt(p.numero));
+  if (!processos.length) return null;
+  return (
+    <div className="flex w-full flex-col gap-2">
+      {processos.map((p) => {
+        const falta = lista(p.falta_da_sua_parte)
+          .map((f) => {
+            const nome = txt(f.nome);
+            const prazo = dataCurta(txt(f.prazo));
+            return nome ? (prazo ? `${nome} (até ${prazo})` : nome) : null;
+          })
+          .filter((x): x is string => !!x);
+        const prazo = dataCurta(txt(p.prazo_fim));
+        const dias = num(p.dias_uteis_restantes);
+        return (
+          <div key={txt(p.numero)} className={`${CAIXA} gap-2 border-linha p-4`}>
+            <p className="flex items-start gap-2">
+              <FileText className="mt-0.5 size-4 shrink-0 text-terracota-escuro" aria-hidden />
+              <span className="flex min-w-0 flex-col">
+                <span className="font-mono text-[13px] font-semibold text-tinta">{txt(p.numero)}</span>
+                {txt(p.tipo) && <span className="text-xs text-tinta-2">{txt(p.tipo)}</span>}
+              </span>
+            </p>
+            {txt(p.fase) && <Etiqueta className="self-start">{txt(p.fase)}</Etiqueta>}
+            {prazo && (
+              <p className="text-xs text-tinta-2">
+                Prazo da câmara: {prazo}
+                {dias !== null && dias >= 0 ? ` (${dias} dias úteis)` : ""}
+              </p>
+            )}
+            {falta.length > 0 && (
+              <p className="rounded-[10px] bg-ambar-suave px-3 py-2 text-xs leading-[1.45] text-ambar">
+                Falta da sua parte: {falta.join(", ")}
+              </p>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 
 /** O cartão certo para cada tipo (os desconhecidos não aparecem). */
 export function CartaoChat({ cartao, acoes }: { cartao: Cartao; acoes: AcoesCartao }) {
@@ -754,6 +914,12 @@ export function CartaoChat({ cartao, acoes }: { cartao: Cartao; acoes: AcoesCart
       return <CartaoRequerimento dados={cartao.dados} />;
     case "ocorrencia":
       return <CartaoOcorrencia dados={cartao.dados} />;
+    case "passagem":
+      return <CartaoPassagem dados={cartao.dados} />;
+    case "vagas":
+      return <CartaoVagas dados={cartao.dados} acoes={acoes} />;
+    case "processo":
+      return <CartaoProcesso dados={cartao.dados} />;
     default:
       return null;
   }

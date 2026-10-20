@@ -353,11 +353,13 @@ export function FichaProcesso() {
             <CartaoDocumentos p={p} />
             <CartaoPedidos p={p} />
             <CartaoRequerente p={p} />
-            <CartaoSincronizacao
-              estado={gd}
-              aSincronizar={aSincronizar}
-              onSincronizar={sincronizar}
-            />
+            {(sync || p.gestao_documental?.estado !== "nao_aplicavel") && (
+              <CartaoSincronizacao
+                estado={gd}
+                aSincronizar={aSincronizar}
+                onSincronizar={sincronizar}
+              />
+            )}
           </div>
         </div>
       </div>

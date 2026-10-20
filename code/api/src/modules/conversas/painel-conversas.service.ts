@@ -42,6 +42,7 @@ interface LinhaLista {
   municipe_nome: string | null;
   telefone: string | null;
   momentos: number;
+  fonte: { titulo: string; url: string; referencia: string | null } | null;
 }
 
 /** O objeto sem a chave (tokens e códigos públicos não vão para o painel). */
@@ -67,7 +68,15 @@ export class PainelConversasService {
       `SELECT c.id, c.canal, c.iniciada_em, c.duracao_s, c.resultado, c.fora_de_horas,
               c.resumo, c.revisao, c.tema_id, t.nome AS tema,
               c.municipe_id, m.nome AS municipe_nome, m.telefone_e164 AS telefone,
-              (SELECT count(*)::int FROM conversa_momentos cm WHERE cm.conversa_id = c.id) AS momentos
+              (SELECT count(*)::int FROM conversa_momentos cm WHERE cm.conversa_id = c.id) AS momentos,
+              (SELECT json_build_object('titulo', fo.titulo, 'url', fo.url, 'referencia', tr.referencia)
+               FROM conversa_turnos ct
+               JOIN citacoes ci ON ci.turno_id = ct.id
+               JOIN trechos tr ON tr.id = ci.trecho_id
+               JOIN fonte_versoes fv ON fv.id = tr.fonte_versao_id
+               JOIN fontes fo ON fo.id = fv.fonte_id
+               WHERE ct.conversa_id = c.id
+               ORDER BY ct.ordem, tr.ordem LIMIT 1) AS fonte
        FROM conversas c
        LEFT JOIN temas t ON t.id = c.tema_id
        LEFT JOIN municipes m ON m.id = c.municipe_id
@@ -123,6 +132,8 @@ export class PainelConversasService {
             }
           : null,
         momentos: l.momentos,
+        // A primeira fonte citada na conversa (ou null).
+        fonte: l.fonte,
       })),
       proximo_cursor: p.proximo_cursor,
     };

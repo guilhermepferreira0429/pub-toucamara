@@ -1,5 +1,6 @@
 import { createHmac, timingSafeEqual } from 'crypto';
 import { z } from 'zod';
+import { normalizarTelefone } from '../municipes/municipes.service.js';
 
 /*
  * Webhooks do fim da chamada do ElevenLabs (post-call webhooks):
@@ -197,13 +198,18 @@ export function consentiuNaAnalise(d: WebhookTranscricao['data']): boolean {
   return false;
 }
 
-/** Número de quem ligou (variável de sistema do ElevenLabs). */
+/**
+ * Número de quem ligou: a variável de sistema do ElevenLabs; numa chamada pelo
+ * browser (sem caller_id, ou inválido) a variável `telefone` da página `/ligar`.
+ */
 export function telefoneDaChamada(
   d: WebhookTranscricao['data'],
 ): string | null {
-  const v =
-    d.conversation_initiation_client_data?.dynamic_variables?.[
-      'system__caller_id'
-    ];
-  return typeof v === 'string' && v.trim() ? v.trim() : null;
+  const vars = d.conversation_initiation_client_data?.dynamic_variables;
+  const ler = (v: unknown) =>
+    typeof v === 'string' && v.trim() ? v.trim() : null;
+  const caller = ler(vars?.['system__caller_id']);
+  if (normalizarTelefone(caller)) return caller;
+  const web = ler(vars?.['telefone']);
+  return normalizarTelefone(web) ? web : caller;
 }

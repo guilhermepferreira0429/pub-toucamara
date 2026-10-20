@@ -13,6 +13,7 @@ import {
   linha,
   linhas,
   novaChamada,
+  novoTelefone,
   seguirLink,
   smsPara,
 } from './app';
@@ -577,6 +578,36 @@ describe('Conversas (e2e)', () => {
       await ctx.http().get(`/v1/painel/conversas/${randomUUID()}`).expect(401);
     });
 
+    it('lista: a primeira fonte citada na conversa', async () => {
+      const chamada = novaChamada();
+      const desde = new Date(Date.now() - 1000).toISOString();
+      await webhookFim(
+        ctx,
+        transcricao(chamada, { inicioS: Math.floor(Date.now() / 1000) }),
+      ).expect(200);
+      const id = await conversaId(ctx, chamada.conversa);
+      // A resposta do agente (ordem 3) citou dois trechos do RJUE do seed.
+      await ctx.db.query(
+        `INSERT INTO citacoes (turno_id, trecho_id)
+         SELECT ct.id, t.id FROM conversa_turnos ct, trechos t
+         WHERE ct.conversa_id = $1 AND ct.ordem = 3
+           AND t.fonte_versao_id = '00000000-0000-0000-0000-0000000000f2'`,
+        [id],
+      );
+      const l = await ctx
+        .http()
+        .get('/v1/painel/conversas')
+        .query({ de: desde, limite: 200 })
+        .set(painel)
+        .expect(200);
+      const item = (l.body.itens as any[]).find((x) => x.id === id);
+      expect(item.fonte).toEqual({
+        titulo: 'RJUE',
+        url: 'https://exemplo.pt/rjue',
+        referencia: 'art. 6.º, n.º 1',
+      });
+    });
+
     it('lista e detalhe com turnos e momentos; ver fica na auditoria', async () => {
       const chamada = novaChamada();
       const desde = new Date(Date.now() - 1000).toISOString();
@@ -621,6 +652,7 @@ describe('Conversas (e2e)', () => {
           telefone: expect.stringContaining('•'),
         },
         momentos: 1,
+        fonte: null,
       });
       expect(JSON.stringify(item)).not.toContain(chamada.telefone);
 
@@ -759,6 +791,27 @@ describe('Conversas (e2e)', () => {
       expect(a.body.erro.codigo).toBe('link_invalido');
       const b = await ctx.http().get('/v1/public/resumos/a!').expect(400);
       expect(b.body.erro.codigo).toBe('pedido_invalido');
+    });
+  });
+  describe('chamada pelo browser', () => {
+    it('sem system__caller_id, o número vem da variável telefone da página /ligar', async () => {
+      const chamada = novaChamada();
+      const telefone = novoTelefone();
+      await webhookFim(
+        ctx,
+        transcricao(
+          { conversa: chamada.conversa },
+          { variaveis: { system__caller_id: '', telefone } },
+        ),
+      ).expect(200);
+      const c = await linha<{ telefone_e164: string | null }>(
+        ctx.db,
+        `SELECT m.telefone_e164 FROM conversas c
+         LEFT JOIN municipes m ON m.id = c.municipe_id
+         WHERE c.provider_id = $1`,
+        [chamada.conversa],
+      );
+      expect(c?.telefone_e164).toBe(telefone);
     });
   });
 });

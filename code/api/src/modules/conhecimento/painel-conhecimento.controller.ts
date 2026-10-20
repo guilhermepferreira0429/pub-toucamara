@@ -16,6 +16,7 @@ import type { UtilizadorPainel } from '../../common/pedido.js';
 import { validar } from '../../common/validacao.js';
 import { Painel } from '../auth/painel.guard.js';
 import type { Municipio } from '../municipios/municipios.service.js';
+import { ConhecimentoService } from './conhecimento.service.js';
 import { EdicaoService } from './edicao.service.js';
 import { ESTADOS_MELHORIA } from './melhorias.js';
 import { MelhoriasService } from './melhorias.service.js';
@@ -91,7 +92,26 @@ export class PainelConhecimentoController {
     private readonly svc: PainelConhecimentoService,
     private readonly melhorias: MelhoriasService,
     private readonly edicao: EdicaoService,
+    private readonly conhecimento: ConhecimentoService,
   ) {}
+
+  /**
+   * Pesquisa de trechos em vigor (a mesma do agente: texto + vetores), para
+   * escolher as fontes ao escrever uma resposta. ?q=&limite= (1-20, 8).
+   */
+  @Get('trechos')
+  @Painel('conhecimento_ver')
+  async trechos(@MunicipioAtual() m: Municipio, @Query() q: unknown) {
+    const f = validar(
+      z.object({
+        q: z.string().trim().min(2).max(200),
+        limite: z.coerce.number().int().min(1).max(20).default(8),
+      }),
+      q,
+    );
+    const r = await this.conhecimento.procurar(m.id, f.q, f.limite);
+    return { itens: r.trechos };
+  }
 
   @Get('mapa')
   @Painel('conhecimento_ver')

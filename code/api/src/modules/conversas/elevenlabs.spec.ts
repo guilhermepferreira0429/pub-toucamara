@@ -176,6 +176,32 @@ describe('payload do ElevenLabs', () => {
     expect(telefoneDaChamada(r.data)).toBe('+351912345678');
   });
 
+  it('chamada pelo browser: sem caller_id válido usa a variável telefone', () => {
+    const com = (vars: Record<string, unknown>) =>
+      esquemaTranscricao.parse({
+        ...base,
+        data: {
+          ...base.data,
+          conversation_initiation_client_data: { dynamic_variables: vars },
+        },
+      }).data;
+    expect(
+      telefoneDaChamada(com({ system__caller_id: '', telefone: '912345679' })),
+    ).toBe('912345679');
+    expect(
+      telefoneDaChamada(
+        com({ system__caller_id: 'anonymous', telefone: '+351912345679' }),
+      ),
+    ).toBe('+351912345679');
+    // O caller_id válido ganha; telefone inválido não substitui.
+    expect(
+      telefoneDaChamada(
+        com({ system__caller_id: '+351912345678', telefone: '912345679' }),
+      ),
+    ).toBe('+351912345678');
+    expect(telefoneDaChamada(com({ telefone: '123' }))).toBeNull();
+  });
+
   it('sem campo de consentimento ou com "não" → sem consentimento', () => {
     const sem = esquemaTranscricao.parse({
       ...base,

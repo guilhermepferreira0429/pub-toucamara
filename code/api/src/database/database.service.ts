@@ -13,6 +13,24 @@ import { databaseConfig } from '../config/configuration.js';
 // Cursores da paginação com microssegundos (ver common/datas-pg.ts).
 instalarParserDatas();
 
+/** Erro de rede numa ligação que estava aberta (não um erro do SQL). */
+export function ligacaoCortada(e: unknown): boolean {
+  const codigo = (e as { code?: string } | null)?.code;
+  const msg = e instanceof Error ? e.message : '';
+  return (
+    codigo === 'ECONNRESET' ||
+    codigo === 'EPIPE' ||
+    /Connection terminated unexpectedly/i.test(msg)
+  );
+}
+
+/** Só SELECT (ou WITH … SELECT sem escrita) se pode repetir sem efeitos. */
+export function eLeitura(sql: string): boolean {
+  const s = sql.trimStart().toUpperCase();
+  if (s.startsWith('SELECT')) return true;
+  return s.startsWith('WITH') && !/\b(INSERT|UPDATE|DELETE|MERGE)\b/.test(s);
+}
+
 /** Cliente de uma transação: o mesmo `query` tipado, numa ligação só. */
 export interface Tx {
   query<T extends QueryResultRow>(
@@ -83,7 +101,16 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
     sql: string,
     params?: unknown[],
   ): Promise<T[]> {
-    return (await this.getPool().query<T>(sql, params)).rows;
+    try {
+      return (await this.getPool().query<T>(sql, params)).rows;
+    } catch (e) {
+      // Uma ligação parada no pool pode ter sido cortada pela rede (NAT,
+      // Docker Desktop): repete-se uma vez, só leituras — uma escrita podia
+      // já ter sido aplicada antes do corte.
+      if (!ligacaoCortada(e) || !eLeitura(sql)) throw e;
+      this.logger.warn('Ligação à BD cortada: a repetir a leitura.');
+      return (await this.getPool().query<T>(sql, params)).rows;
+    }
   }
 
   /** Corre fn numa transação; rollback se lançar. */

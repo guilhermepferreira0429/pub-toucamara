@@ -18,6 +18,7 @@ import {
 } from "./comum";
 import {
   FormularioResposta,
+  trechosDe,
   linhas,
   usePodeEditarRespostas,
 } from "./formulario-resposta";
@@ -248,6 +249,7 @@ export function Respostas() {
                   texto_sms: v.texto_sms.trim() || null,
                   passa_a_pessoa_quando: linhas(v.passa_a_pessoa_quando),
                   frases: linhas(v.frases),
+                  trechos: trechosDe(v),
                 },
               }),
             );

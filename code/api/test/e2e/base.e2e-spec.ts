@@ -8,6 +8,7 @@ import {
   linha,
   MUNICIPIO,
   novaChamada,
+  novoTelefone,
 } from './app';
 
 /** Base: saúde, catálogo das ferramentas, guardas e formato dos erros. */
@@ -152,5 +153,47 @@ describe('Base (e2e)', () => {
       .set('Idempotency-Key', chave)
       .expect(422);
     expect(outra.body.erro.codigo).toBe('chave_reutilizada');
+  });
+  it('chamada pelo browser: X-Telefone vazio ou inválido → usa o X-Telefone-Web', async () => {
+    const corpo = {
+      motivo: 'pedido',
+      resumo: 'Quer falar com uma pessoa sobre a obra na Rua Direita.',
+    };
+    const casos = ['', '{{system__caller_id}}'];
+    for (const principal of casos) {
+      const chamada = novaChamada();
+      const web = novoTelefone();
+      await ferramenta(
+        ctx,
+        { ...chamada, telefone: '' },
+        'passar_a_humano',
+        corpo,
+      )
+        .set('X-Telefone', principal)
+        .set('X-Telefone-Web', web)
+        .expect(200);
+      const c = await linha<{ telefone_e164: string | null }>(
+        ctx.db,
+        `SELECT m.telefone_e164 FROM conversas c
+         LEFT JOIN municipes m ON m.id = c.municipe_id
+         WHERE c.provider_id = $1`,
+        [chamada.conversa],
+      );
+      expect(c?.telefone_e164).toBe(web);
+    }
+
+    // Com X-Telefone válido, o X-Telefone-Web não conta.
+    const chamada = novaChamada();
+    await ferramenta(ctx, chamada, 'passar_a_humano', corpo)
+      .set('X-Telefone-Web', novoTelefone())
+      .expect(200);
+    const c = await linha<{ telefone_e164: string | null }>(
+      ctx.db,
+      `SELECT m.telefone_e164 FROM conversas c
+       LEFT JOIN municipes m ON m.id = c.municipe_id
+       WHERE c.provider_id = $1`,
+      [chamada.conversa],
+    );
+    expect(c?.telefone_e164).toBe(chamada.telefone);
   });
 });

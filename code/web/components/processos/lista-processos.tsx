@@ -4,6 +4,7 @@ import { FileClock, Search, UserRound } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import { membrosDe, type ServicosEquipa } from "@/components/atendimento/equipa";
 import { Aviso, CabecalhoPagina } from "@/components/painel/cabecalho";
 import { Botao } from "@/components/ui/botao";
 import { useSessao } from "@/lib/sessao";
@@ -13,9 +14,9 @@ import {
   FASE_ROTULO,
   FASES,
   type Fase,
-  type MembroEquipa,
   type Pagina,
   type ProcessoResumo,
+  type ResumoProcessos,
 } from "./tipos";
 import {
   ACarregar,
@@ -79,6 +80,7 @@ export function ListaProcessos() {
     FASES.includes(faseInicial as Fase) ? (faseInicial as Fase) : "",
   );
   const [tecnico, setTecnico] = useState("");
+  const [servico, setServico] = useState("");
   const [aguarda, setAguarda] = useState(sp.get("aguarda") === "true");
   const [texto, setTexto] = useState(sp.get("texto") ?? "");
   const [textoAplicado, setTextoAplicado] = useState(texto.trim());
@@ -89,10 +91,24 @@ export function ListaProcessos() {
     return () => clearTimeout(t);
   }, [texto]);
 
-  const equipa = usePedido<{ itens: MembroEquipa[] }>(
-    pode("equipa") ? "/v1/painel/equipa" : null,
+  // Serviços e técnicos ativos (qualquer perfil do painel).
+  const equipa = usePedido<ServicosEquipa>(
+    pode("visao_geral") ? "/v1/painel/servicos" : null,
   );
-  const tecnicos = (equipa.dados?.itens ?? []).filter((m) => m.ativo);
+  const tecnicos = membrosDe(equipa.dados, ["tecnico", "chefe_divisao"]);
+  const servicos = equipa.dados?.itens ?? [];
+
+  // Os filtros que não são separadores: os totais por separador usam-nos.
+  const qsFiltros = useMemo(() => {
+    const p = new URLSearchParams();
+    if (fase) p.set("fase", fase);
+    if (servico) p.set("servico_id", servico);
+    if (textoAplicado) p.set("texto", textoAplicado.slice(0, 100));
+    return p.toString();
+  }, [fase, servico, textoAplicado]);
+  const totais = usePedido<ResumoProcessos>(
+    `/v1/painel/processos/resumo${qsFiltros ? `?${qsFiltros}` : ""}`,
+  );
 
   const qs = useMemo(() => {
     const p = new URLSearchParams({ limite: String(LIMITE) });
@@ -100,10 +116,11 @@ export function ListaProcessos() {
     else if (tecnico) p.set("tecnico_id", tecnico);
     if (vista === "atrasados") p.set("atrasados", "true");
     if (fase) p.set("fase", fase);
+    if (servico) p.set("servico_id", servico);
     if (aguarda) p.set("aguarda_municipe", "true");
     if (textoAplicado) p.set("texto", textoAplicado.slice(0, 100));
     return p.toString();
-  }, [vista, tecnico, fase, aguarda, textoAplicado]);
+  }, [vista, tecnico, servico, fase, aguarda, textoAplicado]);
 
   const primeira = usePedido<Pagina<ProcessoResumo>>(
     `/v1/painel/processos?${qs}`,
@@ -153,7 +170,8 @@ export function ListaProcessos() {
           : ""
       }`;
 
-  const filtrosAtivos = !!(fase || tecnico || aguarda || textoAplicado);
+  const filtrosAtivos = !!(fase || tecnico || servico || aguarda || textoAplicado);
+  const tot = totais.dados;
 
   return (
     <div className="pb-10">
@@ -174,9 +192,9 @@ export function ListaProcessos() {
               if (v === "meus") setTecnico("");
             }}
             opcoes={[
-              { valor: "meus", rotulo: "Os meus" },
-              { valor: "todos", rotulo: "Todos" },
-              { valor: "atrasados", rotulo: "Atrasados" },
+              { valor: "meus", rotulo: "Os meus", contagem: tot?.meus },
+              { valor: "todos", rotulo: "Todos", contagem: tot?.todos },
+              { valor: "atrasados", rotulo: "Atrasados", contagem: tot?.atrasados },
             ]}
           />
           <div className="relative w-[320px] max-w-full">
@@ -212,6 +230,26 @@ export function ListaProcessos() {
               </option>
             ))}
           </select>
+          {servicos.length > 0 && (
+            <>
+              <label className="sr-only" htmlFor="filtro-servico">
+                Serviço
+              </label>
+              <select
+                id="filtro-servico"
+                value={servico}
+                onChange={(e) => setServico(e.target.value)}
+                className={`${CAMPO} w-auto font-medium`}
+              >
+                <option value="">Serviço: todos</option>
+                {servicos.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.nome}
+                  </option>
+                ))}
+              </select>
+            </>
+          )}
           {vista !== "meus" && tecnicos.length > 0 && (
             <>
               <label className="sr-only" htmlFor="filtro-tecnico">
@@ -240,6 +278,11 @@ export function ListaProcessos() {
               className="size-4 accent-terracota"
             />
             À espera do munícipe
+            {tot && (
+              <span className="rounded-full bg-creme-2 px-1.5 text-[11px] font-bold tabular-nums text-tinta-2">
+                {tot.aguarda_municipe}
+              </span>
+            )}
           </label>
           {filtrosAtivos && (
             <Botao
@@ -248,6 +291,7 @@ export function ListaProcessos() {
               onClick={() => {
                 setFase("");
                 setTecnico("");
+                setServico("");
                 setAguarda(false);
                 setTexto("");
               }}
@@ -303,6 +347,7 @@ export function ListaProcessos() {
                     ["Assunto", ""],
                     ["Tipo", "w-[160px]"],
                     ["Fase", "w-[190px]"],
+                    ["Documentos", "w-[104px]"],
                     ["Situação", "w-[150px]"],
                     ["Prazo", "w-[190px] pr-5"],
                   ].map(([t, c]) => (
@@ -357,6 +402,22 @@ export function ListaProcessos() {
                             {p.fase_rotulo}
                           </span>
                         </span>
+                      </td>
+                      <td className="px-2 text-[13px] tabular-nums">
+                        {p.documentos && p.documentos.exigidos > 0 ? (
+                          <span
+                            className={
+                              p.documentos.entregues >= p.documentos.exigidos
+                                ? "font-semibold text-verde"
+                                : "font-semibold text-tinta"
+                            }
+                            aria-label={`${p.documentos.entregues} de ${p.documentos.exigidos} documentos entregues`}
+                          >
+                            {p.documentos.entregues}/{p.documentos.exigidos}
+                          </span>
+                        ) : (
+                          <span className="text-tinta-3">—</span>
+                        )}
                       </td>
                       <td className="px-2">
                         {p.aguarda_municipe ? (

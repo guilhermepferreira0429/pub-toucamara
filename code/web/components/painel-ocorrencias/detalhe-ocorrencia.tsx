@@ -17,6 +17,7 @@ import {
   RotuloSeccao,
   usePedido,
 } from "@/components/processos/ui";
+import type { ServicosEquipa } from "@/components/atendimento/equipa";
 import { useSessao } from "@/lib/sessao";
 import {
   ESTADO_ROTULO,
@@ -234,7 +235,12 @@ export function DetalheOcorrencia({
   const r = usePedido<OcorrenciaDetalhe>(`/v1/painel/ocorrencias/${id}`);
   const [aviso, setAviso] = useState<string | null>(null);
 
+  // Todos os serviços do município; sem acesso, os das categorias.
+  const lista = usePedido<ServicosEquipa>(
+    pode("visao_geral") ? "/v1/painel/servicos" : null,
+  );
   const servicos = new Map<string, string>();
+  for (const sv of lista.dados?.itens ?? []) servicos.set(sv.id, sv.nome);
   for (const c of categorias) if (c.servico_id && c.servico) servicos.set(c.servico_id, c.servico);
   const o = r.dados && r.dados.id === id ? r.dados : null;
   if (o?.servico_id && o.servico) servicos.set(o.servico_id, o.servico);

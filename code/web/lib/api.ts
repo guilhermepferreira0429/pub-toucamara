@@ -76,6 +76,41 @@ export async function api<T>(caminho: string, o: OpcoesPedido = {}): Promise<T> 
   return (await res.json()) as T;
 }
 
+/** Resposta que pode ser JSON ou um ficheiro (PDF, imagem…). */
+export type RespostaFicheiro<T> =
+  | { tipo: "json"; dados: T }
+  | { tipo: "ficheiro"; blob: Blob; contentType: string };
+
+/**
+ * Pedido cuja resposta pode ser JSON ou binária: decide pelo Content-Type
+ * (JSON → `{ tipo: "json", dados }`; o resto → `{ tipo: "ficheiro", blob }`).
+ * Os erros chegam como em `api`.
+ */
+export async function apiFicheiro<T>(
+  caminho: string,
+  o: OpcoesPedido = {},
+): Promise<RespostaFicheiro<T>> {
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}${caminho}`, {
+      method: o.metodo ?? (o.corpo !== undefined ? "POST" : "GET"),
+      headers: headersDe(o),
+      body: o.corpo !== undefined ? JSON.stringify(o.corpo) : undefined,
+      signal: o.sinal,
+    });
+  } catch (e) {
+    if ((e as Error).name === "AbortError") throw e;
+    throw new ErroApi(0, "sem_ligacao", "Sem ligação. Verifique a internet.");
+  }
+  if (!res.ok) throw await erroDe(res);
+  const contentType = res.headers.get("Content-Type") ?? "";
+  if (res.status === 204) return { tipo: "json", dados: undefined as T };
+  if (/json/i.test(contentType)) {
+    return { tipo: "json", dados: (await res.json()) as T };
+  }
+  return { tipo: "ficheiro", blob: await res.blob(), contentType };
+}
+
 export interface EventoSse {
   evento: string;
   dados: unknown;

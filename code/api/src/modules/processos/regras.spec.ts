@@ -4,6 +4,7 @@ import {
   escolherTipo,
   formatarNumero,
   lerNumero,
+  limiteATerminar,
   mascararNome,
   resumirDocumentos,
 } from './regras.js';
@@ -163,5 +164,16 @@ describe('mascararNome', () => {
     expect(mascararNome('Maria da Conceição Fernandes')).toBe('Maria F.');
     expect(mascararNome('Maria')).toBe('Maria');
     expect(mascararNome(null)).toBeNull();
+  });
+});
+
+describe('limiteATerminar', () => {
+  it('3 dias úteis depois de hoje, sem fins de semana nem feriados', () => {
+    // 2026-10-22 é quinta: sex 23, (sáb, dom), seg 26, ter 27.
+    expect(limiteATerminar('2026-10-22', new Set())).toBe('2026-10-27');
+    expect(limiteATerminar('2026-10-22', new Set(['2026-10-26']))).toBe(
+      '2026-10-28',
+    );
+    expect(limiteATerminar('2026-10-22', new Set(), 1)).toBe('2026-10-23');
   });
 });

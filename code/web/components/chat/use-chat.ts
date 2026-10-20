@@ -9,6 +9,7 @@ interface SessaoCriada {
   saudacao: string;
   agente: string;
   retomada: boolean;
+  municipio: { slug: string; nome: string };
 }
 
 let contador = 0;
@@ -88,6 +89,7 @@ export function useChat(municipio: string) {
   const [ocupado, setOcupado] = useState(false);
   const [anuncio, setAnuncio] = useState("");
   const [agente, setAgente] = useState<string | null>(null);
+  const [nomeMunicipio, setNomeMunicipio] = useState<string | null>(null);
   const [identificado, setIdentificado] = useState<string | null>(null);
 
   const chave = `toucamara:chat:${municipio}`;
@@ -132,6 +134,7 @@ export function useChat(municipio: string) {
         sessaoRef.current = r.sessao;
         guardarToken(chave, r.sessao);
         setAgente(r.agente);
+        setNomeMunicipio(r.municipio?.nome ?? null);
         setAvisoGeral(null);
         setLigacao("pronto");
         setMensagens((ms) =>
@@ -389,6 +392,7 @@ export function useChat(municipio: string) {
     ocupado,
     anuncio,
     agente,
+    nomeMunicipio,
     identificado,
     enviar,
     tentarDeNovo,

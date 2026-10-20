@@ -26,10 +26,10 @@ import {
 } from "./formatos";
 import {
   BarrasPorHora,
-  HORARIO_BALCAO,
   horaDePico,
   ListaTemas,
   porHora,
+  textoHorarioBalcao,
 } from "./graficos";
 import { ChavePeriodo, chaveValida, periodoDe, SeletorPeriodo } from "./periodo";
 import { PrimeiroDia } from "./primeiro-dia";
@@ -417,6 +417,7 @@ function Trabalho({ dados }: { dados: Dados }) {
 }
 
 function Procura({ dados, chave }: { dados: Dados; chave: ChavePeriodo }) {
+  const horario = useSessao().eu?.municipio.horario_balcao;
   const horas = porHora(dados.quando_ligam.celulas);
   const pico = horaDePico(horas);
   const total = horas.reduce((s, v) => s + v, 0);
@@ -445,12 +446,12 @@ function Procura({ dados, chave }: { dados: Dados; chave: ChavePeriodo }) {
       className="flex-1 gap-5"
     >
       {total ? (
-        <BarrasPorHora horas={horas} />
+        <BarrasPorHora horas={horas} horario={horario} />
       ) : (
         <Vazio titulo="Ainda sem conversas neste período." />
       )}
       <p className="sr-only">
-        Balcão aberto considerado das {HORARIO_BALCAO.inicio}h às {HORARIO_BALCAO.fim}h.
+        Horário do balcão: {textoHorarioBalcao(horario)}.
       </p>
     </Cartao>
   );

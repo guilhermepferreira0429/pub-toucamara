@@ -23,6 +23,18 @@ export function normalizarTelefone(
   return n?.isValid() ? n.number : null;
 }
 
+/**
+ * O número da chamada: o principal (`system__caller_id`) se for válido; senão
+ * o alternativo (a variável `telefone` que a página de chamada pelo browser
+ * manda, porque aí o ElevenLabs não tem número). Normalizado, ou null.
+ */
+export function telefoneComAlternativa(
+  principal: string | null | undefined,
+  alternativo: string | null | undefined,
+): string | null {
+  return normalizarTelefone(principal) ?? normalizarTelefone(alternativo);
+}
+
 /** Para logs: '+351 9•• ••• 214'. */
 export function mascararTelefone(tel: string | null | undefined): string {
   if (!tel) return '—';

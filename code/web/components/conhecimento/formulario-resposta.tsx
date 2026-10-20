@@ -1,12 +1,12 @@
 "use client";
 
-import { Check, Save } from "lucide-react";
-import { useState } from "react";
+import { Check, ExternalLink, Plus, Save, Search, X } from "lucide-react";
+import { useEffect, useState } from "react";
 import { Botao } from "@/components/ui/botao";
 import type { ErroApi } from "@/lib/api";
 import { useSessao } from "@/lib/sessao";
 import { Campo, classeEntrada, ErroLinha, useDados } from "./comum";
-import type { Definicoes, Mapa } from "./tipos";
+import type { Definicoes, FonteCitada, Mapa } from "./tipos";
 
 export interface ValoresResposta {
   pergunta_tipo: string;
@@ -15,6 +15,8 @@ export interface ValoresResposta {
   texto_sms: string;
   passa_a_pessoa_quando: string;
   frases: string;
+  /** As fontes (trechos) em que a resposta se apoia. */
+  fontes?: FonteCitada[];
 }
 
 export const VAZIO: ValoresResposta = {
@@ -24,7 +26,11 @@ export const VAZIO: ValoresResposta = {
   texto_sms: "",
   passa_a_pessoa_quando: "",
   frases: "",
+  fontes: [],
 };
+
+/** Os ids dos trechos escolhidos, para o corpo do pedido (`trechos`). */
+export const trechosDe = (v: ValoresResposta) => (v.fontes ?? []).map((f) => f.trecho_id);
 
 export const linhas = (t: string) =>
   t
@@ -64,6 +70,117 @@ function linguagem(texto: string): { ok: boolean; texto: string } {
     ok: true,
     texto: `Linguagem simples · ${frases.length} ${frases.length === 1 ? "frase curta" : "frases curtas"}`,
   };
+}
+
+/**
+ * Escolher as fontes: pesquisa nos trechos em vigor
+ * (`GET /v1/painel/conhecimento/trechos?q=`) e junta à lista.
+ */
+function SeletorFontes({
+  fontes,
+  onChange,
+}: {
+  fontes: FonteCitada[];
+  onChange: (f: FonteCitada[]) => void;
+}) {
+  const [q, setQ] = useState("");
+  const [aplicada, setAplicada] = useState("");
+  useEffect(() => {
+    const t = setTimeout(() => setAplicada(q.trim()), 300);
+    return () => clearTimeout(t);
+  }, [q]);
+  const pesquisa = useDados<{ itens: FonteCitada[] }>(
+    aplicada.length >= 2
+      ? `/v1/painel/conhecimento/trechos?limite=8&q=${encodeURIComponent(aplicada.slice(0, 200))}`
+      : null,
+  );
+  const escolhidos = new Set(fontes.map((f) => f.trecho_id));
+  const resultados = (pesquisa.dados?.itens ?? []).filter((t) => !escolhidos.has(t.trecho_id));
+  const nome = (f: FonteCitada) => (f.referencia ? `${f.titulo}, ${f.referencia}` : f.titulo);
+
+  return (
+    <div className="flex flex-col gap-2">
+      <span className="text-[13px] font-semibold text-tinta">Fontes</span>
+      {fontes.length > 0 ? (
+        <ul className="flex flex-col gap-1.5">
+          {fontes.map((f) => (
+            <li
+              key={f.trecho_id}
+              className="flex items-center gap-2 rounded-[10px] bg-creme px-3 py-2 text-[13px] text-tinta"
+            >
+              <span className="min-w-0 flex-1 truncate">{nome(f)}</span>
+              {f.url && (
+                <a
+                  href={f.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-tinta-3 hover:text-tinta"
+                  aria-label={`Abrir ${nome(f)} (nova janela)`}
+                >
+                  <ExternalLink className="size-3.5" aria-hidden />
+                </a>
+              )}
+              <button
+                type="button"
+                onClick={() => onChange(fontes.filter((x) => x.trecho_id !== f.trecho_id))}
+                className="text-tinta-3 hover:text-tinta"
+                aria-label={`Tirar ${nome(f)}`}
+              >
+                <X className="size-3.5" aria-hidden />
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-xs text-tinta-3">Ainda sem fontes. Procure abaixo o artigo ou a página.</p>
+      )}
+      <div className="relative">
+        <Search
+          className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-tinta-3"
+          aria-hidden
+        />
+        <input
+          type="search"
+          className={`${classeEntrada} pl-9`}
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="Procurar nas fontes (ex.: obras isentas)"
+          aria-label="Procurar trechos das fontes"
+        />
+      </div>
+      {aplicada.length >= 2 && (
+        <div aria-live="polite" className="flex flex-col gap-1">
+          {pesquisa.aCarregar && !pesquisa.dados ? (
+            <p className="text-xs text-tinta-3">A procurar…</p>
+          ) : pesquisa.erro ? (
+            <ErroLinha erro={pesquisa.erro} />
+          ) : resultados.length === 0 ? (
+            <p className="text-xs text-tinta-3">Nenhum trecho encontrado.</p>
+          ) : (
+            <ul className="flex max-h-56 flex-col gap-1 overflow-y-auto">
+              {resultados.map((t) => (
+                <li key={t.trecho_id}>
+                  <button
+                    type="button"
+                    onClick={() => onChange([...fontes, t])}
+                    className="flex w-full items-start gap-2 rounded-[10px] border border-linha px-3 py-2 text-left hover:bg-creme"
+                  >
+                    <Plus className="mt-0.5 size-3.5 shrink-0 text-terracota-escuro" aria-hidden />
+                    <span className="flex min-w-0 flex-col">
+                      <span className="truncate text-[13px] font-semibold text-tinta">{nome(t)}</span>
+                      {t.texto && (
+                        <span className="line-clamp-2 text-xs text-tinta-2">{t.texto}</span>
+                      )}
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+    </div>
+  );
 }
 
 /**
@@ -183,6 +300,7 @@ export function FormularioResposta({
           />
         </Campo>
       </div>
+      <SeletorFontes fontes={v.fontes ?? []} onChange={(f) => muda("fontes", f)} />
       <ErroLinha erro={erro} />
       <div className="flex justify-end gap-2">
         {onCancelar && (

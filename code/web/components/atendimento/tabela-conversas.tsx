@@ -8,7 +8,7 @@ import { EstadoResultado } from "./ui";
 
 /**
  * Tabela de conversas (design "Últimas conversas"): quando, canal, resumo,
- * tema e resultado. A linha inteira abre a conversa.
+ * fonte (a primeira citada; o tema por baixo) e resultado. A linha inteira abre a conversa.
  */
 export function TabelaConversas({
   itens,
@@ -35,7 +35,7 @@ export function TabelaConversas({
               RESUMO
             </th>
             <th scope="col" className={`${th} w-[200px]`}>
-              {mostrarMunicipe ? "TEMA · MUNÍCIPE" : "TEMA"}
+              {mostrarMunicipe ? "FONTE · MUNÍCIPE" : "FONTE"}
             </th>
             <th scope="col" className={`${th} w-[180px]`}>
               RESULTADO
@@ -79,8 +79,19 @@ export function TabelaConversas({
                 <td className="px-2">
                   <span className="flex flex-col gap-0.5 text-xs text-tinta-2">
                     <span className="line-clamp-1">
-                      {c.tema?.nome ?? <span className="text-tinta-3">—</span>}
+                      {c.fonte ? (
+                        <span className="font-medium text-tinta">
+                          {c.fonte.referencia
+                            ? `${c.fonte.titulo}, ${c.fonte.referencia}`
+                            : c.fonte.titulo}
+                        </span>
+                      ) : (
+                        <span className="text-tinta-3">Sem fonte citada</span>
+                      )}
                     </span>
+                    {c.tema?.nome && (
+                      <span className="line-clamp-1 text-tinta-3">Tema: {c.tema.nome}</span>
+                    )}
                     {mostrarMunicipe && c.municipe && (
                       <span className="line-clamp-1 text-tinta-3">
                         {c.municipe.nome ?? c.municipe.telefone}

@@ -3,6 +3,7 @@
  * processo, documentos que faltam e escolha do tipo a partir do que o
  * munícipe disse. Sem BD, para testar à parte.
  */
+import { somarDiasUteis } from '../../common/dias-uteis.js';
 
 export const FASES = [
   'entrada',
@@ -40,6 +41,21 @@ export const FASE_ROTULO: Record<Fase, string> = {
 
 /** Fases em que o prazo já não corre (não há atraso a mostrar). */
 export const FASES_FECHADAS: readonly Fase[] = ['notificado', 'arquivado'];
+
+/** "A terminar": processos abertos com o prazo nos próximos N dias úteis. */
+export const DIAS_A_TERMINAR = 3;
+
+/**
+ * O último dia do separador "a terminar" (de hoje até N dias úteis depois).
+ * Um prazo entre `hoje` e este dia, num processo aberto, está a terminar.
+ */
+export function limiteATerminar(
+  hoje: string,
+  feriados: ReadonlySet<string>,
+  dias = DIAS_A_TERMINAR,
+): string {
+  return somarDiasUteis(hoje, dias, feriados);
+}
 
 /** 'AAAA-MM-DD' → 'DD/MM' (o que se diz e se escreve num SMS). */
 export function diaMes(iso: string): string {

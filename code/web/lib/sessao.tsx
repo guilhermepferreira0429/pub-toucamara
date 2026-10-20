@@ -8,7 +8,13 @@ import {
   useMemo,
   useState,
 } from "react";
-import { api, ErroApi, type OpcoesPedido } from "./api";
+import {
+  api,
+  apiFicheiro,
+  ErroApi,
+  type OpcoesPedido,
+  type RespostaFicheiro,
+} from "./api";
 
 /** Recursos do painel (code/api/src/modules/auth/permissoes.ts). */
 export type Recurso =
@@ -43,8 +49,25 @@ export interface Eu {
     servicoId: string | null;
     foto_url: string | null;
   };
-  municipio: { id: string; slug: string; nome: string; fuso: string };
+  municipio: {
+    id: string;
+    slug: string;
+    nome: string;
+    fuso: string;
+    /** A linha do Tou, Câmara? (E.164), ou null. */
+    telefone_linha?: string | null;
+    /** O horário do balcão como o agente o conta. */
+    horario_balcao?: HorarioBalcao;
+  };
   permissoes: Record<Recurso, boolean>;
+}
+
+export type DiaSemana = "seg" | "ter" | "qua" | "qui" | "sex" | "sab" | "dom";
+
+/** `{ sempre, dias: { seg: [["09:00","17:00"]], … } }` (GET /painel/auth/eu). */
+export interface HorarioBalcao {
+  sempre: boolean;
+  dias: Record<DiaSemana, [string, string][]>;
 }
 
 interface Sessao {
@@ -53,6 +76,11 @@ interface Sessao {
   aCarregar: boolean;
   /** Pedido autenticado: junta o token e o município da equipa interna. */
   pedido<T>(caminho: string, o?: Omit<OpcoesPedido, "token">): Promise<T>;
+  /** Como `pedido`, mas a resposta pode ser um ficheiro (pelo Content-Type). */
+  pedidoFicheiro<T>(
+    caminho: string,
+    o?: Omit<OpcoesPedido, "token">,
+  ): Promise<RespostaFicheiro<T>>;
   pode(r: Recurso): boolean;
   entrar(token: string): Promise<void>;
   sair(): void;
@@ -118,6 +146,21 @@ export function SessaoProvider({ children }: { children: React.ReactNode }) {
           });
         } catch (e) {
           // Sessão expirada: volta ao ecrã de entrar.
+          if (e instanceof ErroApi && e.codigo === "nao_autenticado") sair();
+          throw e;
+        }
+      },
+      pedidoFicheiro: async <T,>(
+        caminho: string,
+        o: Omit<OpcoesPedido, "token"> = {},
+      ) => {
+        try {
+          return await apiFicheiro<T>(caminho, {
+            municipio: municipioEscolhido(),
+            ...o,
+            token,
+          });
+        } catch (e) {
           if (e instanceof ErroApi && e.codigo === "nao_autenticado") sair();
           throw e;
         }

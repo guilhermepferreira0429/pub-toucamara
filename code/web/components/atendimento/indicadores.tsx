@@ -281,6 +281,7 @@ function Atendimento({
 
 /** "O que mudou": três leituras tiradas dos números (não inventadas). */
 function OQueMudou({ visao }: { visao?: VisaoGeral }) {
+  const horario = useSessao().eu?.municipio.horario_balcao;
   const leituras: { icone: LucideIcon; titulo: string; detalhe: string }[] = [];
   if (visao) {
     const subida = [...visao.o_que_perguntam]
@@ -305,7 +306,7 @@ function OQueMudou({ visao }: { visao?: VisaoGeral }) {
     }
     const pico = horaDePico(porHora(visao.quando_ligam.celulas));
     if (pico !== null) {
-      const aberto = balcaoAberto(pico);
+      const aberto = balcaoAberto(pico, undefined, horario);
       leituras.push({
         icone: aberto ? Sun : Moon,
         titulo: `Pico às ${pico}h`,

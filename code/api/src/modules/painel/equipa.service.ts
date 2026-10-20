@@ -46,6 +46,52 @@ export function validarAlteracao(
   }
 }
 
+export interface MembroServico {
+  id: string;
+  nome: string;
+  perfil: string;
+  foto_url: string | null;
+  servico_id: string | null;
+}
+
+export interface ServicoComEquipa {
+  id: string;
+  nome: string;
+  entidade: string | null;
+  email: string | null;
+  telefone: string | null;
+  tecnicos: Omit<MembroServico, 'servico_id'>[];
+}
+
+/**
+ * Serviços com os membros ativos de cada um (pela ordem dada); os que não
+ * têm serviço ficam em `sem_servico`. Puro, para testar à parte.
+ */
+export function agruparPorServico(
+  servicos: Omit<ServicoComEquipa, 'tecnicos'>[],
+  membros: MembroServico[],
+): { itens: ServicoComEquipa[]; sem_servico: ServicoComEquipa['tecnicos'] } {
+  const porServico = new Map<string, ServicoComEquipa['tecnicos']>();
+  const sem: ServicoComEquipa['tecnicos'] = [];
+  const ids = new Set(servicos.map((s) => s.id));
+  for (const { servico_id, ...m } of membros) {
+    if (servico_id && ids.has(servico_id)) {
+      const l = porServico.get(servico_id) ?? [];
+      l.push(m);
+      porServico.set(servico_id, l);
+    } else {
+      sem.push(m);
+    }
+  }
+  return {
+    itens: servicos.map((s) => ({
+      ...s,
+      tecnicos: porServico.get(s.id) ?? [],
+    })),
+    sem_servico: sem,
+  };
+}
+
 const COLUNAS = `u.id, u.email, u.nome, u.perfil, u.servico_id, s.nome AS servico,
   u.foto_url, u.ativo, u.ultimo_acesso_em, u.criado_em`;
 
@@ -65,6 +111,31 @@ export class EquipaService {
        ORDER BY u.ativo DESC, u.nome`,
       [m.id],
     );
+  }
+
+  /**
+   * Para os seletores de serviço e técnico (Entrada, Processos, Ocorrências):
+   * os serviços do município com os membros ativos de cada um (todos os
+   * perfis; quem chama filtra pelo `perfil`).
+   */
+  async servicosComEquipa(m: Municipio) {
+    const [servicos, membros] = await Promise.all([
+      this.db.query<Omit<ServicoComEquipa, 'tecnicos'>>(
+        `SELECT s.id, s.nome, e.nome AS entidade, s.email::text AS email, s.telefone
+         FROM servicos s LEFT JOIN entidades e ON e.id = s.entidade_id
+         WHERE s.municipio_id = $1
+         ORDER BY s.nome, s.id`,
+        [m.id],
+      ),
+      this.db.query<MembroServico>(
+        `SELECT u.id, u.nome, u.perfil::text AS perfil, u.foto_url, u.servico_id
+         FROM utilizadores u
+         WHERE u.municipio_id = $1 AND u.ativo
+         ORDER BY u.nome, u.id`,
+        [m.id],
+      ),
+    ]);
+    return agruparPorServico(servicos, membros);
   }
 
   /** Convidar = criar o utilizador e mandar-lhe o link mágico. */

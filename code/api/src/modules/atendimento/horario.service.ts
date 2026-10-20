@@ -5,6 +5,8 @@ import {
   estaAberto,
   Horario,
   HORARIO_POR_OMISSAO,
+  horarioSimples,
+  HorarioSimples,
   lerHorario,
   prazoResposta,
   proximaAbertura,
@@ -90,6 +92,11 @@ export class HorarioService {
       responderAte: prazoResposta(proximo, c.fuso, c.feriados),
       fuso: c.fuso,
     };
+  }
+
+  /** O horário do balcão (o mesmo das contas acima) para mostrar no painel. */
+  async balcaoSimples(municipioId: string): Promise<HorarioSimples> {
+    return horarioSimples(await this.balcao(municipioId));
   }
 
   async fuso(municipioId: string): Promise<string> {

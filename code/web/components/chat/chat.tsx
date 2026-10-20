@@ -37,20 +37,6 @@ import { useChat } from "./use-chat";
 
 const MUNICIPIO_SITE = process.env.NEXT_PUBLIC_MUNICIPIO ?? "guimaraes";
 
-const NOMES_MUNICIPIO: Record<string, string> = {
-  guimaraes: "Guimarães",
-};
-
-function nomeMunicipio(slug: string) {
-  return (
-    NOMES_MUNICIPIO[slug] ??
-    slug
-      .split("-")
-      .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
-      .join(" ")
-  );
-}
-
 /** O que o agente está a fazer, pelo nome da ferramenta (evento `ferramenta`). */
 const A_FAZER: Record<string, string> = {
   procurar_conhecimento: "A consultar as fontes oficiais…",
@@ -267,7 +253,12 @@ export function Chat({
     (m.usadas ?? []).includes("passar_a_humano"),
   );
   const tituloFinal =
-    titulo ?? (janela ? (chat.agente ?? "Tou, Câmara?") : `Câmara de ${nomeMunicipio(municipio)}`);
+    titulo ??
+    (janela
+      ? (chat.agente ?? "Tou, Câmara?")
+      : chat.nomeMunicipio
+        ? `Câmara de ${chat.nomeMunicipio}`
+        : "Câmara Municipal");
   // Na janela o título da página é o do site; o do chat fica abaixo.
   const Titulo = janela ? "h2" : "h1";
   const subtitulo = outraLingua

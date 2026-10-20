@@ -448,4 +448,23 @@ describe('Ocorrências (e2e)', () => {
     expect(r.body).toMatchObject({ registada: true, duplicada: false });
     expect(r.body.numero).not.toBe(original.numero);
   });
+  it('painel: a lista traz o canal da conversa de origem', async () => {
+    const r = await ctx
+      .http()
+      .get('/v1/painel/ocorrencias')
+      .query({ limite: 100 })
+      .set(painel)
+      .expect(200);
+    const item = r.body.itens.find((o: { id: string }) => o.id === original.id);
+    expect(item).toMatchObject({ canal: 'telefone' });
+    const pins = await ctx
+      .http()
+      .get('/v1/painel/ocorrencias')
+      .query({ bbox: bbox(base), estado: 'resolvida' })
+      .set(painel)
+      .expect(200);
+    expect(
+      pins.body.itens.find((o: { id: string }) => o.id === original.id),
+    ).toMatchObject({ canal: 'telefone' });
+  });
 });
