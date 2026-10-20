@@ -1,0 +1,2 @@
+# Corre em Linux: sempre LF, mesmo com checkout no Windows.
+* text eol=lf
