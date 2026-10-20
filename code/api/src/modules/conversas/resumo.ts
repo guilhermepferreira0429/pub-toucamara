@@ -144,8 +144,11 @@ export function turnoMaisProximo(
   return melhor?.id ?? null;
 }
 
-/** Corpo máximo do SMS do fim da chamada: 3 partes com acentos (UCS-2). */
-export const MAX_SMS_FIM = 200;
+/**
+ * Corpo máximo do SMS do fim da chamada: 1 parte em GSM-7 (os acentos saem
+ * na transliteração do MensagensService). O resto está no link.
+ */
+export const MAX_SMS_FIM = 160;
 
 /** Texto do resumo + link, cortado numa palavra para caber em MAX_SMS_FIM. */
 export function montarSmsFimChamada(
@@ -156,12 +159,13 @@ export function montarSmsFimChamada(
   const limpo = texto.replace(/\s+/g, ' ').trim();
   const espaco = max - url.length - 1;
   if (limpo.length <= espaco) return limpo ? `${limpo} ${url}` : url;
-  const corte = limpo.slice(0, Math.max(0, espaco - 1));
+  const corte = limpo.slice(0, Math.max(0, espaco - 3));
   const ultimaPalavra = corte.lastIndexOf(' ');
   const base = (ultimaPalavra > 20 ? corte.slice(0, ultimaPalavra) : corte)
     .replace(/[\s,;:.]+$/, '')
     .trim();
-  return `${base}… ${url}`;
+  // '...' e não '…': o '…' não existe em GSM-7.
+  return `${base}... ${url}`;
 }
 
 /** Sem resumo da IA: o SMS diz só onde ver o que ficou feito. */

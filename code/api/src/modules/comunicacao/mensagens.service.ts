@@ -53,9 +53,10 @@ const FILA_SMS = 'sms_enviar';
  * Tudo o que sai para o munícipe passa por aqui: grava em `mensagens_saida`
  * e põe na fila. O envio é idempotente por `chave` e conta segmentos.
  *
- * Fornecedor de SMS ainda por escolher (decisão em aberto 4): sem
- * SMS_PROVIDER, em dev o SMS é escrito no log e fica `enviada` com
- * provider 'log'; em produção fica `falhou`. Nunca se finge um envio real.
+ * SMS_PROVIDER=twilio envia pela API REST do Twilio, com o remetente
+ * alfanumérico. Sem SMS_PROVIDER, em dev o SMS é escrito no log e fica
+ * `enviada` com provider 'log'; em produção fica `falhou`. Nunca se finge um
+ * envio real.
  */
 @Injectable()
 export class MensagensService implements OnModuleInit {
@@ -153,6 +154,22 @@ export class MensagensService implements OnModuleInit {
     if (!['agendada', 'pendente'].includes(m.estado)) return;
 
     const { smsProvider } = this.cfg();
+    if (smsProvider === 'twilio') {
+      const r = await this.enviarTwilio(m.destino, m.corpo);
+      if ('sid' in r) {
+        await this.db.query(
+          `UPDATE mensagens_saida SET estado = 'enviada', enviada_em = now(), provider_id = $2 WHERE id = $1`,
+          [mensagemId, r.sid],
+        );
+      } else {
+        this.logger.warn(`SMS ${mensagemId} recusado pelo Twilio: ${r.erro}`);
+        await this.db.query(
+          `UPDATE mensagens_saida SET estado = 'falhou', erro = $2 WHERE id = $1`,
+          [mensagemId, r.erro],
+        );
+      }
+      return;
+    }
     if (!smsProvider || smsProvider === 'consola') {
       if (this.producao() && !smsProvider) {
         await this.db.query(
@@ -169,6 +186,46 @@ export class MensagensService implements OnModuleInit {
       return;
     }
     throw new Error(`SMS_PROVIDER desconhecido: ${smsProvider}`);
+  }
+
+  /**
+   * POST /Messages do Twilio. Recusas definitivas (4xx: número inválido,
+   * sem saldo...) devolvem `erro` e a mensagem fica `falhou`; 429, 5xx e
+   * falhas de rede lançam, para o pg-boss repetir.
+   */
+  private async enviarTwilio(
+    destino: string,
+    corpo: string,
+  ): Promise<{ sid: string } | { erro: string }> {
+    const { smsRemetente, twilio } = this.cfg();
+    if (!twilio.accountSid || !twilio.authToken) {
+      return { erro: 'TWILIO_ACCOUNT_SID/TWILIO_AUTH_TOKEN por configurar' };
+    }
+    const resp = await fetch(
+      `https://api.twilio.com/2010-04-01/Accounts/${twilio.accountSid}/Messages.json`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Basic ${Buffer.from(`${twilio.accountSid}:${twilio.authToken}`).toString('base64')}`,
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+          To: destino,
+          From: smsRemetente,
+          Body: corpo,
+        }),
+        signal: AbortSignal.timeout(15_000),
+      },
+    );
+    const dados = (await resp.json().catch(() => ({}))) as {
+      sid?: string;
+      code?: number;
+      message?: string;
+    };
+    if (resp.ok && dados.sid) return { sid: dados.sid };
+    const erro = `Twilio ${resp.status}${dados.code ? ` (${dados.code})` : ''}: ${dados.message ?? 'sem detalhe'}`;
+    if (resp.status === 429 || resp.status >= 500) throw new Error(erro);
+    return { erro };
   }
 
   /** Email direto (links mágicos, relatórios). Sem SMTP: dev escreve no log. */

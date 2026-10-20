@@ -60,7 +60,12 @@ export const jobsConfig = registerAs('jobs', () => ({
 export const comunicacaoConfig = registerAs('comunicacao', () => ({
   smsProvider: process.env.SMS_PROVIDER || '',
   smsRemetente: process.env.SMS_REMETENTE || 'TouCamara',
-  smsTransliterar: process.env.SMS_TRANSLITERAR === 'true',
+  twilio: {
+    accountSid: process.env.TWILIO_ACCOUNT_SID || '',
+    authToken: process.env.TWILIO_AUTH_TOKEN || '',
+  },
+  // Por defeito sem acentos: GSM-7 leva 160 caracteres por parte, UCS-2 só 70.
+  smsTransliterar: process.env.SMS_TRANSLITERAR !== 'false',
   smtp: {
     host: process.env.SMTP_HOST || '',
     port: parseInt(process.env.SMTP_PORT || '587', 10),

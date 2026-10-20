@@ -1,4 +1,4 @@
-import { infoSms } from '../comunicacao/sms.js';
+import { infoSms, transliterar } from '../comunicacao/sms.js';
 import {
   escolherTema,
   formatarTranscricao,
@@ -61,8 +61,8 @@ describe('montarSmsFimChamada', () => {
       'Pedido de comunicação prévia preenchido; falta assinar. '.repeat(10);
     const sms = montarSmsFimChamada(longo, url);
     expect(sms.length).toBeLessThanOrEqual(MAX_SMS_FIM);
-    expect(sms.endsWith(`… ${url}`)).toBe(true);
-    expect(infoSms(sms).segmentos).toBeLessThanOrEqual(3);
+    expect(sms.endsWith(`... ${url}`)).toBe(true);
+    expect(infoSms(transliterar(sms)).segmentos).toBe(1);
   });
 
   it('o texto sem resumo cabe com o link', () => {
