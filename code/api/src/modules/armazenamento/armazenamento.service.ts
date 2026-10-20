@@ -1,4 +1,5 @@
 import {
+  DeleteObjectsCommand,
   GetObjectCommand,
   PutObjectCommand,
   S3Client,
@@ -89,6 +90,27 @@ export class ArmazenamentoService {
         ContentType: mime,
       }),
     );
+  }
+
+  /**
+   * Apaga ficheiros (retenção RGPD). Devolve as chaves que ficaram apagadas;
+   * as que falharem ficam para a próxima noite. No Wasabi cada ficheiro paga
+   * pelo menos 90 dias, apagado ou não: apaga-se na mesma por causa do RGPD.
+   */
+  async apagar(chaves: string[]): Promise<string[]> {
+    const apagadas: string[] = [];
+    for (let i = 0; i < chaves.length; i += 1000) {
+      const lote = chaves.slice(i, i + 1000);
+      const r = await this.s3().send(
+        new DeleteObjectsCommand({
+          Bucket: this.bucket,
+          Delete: { Objects: lote.map((Key) => ({ Key })), Quiet: false },
+        }),
+      );
+      const falharam = new Set((r.Errors ?? []).map((e) => e.Key));
+      apagadas.push(...lote.filter((k) => !falharam.has(k)));
+    }
+    return apagadas;
   }
 
   async ler(chave: string): Promise<Buffer> {

@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { DatabaseService } from '../../database/database.service.js';
+import { ArmazenamentoService } from '../armazenamento/armazenamento.service.js';
 import { AuditoriaService } from '../auditoria/auditoria.service.js';
 import type { Municipio } from '../municipios/municipios.service.js';
 import {
@@ -20,10 +21,9 @@ const LOTE = 1000;
  * (ator 'sistema', objeto_tipo 'retencao') com as contagens, mesmo a zero:
  * é daí que o painel lê o último resultado.
  *
- * Gravações e fotos: aqui só se larga a chave na BD. O ficheiro em S3 apaga-se
- * por regra de ciclo de vida do bucket (prefixos `<municipio>/gravacoes/` a
- * 30 dias e `<municipio>/fotos-ocorrencias/` a 12 meses); o
- * ArmazenamentoService não apaga objetos.
+ * Gravações e fotos: apaga-se o ficheiro no armazenamento (Wasabi) e só
+ * depois a chave na BD; um ficheiro que falhe a apagar fica para a noite
+ * seguinte. Sem armazenamento configurado não há ficheiros: larga-se a chave.
  */
 @Injectable()
 export class RgpdService {
@@ -32,7 +32,19 @@ export class RgpdService {
   constructor(
     private readonly db: DatabaseService,
     private readonly auditoria: AuditoriaService,
+    private readonly armazenamento: ArmazenamentoService,
   ) {}
+
+  /** Apaga os ficheiros; devolve as chaves que já podem sair da BD. */
+  private async apagarFicheiros(chaves: string[]): Promise<string[]> {
+    if (!chaves.length || !this.armazenamento.disponivel) return chaves;
+    try {
+      return await this.armazenamento.apagar(chaves);
+    } catch (e) {
+      this.logger.error(`Apagar ficheiros falhou: ${(e as Error).message}`);
+      return [];
+    }
+  }
 
   async politicas(municipioId: string): Promise<Politica[]> {
     const linhas = await this.db.query<{
@@ -126,17 +138,25 @@ export class RgpdService {
   ): Promise<Record<string, number>> {
     switch (p.objeto) {
       case 'gravacoes': {
-        // Só se larga a chave; o ficheiro sai pelo ciclo de vida do bucket.
-        const [r] = await this.db.query<{ n: number }>(
-          `WITH x AS (
-             UPDATE conversas SET gravacao_key = NULL
-             WHERE municipio_id = $1 AND gravacao_key IS NOT NULL
-               AND coalesce(terminada_em, iniciada_em) < $2
-             RETURNING 1)
-           SELECT count(*)::int AS n FROM x`,
+        const linhas = await this.db.query<{ chave: string }>(
+          `SELECT gravacao_key AS chave FROM conversas
+           WHERE municipio_id = $1 AND gravacao_key IS NOT NULL
+             AND coalesce(terminada_em, iniciada_em) < $2
+           LIMIT ${LOTE}`,
           [m.id, limite],
         );
-        return { gravacoes: r.n };
+        const apagadas = await this.apagarFicheiros(linhas.map((l) => l.chave));
+        if (apagadas.length) {
+          await this.db.query(
+            `UPDATE conversas SET gravacao_key = NULL
+             WHERE municipio_id = $1 AND gravacao_key = ANY($2::text[])`,
+            [m.id, apagadas],
+          );
+        }
+        return {
+          gravacoes: apagadas.length,
+          por_apagar: linhas.length - apagadas.length,
+        };
       }
       case 'transcricoes': {
         // 'apagar' também anonimiza: apagar turnos partia citações e perguntas sem resposta.
@@ -155,16 +175,26 @@ export class RgpdService {
       case 'telefones_sem_processo':
         return { municipes: await this.anonimizarMunicipes(m, limite) };
       case 'fotos_ocorrencias': {
-        const [r] = await this.db.query<{ n: number }>(
-          `WITH x AS (
-             DELETE FROM ocorrencia_fotos f USING ocorrencias o
-             WHERE o.id = f.ocorrencia_id AND o.municipio_id = $1
-               AND o.estado = 'resolvida' AND o.resolvida_em < $2
-             RETURNING 1)
-           SELECT count(*)::int AS n FROM x`,
+        const linhas = await this.db.query<{ chave: string }>(
+          `SELECT f.ficheiro_key AS chave
+           FROM ocorrencia_fotos f JOIN ocorrencias o ON o.id = f.ocorrencia_id
+           WHERE o.municipio_id = $1 AND o.estado = 'resolvida' AND o.resolvida_em < $2
+           LIMIT ${LOTE}`,
           [m.id, limite],
         );
-        return { fotos: r.n };
+        const apagadas = await this.apagarFicheiros(linhas.map((l) => l.chave));
+        if (apagadas.length) {
+          await this.db.query(
+            `DELETE FROM ocorrencia_fotos f USING ocorrencias o
+             WHERE o.id = f.ocorrencia_id AND o.municipio_id = $1
+               AND f.ficheiro_key = ANY($2::text[])`,
+            [m.id, apagadas],
+          );
+        }
+        return {
+          fotos: apagadas.length,
+          por_apagar: linhas.length - apagadas.length,
+        };
       }
     }
   }
