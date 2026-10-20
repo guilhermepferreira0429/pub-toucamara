@@ -1,26 +1,41 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/*
+ * Tokens do design (docs/material/design/toucamara_v1.pen, variáveis do
+ * documento). Terracota como cor principal, creme nos fundos, azul-escuro
+ * ("tinta") só no texto. Usar sempre pelos nomes: bg-terracota, text-tinta-2…
+ */
+@theme {
+  --color-terracota: #b84a24;
+  --color-terracota-escuro: #8e3517;
+  --color-terracota-suave: #f2d8cb;
+  --color-creme: #f7f0e4;
+  --color-creme-2: #ede3d1;
+  --color-papel: #fffbf5;
+  --color-tinta: #15263b;
+  --color-tinta-2: #4a5868;
+  --color-tinta-3: #7d8794;
+  --color-linha: #e2d6c2;
+  --color-verde: #3f6e4a;
+  --color-verde-suave: #dce8d8;
+  --color-ambar: #8a5a00;
+  --color-ambar-suave: #f6e6c2;
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --font-display: var(--font-bricolage), ui-sans-serif, system-ui, sans-serif;
+  --font-body: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-source-serif), ui-serif, Georgia, serif;
+  --font-mono: var(--font-jetbrains), ui-monospace, monospace;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-creme);
+  color: var(--color-tinta);
+  font-family: var(--font-body);
+}
+
+/* Foco visível em tudo o que é interativo (acessibilidade: idosos, teclado). */
+:focus-visible {
+  outline: 2px solid var(--color-terracota);
+  outline-offset: 2px;
 }
