@@ -4,6 +4,7 @@ import { JobsService } from '../../jobs/jobs.service.js';
 import { ConversasService } from '../conversas/conversas.service.js';
 import { AvaliacaoService } from './avaliacao.service.js';
 import { ferramentasConhecimento } from './conhecimento.ferramentas.js';
+import { EdicaoService } from './edicao.service.js';
 import { ConhecimentoService } from './conhecimento.service.js';
 import {
   ContradicoesService,
@@ -51,6 +52,7 @@ import { DadosPropor, PropostasService } from './propostas.service.js';
     ContradicoesService,
     PainelConhecimentoService,
     AvaliacaoService,
+    EdicaoService,
     MelhoriasService,
   ],
   exports: [ConhecimentoService, EmbeddingsService, MelhoriasService],

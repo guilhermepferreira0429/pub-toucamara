@@ -21,7 +21,8 @@ export type MotivoMensagem =
   | 'reclamacao'
   | 'relatorio'
   | 'passagem'
-  | 'identificacao';
+  | 'identificacao'
+  | 'aviso';
 
 export interface NovoSms {
   municipioId: string;

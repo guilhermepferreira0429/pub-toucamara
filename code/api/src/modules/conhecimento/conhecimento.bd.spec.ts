@@ -14,6 +14,7 @@ import { AuditoriaService } from '../auditoria/auditoria.service.js';
 import { AvaliacaoService } from './avaliacao.service.js';
 import { ConhecimentoService } from './conhecimento.service.js';
 import { ContradicoesService } from './contradicoes.service.js';
+import { EdicaoService } from './edicao.service.js';
 import { DIMENSAO, EmbeddingsService } from './embeddings.service.js';
 import { IndexacaoService } from './indexacao.service.js';
 import { ERRO_PDF, IngestaoService } from './ingestao.service.js';
@@ -151,13 +152,15 @@ correr('conhecimento (BD)', () => {
     ingestao = new IngestaoService(db, jobs, claude, armazenamento, indexacao);
     propostas = new PropostasService(db, claude);
     contradicoes = new ContradicoesService(db, claude);
+    const avaliacao = new AvaliacaoService(db);
     painel = new PainelConhecimentoService(
       db,
       jobs,
       new AuditoriaService(db),
       ingestao,
       indexacao,
-      new AvaliacaoService(db),
+      avaliacao,
+      new EdicaoService(db, new AuditoriaService(db), avaliacao),
     );
 
     [{ id: municipio }] = await db.query<{ id: string }>(

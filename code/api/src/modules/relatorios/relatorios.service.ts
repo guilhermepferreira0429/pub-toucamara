@@ -21,6 +21,19 @@ import {
 /** Quem recebe os relatórios por email. */
 const PERFIS_DESTINO = ['chefe_divisao', 'vereador'];
 
+export interface Destinatario {
+  email: string;
+  nome: string;
+}
+
+/** O email de um relatório (o mesmo para todos os destinatários). */
+export interface CartaRelatorio {
+  assunto: string;
+  texto: string;
+  html?: string;
+  anexo: { nome: string; conteudo: Buffer } | null;
+}
+
 export interface OpcoesGerar {
   /** Mandar o email (se ainda não foi). */
   enviar: boolean;
@@ -154,7 +167,7 @@ export class RelatoriosService {
   }
 
   /** Sem armazenamento guarda-se só os dados (o PDF segue no email na mesma). */
-  private async guardarPdf(m: Municipio, pdf: Buffer): Promise<string | null> {
+  async guardarPdf(m: Municipio, pdf: Buffer): Promise<string | null> {
     if (!this.armazenamento.disponivel) {
       this.logger.warn(
         `Sem armazenamento (S3_BUCKET): o relatório de ${m.slug} fica só com os dados.`,
@@ -171,31 +184,45 @@ export class RelatoriosService {
     }
   }
 
-  /**
-   * Um email por destinatário, cada um registado em `mensagens_saida`
-   * (motivo 'relatorio', chave `relatorio:<id>:<email>`): repetir não reenvia
-   * a quem já recebeu. `enviado_em` quando pelo menos um recebeu.
-   */
+  /** Email às chefias e vereação ativas, com o PDF em anexo. */
   private async enviar(
     m: Municipio,
     relatorioId: string,
     d: DadosRelatorio,
     pdf: Buffer | null,
   ): Promise<void> {
-    const destinos = await this.db.query<{ email: string; nome: string }>(
+    const destinos = await this.db.query<Destinatario>(
       `SELECT email, nome FROM utilizadores
        WHERE municipio_id = $1 AND ativo AND perfil = ANY($2::perfil[])
        ORDER BY nome`,
       [m.id, PERFIS_DESTINO],
     );
+    await this.enviarEmails(m, relatorioId, destinos, {
+      assunto: `${d.titulo} · ${m.nome} · ${formatarDia(d.periodo.de)} a ${formatarDia(d.periodo.ate)}`,
+      texto: textoEmail(d),
+      anexo: pdf
+        ? { nome: `relatorio-${d.tipo}-${d.periodo.de}.pdf`, conteudo: pdf }
+        : null,
+    });
+  }
+
+  /**
+   * Um email por destinatário, cada um registado em `mensagens_saida`
+   * (motivo 'relatorio', chave `relatorio:<id>:<email>`): repetir não reenvia
+   * a quem já recebeu. `enviado_em` quando pelo menos um recebeu.
+   */
+  async enviarEmails(
+    m: Municipio,
+    relatorioId: string,
+    destinos: readonly Destinatario[],
+    carta: CartaRelatorio,
+  ): Promise<void> {
     if (!destinos.length) {
       this.logger.warn(
-        `Relatório ${relatorioId}: ${m.slug} não tem chefias nem vereação ativas.`,
+        `Relatório ${relatorioId}: ${m.slug} não tem destinatários ativos.`,
       );
       return;
     }
-    const assunto = `${d.titulo} · ${m.nome} · ${formatarDia(d.periodo.de)} a ${formatarDia(d.periodo.ate)}`;
-    const texto = textoEmail(d);
     let enviados = 0;
     for (const u of destinos) {
       const chave = `relatorio:${relatorioId}:${u.email}`;
@@ -207,7 +234,7 @@ export class RelatoriosService {
         [
           m.id,
           u.email,
-          texto,
+          carta.texto,
           JSON.stringify({ relatorio_id: relatorioId }),
           chave,
         ],
@@ -219,16 +246,11 @@ export class RelatoriosService {
       try {
         await this.mensagens.email({
           para: u.email,
-          assunto,
-          texto: `Olá ${u.nome},\n\n${texto}`,
-          anexos: pdf
-            ? [
-                {
-                  nome: `relatorio-${d.tipo}-${d.periodo.de}.pdf`,
-                  conteudo: pdf,
-                  mime: 'application/pdf',
-                },
-              ]
+          assunto: carta.assunto,
+          texto: `Olá ${u.nome},\n\n${carta.texto}`,
+          html: carta.html,
+          anexos: carta.anexo
+            ? [{ ...carta.anexo, mime: 'application/pdf' }]
             : undefined,
         });
         await this.db.query(
@@ -256,7 +278,7 @@ export class RelatoriosService {
 
   async listar(
     m: Municipio,
-    tipo: TipoRelatorio | undefined,
+    tipo: TipoRelatorio | 'diario' | undefined,
     limite: number,
     cursor: Cursor | null,
   ) {

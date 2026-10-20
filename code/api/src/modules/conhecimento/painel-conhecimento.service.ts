@@ -7,11 +7,23 @@ import { JobsService } from '../../jobs/jobs.service.js';
 import { AuditoriaService } from '../auditoria/auditoria.service.js';
 import { erroPublicacao } from './avaliacao.js';
 import { AvaliacaoService } from './avaliacao.service.js';
+import {
+  diffFactos,
+  interno,
+  origemDe,
+  precisaDe,
+  Revisao,
+  textoDaVersao,
+} from './edicao.js';
+import { EdicaoService } from './edicao.service.js';
 import { IndexacaoService } from './indexacao.service.js';
 import { IngestaoService, JOB_INGESTAO } from './ingestao.service.js';
 import { FONTE_JSON } from './sql.js';
 
 export const JOB_REINDEXAR = 'reindexar_embeddings';
+
+/** Quantas frases reais de uma pergunta sem resposta entram na resposta nova. */
+const FRASES_REAIS = 20;
 
 export interface NovaResposta {
   pergunta_tipo: string;
@@ -42,9 +54,23 @@ export interface NovaFonte {
   leitura_automatica: boolean;
 }
 
-/** Na V1 só a equipa interna escreve e publica respostas curadas. */
+/** Uma resposta nova a partir de uma pergunta sem resposta. */
+export interface RespostaAPergunta {
+  pergunta_tipo?: string;
+  tema_id?: string | null;
+  texto_voz: string;
+  texto_sms?: string | null;
+  passa_a_pessoa_quando: string[];
+  trechos: string[];
+}
+
+/**
+ * Só a equipa interna: forçar a publicação, rever versões da câmara, ligar a
+ * edição pela câmara, reindexar. (Escrever e publicar respostas: ver
+ * `EdicaoService.exigirEdicao`.)
+ */
 export function exigirEquipaInterna(u: UtilizadorPainel): void {
-  if (u.perfil !== 'admin' && u.perfil !== 'equipa_toucamara') {
+  if (!interno(u.perfil)) {
     throw new ErroApi(
       HttpStatus.FORBIDDEN,
       'so_equipa_interna',
@@ -66,6 +92,7 @@ export class PainelConhecimentoService {
     private readonly ingestao: IngestaoService,
     private readonly indexacao: IndexacaoService,
     private readonly avaliacao: AvaliacaoService,
+    private readonly edicao: EdicaoService,
   ) {}
 
   // -------------------------------------------------------------------------
@@ -167,11 +194,22 @@ export class PainelConhecimentoService {
     );
     if (!r) throw naoEncontrada('resposta');
 
-    const [versoes, frases, [usos], conversas, alteracoes] = await Promise.all([
-      this.db.query(
-        `SELECT rv.id, rv.numero, rv.texto_voz, rv.texto_sms, rv.passa_a_pessoa_quando,
+    const [versoes, frases, [usos], conversas, alteracoes, gate] =
+      await Promise.all([
+        this.db.query<{
+          id: string;
+          numero: number;
+          origem: 'equipa' | 'camara';
+          muda_factos: boolean;
+          revisao: Revisao | null;
+          criada_em: Date;
+          publicada_em: Date | null;
+          no_ar: boolean;
+        }>(
+          `SELECT rv.id, rv.numero, rv.texto_voz, rv.texto_sms, rv.passa_a_pessoa_quando,
                 rv.criada_em, rv.publicada_em, rv.eval_execucao_id,
-                u.nome AS criada_por,
+                u.nome AS criada_por, rv.origem, coalesce(rv.id = $2::uuid, false) AS no_ar,
+                rv.muda_factos, rv.factos, rv.reverte_de, rv.revisao, rv.revista_em,
                 coalesce((
                   SELECT jsonb_agg(${FONTE_JSON} || jsonb_build_object(
                            'texto', t.texto,
@@ -186,44 +224,45 @@ export class PainelConhecimentoService {
          LEFT JOIN utilizadores u ON u.id = rv.criada_por
          WHERE rv.resposta_id = $1
          ORDER BY rv.numero DESC`,
-        [id],
-      ),
-      this.db.query(
-        `SELECT id, frase, embedding IS NOT NULL AS com_vetor
+          [id, r.versao_no_ar_id],
+        ),
+        this.db.query(
+          `SELECT id, frase, embedding IS NOT NULL AS com_vetor
          FROM resposta_frases WHERE resposta_id = $1 ORDER BY frase`,
-        [id],
-      ),
-      this.db.query<{ ultimos_30_dias: number }>(
-        `SELECT count(*)::int AS ultimos_30_dias
+          [id],
+        ),
+        this.db.query<{ ultimos_30_dias: number }>(
+          `SELECT count(*)::int AS ultimos_30_dias
          FROM conversa_momentos m JOIN conversas c ON c.id = m.conversa_id
          WHERE m.tipo = 'resposta_com_fonte' AND m.dados -> 'respostas' ? $1
            AND c.municipio_id = $2 AND c.iniciada_em > now() - interval '30 days'`,
-        [id, municipioId],
-      ),
-      this.db.query(
-        `SELECT DISTINCT ON (c.iniciada_em, c.id) c.id AS conversa_id, c.canal,
+          [id, municipioId],
+        ),
+        this.db.query(
+          `SELECT DISTINCT ON (c.iniciada_em, c.id) c.id AS conversa_id, c.canal,
                 c.iniciada_em, c.resultado
          FROM conversa_momentos m JOIN conversas c ON c.id = m.conversa_id
          WHERE m.tipo = 'resposta_com_fonte' AND m.dados -> 'respostas' ? $1
            AND c.municipio_id = $2
          ORDER BY c.iniciada_em DESC, c.id DESC
          LIMIT 10`,
-        [id, municipioId],
-      ),
-      this.db.query(
-        `SELECT a.id AS alteracao_id, a.resumo, a.detetada_em, ar.estado,
+          [id, municipioId],
+        ),
+        this.db.query(
+          `SELECT a.id AS alteracao_id, a.resumo, a.detetada_em, ar.estado,
                 ar.proposta_versao_id, fo.titulo AS fonte
          FROM alteracao_respostas ar
          JOIN alteracoes a ON a.id = ar.alteracao_id
          JOIN fontes fo ON fo.id = a.fonte_id
          WHERE ar.resposta_id = $1
          ORDER BY a.detetada_em DESC LIMIT 10`,
-        [id],
-      ),
-    ]);
+          [id],
+        ),
+        this.edicao.gate(municipioId),
+      ]);
     return {
       ...r,
-      versoes,
+      versoes: versoes.map((v) => this.edicao.comEstado(v, gate)),
       frases,
       usos: { ultimos_30_dias: usos?.ultimos_30_dias ?? 0, conversas },
       alteracoes,
@@ -231,32 +270,18 @@ export class PainelConhecimentoService {
   }
 
   /**
-   * Resposta nova: versão 1 em rascunho, fontes e frases. A própria
-   * `pergunta_tipo` entra também como frase (é a forma canónica de perguntar).
+   * Resposta nova: versão 1 (rascunho da equipa ou 'em_revisao' da câmara),
+   * fontes e frases. A própria `pergunta_tipo` entra também como frase (é a
+   * forma canónica de perguntar).
    */
   async criarResposta(
     municipioId: string,
     u: UtilizadorPainel,
     d: NovaResposta,
   ) {
-    const frases = semRepetidas([d.pergunta_tipo, ...d.frases]);
-    const r = await this.db.transaction(async (tx) => {
-      if (d.tema_id) await this.verificarTema(tx, municipioId, d.tema_id);
-      await this.verificarTrechos(tx, municipioId, d.trechos);
-      const [resp] = await tx.query<{ id: string }>(
-        `INSERT INTO respostas (municipio_id, pergunta_tipo, tema_id)
-         VALUES ($1, $2, $3) RETURNING id`,
-        [municipioId, d.pergunta_tipo, d.tema_id ?? null],
-      );
-      const versaoId = await this.inserirVersao(tx, resp.id, u.id, {
-        texto_voz: d.texto_voz,
-        texto_sms: d.texto_sms ?? null,
-        passa_a_pessoa_quando: d.passa_a_pessoa_quando,
-        trechos: d.trechos,
-      });
-      const ids = await this.inserirFrases(tx, resp.id, frases);
-      return { id: resp.id, versao_id: versaoId, frases: ids };
-    });
+    const r = await this.db.transaction((tx) =>
+      this.inserirResposta(tx, municipioId, u, d),
+    );
     await this.auditoria.registar({
       municipioId,
       atorTipo: 'utilizador',
@@ -264,12 +289,202 @@ export class PainelConhecimentoService {
       acao: 'criar',
       objetoTipo: 'resposta',
       objetoId: r.id,
+      dados: { versao_id: r.versao_id, origem: origemDe(u.perfil) },
     });
     await this.indexacao.tentar(
       () => this.indexacao.vetorizarFrases(r.frases),
       `frases da resposta ${r.id}`,
     );
     return this.resposta(municipioId, r.id);
+  }
+
+  private async inserirResposta(
+    tx: Tx,
+    municipioId: string,
+    u: UtilizadorPainel,
+    d: NovaResposta,
+  ) {
+    const frases = semRepetidas([d.pergunta_tipo, ...d.frases]);
+    if (d.tema_id) await this.verificarTema(tx, municipioId, d.tema_id);
+    await this.verificarTrechos(tx, municipioId, d.trechos);
+    const [resp] = await tx.query<{ id: string }>(
+      `INSERT INTO respostas (municipio_id, pergunta_tipo, tema_id)
+       VALUES ($1, $2, $3) RETURNING id`,
+      [municipioId, d.pergunta_tipo, d.tema_id ?? null],
+    );
+    const versaoId = await this.inserirVersao(tx, resp.id, u, {
+      texto_voz: d.texto_voz,
+      texto_sms: d.texto_sms ?? null,
+      passa_a_pessoa_quando: d.passa_a_pessoa_quando,
+      trechos: d.trechos,
+    });
+    const ids = await this.inserirFrases(tx, resp.id, frases);
+    return { id: resp.id, versao_id: versaoId, frases: ids };
+  }
+
+  /**
+   * "Perguntas sem resposta transformadas em novas respostas": a resposta
+   * curada nasce da pergunta (a forma canónica é a `pergunta_tipo`, as frases
+   * reais do grupo entram em "as pessoas perguntam assim") e fica ligada a
+   * ela. A pergunta só passa a 'resolvida' quando a resposta for para o ar
+   * (`publicarVersao`).
+   */
+  async responderSemResposta(
+    municipioId: string,
+    u: UtilizadorPainel,
+    psrId: string,
+    d: RespostaAPergunta,
+  ) {
+    const r = await this.db.transaction(async (tx) => {
+      const [p] = await tx.query<{
+        texto: string;
+        estado: string;
+        resposta_id: string | null;
+      }>(
+        `SELECT texto, estado, resposta_id FROM perguntas_sem_resposta
+         WHERE id = $1 AND municipio_id = $2 FOR UPDATE`,
+        [psrId, municipioId],
+      );
+      if (!p) throw naoEncontrada('pergunta');
+      if (p.resposta_id) {
+        throw new ErroApi(
+          HttpStatus.CONFLICT,
+          'pergunta_ja_tem_resposta',
+          'Esta pergunta já está ligada a uma resposta.',
+          { resposta_id: p.resposta_id },
+        );
+      }
+      if (p.estado === 'resolvida' || p.estado === 'fora_ambito') {
+        throw new ErroApi(
+          HttpStatus.CONFLICT,
+          'pergunta_fechada',
+          'Esta pergunta já está fechada.',
+          { estado: p.estado },
+        );
+      }
+      // Frases reais: os turnos onde a pergunta apareceu, das mais recentes.
+      const reais = (
+        await tx.query<{ texto: string }>(
+          `SELECT t.texto FROM pergunta_sem_resposta_ocorrencias o
+           JOIN conversa_turnos t ON t.id = o.turno_id
+           WHERE o.psr_id = $1
+           ORDER BY t.id DESC LIMIT $2`,
+          [psrId, FRASES_REAIS],
+        )
+      )
+        .map((x) => limparFrase(x.texto))
+        .filter((x) => x.length >= 2);
+      const canonica = limparFrase(p.texto);
+      const resp = await this.inserirResposta(tx, municipioId, u, {
+        pergunta_tipo: d.pergunta_tipo ?? canonica,
+        tema_id: d.tema_id,
+        texto_voz: d.texto_voz,
+        texto_sms: d.texto_sms,
+        passa_a_pessoa_quando: d.passa_a_pessoa_quando,
+        trechos: d.trechos,
+        frases: [canonica, ...reais],
+      });
+      await tx.query(
+        'UPDATE perguntas_sem_resposta SET resposta_id = $2 WHERE id = $1',
+        [psrId, resp.id],
+      );
+      const ator = {
+        municipioId,
+        atorTipo: 'utilizador' as const,
+        atorId: u.id,
+      };
+      await this.auditoria.registar(
+        {
+          ...ator,
+          acao: 'criar',
+          objetoTipo: 'resposta',
+          objetoId: resp.id,
+          dados: {
+            versao_id: resp.versao_id,
+            origem: origemDe(u.perfil),
+            pergunta_sem_resposta_id: psrId,
+          },
+        },
+        tx,
+      );
+      await this.auditoria.registar(
+        {
+          ...ator,
+          acao: 'responder',
+          objetoTipo: 'pergunta_sem_resposta',
+          objetoId: psrId,
+          dados: { resposta_id: resp.id, frases_reais: reais.length },
+        },
+        tx,
+      );
+      return resp;
+    });
+    await this.indexacao.tentar(
+      () => this.indexacao.vetorizarFrases(r.frases),
+      `frases da resposta ${r.id}`,
+    );
+    const [pergunta] = await this.db.query(
+      `SELECT id, texto, vezes, estado, resposta_id FROM perguntas_sem_resposta WHERE id = $1`,
+      [psrId],
+    );
+    return { pergunta, resposta: await this.resposta(municipioId, r.id) };
+  }
+
+  /**
+   * Volta a uma versão anterior: cria uma versão nova igual a ela (textos,
+   * quando passa a pessoa e fontes), com `reverte_de`. Segue as regras de
+   * qualquer versão nova (escrita pela câmara: 'em_revisao').
+   */
+  async reverter(
+    municipioId: string,
+    u: UtilizadorPainel,
+    respostaId: string,
+    versaoId: string,
+  ) {
+    const novaId = await this.db.transaction(async (tx) => {
+      const [resp] = await tx.query(
+        `SELECT 1 FROM respostas WHERE id = $1 AND municipio_id = $2 FOR UPDATE`,
+        [respostaId, municipioId],
+      );
+      if (!resp) throw naoEncontrada('resposta');
+      const [v] = await tx.query<{
+        texto_voz: string;
+        texto_sms: string | null;
+        passa_a_pessoa_quando: string[];
+        trechos: string[];
+      }>(
+        `SELECT texto_voz, texto_sms, passa_a_pessoa_quando,
+                array(SELECT trecho_id FROM resposta_fontes WHERE resposta_versao_id = rv.id) AS trechos
+         FROM resposta_versoes rv WHERE id = $1 AND resposta_id = $2`,
+        [versaoId, respostaId],
+      );
+      if (!v) throw naoEncontrada('versão');
+      const id = await this.inserirVersao(tx, respostaId, u, {
+        ...v,
+        reverte_de: versaoId,
+      });
+      await this.auditoria.registar(
+        {
+          municipioId,
+          atorTipo: 'utilizador',
+          atorId: u.id,
+          acao: 'reverter',
+          objetoTipo: 'resposta',
+          objetoId: respostaId,
+          dados: {
+            versao_id: id,
+            reverte_de: versaoId,
+            origem: origemDe(u.perfil),
+          },
+        },
+        tx,
+      );
+      return id;
+    });
+    return {
+      ...(await this.resposta(municipioId, respostaId)),
+      versao_id: novaId,
+    };
   }
 
   async novaVersao(
@@ -303,7 +518,7 @@ export class PainelConhecimentoService {
           )
         ).map((x) => x.trecho_id);
       }
-      const versaoId = await this.inserirVersao(tx, respostaId, u.id, {
+      const versaoId = await this.inserirVersao(tx, respostaId, u, {
         texto_voz: d.texto_voz,
         texto_sms: d.texto_sms ?? null,
         passa_a_pessoa_quando:
@@ -332,7 +547,7 @@ export class PainelConhecimentoService {
       acao: 'nova_versao',
       objetoTipo: 'resposta',
       objetoId: respostaId,
-      dados: { versao_id: r.versao_id },
+      dados: { versao_id: r.versao_id, origem: origemDe(u.perfil) },
     });
     await this.indexacao.tentar(
       () => this.indexacao.vetorizarFrases(r.frases),
@@ -344,6 +559,13 @@ export class PainelConhecimentoService {
   /**
    * Põe uma versão no ar, se o gate deixar (`exigirAvaliacao`): a versão
    * fica com `eval_execucao_id` da execução que a deixou passar.
+   *
+   * A câmara (edição ligada no município, nunca `forcar`) só publica quando
+   * `precisaDe` está vazio (regras em `edicao.ts`): sem avaliação, o mesmo
+   * erro do gate com `detalhes.precisa_de`; com factos mudados por rever,
+   * 409 `revisao_interna_em_falta`; versão rejeitada, 409 `versao_rejeitada`.
+   * A equipa interna publica como até aqui e, numa versão da câmara ainda
+   * sem revisão, publicar conta como a revisão.
    */
   async publicar(
     municipioId: string,
@@ -352,14 +574,28 @@ export class PainelConhecimentoService {
     versaoId: string,
     forcar = false,
   ) {
+    const daEquipa = interno(u.perfil);
+    if (forcar) exigirEquipaInterna(u);
     await this.db.transaction(async (tx) => {
       // 404 antes do gate: não faz sentido pedir uma avaliação para nada.
-      const [existe] = await tx.query(
-        `SELECT 1 FROM resposta_versoes rv JOIN respostas r ON r.id = rv.resposta_id
-         WHERE rv.id = $1 AND rv.resposta_id = $2 AND r.municipio_id = $3`,
+      const [v] = await tx.query<{
+        origem: 'equipa' | 'camara';
+        muda_factos: boolean;
+        revisao: Revisao | null;
+        criada_em: Date;
+        factos: unknown;
+      }>(
+        `SELECT rv.origem, rv.muda_factos, rv.revisao, rv.criada_em, rv.factos
+         FROM resposta_versoes rv JOIN respostas r ON r.id = rv.resposta_id
+         WHERE rv.id = $1 AND rv.resposta_id = $2 AND r.municipio_id = $3
+         FOR UPDATE OF rv`,
         [versaoId, respostaId, municipioId],
       );
-      if (!existe) throw naoEncontrada('versão');
+      if (!v) throw naoEncontrada('versão');
+      if (!daEquipa) {
+        await this.edicao.exigirEdicao(municipioId, u, tx);
+        await this.exigirRequisitos(tx, municipioId, versaoId, v);
+      }
       const execucaoId = await this.exigirAvaliacao(
         tx,
         municipioId,
@@ -379,6 +615,14 @@ export class PainelConhecimentoService {
         execucaoId,
       );
       if (!ok) throw naoEncontrada('versão');
+      if (daEquipa && v.origem === 'camara' && !v.revisao) {
+        await tx.query(
+          `UPDATE resposta_versoes SET revisao = 'aprovada', revista_por = $2, revista_em = now(),
+                  revisao_nota = 'Publicada pela equipa interna.'
+           WHERE id = $1`,
+          [versaoId, u.id],
+        );
+      }
       await this.auditoria.registar(
         {
           municipioId,
@@ -387,12 +631,61 @@ export class PainelConhecimentoService {
           acao: 'publicar',
           objetoTipo: 'resposta',
           objetoId: respostaId,
-          dados: { versao_id: versaoId, eval_execucao_id: execucaoId },
+          dados: daEquipa
+            ? { versao_id: versaoId, eval_execucao_id: execucaoId }
+            : {
+                versao_id: versaoId,
+                eval_execucao_id: execucaoId,
+                origem: 'camara',
+                muda_factos: v.muda_factos,
+                revisao: v.revisao,
+              },
         },
         tx,
       );
     });
     return this.resposta(municipioId, respostaId);
+  }
+
+  /** Publicar pela câmara: tudo o que `precisaDe` pede tem de estar feito. */
+  private async exigirRequisitos(
+    tx: Tx,
+    municipioId: string,
+    versaoId: string,
+    v: {
+      origem: 'equipa' | 'camara';
+      muda_factos: boolean;
+      revisao: Revisao | null;
+      criada_em: Date;
+      factos: unknown;
+    },
+  ): Promise<void> {
+    if (v.revisao === 'rejeitada') {
+      throw new ErroApi(
+        HttpStatus.CONFLICT,
+        'versao_rejeitada',
+        'A equipa Tou, Câmara? rejeitou esta versão. Escreva uma versão nova.',
+        { versao_id: versaoId },
+      );
+    }
+    const gate = await this.edicao.gate(municipioId, tx);
+    const falta = precisaDe(v, gate.atual);
+    const d = gate.estado.decisao;
+    if (!d.permitir) {
+      const e = erroPublicacao(d, gate.estado);
+      throw new ErroApi(e.getStatus(), e.codigo, e.message, {
+        ...(e.detalhes as object),
+        precisa_de: falta,
+      });
+    }
+    if (falta.length) {
+      throw new ErroApi(
+        HttpStatus.CONFLICT,
+        'revisao_interna_em_falta',
+        'Esta versão muda números, prazos ou contactos: precisa da revisão da equipa Tou, Câmara? ou de uma nova avaliação do agente antes de ir para o ar.',
+        { versao_id: versaoId, precisa_de: falta, factos: v.factos },
+      );
+    }
   }
 
   /**
@@ -438,6 +731,10 @@ export class PainelConhecimentoService {
     return null;
   }
 
+  /**
+   * No ar: a versão fica publicada e as perguntas sem resposta abertas
+   * ligadas à resposta passam a 'resolvida'.
+   */
   private async publicarVersao(
     tx: Tx,
     municipioId: string,
@@ -458,23 +755,65 @@ export class PainelConhecimentoService {
       `UPDATE respostas SET versao_no_ar_id = $2, estado = 'no_ar' WHERE id = $1`,
       [respostaId, versaoId],
     );
+    const resolvidas = await tx.query<{ id: string }>(
+      `UPDATE perguntas_sem_resposta SET estado = 'resolvida'
+       WHERE resposta_id = $1 AND municipio_id = $2
+         AND estado IN ('nova', 'com_equipa', 'espera_camara')
+       RETURNING id`,
+      [respostaId, municipioId],
+    );
+    for (const p of resolvidas) {
+      await this.auditoria.registar(
+        {
+          municipioId,
+          atorTipo: 'sistema',
+          acao: 'resolver',
+          objetoTipo: 'pergunta_sem_resposta',
+          objetoId: p.id,
+          dados: { resposta_id: respostaId, versao_id: versaoId },
+        },
+        tx,
+      );
+    }
     return true;
   }
 
+  /**
+   * Versão nova com quem a escreveu (`origem`) e o diff de factos face à
+   * base: a versão no ar, ou a última se nenhuma estiver no ar.
+   */
   private async inserirVersao(
     tx: Tx,
     respostaId: string,
-    utilizadorId: string,
+    u: UtilizadorPainel,
     v: {
       texto_voz: string;
       texto_sms: string | null;
       passa_a_pessoa_quando: string[];
       trechos: string[];
+      reverte_de?: string | null;
     },
   ): Promise<string> {
+    const [base] = await tx.query<{
+      id: string;
+      texto_voz: string;
+      texto_sms: string | null;
+    }>(
+      `SELECT rv.id, rv.texto_voz, rv.texto_sms
+       FROM resposta_versoes rv JOIN respostas r ON r.id = rv.resposta_id
+       WHERE rv.resposta_id = $1
+       ORDER BY (rv.id = r.versao_no_ar_id) IS TRUE DESC, rv.numero DESC
+       LIMIT 1`,
+      [respostaId],
+    );
+    const factos = diffFactos(
+      base ? textoDaVersao(base) : null,
+      textoDaVersao(v),
+    );
     const [nova] = await tx.query<{ id: string }>(
-      `INSERT INTO resposta_versoes (resposta_id, numero, texto_voz, texto_sms, passa_a_pessoa_quando, criada_por)
-       SELECT $1, coalesce(max(numero), 0) + 1, $2, $3, $4, $5
+      `INSERT INTO resposta_versoes (resposta_id, numero, texto_voz, texto_sms, passa_a_pessoa_quando,
+                                     criada_por, origem, base_versao_id, factos, muda_factos, reverte_de)
+       SELECT $1, coalesce(max(numero), 0) + 1, $2, $3, $4, $5, $6, $7, $8, $9, $10
        FROM resposta_versoes WHERE resposta_id = $1
        RETURNING id`,
       [
@@ -482,7 +821,15 @@ export class PainelConhecimentoService {
         v.texto_voz,
         v.texto_sms,
         v.passa_a_pessoa_quando,
-        utilizadorId,
+        u.id,
+        origemDe(u.perfil),
+        base?.id ?? null,
+        JSON.stringify({
+          adicionados: factos.adicionados,
+          removidos: factos.removidos,
+        }),
+        factos.muda,
+        v.reverte_de ?? null,
       ],
     );
     if (v.trechos.length) {
@@ -1086,4 +1433,9 @@ function semRepetidas(frases: string[]): string[] {
       vistas.add(k);
       return true;
     });
+}
+
+/** Uma frase dita, numa linha e no máximo com 300 caracteres. */
+function limparFrase(t: string): string {
+  return t.replace(/\s+/g, ' ').trim().slice(0, 300);
 }

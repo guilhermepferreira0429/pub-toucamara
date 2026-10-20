@@ -20,7 +20,7 @@ export function formatarDia(dia: string): string {
   return `${d}/${m}/${a}`;
 }
 
-function numero(n: number, casas = 0): string {
+export function numero(n: number, casas = 0): string {
   return n.toLocaleString('pt-PT', {
     minimumFractionDigits: casas,
     maximumFractionDigits: casas,

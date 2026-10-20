@@ -16,6 +16,7 @@ import type { UtilizadorPainel } from '../../common/pedido.js';
 import { validar } from '../../common/validacao.js';
 import { Painel } from '../auth/painel.guard.js';
 import type { Municipio } from '../municipios/municipios.service.js';
+import { EdicaoService } from './edicao.service.js';
 import { ESTADOS_MELHORIA } from './melhorias.js';
 import { MelhoriasService } from './melhorias.service.js';
 import {
@@ -69,16 +70,27 @@ const TIPOS_FONTE = [
   'contactos',
 ] as const;
 
+const esquemaResponder = z.object({
+  pergunta_tipo: z.string().trim().min(3).max(300).optional(),
+  tema_id: z.uuid().nullish(),
+  texto_voz: texto(4000),
+  texto_sms: z.string().trim().max(640).nullish(),
+  passa_a_pessoa_quando: z.array(texto(200)).max(20).default([]),
+  trechos: z.array(z.uuid()).max(30).default([]),
+});
+
 /**
  * Conhecimento no painel (secção 5.7). Ler: 'conhecimento_ver'. Escrever:
- * 'conhecimento'. Respostas curadas: na V1 também perfil admin ou
- * equipa_toucamara.
+ * 'conhecimento'. Respostas curadas: a equipa interna (admin,
+ * equipa_toucamara) sempre; o chefe de divisão quando a edição pela câmara
+ * está ligada no município (V2, regras de publicação em `edicao.ts`).
  */
 @Controller('painel/conhecimento')
 export class PainelConhecimentoController {
   constructor(
     private readonly svc: PainelConhecimentoService,
     private readonly melhorias: MelhoriasService,
+    private readonly edicao: EdicaoService,
   ) {}
 
   @Get('mapa')
@@ -111,30 +123,104 @@ export class PainelConhecimentoController {
 
   @Post('respostas')
   @Painel('conhecimento')
-  criarResposta(
+  async criarResposta(
     @MunicipioAtual() m: Municipio,
     @UtilizadorAtual() u: UtilizadorPainel,
     @Body() body: unknown,
   ) {
-    exigirEquipaInterna(u);
+    await this.edicao.exigirEdicao(m.id, u);
     return this.svc.criarResposta(m.id, u, validar(esquemaResposta, body));
+  }
+
+  /** Histórico: quem, quando, estado, o que falta e o diff por frase. */
+  @Get('respostas/:id/versoes')
+  @Painel('conhecimento_ver')
+  versoes(@MunicipioAtual() m: Municipio, @Param('id', uuid) id: string) {
+    return this.edicao.historico(m.id, id);
   }
 
   @Post('respostas/:id/versoes')
   @Painel('conhecimento')
-  novaVersao(
+  async novaVersao(
     @MunicipioAtual() m: Municipio,
     @UtilizadorAtual() u: UtilizadorPainel,
     @Param('id', uuid) id: string,
     @Body() body: unknown,
   ) {
-    exigirEquipaInterna(u);
+    await this.edicao.exigirEdicao(m.id, u);
     return this.svc.novaVersao(m.id, u, id, validar(esquemaVersao, body));
+  }
+
+  /** Versão nova igual a uma anterior (a resposta volta atrás). */
+  @Post('respostas/:id/versoes/:vid/reverter')
+  @Painel('conhecimento')
+  async reverter(
+    @MunicipioAtual() m: Municipio,
+    @UtilizadorAtual() u: UtilizadorPainel,
+    @Param('id', uuid) id: string,
+    @Param('vid', uuid) vid: string,
+  ) {
+    await this.edicao.exigirEdicao(m.id, u);
+    return this.svc.reverter(m.id, u, id, vid);
+  }
+
+  /**
+   * Corpo: { decisao: 'aprovar' | 'rejeitar', nota? }. Equipa interna:
+   * revê uma versão da câmara por publicar.
+   */
+  @Post('respostas/:id/versoes/:vid/rever')
+  @HttpCode(200)
+  @Painel('conhecimento')
+  async rever(
+    @MunicipioAtual() m: Municipio,
+    @UtilizadorAtual() u: UtilizadorPainel,
+    @Param('id', uuid) id: string,
+    @Param('vid', uuid) vid: string,
+    @Body() body: unknown,
+  ) {
+    exigirEquipaInterna(u);
+    const d = validar(
+      z.object({
+        decisao: z.enum(['aprovar', 'rejeitar']),
+        nota: z.string().trim().max(1000).nullish(),
+      }),
+      body,
+    );
+    await this.edicao.rever(m.id, u, id, vid, d.decisao, d.nota ?? null);
+    return this.svc.resposta(m.id, id);
+  }
+
+  /** Fila da equipa interna: versões da câmara por publicar. */
+  @Get('revisoes')
+  @Painel('conhecimento_ver')
+  revisoes(@MunicipioAtual() m: Municipio) {
+    return this.edicao.revisoes(m.id);
+  }
+
+  @Get('definicoes')
+  @Painel('conhecimento_ver')
+  definicoes(@MunicipioAtual() m: Municipio) {
+    return this.edicao.definicoes(m.id);
+  }
+
+  /** Corpo: { camara_edita_respostas }. Só a equipa interna. */
+  @Patch('definicoes')
+  @Painel('conhecimento')
+  alterarDefinicoes(
+    @MunicipioAtual() m: Municipio,
+    @UtilizadorAtual() u: UtilizadorPainel,
+    @Body() body: unknown,
+  ) {
+    exigirEquipaInterna(u);
+    const d = validar(z.object({ camara_edita_respostas: z.boolean() }), body);
+    return this.edicao.alterarDefinicoes(m.id, u, d.camara_edita_respostas);
   }
 
   /**
    * Corpo: { versao_id, forcar? }. Só publica com uma avaliação do agente
-   * (versão atual, taxa ≥ 80%); `forcar` salta o gate (equipa interna, auditado).
+   * (versão atual, taxa ≥ 80%); `forcar` salta o gate (equipa interna,
+   * auditado). A câmara publica só quando a versão não precisa de mais nada
+   * (`precisa_de` vazio; ver `edicao.ts`).
    */
   @Post('respostas/:id/publicar')
   @HttpCode(200)
@@ -145,7 +231,6 @@ export class PainelConhecimentoController {
     @Param('id', uuid) id: string,
     @Body() body: unknown,
   ) {
-    exigirEquipaInterna(u);
     const { versao_id, forcar } = validar(
       z.object({ versao_id: z.uuid(), forcar: z.boolean().default(false) }),
       body,
@@ -163,6 +248,28 @@ export class PainelConhecimentoController {
       q,
     );
     return this.svc.semResposta(m.id, f.estado, f.limite, f.cursor);
+  }
+
+  /**
+   * Transforma a pergunta numa resposta curada nova (com as frases reais do
+   * grupo) ligada a ela; a pergunta fica 'resolvida' quando a resposta for
+   * publicada.
+   */
+  @Post('sem-resposta/:id/responder')
+  @Painel('conhecimento')
+  async responder(
+    @MunicipioAtual() m: Municipio,
+    @UtilizadorAtual() u: UtilizadorPainel,
+    @Param('id', uuid) id: string,
+    @Body() body: unknown,
+  ) {
+    await this.edicao.exigirEdicao(m.id, u);
+    return this.svc.responderSemResposta(
+      m.id,
+      u,
+      id,
+      validar(esquemaResponder, body),
+    );
   }
 
   @Post('sem-resposta/:id/pedir-equipa')

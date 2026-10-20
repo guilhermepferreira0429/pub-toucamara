@@ -8,13 +8,14 @@ import type {
 } from './agregados.js';
 import type { Agrupar, Periodo } from './periodos.js';
 
-/** Vistas da 0018; refrescadas uma a uma (uma a falhar não para as outras). */
+/** Vistas da 0018 e da 0033 (gestão); refrescadas uma a uma (uma a falhar não para as outras). */
 export const VISTAS = [
   'mv_conversas_por_hora',
   'mv_temas_periodo',
   'mv_resultados_periodo',
   'mv_trabalho_feito_semana',
   'mv_processos_fases',
+  'mv_processos_fases_historia',
 ] as const;
 
 const SOMA_RESULTADOS = `

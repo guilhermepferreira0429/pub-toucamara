@@ -10,7 +10,8 @@ export type DestinoLink =
   | 'ocorrencia'
   | 'processo'
   | 'marcacao'
-  | 'pagamento';
+  | 'pagamento'
+  | 'aviso';
 
 // Sem 0/O, 1/I/L: lê-se num SMS e dita-se ao telefone.
 const ALFABETO = '23456789ABCDEFGHJKMNPQRSTUVWXYZ';
@@ -23,6 +24,7 @@ const VALIDADE_DIAS: Record<DestinoLink, number> = {
   processo: 365,
   marcacao: 60,
   pagamento: 30,
+  aviso: 90,
 };
 
 /*

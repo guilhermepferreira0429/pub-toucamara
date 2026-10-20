@@ -64,8 +64,6 @@ export async function arrancarApp(
     logger: process.env.E2E_LOGS === '1' ? undefined : ['error'],
   });
   configurarApp(app);
-  await app.init();
-
   const db = new Pool({
     host: process.env.DB_HOST,
     port: Number(process.env.DB_PORT),
@@ -74,7 +72,16 @@ export async function arrancarApp(
     database: process.env.DB_NAME,
     max: 3,
   });
-  await carregarSeed(db);
+  try {
+    await app.init();
+    await carregarSeed(db);
+  } catch (e) {
+    // Se o arranque falhar a meio, os jobs (pg-boss) já estão a correr e o
+    // afterAll não tem app para fechar: o jest ficava pendurado para sempre.
+    await app.close().catch(() => undefined);
+    await db.end().catch(() => undefined);
+    throw e;
+  }
 
   const http = () => request(app.getHttpServer());
   return {

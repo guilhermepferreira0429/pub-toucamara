@@ -5,25 +5,33 @@ import { AgenteController } from './agente.controller.js';
 import { AgenteService } from './agente.service.js';
 import { EquipaController } from './equipa.controller.js';
 import { EquipaService } from './equipa.service.js';
+import { GestaoController } from './gestao.controller.js';
+import { GestaoService } from './gestao.service.js';
 import { PainelDadosService } from './painel-dados.service.js';
 import { PainelService } from './painel.service.js';
 import { RgpdService } from './rgpd.service.js';
 import { VisaoGeralController } from './visao-geral.controller.js';
 
 /**
- * Painel: Visão geral, Indicadores, Equipa e acessos (com RGPD) e Agente.
- * Jobs: `refrescar_vistas` a cada 5 min (vistas da 0018) e `retencao_rgpd`
- * às 03:30.
+ * Painel: Visão geral, Indicadores (com Gestão, V2), Equipa e acessos (com
+ * RGPD) e Agente. Jobs: `refrescar_vistas` a cada 5 min (vistas da 0018 e
+ * da 0033) e `retencao_rgpd` às 03:30.
  */
 @Module({
   imports: [ConhecimentoModule],
-  controllers: [VisaoGeralController, EquipaController, AgenteController],
+  controllers: [
+    VisaoGeralController,
+    EquipaController,
+    AgenteController,
+    GestaoController,
+  ],
   providers: [
     PainelDadosService,
     PainelService,
     EquipaService,
     AgenteService,
     RgpdService,
+    GestaoService,
   ],
   exports: [PainelDadosService],
 })

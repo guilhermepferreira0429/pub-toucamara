@@ -22,6 +22,10 @@ import { AgentToolsModule } from './modules/agent-tools/agent-tools.module.js';
 import { ArmazenamentoModule } from './modules/armazenamento/armazenamento.module.js';
 import { AtendimentoModule } from './modules/atendimento/atendimento.module.js';
 import { AuditoriaModule } from './modules/auditoria/auditoria.service.js';
+import { AvisosZonaModule } from './modules/avisos-zona/avisos-zona.module.js';
+import { EntradaModule } from './modules/entrada/entrada.module.js';
+import { IntegracoesModule } from './modules/integracoes/integracoes.module.js';
+import { ModelosModule } from './modules/modelos/modelos.module.js';
 import { AuthModule } from './modules/auth/auth.module.js';
 import { ChamadasSaidaModule } from './modules/chamadas-saida/chamadas-saida.module.js';
 import { ChatModule } from './modules/chat/chat.module.js';
@@ -84,6 +88,11 @@ import { RequerimentosModule } from './modules/requerimentos/requerimentos.modul
     RelatoriosModule,
     PerguntasChefiaModule,
     ChamadasSaidaModule,
+    // V2
+    EntradaModule,
+    ModelosModule,
+    IntegracoesModule,
+    AvisosZonaModule,
   ],
   controllers: [AppController],
   providers: [AppService],

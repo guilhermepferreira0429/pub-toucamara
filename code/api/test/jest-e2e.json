@@ -13,5 +13,6 @@
   "globalTeardown": "<rootDir>/e2e/global-teardown.ts",
   "setupFiles": ["<rootDir>/e2e/ambiente.ts"],
   "testTimeout": 60000,
-  "maxWorkers": 1
+  "maxWorkers": 1,
+  "forceExit": true
 }
