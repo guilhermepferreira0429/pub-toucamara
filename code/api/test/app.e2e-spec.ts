@@ -1,25 +1,15 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication } from '@nestjs/common';
-import request from 'supertest';
-import { App } from 'supertest/types';
-import { AppModule } from './../src/app.module';
+import { arrancarApp, Contexto } from './e2e/app';
 
-describe('AppController (e2e)', () => {
-  let app: INestApplication<App>;
+describe('App (e2e)', () => {
+  let ctx: Contexto;
 
-  beforeEach(async () => {
-    const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
-    }).compile();
-
-    app = moduleFixture.createNestApplication();
-    await app.init();
+  beforeAll(async () => {
+    ctx = await arrancarApp();
   });
+  afterAll(() => ctx.fechar());
 
-  it('/ (GET)', () => {
-    return request(app.getHttpServer())
-      .get('/saude')
-      .expect(200)
-      .expect((r) => expect(r.body).toHaveProperty('ok', true));
+  it('GET /v1/saude responde ok com a BD ligada', async () => {
+    const r = await ctx.http().get('/v1/saude').expect(200);
+    expect(r.body).toHaveProperty('ok', true);
   });
 });

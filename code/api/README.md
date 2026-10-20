@@ -13,6 +13,15 @@ bun run db:reset                                           # dev: recomeçar a B
 bun run test && bun run lint
 ```
 
+## Testes
+
+- `bun run test`: unitários (`src/**/*.spec.ts`), sem BD.
+- `bun run test:e2e`: ponta a ponta (`test/e2e/*.e2e-spec.ts`, um ficheiro por área), contra o Postgres de dev (porta 54330, tem de estar a correr). Cada execução cria uma BD nova `toucamara_e2e_<timestamp>_<pid>` (`globalSetup`) e apaga-a no fim com `DROP DATABASE … WITH (FORCE)` (`globalTeardown`); restos de execuções interrompidas com mais de 6 h apagam-se na seguinte. A BD `toucamara` nunca é tocada. A ligação usa `DB_HOST`/`DB_PORT`/`DB_USER`/`DB_PASSWORD` da shell ou os de dev; o `.env` não é lido.
+- Um ficheiro: `bun run test:e2e -- ocorrencias`. Logs da app: `E2E_LOGS=1 bun run test:e2e`.
+- Cada ficheiro arranca a app inteira (`AppModule` + `configurarApp`, como o `main.ts`) com o ambiente de `test/e2e/ambiente.ts`: sem IA, sem embeddings, sem S3, sem fornecedor de SMS (ficam `enviada` pelo log), sem ElevenLabs, segredos de teste. As migrações correm no arranque e o seed (`test/e2e/fixtures/seed.sql`, município `teste`) carrega-se uma vez. A geocodificação é falsa (`ctx.geo.moradas`): nada sai para a rede.
+- Helpers em `test/e2e/app.ts`: `arrancarApp`, `ferramenta` (headers do ElevenLabs), `novaChamada` (conversa e telefone únicos por teste), `entrarPainel` (link mágico → JWT), `criarUtilizador`, `seguirLink` (`/r/:codigo` → token), `smsPara`, `esperarAte` (poll à BD para os jobs, sem sleeps). Os ficheiros partilham a BD da execução e correm em série: cada teste cria os seus dados e filtra pelos seus ids.
+- Bugs conhecidos ficam como `it.failing` com uma nota (passam enquanto o bug existir; quando for corrigido, o jest avisa para os passar a `it`).
+
 ## Superfícies
 
 | Prefixo | Quem chama | Autenticação |
