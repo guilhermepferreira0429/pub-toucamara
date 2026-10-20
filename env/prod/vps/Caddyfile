@@ -1,0 +1,17 @@
+# Tou, Câmara? no VPS: um só endereço público (o túnel aponta para aqui).
+# /api/* vai para a API sem o prefixo; o resto é o web.
+{
+	admin off
+	auto_https off
+}
+
+http://:3100 {
+	bind 127.0.0.1
+
+	handle_path /api/* {
+		reverse_proxy 127.0.0.1:3101
+	}
+	handle {
+		reverse_proxy 127.0.0.1:3102
+	}
+}

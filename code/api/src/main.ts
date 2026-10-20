@@ -11,6 +11,9 @@ async function bootstrap() {
   });
   configurarApp(app);
   const config = app.get(ConfigService);
-  await app.listen(config.get<number>('app.port') ?? 3001);
+  const porta = config.get<number>('app.port') ?? 3001;
+  // HOST=127.0.0.1 quando está atrás de um proxy (VPS); sem ele, todas.
+  if (process.env.HOST) await app.listen(porta, process.env.HOST);
+  else await app.listen(porta);
 }
 void bootstrap();
