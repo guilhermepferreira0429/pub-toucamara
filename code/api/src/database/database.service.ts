@@ -7,7 +7,11 @@ import {
 } from '@nestjs/common';
 import { ConfigService, ConfigType } from '@nestjs/config';
 import { Pool, PoolClient, QueryResultRow } from 'pg';
+import { instalarParserDatas } from '../common/datas-pg.js';
 import { databaseConfig } from '../config/configuration.js';
+
+// Cursores da paginação com microssegundos (ver common/datas-pg.ts).
+instalarParserDatas();
 
 /** Cliente de uma transação: o mesmo `query` tipado, numa ligação só. */
 export interface Tx {

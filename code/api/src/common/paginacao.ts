@@ -1,5 +1,6 @@
 import { HttpStatus } from '@nestjs/common';
 import { z } from 'zod';
+import { textoDoPg } from './datas-pg.js';
 import { ErroApi } from './erros.js';
 
 /**
@@ -57,7 +58,9 @@ export function pagina<T>(
     return { itens, proximo_cursor: null };
   }
   const k = chave(ultima);
-  const em = k.em instanceof Date ? k.em.toISOString() : k.em;
+  // Com microssegundos quando o Date veio da BD (senão perdiam-se linhas).
+  const em =
+    k.em instanceof Date ? (textoDoPg(k.em) ?? k.em.toISOString()) : k.em;
   return {
     itens,
     proximo_cursor: Buffer.from(JSON.stringify({ em, id: k.id })).toString(
