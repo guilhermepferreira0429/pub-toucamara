@@ -23,6 +23,7 @@ import { ArmazenamentoModule } from './modules/armazenamento/armazenamento.modul
 import { AtendimentoModule } from './modules/atendimento/atendimento.module.js';
 import { AuditoriaModule } from './modules/auditoria/auditoria.service.js';
 import { AuthModule } from './modules/auth/auth.module.js';
+import { ChamadasSaidaModule } from './modules/chamadas-saida/chamadas-saida.module.js';
 import { ChatModule } from './modules/chat/chat.module.js';
 import { ComunicacaoModule } from './modules/comunicacao/comunicacao.module.js';
 import { ConhecimentoModule } from './modules/conhecimento/conhecimento.module.js';
@@ -34,6 +35,7 @@ import { MunicipiosModule } from './modules/municipios/municipios.module.js';
 import { OcorrenciasModule } from './modules/ocorrencias/ocorrencias.module.js';
 import { PagamentosModule } from './modules/pagamentos/pagamentos.module.js';
 import { PainelModule } from './modules/painel/painel.module.js';
+import { PerguntasChefiaModule } from './modules/perguntas-chefia/perguntas-chefia.module.js';
 import { ProcessosModule } from './modules/processos/processos.module.js';
 import { RelatoriosModule } from './modules/relatorios/relatorios.module.js';
 import { RequerimentosModule } from './modules/requerimentos/requerimentos.module.js';
@@ -80,6 +82,8 @@ import { RequerimentosModule } from './modules/requerimentos/requerimentos.modul
     EmailsModule,
     PainelModule,
     RelatoriosModule,
+    PerguntasChefiaModule,
+    ChamadasSaidaModule,
   ],
   controllers: [AppController],
   providers: [AppService],

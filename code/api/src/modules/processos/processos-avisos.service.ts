@@ -1,5 +1,7 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 import { DatabaseService, Tx } from '../../database/database.service.js';
+import { ChamadasSaidaService } from '../chamadas-saida/chamadas-saida.service.js';
+import type { MotivoChamada } from '../chamadas-saida/regras.js';
 import {
   MensagensService,
   MotivoMensagem,
@@ -27,7 +29,22 @@ export interface NovoAviso {
   /** Chave idempotente do SMS (o email não passa por `mensagens_saida`). */
   chave: string;
   relacionado: Record<string, string>;
+  /**
+   * Pode ir por chamada do agente (chamadas-saida), com este motivo. Sem
+   * isto, um aviso com `pedido_id` conta como 'pedido_documento' (o pedido
+   * vem do painel); os outros só por escrito.
+   */
+  chamada?: { motivo: MotivoChamada; oQueMudou?: string };
 }
+
+/** Por onde foi o aviso; 'chamada' = agendada, o SMS fica de recurso. */
+export type CanalUsado = CanalAviso | 'chamada';
+
+const ROTULO_CANAL: Record<CanalUsado, string> = {
+  sms: 'SMS',
+  email: 'email',
+  chamada: 'chamada do agente (SMS se não atender)',
+};
 
 /*
  * Lembretes de prazo (job `lembretes_prazos`, a cada 15 min): pedidos ao
@@ -58,13 +75,15 @@ export class ProcessosAvisosService {
     private readonly processos: ProcessosService,
     private readonly municipios: MunicipiosService,
     private readonly mensagens: MensagensService,
+    // Opcional: os testes que constroem o serviço à mão não o passam.
+    @Optional() private readonly chamadas?: ChamadasSaidaService,
   ) {}
 
   /**
    * Envia pelo canal do munícipe. Devolve o canal usado, ou null se não há
    * como o contactar. Se o email falhar e houver telefone, vai por SMS.
    */
-  async enviar(tx: Tx, a: NovoAviso): Promise<CanalAviso | null> {
+  async enviar(tx: Tx, a: NovoAviso): Promise<CanalUsado | null> {
     if (!a.municipeId) return null;
     const [m] = await tx.query<{
       telefone: string | null;
@@ -78,6 +97,32 @@ export class ProcessosAvisosService {
     if (!m) return null;
     const escolha = escolherCanal(m);
     if (!escolha) return null;
+
+    // Chamada do agente em vez do envio, se a câmara e o munícipe o
+    // permitirem (regras em chamadas-saida/regras.ts); o SMS fica de recurso.
+    const chamada =
+      a.chamada ??
+      (a.relacionado.pedido_id
+        ? { motivo: 'pedido_documento' as const }
+        : null);
+    if (chamada && this.chamadas && m.telefone) {
+      const r = await this.chamadas.agendar(tx, {
+        municipioId: a.municipioId,
+        municipeId: a.municipeId,
+        motivo: chamada.motivo,
+        processoId: a.relacionado.processo_id ?? null,
+        pedidoId: a.relacionado.pedido_id ?? null,
+        oQueMudou: chamada.oQueMudou ?? null,
+        recurso: {
+          corpo: a.aviso.texto,
+          chave: a.chave,
+          motivo: a.motivo,
+          relacionado: a.relacionado,
+        },
+        chave: a.chave,
+      });
+      if (r.agendada) return 'chamada';
+    }
 
     if (escolha.canal === 'email') {
       try {
@@ -120,7 +165,7 @@ export class ProcessosAvisosService {
     municipio: { id: string; nome: string },
     processoId: string,
     para: Fase,
-  ): Promise<CanalAviso | null> {
+  ): Promise<CanalUsado | null> {
     if (!FASES_AVISADAS.includes(para)) return null;
     return this.db.transaction(async (tx) => {
       const [p] = await tx.query<{
@@ -163,13 +208,14 @@ export class ProcessosAvisosService {
         motivo: 'processo',
         chave: `processo_fase:${p.id}:${para}`,
         relacionado: { processo_id: p.id },
+        chamada: { motivo: 'processo_fase' },
       });
       if (canal) {
         await this.evento(
           tx,
           p.id,
           'avisado',
-          `Avisado por ${canal === 'sms' ? 'SMS' : 'email'}: ${FASE_ROTULO[para]}.`,
+          `Avisado por ${ROTULO_CANAL[canal]}: ${FASE_ROTULO[para]}.`,
           false,
           { fase: para, canal },
         );
@@ -246,6 +292,7 @@ export class ProcessosAvisosService {
           motivo: 'prazo',
           chave: `lembrete:pedido:${l.id}`,
           relacionado: { processo_id: l.processo_id, pedido_id: l.id },
+          chamada: { motivo: 'lembrete_prazo' },
         });
         // Sem contacto marca-se na mesma, para não voltar a tentar.
         await tx.query(
@@ -257,7 +304,7 @@ export class ProcessosAvisosService {
           l.processo_id,
           'lembrete_prazo',
           canal
-            ? `Lembrete do prazo (${l.prazo.split('-').reverse().join('/')}) enviado por ${canal === 'sms' ? 'SMS' : 'email'}: ${l.descricao}.`
+            ? `Lembrete do prazo (${l.prazo.split('-').reverse().join('/')}) enviado por ${ROTULO_CANAL[canal]}: ${l.descricao}.`
             : `Lembrete do prazo por enviar (sem contacto): ${l.descricao}.`,
           true,
           { pedido_id: l.id, prazo: l.prazo, canal },

@@ -209,7 +209,8 @@ describe('resumirProcessos', () => {
         dias_medios_na_fase: 3,
       },
     ]);
-    expect(r.em_curso).toBe(11);
+    // Os 5 notificados aparecem por fase mas não contam como em curso.
+    expect(r.em_curso).toBe(6);
     expect(r.atrasados).toBe(1);
     expect(r.por_fase.map((f) => f.fase)).toEqual([
       'entrada',

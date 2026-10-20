@@ -16,6 +16,9 @@ import { ErroApi } from '../../common/erros.js';
 import { validar } from '../../common/validacao.js';
 import { webhooksConfig } from '../../config/configuration.js';
 import { SegredoAgenteGuard } from '../agent-tools/agente.guard.js';
+import { ChamadasSaidaService } from '../chamadas-saida/chamadas-saida.service.js';
+import { esquemaFalhaInicio } from '../chamadas-saida/elevenlabs-saida.js';
+import { VARIAVEIS_SAIDA_VAZIAS } from '../chamadas-saida/regras.js';
 import {
   esquemaAudio,
   esquemaTranscricao,
@@ -39,6 +42,7 @@ export class WebhookElevenLabsController {
     private readonly fimChamada: FimChamadaService,
     private readonly retomar: RetomarService,
     private readonly config: ConfigService,
+    private readonly chamadasSaida: ChamadasSaidaService,
   ) {}
 
   /**
@@ -51,10 +55,16 @@ export class WebhookElevenLabsController {
   @Post('inicio-chamada')
   @HttpCode(200)
   @UseGuards(SegredoAgenteGuard)
-  inicioChamada(@Body() body: unknown) {
-    return this.retomar.inicioChamada(
+  async inicioChamada(@Body() body: unknown) {
+    const r = await this.retomar.inicioChamada(
       validar(esquemaInicioChamada, body ?? {}),
     );
+    // O prompt é o mesmo das chamadas de saída: as variáveis delas vão
+    // vazias (tipo_chamada = 'entrada'), senão o ElevenLabs recusa a chamada.
+    return {
+      ...r,
+      dynamic_variables: { ...VARIAVEIS_SAIDA_VAZIAS, ...r.dynamic_variables },
+    };
   }
 
   @Post('conversa-terminada')
@@ -69,14 +79,22 @@ export class WebhookElevenLabsController {
     switch (corpo?.type) {
       case 'post_call_transcription': {
         const { data } = validar(esquemaTranscricao, corpo);
-        return this.fimChamada.transcricao(data);
+        const r = await this.fimChamada.transcricao(data);
+        // Se foi uma chamada de saída nossa: atendida (ou voicemail).
+        await this.chamadasSaida.aoTerminarConversa(data, r.conversa_id);
+        return r;
       }
       case 'post_call_audio': {
         const { data } = validar(esquemaAudio, corpo);
         return this.fimChamada.audio(data);
       }
+      case 'call_initiation_failure': {
+        // Chamada de saída não atendida, ocupada ou recusada.
+        const { data } = validar(esquemaFalhaInicio, corpo);
+        return this.chamadasSaida.aoFalharInicio(data);
+      }
       default:
-        // call_initiation_failure e tipos futuros: aceitar para não serem repetidos.
+        // Tipos futuros: aceitar para não serem repetidos.
         this.logger.log(`Webhook ElevenLabs ignorado: ${String(corpo?.type)}`);
         return { ignorado: true };
     }

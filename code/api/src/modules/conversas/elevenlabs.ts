@@ -8,7 +8,8 @@ import { z } from 'zod';
  * - `post_call_transcription`: transcrição, metadados, análise e as
  *   variáveis dinâmicas (system__caller_id = número de quem ligou).
  * - `post_call_audio`: só agent_id, conversation_id e full_audio (MP3 em base64).
- * - `call_initiation_failure`: chamada que não chegou a começar (ignora-se).
+ * - `call_initiation_failure`: chamada que não chegou a começar (chamadas de
+ *   saída não atendidas: ver chamadas-saida/elevenlabs-saida.ts).
  *
  * Header `ElevenLabs-Signature: t=<unix>,v0=<hex>` com
  * hex = HMAC-SHA256(segredo, `${t}.${rawBody}`). O SDK oficial aceita até

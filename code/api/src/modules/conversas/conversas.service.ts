@@ -1,6 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { DatabaseService, Tx } from '../../database/database.service.js';
-import { MunicipesService } from '../municipes/municipes.service.js';
+import {
+  MunicipesService,
+  normalizarTelefone,
+} from '../municipes/municipes.service.js';
 
 export type Canal =
   'telefone' | 'chat' | 'sms' | 'email' | 'balcao' | 'whatsapp';
@@ -44,11 +47,30 @@ export class ConversasService {
     telefone?: string | null;
   }): Promise<ConversaGarantida> {
     return this.db.transaction(async (tx) => {
-      const municipe = await this.municipes.porTelefone(
-        args.municipioId,
-        args.telefone,
-        tx,
+      // Numa chamada de saída o "número de quem liga" pode ser a linha da
+      // câmara: o munícipe é o da chamada, e a linha nunca é um munícipe.
+      const [ref] = await tx.query<{
+        municipe_saida: string | null;
+        linha: string | null;
+      }>(
+        `SELECT (SELECT municipe_id FROM chamadas_saida
+                  WHERE provider_conversa_ref = $2) AS municipe_saida,
+                m.telefone_linha AS linha
+         FROM municipios m WHERE m.id = $1`,
+        [args.municipioId, args.providerId],
       );
+      const daLinha =
+        !!ref?.linha &&
+        normalizarTelefone(ref.linha) === normalizarTelefone(args.telefone);
+      const municipe = ref?.municipe_saida
+        ? { id: ref.municipe_saida }
+        : daLinha
+          ? null
+          : await this.municipes.porTelefone(
+              args.municipioId,
+              args.telefone,
+              tx,
+            );
       const [c] = await tx.query<{ id: string; municipe_id: string | null }>(
         `INSERT INTO conversas (municipio_id, municipe_id, canal, provider_id)
          VALUES ($1, $2, $3, $4)

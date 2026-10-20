@@ -353,9 +353,12 @@ export function resumirProcessos(linhas: readonly LinhaProcessosFase[]) {
         ? Math.round((f.dias / f.total) * 10) / 10
         : null,
     }));
+  // 'notificado' aparece por fase mas já não está em curso (a decisão foi
+  // comunicada): fica fora dos totais, como nas perguntas da chefia.
+  const abertos = porFase.filter((f) => f.fase !== 'notificado');
   return {
-    em_curso: porFase.reduce((s, f) => s + f.total, 0),
-    atrasados: porFase.reduce((s, f) => s + f.atrasados, 0),
+    em_curso: abertos.reduce((s, f) => s + f.total, 0),
+    atrasados: abertos.reduce((s, f) => s + f.atrasados, 0),
     por_fase: porFase,
     por_tecnico: [...tecnicos.values()].sort((a, b) => b.total - a.total),
   };
