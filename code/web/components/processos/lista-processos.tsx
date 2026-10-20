@@ -28,6 +28,10 @@ import {
   usePedido,
 } from "./ui";
 
+// Os filtros ficam lado a lado: o campo base tem w-full, que o w-auto não
+// anula (as duas classes ao mesmo tempo dependem da ordem do CSS).
+const FILTRO = `${CAMPO.replace("w-full", "w-auto")} font-medium`;
+
 /*
  * Painel · Processos (frames KbzvJ e Px9e4): separadores "Os meus / Todos /
  * Atrasados", filtros (texto, fase, técnico, à espera do munícipe) e a
@@ -221,7 +225,7 @@ export function ListaProcessos() {
             id="filtro-fase"
             value={fase}
             onChange={(e) => setFase(e.target.value as Fase | "")}
-            className={`${CAMPO} w-auto font-medium`}
+            className={FILTRO}
           >
             <option value="">Fase: todas</option>
             {FASES.map((f) => (
@@ -239,7 +243,7 @@ export function ListaProcessos() {
                 id="filtro-servico"
                 value={servico}
                 onChange={(e) => setServico(e.target.value)}
-                className={`${CAMPO} w-auto font-medium`}
+                className={FILTRO}
               >
                 <option value="">Serviço: todos</option>
                 {servicos.map((s) => (
@@ -259,7 +263,7 @@ export function ListaProcessos() {
                 id="filtro-tecnico"
                 value={tecnico}
                 onChange={(e) => setTecnico(e.target.value)}
-                className={`${CAMPO} w-auto font-medium`}
+                className={FILTRO}
               >
                 <option value="">Técnico: todos</option>
                 {tecnicos.map((t) => (

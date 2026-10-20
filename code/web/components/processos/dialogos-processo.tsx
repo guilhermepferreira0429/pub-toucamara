@@ -168,7 +168,7 @@ export function DialogoPedirDocumento({
                 onChange={(e) =>
                   setPrazo(Math.max(1, Math.min(120, Number(e.target.value) || 1)))
                 }
-                className={`${CAMPO} w-32`}
+                className={CAMPO.replace("w-full", "w-32")}
               />
             )}
           </Campo>
