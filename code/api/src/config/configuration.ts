@@ -66,6 +66,8 @@ export const jobsConfig = registerAs('jobs', () => ({
 export const comunicacaoConfig = registerAs('comunicacao', () => ({
   smsProvider: process.env.SMS_PROVIDER || '',
   smsRemetente: process.env.SMS_REMETENTE || 'TouCamara',
+  // Número do remetente WhatsApp no Twilio (E.164, sem o prefixo whatsapp:).
+  whatsappRemetente: process.env.WHATSAPP_REMETENTE || '',
   twilio: {
     accountSid: process.env.TWILIO_ACCOUNT_SID || '',
     authToken: process.env.TWILIO_AUTH_TOKEN || '',

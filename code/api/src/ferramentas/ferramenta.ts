@@ -4,7 +4,7 @@ import type { Municipio } from '../modules/municipios/municipios.service.js';
 /** Quem chama e de onde: igual para o ElevenLabs e para o chat. */
 export interface ContextoFerramenta {
   municipio: Municipio;
-  canal: 'telefone' | 'chat' | 'ia' | 'sms';
+  canal: 'telefone' | 'chat' | 'ia' | 'sms' | 'whatsapp';
   /** id em `conversas` (já criada). */
   conversaId: string | null;
   /** Munícipe ligado à conversa (pelo número que liga ou identificado depois). */

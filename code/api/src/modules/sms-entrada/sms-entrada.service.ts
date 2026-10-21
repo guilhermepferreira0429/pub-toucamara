@@ -16,7 +16,7 @@ import {
   type ResultadoEstado,
 } from './regras.js';
 
-interface MunicipioSms {
+export interface MunicipioSms {
   id: string;
   slug: string;
   nome: string;
@@ -103,29 +103,13 @@ export class SmsEntradaService {
     if (!registo) return 'ignorado';
     if (!responder) return 'ignorado';
 
-    const ctx: ContextoFerramenta = {
-      municipio: { id: m.id, slug: m.slug, nome: m.nome, fuso: m.fuso },
-      canal: 'sms',
-      conversaId: null,
-      municipeId: municipe?.id ?? null,
-      telefone: de,
-    };
-    let texto: string;
-    if (qual === 'parar') {
-      const r = (await this.registo.executar('nao_quero_avisos', ctx, {})) as {
-        dizer?: string;
-      };
-      texto =
-        r?.dizer ??
-        'Este número não está na lista de avisos da câmara: não tem nada para desligar.';
-    } else if (qual === 'estado') {
-      const r = (await this.registo.executar('estado_processo', ctx, {
-        numero: numeroNoSms(corpo),
-      })) as ResultadoEstado;
-      texto = respostaEstado(r, m.telefone_linha);
-    } else {
-      texto = respostaAjuda(m.nome, m.telefone_linha);
-    }
+    const texto = await this.respostaSemIa(
+      m,
+      de,
+      municipe?.id ?? null,
+      corpo,
+      'sms',
+    );
 
     const resposta = await this.mensagens.sms({
       municipioId: m.id,
@@ -141,5 +125,43 @@ export class SmsEntradaService {
       [registo.id, resposta],
     );
     return qual;
+  }
+
+  /**
+   * A resposta sem IA, pelas ferramentas do agente: estado do processo (só
+   * os associados ao número), PARAR (avisos por zona) ou ajuda. Também a
+   * usa o WhatsApp quando não há IA.
+   */
+  async respostaSemIa(
+    m: MunicipioSms,
+    de: string,
+    municipeId: string | null,
+    corpo: string,
+    canal: 'sms' | 'whatsapp',
+  ): Promise<string> {
+    const ctx: ContextoFerramenta = {
+      municipio: { id: m.id, slug: m.slug, nome: m.nome, fuso: m.fuso },
+      canal,
+      conversaId: null,
+      municipeId,
+      telefone: de,
+    };
+    const qual = intencao(corpo);
+    if (qual === 'parar') {
+      const r = (await this.registo.executar('nao_quero_avisos', ctx, {})) as {
+        dizer?: string;
+      };
+      return (
+        r?.dizer ??
+        'Este número não está na lista de avisos da câmara: não tem nada para desligar.'
+      );
+    }
+    if (qual === 'estado') {
+      const r = (await this.registo.executar('estado_processo', ctx, {
+        numero: numeroNoSms(corpo),
+      })) as ResultadoEstado;
+      return respostaEstado(r, m.telefone_linha);
+    }
+    return respostaAjuda(m.nome, m.telefone_linha);
   }
 }

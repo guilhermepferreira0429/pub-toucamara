@@ -30,6 +30,7 @@ import { AuthModule } from './modules/auth/auth.module.js';
 import { ChamadasSaidaModule } from './modules/chamadas-saida/chamadas-saida.module.js';
 import { DocsModule } from './modules/docs/docs.module.js';
 import { SmsEntradaModule } from './modules/sms-entrada/sms-entrada.module.js';
+import { WhatsappModule } from './modules/whatsapp/whatsapp.module.js';
 import { ChatModule } from './modules/chat/chat.module.js';
 import { ComunicacaoModule } from './modules/comunicacao/comunicacao.module.js';
 import { ConhecimentoModule } from './modules/conhecimento/conhecimento.module.js';
@@ -99,6 +100,7 @@ import { RequerimentosModule } from './modules/requerimentos/requerimentos.modul
     ChamadasSaidaModule,
     DocsModule,
     SmsEntradaModule,
+    WhatsappModule,
     CampanhasModule,
     LicencasModule,
     OrdenamentoModule,

@@ -98,7 +98,13 @@ interface Dados {
 
 type Origem = "consultas" | "contactos_cuidado";
 
-const CANAL: Record<string, string> = { telefone: "telefone", chat: "chat", ia: "assistente de IA" };
+const CANAL: Record<string, string> = {
+  telefone: "telefone",
+  chat: "chat",
+  ia: "assistente de IA",
+  sms: "SMS",
+  whatsapp: "WhatsApp",
+};
 
 function criteriosCurtos(c: Criterios): string[] {
   const l: string[] = [];

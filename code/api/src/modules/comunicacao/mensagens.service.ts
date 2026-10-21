@@ -41,6 +41,12 @@ export interface NovoSms {
   chave?: string;
   /** Lembretes: quando enviar. Por defeito, já. */
   enviarEm?: Date;
+  /**
+   * 'whatsapp': resposta a quem escreveu por WhatsApp (só dentro das 24 h
+   * depois da última mensagem da pessoa; fora disso o WhatsApp exige
+   * modelos aprovados e os avisos continuam por SMS).
+   */
+  canal?: 'sms' | 'whatsapp';
 }
 
 export interface NovoEmail {
@@ -109,14 +115,14 @@ export class MensagensService implements OnModuleInit {
     if (estado === 'delivered') {
       await this.db.query(
         `UPDATE mensagens_saida SET estado = 'entregue', entregue_em = now(), erro = NULL
-         WHERE provider_id = $1 AND canal = 'sms'`,
+         WHERE provider_id = $1 AND canal IN ('sms', 'whatsapp')`,
         [sid],
       );
     } else if (estado === 'failed' || estado === 'undelivered') {
       const codigo = parametros['ErrorCode'];
       await this.db.query(
         `UPDATE mensagens_saida SET estado = 'falhou', erro = $2
-         WHERE provider_id = $1 AND canal = 'sms' AND estado <> 'entregue'`,
+         WHERE provider_id = $1 AND canal IN ('sms', 'whatsapp') AND estado <> 'entregue'`,
         [sid, `Twilio: ${estado}${codigo ? ` (${codigo})` : ''}`],
       );
     }
@@ -144,10 +150,15 @@ export class MensagensService implements OnModuleInit {
 
   /** Grava e põe na fila. Devolve o id (o existente, se a chave já foi usada). */
   async sms(novo: NovoSms, tx?: Tx): Promise<string> {
-    const corpo = this.cfg().smsTransliterar
-      ? transliterar(novo.corpo)
-      : novo.corpo;
-    const info = infoSms(corpo);
+    const whatsapp = novo.canal === 'whatsapp';
+    // O WhatsApp aceita acentos e mensagens longas: só o SMS se adapta.
+    const corpo =
+      this.cfg().smsTransliterar && !whatsapp
+        ? transliterar(novo.corpo)
+        : novo.corpo;
+    const info = whatsapp
+      ? { codificacao: null, segmentos: null }
+      : infoSms(corpo);
     // Sem data é para já: 'pendente'. (Dentro de uma transação o now() é a
     // hora do BEGIN, por isso não se compara com a hora da aplicação.)
     const enviarEm = novo.enviarEm ?? null;
@@ -155,7 +166,7 @@ export class MensagensService implements OnModuleInit {
     const [criada] = await q.query<{ id: string }>(
       `INSERT INTO mensagens_saida (municipio_id, municipe_id, canal, destino, motivo, corpo,
          codificacao, segmentos, relacionado, enviar_em, estado, chave_idempotencia)
-       VALUES ($1, $2, 'sms', $3, $4, $5, $6, $7, $8, coalesce($9::timestamptz, now()),
+       VALUES ($1, $2, $11, $3, $4, $5, $6, $7, $8, coalesce($9::timestamptz, now()),
          CASE WHEN $9::timestamptz > clock_timestamp() THEN 'agendada' ELSE 'pendente' END::estado_msg, $10)
        ON CONFLICT (chave_idempotencia) DO NOTHING
        RETURNING id`,
@@ -170,6 +181,7 @@ export class MensagensService implements OnModuleInit {
         JSON.stringify(novo.relacionado ?? {}),
         enviarEm,
         novo.chave ?? null,
+        whatsapp ? 'whatsapp' : 'sms',
       ],
     );
     if (!criada) {
@@ -195,15 +207,17 @@ export class MensagensService implements OnModuleInit {
       destino: string;
       corpo: string;
       estado: string;
-    }>('SELECT destino, corpo, estado FROM mensagens_saida WHERE id = $1', [
-      mensagemId,
-    ]);
+      canal: 'sms' | 'whatsapp' | 'email';
+    }>(
+      'SELECT destino, corpo, estado, canal FROM mensagens_saida WHERE id = $1',
+      [mensagemId],
+    );
     if (!m) throw new Error(`Mensagem ${mensagemId} ainda não existe.`);
     if (!['agendada', 'pendente'].includes(m.estado)) return;
 
     const { smsProvider } = this.cfg();
     if (smsProvider === 'twilio') {
-      const r = await this.enviarTwilio(m.destino, m.corpo);
+      const r = await this.enviarTwilio(m.destino, m.corpo, m.canal === 'whatsapp');
       if ('sid' in r) {
         await this.db.query(
           `UPDATE mensagens_saida SET estado = 'enviada', enviada_em = now(), provider_id = $2 WHERE id = $1`,
@@ -226,7 +240,9 @@ export class MensagensService implements OnModuleInit {
         );
         return;
       }
-      this.logger.log(`SMS para ${mascararTelefone(m.destino)}:\n${m.corpo}`);
+      this.logger.log(
+        `${m.canal === 'whatsapp' ? 'WhatsApp' : 'SMS'} para ${mascararTelefone(m.destino)}:\n${m.corpo}`,
+      );
       await this.db.query(
         `UPDATE mensagens_saida SET estado = 'enviada', enviada_em = now(), provider_id = 'log' WHERE id = $1`,
         [mensagemId],
@@ -244,10 +260,14 @@ export class MensagensService implements OnModuleInit {
   private async enviarTwilio(
     destino: string,
     corpo: string,
+    whatsapp = false,
   ): Promise<{ sid: string } | { erro: string }> {
-    const { smsRemetente, twilio } = this.cfg();
+    const { smsRemetente, whatsappRemetente, twilio } = this.cfg();
     if (!twilio.accountSid || !twilio.authToken) {
       return { erro: 'TWILIO_ACCOUNT_SID/TWILIO_AUTH_TOKEN por configurar' };
+    }
+    if (whatsapp && !whatsappRemetente) {
+      return { erro: 'WHATSAPP_REMETENTE por configurar' };
     }
     const resp = await fetch(
       `https://api.twilio.com/2010-04-01/Accounts/${twilio.accountSid}/Messages.json`,
@@ -258,8 +278,8 @@ export class MensagensService implements OnModuleInit {
           'Content-Type': 'application/x-www-form-urlencoded',
         },
         body: new URLSearchParams({
-          To: destino,
-          From: smsRemetente,
+          To: whatsapp ? `whatsapp:${destino}` : destino,
+          From: whatsapp ? `whatsapp:${whatsappRemetente}` : smsRemetente,
           Body: corpo,
           ...(this.urlEstadoSms()
             ? { StatusCallback: this.urlEstadoSms()! }

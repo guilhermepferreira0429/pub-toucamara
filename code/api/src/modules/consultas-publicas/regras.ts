@@ -16,7 +16,14 @@ export type Situacao =
   | 'terminou' // aberta pela câmara, mas o prazo já passou
   | 'fechada';
 
-export const CANAIS = ['telefone', 'chat', 'ia', 'pagina', 'sms'] as const;
+export const CANAIS = [
+  'telefone',
+  'chat',
+  'ia',
+  'pagina',
+  'sms',
+  'whatsapp',
+] as const;
 export type Canal = (typeof CANAIS)[number];
 
 /** As opções que o painel propõe ao criar uma pergunta. */

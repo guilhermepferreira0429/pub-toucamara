@@ -6,5 +6,6 @@ import { SmsEntradaService } from './sms-entrada.service.js';
 @Module({
   controllers: [SmsEntradaController],
   providers: [SmsEntradaService],
+  exports: [SmsEntradaService],
 })
 export class SmsEntradaModule {}

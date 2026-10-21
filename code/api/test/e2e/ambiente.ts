@@ -56,6 +56,7 @@ Object.assign(process.env, {
   // Sem fornecedor de SMS: fora de produção o SMS fica 'enviada' (provider 'log').
   SMS_PROVIDER: '',
   SMS_REMETENTE: 'TouCamara',
+  WHATSAPP_REMETENTE: '+351930000999',
   SMS_TRANSLITERAR: 'false',
   SMTP_HOST: '',
   SMTP_PORT: '587',

@@ -134,6 +134,7 @@ export const CANAIS: Record<string, string> = {
   ia: "Assistente de IA",
   pagina: "Página",
   sms: "SMS",
+  whatsapp: "WhatsApp",
 };
 
 /** Cores das opções nas barras (até 6 opções). */
