@@ -21,6 +21,7 @@ import {
   MapPin,
   Megaphone,
   MessagesSquare,
+  NotebookPen,
   PhoneOutgoing,
   Receipt,
   Search,
@@ -92,6 +93,12 @@ const SECCOES: Seccao[] = [
         icone: Inbox,
         recurso: "entrada",
         contagem: "entrada",
+      },
+      {
+        rotulo: "Reclamações",
+        href: "/painel/reclamacoes",
+        icone: NotebookPen,
+        recurso: "reclamacoes",
       },
       {
         rotulo: "Marcações",

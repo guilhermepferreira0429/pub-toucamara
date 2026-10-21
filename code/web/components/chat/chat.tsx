@@ -60,6 +60,7 @@ const A_FAZER: Record<string, string> = {
   emergencia: "A tratar da emergência…",
   consultas_abertas: "A ver as consultas públicas…",
   participar_consulta: "A registar a sua opinião…",
+  registar_reclamacao: "A preparar a sua reclamação…",
 };
 
 const SUGESTOES = [
