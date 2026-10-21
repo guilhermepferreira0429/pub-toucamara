@@ -8,6 +8,7 @@ import {
   Param,
   ParseUUIDPipe,
   Post,
+  Put,
 } from '@nestjs/common';
 import { z } from 'zod';
 import { validar } from '../../common/validacao.js';
@@ -21,6 +22,7 @@ import type { Municipio } from '../municipios/municipios.service.js';
 import { OcorrenciasModule } from '../ocorrencias/ocorrencias.module.js';
 import {
   entradaOQuePossoFazer,
+  esquemaMudarZona,
   OrdenamentoService,
 } from './ordenamento.service.js';
 
@@ -56,6 +58,37 @@ export class OrdenamentoPainelController {
   ) {
     const { regras } = validar(z.object({ regras: esquemaRegrasZona }), body);
     return this.ordenamento.simularZona(m, id, regras);
+  }
+
+  /**
+   * Grava as regras da zona ({ regras, nome?, descricao?, fonte?,
+   * demonstracao? }): o agente passa logo a responder com elas.
+   */
+  @Put('zonas/:id/regras')
+  @Painel('conhecimento')
+  gravarRegras(
+    @MunicipioAtual() m: Municipio,
+    @UtilizadorAtual() u: UtilizadorPainel,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: unknown,
+  ) {
+    return this.ordenamento.gravarRegras(
+      m,
+      u,
+      id,
+      validar(esquemaMudarZona, body),
+    );
+  }
+
+  /** Perguntas antigas de demonstração, para a simulação (só se ainda não houver). */
+  @Post('consultas/demonstracao')
+  @HttpCode(201)
+  @Painel('conhecimento')
+  consultasDemonstracao(
+    @MunicipioAtual() m: Municipio,
+    @UtilizadorAtual() u: UtilizadorPainel,
+  ) {
+    return this.ordenamento.carregarConsultasDemonstracao(m, u);
   }
 }
 
