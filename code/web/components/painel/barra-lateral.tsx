@@ -25,6 +25,7 @@ import {
   PhoneOutgoing,
   Receipt,
   Search,
+  Siren,
   Sparkles,
   Users,
   Vote,
@@ -214,6 +215,12 @@ const SECCOES: Seccao[] = [
         href: "/painel/avisos",
         icone: Megaphone,
         recurso: "agente",
+      },
+      {
+        rotulo: "Emergências",
+        href: "/painel/emergencias",
+        icone: Siren,
+        recurso: "acao_social",
       },
       { rotulo: "Agente", href: "/painel/agente", icone: Bot, recurso: "agente" },
       {
