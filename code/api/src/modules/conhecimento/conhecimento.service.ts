@@ -2,7 +2,14 @@ import { Injectable, Logger } from '@nestjs/common';
 import { DatabaseService } from '../../database/database.service.js';
 import { EmbeddingsService, paraVetor } from './embeddings.service.js';
 import { rrf } from './rrf.js';
-import { CONSULTA_OU, EM_VIGOR, FONTE_JSON, VERSAO_ATUAL } from './sql.js';
+import {
+  CONSULTA_OU,
+  EM_VIGOR,
+  FONTE_JSON,
+  INICIO_VIGOR,
+  VERSAO_ATUAL,
+  VERSAO_EM,
+} from './sql.js';
 
 export interface Fonte {
   trecho_id: string;
@@ -58,6 +65,25 @@ const CANDIDATOS = 20;
 const EF_SEARCH = 100;
 
 type LinhaTrecho = Trecho & { similaridade?: number };
+
+export interface TrechoEm extends Trecho {
+  versao_id: string;
+  /** Desde quando valia a versão (data legal, senão a primeira leitura). */
+  vigor_desde: string;
+  vigor_ate: string | null;
+  /** A versão ainda é a de hoje. */
+  versao_atual: boolean;
+}
+type LinhaTrechoEm = TrechoEm & { pontuacao: number };
+
+export interface ResultadoPesquisaEm {
+  em_data: string;
+  sem_fonte: boolean;
+  respostas: [];
+  trechos: TrechoEm[];
+  /** Alguma das regras desse dia já não é a de hoje. */
+  mudou_desde: boolean;
+}
 type LinhaResposta = RespostaCurada & { similaridade?: number };
 
 /**
@@ -146,6 +172,48 @@ export class ConhecimentoService {
       sem_fonte: respostas.length === 0 && trechos.length === 0,
       respostas,
       trechos,
+    };
+  }
+
+  /**
+   * "Que regra valia no dia X": os trechos das versões que estavam em vigor
+   * nesse dia (só por texto; as respostas curadas são as de hoje e ficam de
+   * fora). Cada trecho diz de quando a quando valia a versão e se ainda é a
+   * atual, para o agente avisar quando a regra mudou entretanto.
+   */
+  async procurarEm(
+    municipioId: string,
+    pergunta: string,
+    dia: string,
+    limite = 5,
+  ): Promise<ResultadoPesquisaEm> {
+    const linhas = await this.db.query<LinhaTrechoEm>(
+      `WITH c AS (${CONSULTA_OU(2)})
+       SELECT ${TRECHO_COLUNAS}, fv.id AS versao_id,
+              to_char(${INICIO_VIGOR('fv')}, 'YYYY-MM-DD') AS vigor_desde,
+              to_char(fv.vigor_ate, 'YYYY-MM-DD') AS vigor_ate,
+              (fv.id = (SELECT v.id FROM fonte_versoes v
+                        WHERE v.fonte_id = fo.id AND ${EM_VIGOR('v')}
+                        ORDER BY v.lida_em DESC LIMIT 1)) AS versao_atual,
+              ts_rank_cd(t.tsv, c.q, 32)::float8 AS pontuacao
+       FROM c, trechos t
+       ${TRECHO_JUNCOES}
+       WHERE fo.municipio_id = $1 AND e.ativo
+         AND t.tsv @@ c.q
+         AND ${VERSAO_EM(3)}
+       ORDER BY pontuacao DESC
+       LIMIT $4`,
+      [municipioId, pergunta, dia, limite],
+    );
+    const trechos = linhas
+      .filter((t) => t.pontuacao >= LIMIARES.textoMinimo)
+      .map((t) => ({ ...t, pontuacao: arredondar(t.pontuacao) }));
+    return {
+      em_data: dia,
+      sem_fonte: trechos.length === 0,
+      respostas: [],
+      trechos,
+      mudou_desde: trechos.some((t) => !t.versao_atual),
     };
   }
 

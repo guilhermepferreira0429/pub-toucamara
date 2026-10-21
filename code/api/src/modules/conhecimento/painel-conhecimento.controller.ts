@@ -106,11 +106,86 @@ export class PainelConhecimentoController {
       z.object({
         q: z.string().trim().min(2).max(200),
         limite: z.coerce.number().int().min(1).max(20).default(8),
+        // ?data=AAAA-MM-DD: as versões em vigor nesse dia.
+        data: data.optional(),
       }),
       q,
     );
+    if (f.data) {
+      const r = await this.conhecimento.procurarEm(m.id, f.q, f.data, f.limite);
+      return {
+        itens: r.trechos,
+        em_data: r.em_data,
+        mudou_desde: r.mudou_desde,
+      };
+    }
     const r = await this.conhecimento.procurar(m.id, f.q, f.limite);
     return { itens: r.trechos };
+  }
+
+  /**
+   * "Que regra valia quando o pedido entrou": a pesquisa nas versões em vigor
+   * no dia em que o processo foi criado. ?q=&processo_id=
+   */
+  @Get('a-data-do-processo')
+  @Painel('conhecimento_ver')
+  async aDataDoProcesso(@MunicipioAtual() m: Municipio, @Query() q: unknown) {
+    const f = validar(
+      z.object({
+        q: z.string().trim().min(2).max(200),
+        processo_id: z.uuid(),
+        limite: z.coerce.number().int().min(1).max(20).default(8),
+      }),
+      q,
+    );
+    const p = await this.svc.diaDoProcesso(m.id, f.processo_id);
+    const r = await this.conhecimento.procurarEm(m.id, f.q, p.dia, f.limite);
+    return { processo: p, ...r };
+  }
+
+  /** As versões de uma fonte, com de quando a quando valeu cada uma. */
+  @Get('fontes/:id/versoes')
+  @Painel('conhecimento_ver')
+  versoesFonte(@MunicipioAtual() m: Municipio, @Param('id', uuid) id: string) {
+    return this.svc.versoesFonte(m.id, id);
+  }
+
+  /** O texto da fonte como estava em vigor num dia. ?data=AAAA-MM-DD */
+  @Get('fontes/:id/em')
+  @Painel('conhecimento_ver')
+  fonteEm(
+    @MunicipioAtual() m: Municipio,
+    @Param('id', uuid) id: string,
+    @Query() q: unknown,
+  ) {
+    const f = validar(z.object({ data }), q);
+    return this.svc.fonteEm(m.id, id, f.data);
+  }
+
+  /** Acertar as datas legais de uma versão (publicação / revogação). */
+  @Patch('fontes/:id/versoes/:versao')
+  @Painel('conhecimento')
+  mudarVigencia(
+    @MunicipioAtual() m: Municipio,
+    @UtilizadorAtual() u: UtilizadorPainel,
+    @Param('id', uuid) id: string,
+    @Param('versao', uuid) versao: string,
+    @Body() body: unknown,
+  ) {
+    const d = validar(
+      z
+        .object({ vigor_desde: data.nullish(), vigor_ate: data.nullish() })
+        .refine(
+          (x) => x.vigor_desde !== undefined || x.vigor_ate !== undefined,
+          'Nada para mudar.',
+        )
+        .refine(
+          (x) => !x.vigor_desde || !x.vigor_ate || x.vigor_desde <= x.vigor_ate,
+          'O fim não pode ser antes do início.',
+        ),
+      body,
+    );
+    return this.svc.mudarVigencia(m.id, u, id, versao, d);
   }
 
   @Get('mapa')

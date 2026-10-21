@@ -18,7 +18,7 @@ import {
 import { EdicaoService } from './edicao.service.js';
 import { IndexacaoService } from './indexacao.service.js';
 import { IngestaoService, JOB_INGESTAO } from './ingestao.service.js';
-import { FONTE_JSON } from './sql.js';
+import { EM_VIGOR, FONTE_JSON, INICIO_VIGOR, VERSAO_EM } from './sql.js';
 
 export const JOB_REINDEXAR = 'reindexar_embeddings';
 
@@ -1430,6 +1430,100 @@ export class PainelConhecimentoService {
   /** Página "Qualidade": resultados do avaliador para o nosso agente. */
   qualidade(municipioId: string) {
     return this.avaliacao.qualidade(municipioId);
+  }
+
+  /** O dia em que o processo entrou (no fuso do município), para "a regra desse dia". */
+  async diaDoProcesso(municipioId: string, processoId: string) {
+    const [p] = await this.db.query<{ numero: string; dia: string }>(
+      `SELECT p.numero,
+              to_char((p.criado_em AT TIME ZONE m.fuso)::date, 'YYYY-MM-DD') AS dia
+       FROM processos p JOIN municipios m ON m.id = p.municipio_id
+       WHERE p.id = $1 AND p.municipio_id = $2`,
+      [processoId, municipioId],
+    );
+    if (!p) throw naoEncontrada('processo');
+    return p;
+  }
+
+  /** As versões de uma fonte, da mais recente para a mais antiga. */
+  async versoesFonte(municipioId: string, fonteId: string) {
+    const [fonte] = await this.db.query<{ id: string; titulo: string }>(
+      `SELECT id, titulo FROM fontes WHERE id = $1 AND municipio_id = $2`,
+      [fonteId, municipioId],
+    );
+    if (!fonte) throw naoEncontrada('fonte');
+    const itens = await this.db.query(
+      `SELECT v.id, to_char(${INICIO_VIGOR('v')}, 'YYYY-MM-DD') AS vigor_desde,
+              v.vigor_desde IS NOT NULL AS data_legal,
+              to_char(v.vigor_ate, 'YYYY-MM-DD') AS vigor_ate,
+              v.criada_em, v.lida_em, length(v.texto)::int AS caracteres,
+              (SELECT count(*)::int FROM trechos t WHERE t.fonte_versao_id = v.id) AS trechos,
+              (v.id = (SELECT x.id FROM fonte_versoes x
+                       WHERE x.fonte_id = v.fonte_id AND ${EM_VIGOR('x')}
+                       ORDER BY x.lida_em DESC LIMIT 1)) AS atual
+       FROM fonte_versoes v WHERE v.fonte_id = $1
+       ORDER BY ${INICIO_VIGOR('v')} DESC, v.lida_em DESC`,
+      [fonteId],
+    );
+    return { fonte, itens };
+  }
+
+  /** O texto da fonte que valia num dia (404 se a fonte ainda não existia). */
+  async fonteEm(municipioId: string, fonteId: string, dia: string) {
+    const [v] = await this.db.query(
+      `SELECT fo.id AS fonte_id, fo.titulo, fo.url, fv.id AS versao_id,
+              to_char(${INICIO_VIGOR('fv')}, 'YYYY-MM-DD') AS vigor_desde,
+              to_char(fv.vigor_ate, 'YYYY-MM-DD') AS vigor_ate, fv.texto
+       FROM fontes fo JOIN fonte_versoes fv ON ${VERSAO_EM(3)}
+       WHERE fo.id = $1 AND fo.municipio_id = $2`,
+      [fonteId, municipioId, dia],
+    );
+    if (!v) {
+      throw new ErroApi(
+        HttpStatus.NOT_FOUND,
+        'sem_versao_nessa_data',
+        'Não há versão desta fonte em vigor nesse dia (ainda não tinha sido lida ou já estava revogada).',
+      );
+    }
+    return v;
+  }
+
+  /** Acerta as datas legais de uma versão (ex.: publicada no DR a 3 de março). */
+  async mudarVigencia(
+    municipioId: string,
+    u: UtilizadorPainel,
+    fonteId: string,
+    versaoId: string,
+    d: { vigor_desde?: string | null; vigor_ate?: string | null },
+  ) {
+    const [v] = await this.db.query<{ id: string }>(
+      `UPDATE fonte_versoes v SET
+         vigor_desde = CASE WHEN $4 THEN $5::date ELSE v.vigor_desde END,
+         vigor_ate = CASE WHEN $6 THEN $7::date ELSE v.vigor_ate END
+       FROM fontes fo
+       WHERE v.id = $1 AND v.fonte_id = $2 AND fo.id = v.fonte_id AND fo.municipio_id = $3
+       RETURNING v.id`,
+      [
+        versaoId,
+        fonteId,
+        municipioId,
+        d.vigor_desde !== undefined,
+        d.vigor_desde ?? null,
+        d.vigor_ate !== undefined,
+        d.vigor_ate ?? null,
+      ],
+    );
+    if (!v) throw naoEncontrada('versão');
+    await this.auditoria.registar({
+      municipioId,
+      atorTipo: 'utilizador',
+      atorId: u.id,
+      acao: 'mudar_vigencia',
+      objetoTipo: 'fonte',
+      objetoId: fonteId,
+      dados: { versao_id: versaoId, ...d },
+    });
+    return this.versoesFonte(municipioId, fonteId);
   }
 
   async pedirAvaliacao(
