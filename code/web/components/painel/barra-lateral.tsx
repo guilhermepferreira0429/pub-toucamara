@@ -20,6 +20,7 @@ import {
   Search,
   Sparkles,
   Users,
+  Vote,
   type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
@@ -151,6 +152,12 @@ const SECCOES: Seccao[] = [
         rotulo: "Relatórios",
         href: "/painel/relatorios",
         icone: FileText,
+        recurso: "indicadores",
+      },
+      {
+        rotulo: "Consultas públicas",
+        href: "/painel/consultas",
+        icone: Vote,
         recurso: "indicadores",
       },
       {

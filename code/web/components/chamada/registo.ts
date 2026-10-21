@@ -134,6 +134,8 @@ export const A_FAZER: Record<string, string> = {
   encaminhar: "A ver quem trata disto…",
   passar_a_humano: "A passar a um funcionário…",
   conversa_anterior: "A ver a conversa anterior…",
+  consultas_abertas: "A ver as consultas públicas…",
+  participar_consulta: "A registar a opinião…",
 };
 
 type Obj = Record<string, unknown>;
