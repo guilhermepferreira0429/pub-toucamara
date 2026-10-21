@@ -39,6 +39,9 @@ export const PERMISSOES = {
   // Dados abertos: quem vê os indicadores vê o que se publica; ligar,
   // desligar e publicar já é decisão da chefia.
   transparencia: ['chefe_divisao'],
+  // Fiscalização: os técnicos (fiscais) e a chefia planeiam as visitas e
+  // ditam os relatórios; a configuração do planeamento é da chefia ('agente').
+  fiscalizacao: ['tecnico', 'chefe_divisao'],
 } as const satisfies Record<string, readonly Perfil[]>;
 
 export type Recurso = keyof typeof PERMISSOES;

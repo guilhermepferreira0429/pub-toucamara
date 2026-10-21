@@ -47,6 +47,7 @@ import { ConsultasPublicasModule } from './modules/consultas-publicas/consultas-
 import { LicencasModule } from './modules/licencas/licencas.module.js';
 import { ApoiosModule } from './modules/apoios/apoios.module.js';
 import { OrdenamentoModule } from './modules/ordenamento/ordenamento.module.js';
+import { FiscalizacaoModule } from './modules/fiscalizacao/fiscalizacao.module.js';
 import { ReclamacoesModule } from './modules/reclamacoes/reclamacoes.module.js';
 import { ReunioesModule } from './modules/reunioes/reunioes.module.js';
 import { ContratacaoModule } from './modules/contratacao/contratacao.module.js';
@@ -124,6 +125,7 @@ import { TransparenciaModule } from './modules/transparencia/transparencia.modul
     ContratacaoModule,
     // Transparência: dados abertos e indicadores no portal
     TransparenciaModule,
+    FiscalizacaoModule,
   ],
   controllers: [AppController],
   providers: [AppService],

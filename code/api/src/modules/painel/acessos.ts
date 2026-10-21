@@ -100,6 +100,12 @@ const VERBOS: Record<string, string> = {
   publicar_dados_abertos: 'publicou',
   ligar_dados_abertos: 'ligou a publicação de',
   desligar_dados_abertos: 'desligou a publicação de',
+  ditar_relatorio: 'ditou o relatório de',
+  corrigir_relatorio: 'reviu o relatório de',
+  concluir_visita: 'fechou o relatório de',
+  cancelar_visita: 'cancelou',
+  acrescentar_foto_visita: 'juntou uma fotografia a',
+  mudar_config_fiscalizacao: 'mudou o planeamento de',
 };
 
 const OBJETOS: Record<string, string> = {
@@ -142,6 +148,8 @@ const OBJETOS: Record<string, string> = {
   contratos_publicos: 'o registo de contratos públicos',
   contratacao_config: 'da contratação pública',
   conjunto_dados: 'um conjunto de dados abertos',
+  visita_fiscalizacao: 'uma visita de fiscalização',
+  fiscalizacao_config: 'a fiscalização',
 };
 
 export function frase(acao: string, objetoTipo: string): string {
