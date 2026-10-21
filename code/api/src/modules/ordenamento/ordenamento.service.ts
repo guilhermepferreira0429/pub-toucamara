@@ -24,6 +24,8 @@ import {
   ZONAS_DEMONSTRACAO,
   zonaDe,
 } from './regras.js';
+import type { PedidoAntigo } from '../licencas/simulacao.js';
+import { ConsultaAntiga, simularZona } from './simulacao-pdm.js';
 
 export const entradaOQuePossoFazer = z.object({
   morada: z
@@ -314,6 +316,45 @@ export class OrdenamentoService {
       por_obra: porObra.map((x) => ({ ...x, obra_texto: OBRAS[x.obra] })),
       obras: OBRAS,
       controlos: CONTROLO_DITO,
+    };
+  }
+
+  /**
+   * "Testar uma lei antes de a aprovar": as regras propostas para uma zona
+   * (sem gravar) contra as perguntas já feitas nessa zona nos últimos 5 anos.
+   */
+  async simularZona(m: Municipio, zonaId: string, propostas: RegrasZona) {
+    const [zona] = await this.db.query<Zona>(
+      `SELECT id, codigo, nome, categoria, descricao, poligono, regras, fonte, demonstracao
+       FROM zonas_pdm WHERE id = $1 AND municipio_id = $2`,
+      [zonaId, m.id],
+    );
+    if (!zona) {
+      throw new ErroApi(
+        HttpStatus.NOT_FOUND,
+        'zona_desconhecida',
+        'Esta zona não existe.',
+      );
+    }
+    const consultas = await this.db.query<PedidoAntigo<ConsultaAntiga>>(
+      `SELECT id, codigo AS referencia,
+              to_char((criada_em AT TIME ZONE 'Europe/Lisbon')::date, 'YYYY-MM-DD') AS pedido_em,
+              jsonb_build_object('obra', obra, 'medidas', coalesce(resultado->'medidas', '{}'::jsonb)) AS dados,
+              false AS demonstracao
+       FROM consultas_pdm
+       WHERE municipio_id = $1 AND zona_id = $2 AND criada_em >= now() - interval '5 years'
+       ORDER BY criada_em`,
+      [m.id, zona.id],
+    );
+    return {
+      zona: {
+        id: zona.id,
+        codigo: zona.codigo,
+        nome: zona.nome,
+        demonstracao: zona.demonstracao,
+      },
+      ...simularZona(zona.regras, propostas, consultas),
+      nota: 'Aqui "aprovado" quer dizer que se resolve sem licença (isento ou comunicação prévia). As perguntas são as que as pessoas fizeram ao agente nesta zona.',
     };
   }
 

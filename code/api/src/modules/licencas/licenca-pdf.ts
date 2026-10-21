@@ -8,9 +8,13 @@ export interface DadosPdfLicenca {
   titular: string | null;
   atividade: string;
   morada: string;
+  /** "Dia", "Período" ou "Validade". */
+  rotuloDia?: string;
   /** 'sábado, 31 de outubro de 2026'. */
   dia: string;
-  horario: string;
+  horario?: string | null;
+  /** Outras linhas do tipo (área, matrícula, mesas...). */
+  detalhes?: { rotulo: string; valor: string }[];
   condicoes: string[];
   fonte: string;
   emitida: { por: string; em: Date };
@@ -91,8 +95,9 @@ export function gerarPdfLicenca(d: DadosPdfLicenca): Promise<Buffer> {
     if (d.titular) linha('Titular', d.titular);
     linha('Atividade', d.atividade);
     linha('Local', d.morada);
-    linha('Dia', d.dia);
-    linha('Horário', d.horario);
+    linha(d.rotuloDia ?? 'Dia', d.dia);
+    if (d.horario) linha('Horário', d.horario);
+    for (const x of d.detalhes ?? []) linha(x.rotulo, x.valor);
 
     doc.moveDown(0.8).font('Helvetica-Bold').text('Condições');
     doc.moveDown(0.3).font('Helvetica');

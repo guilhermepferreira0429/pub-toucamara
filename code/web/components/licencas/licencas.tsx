@@ -1,27 +1,14 @@
 "use client";
 
-import {
-  BadgeCheck,
-  Check,
-  Code2,
-  ExternalLink,
-  FileText,
-  MessageSquareText,
-  Pencil,
-  X,
-} from "lucide-react";
+import { BadgeCheck, Check, ExternalLink, FileText, MessageSquareText, X } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import {
-  Campo,
   Cartao,
   classeEntrada,
-  Dialogo,
   ErroLinha,
   Estado,
   euros,
-  Interruptor,
-  numero,
   Pilula,
   quando,
   Rotulo,
@@ -29,53 +16,42 @@ import {
   useAcao,
   useDados,
 } from "@/components/conhecimento/comum";
+import { InfoTipo, RegrasTipo, TipoLicenca } from "@/components/licencas/regras-tipo";
 import { CabecalhoPagina } from "@/components/painel/cabecalho";
 import { Botao } from "@/components/ui/botao";
 import { API_URL } from "@/lib/api";
 import { useSessao } from "@/lib/sessao";
 
 /*
- * Painel · Licenças decididas na chamada. O agente verifica as regras
- * durante a chamada; aqui um funcionário vê o que foi verificado e aprova
- * com um clique. À direita, as regras em código, com os números da câmara.
+ * Painel · Licenças decididas na chamada (ruído, ocupação da via pública,
+ * esplanada, dístico de residente). O agente verifica as regras durante a
+ * chamada; aqui um funcionário vê o que foi verificado e aprova com um
+ * clique. À direita, as regras em código do tipo escolhido, com os números
+ * da câmara e o "Simular" contra os pedidos antigos.
  */
 
 type Estado = "a_pagar" | "por_aprovar" | "para_tecnico" | "emitida" | "recusada";
-
-interface Config {
-  hora_inicio_min: string;
-  hora_fim_max_semana: string;
-  hora_fim_max_fds: string;
-  musica_exterior_ate: string;
-  antecedencia_min_dias_uteis: number;
-  antecedencia_max_dias: number;
-  duracao_max_horas: number;
-  pessoas_max: number;
-  taxa_cent: number;
-  aprovacao: "funcionario" | "automatica";
-  fonte: { titulo: string; url: string | null };
-  demonstracao: boolean;
-}
 
 interface Licenca {
   id: string;
   numero: string;
   processo_id: string;
+  tipo: TipoLicenca;
+  tipo_nome: string;
   estado: Estado;
   proposta: "aprovar" | "tecnico";
-  dados: {
-    atividade_texto: string;
+  resumo: {
+    atividade: string;
     descricao: string;
     morada: string;
-    hora_inicio: string;
-    hora_fim: string;
-    pessoas?: number;
-    musica_amplificada?: boolean;
+    rotulo_dia: string;
+    dia: string;
+    horario: string | null;
+    detalhes: { rotulo: string; valor: string }[];
   };
-  dia: string;
   avaliacao: { regras: { id: string; ok: boolean; texto: string }[]; condicoes: string[] };
-  config_usada: { taxa_cent: number };
   taxa_cent: number;
+  taxa_se_aprovada_cent: number;
   titular: string | null;
   telefone: string | null;
   conversa_id: string | null;
@@ -90,7 +66,7 @@ interface Licenca {
 interface Lista {
   licencas: Licenca[];
   contagens: Record<Estado, number>;
-  config: Config;
+  tipos: InfoTipo[];
 }
 
 const ESTADOS: Record<Estado, { rotulo: string; tom: "verde" | "ambar" | "terracota" | "neutro" | "tinta" }> = {
@@ -106,10 +82,14 @@ const FILTROS: (Estado | "todas")[] = ["todas", "por_aprovar", "para_tecnico", "
 export function PaginaLicencas() {
   const { pode } = useSessao();
   const [filtro, setFiltro] = useState<Estado | "todas">("todas");
-  const caminho = pode("processos")
-    ? `/v1/painel/licencas${filtro === "todas" ? "" : `?estado=${filtro}`}`
-    : null;
+  const [tipo, setTipo] = useState<TipoLicenca | "todos">("todos");
+  const params = new URLSearchParams();
+  if (filtro !== "todas") params.set("estado", filtro);
+  if (tipo !== "todos") params.set("tipo", tipo);
+  const caminho = pode("processos") ? `/v1/painel/licencas${params.size ? `?${params}` : ""}` : null;
   const d = useDados<Lista>(caminho);
+  const tipos = d.dados?.tipos ?? [];
+  const regras = tipos.find((t) => t.tipo === (tipo === "todos" ? "ruido" : tipo));
 
   if (!pode("processos")) {
     return (
@@ -127,7 +107,26 @@ export function PaginaLicencas() {
         titulo="Licenças decididas na chamada"
         descricao="O agente verifica as regras enquanto a pessoa está ao telefone. Dentro das regras, a taxa paga-se logo e aqui só falta um clique. Fora das regras, chega ao técnico já analisado."
       />
-      <div className="flex flex-wrap gap-2 px-10 pb-5">
+      <div className="flex flex-wrap gap-2 px-10 pb-3" role="group" aria-label="Tipo de licença">
+        {(["todos", ...tipos.map((t) => t.tipo)] as const).map((t) => {
+          const info = tipos.find((x) => x.tipo === t);
+          return (
+            <button
+              key={t}
+              type="button"
+              aria-pressed={tipo === t}
+              onClick={() => setTipo(t)}
+              className={`rounded-[10px] border px-3.5 py-2 text-[13px] font-semibold ${
+                tipo === t ? "border-tinta bg-tinta text-white" : "border-linha bg-papel text-tinta-2"
+              }`}
+            >
+              {info ? info.nome : "Todos os tipos"}
+              {info?.pedidos ? ` · ${info.pedidos}` : ""}
+            </button>
+          );
+        })}
+      </div>
+      <div className="flex flex-wrap gap-2 px-10 pb-5" role="group" aria-label="Estado">
         {FILTROS.map((f) => {
           const n = f === "todas" ? null : d.dados?.contagens[f];
           return (
@@ -152,14 +151,14 @@ export function PaginaLicencas() {
             aCarregar={d.aCarregar}
             erro={d.erro}
             vazio={d.dados?.licencas.length === 0}
-            textoVazio="Ainda não há pedidos. Ligue para a linha e peça uma licença de ruído para uma festa."
+            textoVazio="Ainda não há pedidos. Ligue para a linha e peça uma licença: de ruído para uma festa, um andaime, uma esplanada ou o dístico de residente."
           >
             {(d.dados?.licencas ?? []).map((l) => (
               <CartaoLicenca key={l.id} l={l} onMudou={d.recarregar} />
             ))}
           </Estado>
         </div>
-        {d.dados && <Regras config={d.dados.config} onMudou={d.recarregar} />}
+        {regras && <RegrasTipo key={`${regras.tipo}:${regras.atualizado_em}`} info={regras} onMudou={d.recarregar} />}
       </div>
     </div>
   );
@@ -185,6 +184,7 @@ function CartaoLicenca({ l, onMudou }: { l: Licenca; onMudou: () => void }) {
         <div className="flex min-w-0 flex-col gap-1">
           <div className="flex flex-wrap items-center gap-2">
             <span className="font-mono text-sm font-semibold text-tinta">{l.numero}</span>
+            <Pilula tom="tinta">{l.tipo_nome}</Pilula>
             <Pilula tom={e.tom}>{e.rotulo}</Pilula>
             {l.proposta === "aprovar" ? (
               <Pilula tom="verde" icone={Check}>
@@ -196,12 +196,18 @@ function CartaoLicenca({ l, onMudou }: { l: Licenca; onMudou: () => void }) {
               </Pilula>
             )}
           </div>
-          <span className="font-display text-lg font-bold text-tinta">{l.dados.descricao}</span>
-          <span className="text-[13px] text-tinta-2">
-            <span className="first-letter:uppercase">{l.dia}</span>, das {l.dados.hora_inicio} às {l.dados.hora_fim} ·{" "}
-            {l.dados.morada}
-            {l.dados.pessoas ? ` · ${numero(l.dados.pessoas)} pessoas` : ""}
+          <span className="font-display text-lg font-bold text-tinta">
+            {l.tipo === "ruido" ? l.resumo.descricao : l.resumo.atividade}
           </span>
+          <span className="text-[13px] text-tinta-2">
+            <span className="first-letter:uppercase">{l.resumo.dia}</span>
+            {l.resumo.horario ? `, das ${l.resumo.horario}` : ""} · {l.resumo.morada}
+          </span>
+          {l.resumo.detalhes.length > 0 && (
+            <span className="text-[13px] text-tinta-2">
+              {l.resumo.detalhes.map((x) => `${x.rotulo}: ${x.valor}`).join(" · ")}
+            </span>
+          )}
           <span className="text-xs text-tinta-3">
             {l.titular ?? "Sem nome"}
             {l.telefone ? ` · ${l.telefone}` : ""} · pedido {quando(l.criada_em)}
@@ -210,7 +216,7 @@ function CartaoLicenca({ l, onMudou }: { l: Licenca; onMudou: () => void }) {
         <div className="flex flex-col items-end gap-1 text-right">
           {l.estado === "para_tecnico" ? (
             <span className="text-xs text-tinta-3">
-              taxa de {euros(l.config_usada.taxa_cent)}
+              taxa de {euros(l.taxa_se_aprovada_cent)}
               <br />
               se o técnico aprovar
             </span>
@@ -326,123 +332,5 @@ function CartaoLicenca({ l, onMudou }: { l: Licenca; onMudou: () => void }) {
       )}
       <ErroLinha erro={acao.erro} className="mx-5 mb-4" />
     </Cartao>
-  );
-}
-
-/** As regras em código, como o agente as aplica. */
-function Regras({ config, onMudou }: { config: Config; onMudou: () => void }) {
-  const { pode } = useSessao();
-  const [editar, setEditar] = useState(false);
-  const linhas: [string, string][] = [
-    ["Começa a partir das", config.hora_inicio_min],
-    ["Acaba até (dom. a qui.)", config.hora_fim_max_semana],
-    ["Acaba até (sex., sáb., véspera de feriado)", config.hora_fim_max_fds],
-    ["Música no exterior até", config.musica_exterior_ate],
-    ["Antecedência mínima", `${config.antecedencia_min_dias_uteis} dias úteis`],
-    ["Duração máxima", `${config.duracao_max_horas} h`],
-    ["Pessoas (sem análise)", `até ${numero(config.pessoas_max)}`],
-    ["Taxa", euros(config.taxa_cent)],
-    ["Depois de pago", config.aprovacao === "automatica" ? "emite sozinha" : "um funcionário aprova"],
-  ];
-  return (
-    <Cartao className="flex h-fit flex-col gap-4 p-5">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Code2 className="size-4 text-terracota" aria-hidden />
-          <Rotulo>Regras em código · licença de ruído</Rotulo>
-        </div>
-        {pode("agente") && (
-          <Botao tamanho="pequeno" variante="discreto" icone={Pencil} onClick={() => setEditar(true)}>
-            Mudar
-          </Botao>
-        )}
-      </div>
-      <dl className="flex flex-col divide-y divide-linha text-sm">
-        {linhas.map(([k, v]) => (
-          <div key={k} className="flex justify-between gap-3 py-2">
-            <dt className="text-tinta-2">{k}</dt>
-            <dd className="font-mono font-semibold text-tinta">{v}</dd>
-          </div>
-        ))}
-      </dl>
-      <p className="text-xs text-tinta-3">Base: {config.fonte.titulo}.</p>
-      {config.demonstracao && (
-        <Pilula tom="ambar">valores de demonstração · confirmar com o regulamento</Pilula>
-      )}
-      <p className="text-xs text-tinta-3">
-        Fora destas regras o pedido não é recusado: vai para um técnico, com o que falhou à vista.
-      </p>
-      <Dialogo titulo="Regras da licença de ruído" aberto={editar} onFechar={() => setEditar(false)}>
-        <EditarRegras
-          inicial={config}
-          onGuardado={() => {
-            setEditar(false);
-            onMudou();
-          }}
-        />
-      </Dialogo>
-    </Cartao>
-  );
-}
-
-function EditarRegras({ inicial, onGuardado }: { inicial: Config; onGuardado: () => void }) {
-  const { pedido } = useSessao();
-  const [c, setC] = useState(inicial);
-  const acao = useAcao();
-  const muda = (x: Partial<Config>) => setC((a) => ({ ...a, ...x }));
-  const horaCampo = (k: keyof Config, rotulo: string) => (
-    <Campo rotulo={rotulo}>
-      <input type="time" className={classeEntrada} value={c[k] as string} onChange={(e) => muda({ [k]: e.target.value })} />
-    </Campo>
-  );
-  const numCampo = (k: keyof Config, rotulo: string, fator = 1) => (
-    <Campo rotulo={rotulo}>
-      <input
-        type="number"
-        min={0}
-        className={classeEntrada}
-        value={(c[k] as number) / fator}
-        onChange={(e) => muda({ [k]: Math.round(Number(e.target.value) * fator) })}
-      />
-    </Campo>
-  );
-  return (
-    <form
-      className="grid grid-cols-2 gap-3"
-      onSubmit={async (e) => {
-        e.preventDefault();
-        const r = await acao.executar(() => pedido("/v1/painel/licencas/regras", { metodo: "PUT", corpo: c }));
-        if (r !== undefined) onGuardado();
-      }}
-    >
-      {horaCampo("hora_inicio_min", "Começa a partir das")}
-      {horaCampo("musica_exterior_ate", "Música no exterior até")}
-      {horaCampo("hora_fim_max_semana", "Acaba até (dom. a qui.)")}
-      {horaCampo("hora_fim_max_fds", "Acaba até (sex., sáb.)")}
-      {numCampo("antecedencia_min_dias_uteis", "Antecedência (dias úteis)")}
-      {numCampo("duracao_max_horas", "Duração máxima (h)")}
-      {numCampo("pessoas_max", "Pessoas sem análise")}
-      {numCampo("taxa_cent", "Taxa (€)", 100)}
-      <label className="col-span-2 flex items-center justify-between rounded-[12px] bg-creme px-4 py-3">
-        <span className="text-sm font-semibold text-tinta">Emitir sozinha depois de pago</span>
-        <Interruptor
-          ligado={c.aprovacao === "automatica"}
-          onMudar={(v) => muda({ aprovacao: v ? "automatica" : "funcionario" })}
-          rotulo="Emitir sozinha"
-        />
-      </label>
-      <label className="col-span-2 flex items-center justify-between rounded-[12px] bg-creme px-4 py-3">
-        <span className="text-sm font-semibold text-tinta">Valores de demonstração (por confirmar)</span>
-        <Interruptor ligado={c.demonstracao} onMudar={(v) => muda({ demonstracao: v })} rotulo="Demonstração" />
-      </label>
-      <div className="col-span-2">
-        <ErroLinha erro={acao.erro} />
-      </div>
-      <div className="col-span-2 flex justify-end">
-        <Botao type="submit" disabled={acao.aCorrer}>
-          Guardar
-        </Botao>
-      </div>
-    </form>
   );
 }
