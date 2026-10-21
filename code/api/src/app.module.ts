@@ -40,6 +40,7 @@ import { OcorrenciasModule } from './modules/ocorrencias/ocorrencias.module.js';
 import { PagamentosModule } from './modules/pagamentos/pagamentos.module.js';
 import { PainelModule } from './modules/painel/painel.module.js';
 import { CampanhasModule } from './modules/campanhas/campanhas.module.js';
+import { ConsultasPublicasModule } from './modules/consultas-publicas/consultas-publicas.module.js';
 import { LicencasModule } from './modules/licencas/licencas.module.js';
 import { OrdenamentoModule } from './modules/ordenamento/ordenamento.module.js';
 import { PortaIasModule } from './modules/porta-ias/porta-ias.module.js';
@@ -100,6 +101,7 @@ import { RequerimentosModule } from './modules/requerimentos/requerimentos.modul
     ModelosModule,
     IntegracoesModule,
     AvisosZonaModule,
+    ConsultasPublicasModule,
     // Porta para as IAs (MCP)
     PortaIasModule,
   ],

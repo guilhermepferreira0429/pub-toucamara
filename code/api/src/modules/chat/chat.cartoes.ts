@@ -15,7 +15,8 @@ export type TipoCartao =
   | 'ocorrencia'
   | 'passagem'
   | 'vagas'
-  | 'processo';
+  | 'processo'
+  | 'consulta';
 
 export interface FonteCartao {
   titulo: string;
@@ -53,6 +54,8 @@ const POR_FERRAMENTA: Record<
   ver_vagas: 'vagas',
   // Os processos (fase, prazo, o que falta) ou precisa_identificacao.
   estado_processo: 'processo',
+  // Consulta pública: participação registada (dizer, relatório, link).
+  participar_consulta: 'consulta',
 };
 
 function objeto(v: unknown): Record<string, unknown> {
