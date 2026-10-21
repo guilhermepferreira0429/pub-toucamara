@@ -12,6 +12,8 @@ export const FERRAMENTAS_PUBLICAS = [
   'simular_taxa',
   'ver_vagas',
   'o_que_posso_fazer',
+  'consultas_abertas',
+  'que_apoios_tenho',
 ] as const;
 
 /** Com a chave pessoal: as ações em nome da pessoa. */
@@ -31,6 +33,12 @@ export const FERRAMENTAS_PESSOAIS = [
   'redigir',
   'conversa_anterior',
   'nao_quero_avisos',
+  'participar_consulta',
+  'pedir_apoio',
+  'pedir_licenca_ruido',
+  'pedir_licenca_ocupacao_via',
+  'pedir_licenca_esplanada',
+  'pedir_distico_residente',
 ] as const;
 
 /** Não mudam nada: o cliente pode correr sem pedir confirmação. */
@@ -40,6 +48,7 @@ export const SO_LEITURA = new Set<string>([
   'simular_taxa',
   'ver_vagas',
   'o_que_posso_fazer',
+  'consultas_abertas',
   'estado_ocorrencia',
   'estado_processo',
   'redigir',
@@ -52,6 +61,14 @@ export const TITULOS: Record<string, string> = {
   simular_taxa: 'Simular uma taxa municipal',
   ver_vagas: 'Ver vagas para atendimento',
   o_que_posso_fazer: 'O que posso fazer nesta morada (PDM)',
+  consultas_abertas: 'Consultas públicas abertas',
+  que_apoios_tenho: 'A que apoios tenho direito',
+  participar_consulta: 'Participar numa consulta pública',
+  pedir_apoio: 'Pedir um apoio',
+  pedir_licenca_ruido: 'Pedir licença especial de ruído',
+  pedir_licenca_ocupacao_via: 'Pedir licença de ocupação da via pública',
+  pedir_licenca_esplanada: 'Pedir licença de esplanada',
+  pedir_distico_residente: 'Pedir dístico de residente',
   registar_ocorrencia: 'Registar um problema na via pública',
   estado_ocorrencia: 'Estado de uma ocorrência',
   estado_processo: 'Estado de um processo',

@@ -6,10 +6,12 @@ import { MensagensService } from './mensagens.service.js';
 const SID = 'AC123';
 
 function montar(twilio = { accountSid: SID, authToken: 'tok' }) {
-  const query = jest.fn(async (sql: string) =>
-    sql.startsWith('SELECT')
-      ? [{ destino: '+351912345678', corpo: 'Ola', estado: 'pendente' }]
-      : [],
+  const query = jest.fn((sql: string) =>
+    Promise.resolve(
+      sql.startsWith('SELECT')
+        ? [{ destino: '+351912345678', corpo: 'Ola', estado: 'pendente' }]
+        : [],
+    ),
   );
   const config = {
     get: () => 'production',
@@ -51,7 +53,10 @@ describe('MensagensService · Twilio', () => {
 
     await servico.enviarAgora('m1');
 
-    const [url, init] = fetchMock.mock.calls[0];
+    const [url, init] = fetchMock.mock.calls[0] as [
+      string,
+      { headers: Record<string, string>; body: URLSearchParams },
+    ];
     expect(url).toBe(
       `https://api.twilio.com/2010-04-01/Accounts/${SID}/Messages.json`,
     );

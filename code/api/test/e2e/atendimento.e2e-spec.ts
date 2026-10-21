@@ -278,7 +278,8 @@ describe('Atendimento (e2e)', () => {
         passagem_id: expect.any(String),
         fora_de_horas: expect.any(Boolean),
         responder_ate: expect.any(String),
-        dizer: expect.stringMatching(/Passei o seu caso.*por SMS\.$/),
+        // Dentro ou fora do horário ("Passei…" / "…já passei…"): depende da hora a que corre.
+        dizer: expect.stringMatching(/[Pp]assei o seu caso.*por SMS\.$/),
       });
 
       const p = await linha(

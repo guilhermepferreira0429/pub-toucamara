@@ -20,6 +20,11 @@ describe('Pedidos de avaliação (e2e)', () => {
   afterAll(() => ctx.fechar());
 
   it('pede uma vez; o segundo pedido devolve o pendente; aparece em Qualidade', async () => {
+    // A BD é partilhada pelos ficheiros: outros testes deixam pedidos (agente mudado).
+    await ctx.db.query(
+      `DELETE FROM avaliacao.pedidos WHERE municipio_id = $1`,
+      [MUNICIPIO_ID],
+    );
     const a = await ctx
       .http()
       .post('/v1/painel/conhecimento/qualidade/correr')
@@ -82,6 +87,16 @@ describe('Pedidos de avaliação (e2e)', () => {
       `DELETE FROM avaliacao.pedidos WHERE municipio_id = $1`,
       [MUNICIPIO_ID],
     );
+    // A BD é partilhada: no fim repõe-se o agente (o chat lê a saudação).
+    const antes = await linhas<{
+      nome: string;
+      saudacao: string;
+      trata_por: string;
+    }>(
+      ctx.db,
+      `SELECT nome, saudacao, trata_por FROM agente_config WHERE municipio_id = $1`,
+      [MUNICIPIO_ID],
+    );
     const interno = await entrarPainel(
       ctx,
       await criarUtilizador(ctx, 'equipa_toucamara'),
@@ -103,5 +118,9 @@ describe('Pedidos de avaliação (e2e)', () => {
       [MUNICIPIO_ID],
     );
     expect(p.map((x) => x.motivo)).toEqual(['mudanca_agente']);
+    await ctx.db.query(
+      `UPDATE agente_config SET nome = $2, saudacao = $3, trata_por = $4 WHERE municipio_id = $1`,
+      [MUNICIPIO_ID, antes[0].nome, antes[0].saudacao, antes[0].trata_por],
+    );
   });
 });
