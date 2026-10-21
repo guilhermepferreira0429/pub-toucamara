@@ -2,7 +2,7 @@
 
 import { ArrowRight, FileDiff, Rocket, Save, Send, Users } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Botao, BotaoLink } from "@/components/ui/botao";
 import { useSessao } from "@/lib/sessao";
 import {
@@ -40,6 +40,95 @@ const FILTROS: { id: "" | EstadoPsr; rotulo: string }[] = [
   { id: "resolvida", rotulo: "Resolvidas" },
 ];
 
+interface TrechoEncontrado {
+  trecho_id: string;
+  titulo: string;
+  referencia: string | null;
+  entidade: string;
+  texto: string;
+}
+
+/** A fonte oficial da resposta: a mesma pesquisa que o agente usa. */
+function FonteOficial({
+  pergunta,
+  escolhidos,
+  onMudar,
+}: {
+  pergunta: string;
+  escolhidos: string[];
+  onMudar: (ids: string[]) => void;
+}) {
+  const [q, setQ] = useState(pergunta);
+  const [aplicada, setAplicada] = useState(pergunta);
+  useEffect(() => {
+    const t = setTimeout(() => setAplicada(q.trim()), 350);
+    return () => clearTimeout(t);
+  }, [q]);
+  const r = useDados<{ itens: TrechoEncontrado[] }>(
+    aplicada.length >= 2
+      ? `/v1/painel/conhecimento/trechos?limite=5&q=${encodeURIComponent(aplicada.slice(0, 200))}`
+      : null,
+  );
+  const alternar = (id: string) =>
+    onMudar(escolhidos.includes(id) ? escolhidos.filter((x) => x !== id) : [...escolhidos, id]);
+  return (
+    <div className="flex flex-col gap-2">
+      <Campo rotulo="Fonte oficial" ajuda="Escolha o trecho que o agente cita. Sem fonte, a resposta vale menos no teste.">
+        <input className={classeEntrada} value={q} onChange={(e) => setQ(e.target.value)} />
+      </Campo>
+      <ul className="flex max-h-64 flex-col gap-1.5 overflow-y-auto">
+        {(r.dados?.itens ?? []).map((t) => (
+          <li key={t.trecho_id}>
+            <label
+              className={`flex cursor-pointer gap-2.5 rounded-xl border p-2.5 text-[13px] ${
+                escolhidos.includes(t.trecho_id) ? "border-terracota bg-terracota-suave/50" : "border-linha"
+              }`}
+            >
+              <input
+                type="checkbox"
+                className="mt-0.5 accent-terracota"
+                checked={escolhidos.includes(t.trecho_id)}
+                onChange={() => alternar(t.trecho_id)}
+              />
+              <span className="flex flex-col gap-0.5">
+                <span className="font-semibold text-tinta">
+                  {t.titulo}
+                  {t.referencia ? ` · ${t.referencia}` : ""}
+                  <span className="font-normal text-tinta-3"> · {t.entidade}</span>
+                </span>
+                <span className="line-clamp-2 text-tinta-2">{t.texto}</span>
+              </span>
+            </label>
+          </li>
+        ))}
+        {r.dados && r.dados.itens.length === 0 && (
+          <li className="text-xs text-tinta-3">Nenhum trecho encontrado. Tente outras palavras.</li>
+        )}
+      </ul>
+    </div>
+  );
+}
+
+const JARGAO = ["requerente", "deferimento", "indeferimento", "instrução do processo", "supra", "outrossim"];
+
+/** "Linguagem simples · 2 frases curtas": avisa o que a pessoa não percebe. */
+function LinguagemSimples({ texto }: { texto: string }) {
+  const t = texto.trim();
+  if (!t) return null;
+  const frases = t.split(/[.!?]+\s/).filter((f) => f.trim());
+  const palavras = t.split(/\s+/).length;
+  const media = Math.round(palavras / Math.max(1, frases.length));
+  const jargao = JARGAO.filter((j) => t.toLowerCase().includes(j));
+  const bom = media <= 20 && jargao.length === 0;
+  return (
+    <p className={`rounded-xl px-3 py-2 text-xs ${bom ? "bg-verde-suave text-verde" : "bg-ambar-suave text-ambar"}`}>
+      {bom ? "Linguagem simples" : "Pode ficar mais simples"} · {frases.length}{" "}
+      {frases.length === 1 ? "frase" : "frases"}, {media} palavras em média
+      {jargao.length ? ` · evite: ${jargao.join(", ")}` : ""}
+    </p>
+  );
+}
+
 function Responder({
   pergunta,
   onMudou,
@@ -53,6 +142,7 @@ function Responder({
   const [sms, setSms] = useState("");
   const [passa, setPassa] = useState("");
   const [falta, setFalta] = useState(pergunta.o_que_falta ?? "");
+  const [trechos, setTrechos] = useState<string[]>([]);
   const [criada, setCriada] = useState<Resposta | null>(null);
   const guardar = useAcao();
   const publicar = useAcao();
@@ -79,7 +169,7 @@ function Responder({
             texto_voz: texto.trim(),
             texto_sms: sms.trim() || null,
             passa_a_pessoa_quando: linhas(passa),
-            trechos: [],
+            trechos,
           },
         },
       ),
@@ -166,6 +256,8 @@ function Responder({
               maxLength={4000}
             />
           </Campo>
+          <LinguagemSimples texto={texto} />
+          <FonteOficial pergunta={pergunta.texto} escolhidos={trechos} onMudar={setTrechos} />
           <div className="grid gap-4 md:grid-cols-2">
             <Campo rotulo="No SMS (opcional)" ajuda={`${sms.length} / 160`}>
               <textarea className={`${classeEntrada} min-h-16`} value={sms} onChange={(e) => setSms(e.target.value)} maxLength={640} />
