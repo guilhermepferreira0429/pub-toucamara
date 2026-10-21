@@ -86,6 +86,9 @@ export function ListaProcessos() {
   const [tecnico, setTecnico] = useState("");
   const [servico, setServico] = useState("");
   const [aguarda, setAguarda] = useState(sp.get("aguarda") === "true");
+  const [tipo, setTipo] = useState(sp.get("tipo_processo_id") ?? "");
+  const [freguesia, setFreguesia] = useState(sp.get("freguesia") ?? "");
+  const [aTerminar, setATerminar] = useState(sp.get("a_terminar") === "true");
   const [texto, setTexto] = useState(sp.get("texto") ?? "");
   const [textoAplicado, setTextoAplicado] = useState(texto.trim());
 
@@ -101,15 +104,20 @@ export function ListaProcessos() {
   );
   const tecnicos = membrosDe(equipa.dados, ["tecnico", "chefe_divisao"]);
   const servicos = equipa.dados?.itens ?? [];
+  const tiposProcesso = usePedido<{ itens: { id: string; codigo: string; nome: string }[] }>(
+    "/v1/painel/tipos-processo",
+  );
 
   // Os filtros que não são separadores: os totais por separador usam-nos.
   const qsFiltros = useMemo(() => {
     const p = new URLSearchParams();
     if (fase) p.set("fase", fase);
     if (servico) p.set("servico_id", servico);
+    if (tipo) p.set("tipo_processo_id", tipo);
+    if (freguesia) p.set("freguesia", freguesia);
     if (textoAplicado) p.set("texto", textoAplicado.slice(0, 100));
     return p.toString();
-  }, [fase, servico, textoAplicado]);
+  }, [fase, servico, tipo, freguesia, textoAplicado]);
   const totais = usePedido<ResumoProcessos>(
     `/v1/painel/processos/resumo${qsFiltros ? `?${qsFiltros}` : ""}`,
   );
@@ -122,9 +130,12 @@ export function ListaProcessos() {
     if (fase) p.set("fase", fase);
     if (servico) p.set("servico_id", servico);
     if (aguarda) p.set("aguarda_municipe", "true");
+    if (tipo) p.set("tipo_processo_id", tipo);
+    if (freguesia) p.set("freguesia", freguesia);
+    if (aTerminar) p.set("a_terminar", "true");
     if (textoAplicado) p.set("texto", textoAplicado.slice(0, 100));
     return p.toString();
-  }, [vista, tecnico, servico, fase, aguarda, textoAplicado]);
+  }, [vista, tecnico, servico, fase, aguarda, tipo, freguesia, aTerminar, textoAplicado]);
 
   const primeira = usePedido<Pagina<ProcessoResumo>>(
     `/v1/painel/processos?${qs}`,
@@ -172,9 +183,15 @@ export function ListaProcessos() {
         atrasadosNaPagina && vista !== "atrasados"
           ? ` · ${atrasadosNaPagina} com o prazo ultrapassado`
           : ""
+      }${
+        totais.dados?.a_terminar
+          ? ` · ${totais.dados.a_terminar} com prazo a terminar esta semana`
+          : ""
       }`;
 
-  const filtrosAtivos = !!(fase || tecnico || servico || aguarda || textoAplicado);
+  const filtrosAtivos = !!(
+    fase || tecnico || servico || aguarda || tipo || freguesia || aTerminar || textoAplicado
+  );
   const tot = totais.dados;
 
   return (
@@ -207,14 +224,14 @@ export function ListaProcessos() {
               aria-hidden
             />
             <label htmlFor="pesquisa-processos" className="sr-only">
-              Pesquisar por n.º, morada ou assunto
+              Pesquisar por n.º, morada, assunto ou requerente
             </label>
             <input
               id="pesquisa-processos"
               type="search"
               value={texto}
               onChange={(e) => setTexto(e.target.value)}
-              placeholder="N.º, morada ou assunto"
+              placeholder="N.º, morada, assunto ou requerente"
               className={`${CAMPO} pl-9`}
             />
           </div>
@@ -234,6 +251,46 @@ export function ListaProcessos() {
               </option>
             ))}
           </select>
+          {(tiposProcesso.dados?.itens.length ?? 0) > 0 && (
+            <>
+              <label className="sr-only" htmlFor="filtro-tipo">
+                Tipo
+              </label>
+              <select
+                id="filtro-tipo"
+                value={tipo}
+                onChange={(e) => setTipo(e.target.value)}
+                className={FILTRO}
+              >
+                <option value="">Tipo: todos</option>
+                {tiposProcesso.dados!.itens.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.codigo} · {t.nome}
+                  </option>
+                ))}
+              </select>
+            </>
+          )}
+          {(tot?.freguesias.length ?? 0) > 0 && (
+            <>
+              <label className="sr-only" htmlFor="filtro-freguesia">
+                Freguesia
+              </label>
+              <select
+                id="filtro-freguesia"
+                value={freguesia}
+                onChange={(e) => setFreguesia(e.target.value)}
+                className={FILTRO}
+              >
+                <option value="">Freguesia: todas</option>
+                {tot!.freguesias.map((f) => (
+                  <option key={f} value={f}>
+                    {f}
+                  </option>
+                ))}
+              </select>
+            </>
+          )}
           {servicos.length > 0 && (
             <>
               <label className="sr-only" htmlFor="filtro-servico">
@@ -288,6 +345,20 @@ export function ListaProcessos() {
               </span>
             )}
           </label>
+          <label className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-[10px] border border-linha bg-papel px-3 text-[13px] font-medium text-tinta">
+            <input
+              type="checkbox"
+              checked={aTerminar}
+              onChange={(e) => setATerminar(e.target.checked)}
+              className="size-4 accent-terracota"
+            />
+            Prazo a terminar
+            {tot && (
+              <span className="rounded-full bg-creme-2 px-1.5 text-[11px] font-bold tabular-nums text-tinta-2">
+                {tot.a_terminar}
+              </span>
+            )}
+          </label>
           {filtrosAtivos && (
             <Botao
               variante="discreto"
@@ -297,6 +368,9 @@ export function ListaProcessos() {
                 setTecnico("");
                 setServico("");
                 setAguarda(false);
+                setTipo("");
+                setFreguesia("");
+                setATerminar(false);
                 setTexto("");
               }}
             >

@@ -382,6 +382,7 @@ export function CartaoRequerente({ p }: { p: ProcessoDetalhe }) {
               m.telefone,
               m.tem_email ? "tem email" : null,
               m.tem_nif ? "NIF registado" : "sem NIF",
+              m.canal_preferido ? `prefere ${m.canal_preferido === "sms" ? "SMS" : m.canal_preferido}` : null,
             ]
               .filter(Boolean)
               .join(" · ")}
@@ -407,7 +408,7 @@ export function CartaoRequerente({ p }: { p: ProcessoDetalhe }) {
               href={`/painel/conversas/${r.conversa_id}`}
               className="font-semibold text-terracota-escuro hover:underline"
             >
-              Ver a conversa
+              {m && m.conversas > 1 ? `${m.conversas} conversas com o agente` : "Ver a conversa"}
             </Link>
           )}
           {r.assinatura_simulada && (
@@ -498,6 +499,23 @@ export function CartaoLocalizacao({
         )}
       </div>
       <p className="text-[13px] text-tinta">{local || "Sem morada registada."}</p>
+      {p.zona_pdm && (
+        <div className="flex flex-wrap gap-1.5">
+          <Chip tom="neutro" pequeno>
+            PDM · {p.zona_pdm.nome}
+          </Chip>
+          {p.zona_pdm.categoria !== "protecao" && (
+            <Chip tom="neutro" pequeno>
+              Fora de zona de proteção
+            </Chip>
+          )}
+          {p.zona_pdm.demonstracao && (
+            <Chip tom="ambar" pequeno>
+              zonas de demonstração
+            </Chip>
+          )}
+        </div>
+      )}
       {typeof p.lat === "number" && typeof p.lng === "number" && (
         <div className="h-[160px] overflow-hidden rounded-xl border border-linha">
           <MapaProcesso lat={p.lat} lng={p.lng} rotulo={local || p.numero} />

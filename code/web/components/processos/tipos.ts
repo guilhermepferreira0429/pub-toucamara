@@ -59,6 +59,7 @@ export interface ResumoProcessos {
   aguarda_municipe: number;
   a_terminar: number;
   a_terminar_ate: string;
+  freguesias: string[];
 }
 
 export type EstadoGestaoDocumental =
@@ -158,7 +159,10 @@ export interface ProcessoDetalhe {
     telefone: string | null;
     tem_email: boolean;
     tem_nif: boolean;
+    canal_preferido: string | null;
+    conversas: number;
   } | null;
+  zona_pdm: { codigo: string; nome: string; categoria: string; demonstracao: boolean } | null;
   requerimento: {
     id: string;
     estado: string;
