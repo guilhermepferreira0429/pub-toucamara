@@ -13,6 +13,7 @@ import {
   FileText,
   HeartHandshake,
   LogOut,
+  Map as IconeMapa,
   MapPin,
   Megaphone,
   MessagesSquare,
@@ -139,6 +140,12 @@ const SECCOES: Seccao[] = [
         icone: BookOpen,
         recurso: "conhecimento_ver",
         contagem: "conhecimento",
+      },
+      {
+        rotulo: "Ordenamento",
+        href: "/painel/ordenamento",
+        icone: IconeMapa,
+        recurso: "conhecimento_ver",
       },
       {
         rotulo: "Relatórios",

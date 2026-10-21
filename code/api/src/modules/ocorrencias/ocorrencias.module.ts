@@ -9,7 +9,7 @@ import { OcorrenciasService } from './ocorrencias.service.js';
 @Module({
   controllers: [OcorrenciasPainelController, OcorrenciasPublicoController],
   providers: [OcorrenciasService, GeocodificacaoService],
-  exports: [OcorrenciasService],
+  exports: [OcorrenciasService, GeocodificacaoService],
 })
 export class OcorrenciasModule implements OnModuleInit {
   constructor(
