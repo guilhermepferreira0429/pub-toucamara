@@ -76,6 +76,12 @@ const VERBOS: Record<string, string> = {
   ligar_consulta: 'mandou o agente ligar às pessoas inscritas sobre',
   participar_consulta: 'participou em',
   alterar_participacao: 'mudou a participação em',
+  registar_reclamacao: 'registou',
+  atribuir_reclamacao: 'atribuiu',
+  encerrar_reclamacao: 'encerrou',
+  converter_email_reclamacao: 'registou como reclamação formal',
+  mudar_prazo_reclamacoes: 'mudou o prazo de resposta de',
+  acrescentar_anexo_reclamacao: 'juntou um anexo a',
 };
 
 const OBJETOS: Record<string, string> = {
@@ -107,6 +113,8 @@ const OBJETOS: Record<string, string> = {
   apoios: '',
   pedido_apoio: 'um pedido de apoio',
   consulta_publica: 'uma consulta pública',
+  reclamacao: 'uma reclamação',
+  reclamacoes_config: 'as reclamações',
 };
 
 export function frase(acao: string, objetoTipo: string): string {
@@ -130,6 +138,8 @@ export function ligacao(objetoTipo: string, objetoId: string): string | null {
       return `/painel/campanhas/${objetoId}`;
     case 'procedimento':
       return `/painel/procedimentos/${objetoId}`;
+    case 'reclamacao':
+      return `/painel/reclamacoes?id=${objetoId}`;
     case 'entrevista':
       return `/painel/procedimentos/entrevistas/${objetoId}`;
     default:

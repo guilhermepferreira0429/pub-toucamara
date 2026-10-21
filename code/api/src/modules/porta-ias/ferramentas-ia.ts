@@ -39,6 +39,7 @@ export const FERRAMENTAS_PESSOAIS = [
   'pedir_licenca_ocupacao_via',
   'pedir_licenca_esplanada',
   'pedir_distico_residente',
+  'registar_reclamacao',
 ] as const;
 
 /** Não mudam nada: o cliente pode correr sem pedir confirmação. */
@@ -81,6 +82,7 @@ export const TITULOS: Record<string, string> = {
   concluir_requerimento: 'Concluir o requerimento',
   passar_a_humano: 'Passar a um funcionário',
   redigir: 'Redigir reclamação, email ou pedido',
+  registar_reclamacao: 'Registar uma reclamação formal',
   conversa_anterior: 'Conversas anteriores',
   nao_quero_avisos: 'Deixar de receber avisos por zona',
 };
@@ -156,6 +158,10 @@ export function resumirPedido(
       return 'Passou o caso a um funcionário';
     case 'redigir':
       return `Redigiu ${entrada.tipo === 'reclamacao' ? 'uma reclamação' : entrada.tipo === 'email' ? 'um email' : 'um pedido'}`;
+    case 'registar_reclamacao':
+      return r.registada === true
+        ? `Registou a reclamação ${texto(r.numero) ?? ''}`.trim()
+        : 'Preparou uma reclamação formal';
     default:
       return TITULOS[nome] ?? nome;
   }
