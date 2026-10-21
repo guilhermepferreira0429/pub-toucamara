@@ -84,6 +84,15 @@ const VERBOS: Record<string, string> = {
   converter_email_reclamacao: 'registou como reclamação formal',
   mudar_prazo_reclamacoes: 'mudou o prazo de resposta de',
   acrescentar_anexo_reclamacao: 'juntou um anexo a',
+  carregar_arquivo: 'carregou digitalizações para',
+  transcrever_documento_arquivo: 'transcreveu',
+  rever_documento_arquivo: 'reviu os dados de',
+  ligar_documento_arquivo: 'ligou a um munícipe ou processo',
+  pesquisar_arquivo: 'pesquisou',
+  mudar_regras_arquivo: 'mudou os prazos e taxas de',
+  pedir_consulta_arquivo: 'registou',
+  atender_pedido_arquivo: 'tratou',
+  encerrar_pedido_arquivo: 'encerrou',
 };
 
 const OBJETOS: Record<string, string> = {
@@ -118,6 +127,11 @@ const OBJETOS: Record<string, string> = {
   consulta_publica: 'uma consulta pública',
   reclamacao: 'uma reclamação',
   reclamacoes_config: 'as reclamações',
+  arquivo: 'o arquivo antigo',
+  arquivo_lote: 'o arquivo antigo (um lote)',
+  arquivo_config: 'o arquivo antigo',
+  documento_arquivo: 'um documento do arquivo antigo',
+  pedido_arquivo: 'um pedido de consulta ao arquivo',
 };
 
 export function frase(acao: string, objetoTipo: string): string {

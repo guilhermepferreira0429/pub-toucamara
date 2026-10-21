@@ -29,6 +29,10 @@ export const PERMISSOES = {
   // Livro de reclamações: quem atende regista e responde; a chefia muda o
   // prazo (recurso 'agente').
   reclamacoes: ['atendimento', 'tecnico', 'chefe_divisao'],
+  // Arquivo antigo: quem atende trata os pedidos de consulta; pesquisar,
+  // carregar digitalizações e rever metadados é dos técnicos e da chefia
+  // (arquivo/regras.ts, PERFIS_DOCUMENTOS).
+  arquivo: ['atendimento', 'tecnico', 'chefe_divisao'],
 } as const satisfies Record<string, readonly Perfil[]>;
 
 export type Recurso = keyof typeof PERMISSOES;

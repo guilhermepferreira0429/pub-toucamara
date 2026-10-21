@@ -43,6 +43,7 @@ export const FERRAMENTAS_PESSOAIS = [
   'pedir_licenca_recinto_improvisado',
   'renovar_licenca',
   'registar_reclamacao',
+  'pedir_consulta_arquivo',
 ] as const;
 
 /** Não mudam nada: o cliente pode correr sem pedir confirmação. */
@@ -89,6 +90,7 @@ export const TITULOS: Record<string, string> = {
   passar_a_humano: 'Passar a um funcionário',
   redigir: 'Redigir reclamação, email ou pedido',
   registar_reclamacao: 'Registar uma reclamação formal',
+  pedir_consulta_arquivo: 'Pedir para consultar um processo antigo no arquivo',
   conversa_anterior: 'Conversas anteriores',
   nao_quero_avisos: 'Deixar de receber avisos por zona',
 };
@@ -168,6 +170,10 @@ export function resumirPedido(
       return r.registada === true
         ? `Registou a reclamação ${texto(r.numero) ?? ''}`.trim()
         : 'Preparou uma reclamação formal';
+    case 'pedir_consulta_arquivo':
+      return r.registado === true
+        ? `Pediu para consultar o arquivo (${texto(r.numero) ?? ''})`
+        : 'Procurou um processo antigo no arquivo';
     default:
       return TITULOS[nome] ?? nome;
   }

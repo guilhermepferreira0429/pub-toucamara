@@ -46,6 +46,7 @@ import { CampanhasModule } from './modules/campanhas/campanhas.module.js';
 import { ConsultasPublicasModule } from './modules/consultas-publicas/consultas-publicas.module.js';
 import { LicencasModule } from './modules/licencas/licencas.module.js';
 import { ApoiosModule } from './modules/apoios/apoios.module.js';
+import { ArquivoModule } from './modules/arquivo/arquivo.module.js';
 import { OrdenamentoModule } from './modules/ordenamento/ordenamento.module.js';
 import { ReclamacoesModule } from './modules/reclamacoes/reclamacoes.module.js';
 import { PortaIasModule } from './modules/porta-ias/porta-ias.module.js';
@@ -117,6 +118,8 @@ import { RequerimentosModule } from './modules/requerimentos/requerimentos.modul
     // Porta para as IAs (MCP)
     PortaIasModule,
     ReclamacoesModule,
+    // Arquivo antigo digitalizado e pedidos de consulta
+    ArquivoModule,
   ],
   controllers: [AppController],
   providers: [AppService],
