@@ -584,6 +584,25 @@ export class PainelConhecimentoController {
     return this.svc.qualidade(m.id);
   }
 
+  /**
+   * "Correr teste agora": pede uma avaliação ao avaliador. Responde já, com o
+   * pedido (pendente); o resultado aparece em Qualidade quando acabar.
+   */
+  @Post('qualidade/correr')
+  @HttpCode(202)
+  @Painel('conhecimento')
+  correrTeste(
+    @MunicipioAtual() m: Municipio,
+    @UtilizadorAtual() u: UtilizadorPainel,
+    @Body() body: unknown,
+  ) {
+    const { amostra } = validar(
+      z.object({ amostra: z.boolean().default(false) }),
+      body ?? {},
+    );
+    return this.svc.pedirAvaliacao(m.id, u, amostra);
+  }
+
   /** Calcula embeddings em falta (ou todos, ao mudar de modelo). Equipa interna. */
   @Post('reindexar')
   @HttpCode(202)

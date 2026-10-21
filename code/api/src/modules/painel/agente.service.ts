@@ -121,6 +121,14 @@ export class AgenteService {
         },
         ip,
       );
+      // Versão nova: a publicação só volta a passar depois de uma avaliação
+      // desta versão. Fica pedida ao avaliador.
+      await tx.query(
+        `INSERT INTO avaliacao.pedidos (municipio_id, motivo, pedido_por)
+         VALUES ($1, 'mudanca_agente', $2)
+         ON CONFLICT (municipio_id, conjunto) WHERE estado = 'pendente' DO NOTHING`,
+        [m.id, u.id],
+      );
       return versao;
     });
     return {

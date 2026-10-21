@@ -1432,6 +1432,29 @@ export class PainelConhecimentoService {
     return this.avaliacao.qualidade(municipioId);
   }
 
+  async pedirAvaliacao(
+    municipioId: string,
+    u: UtilizadorPainel,
+    amostra: boolean,
+  ) {
+    const p = await this.avaliacao.pedirAvaliacao(municipioId, 'manual', {
+      porId: u.id,
+      amostra,
+    });
+    if (!p.ja_havia) {
+      await this.auditoria.registar({
+        municipioId,
+        atorTipo: 'utilizador',
+        atorId: u.id,
+        acao: 'pedir_avaliacao',
+        objetoTipo: 'pedido_avaliacao',
+        objetoId: p.id,
+        dados: { amostra },
+      });
+    }
+    return p;
+  }
+
   async reindexar(municipioId: string, todos: boolean) {
     if (!this.indexacao.disponivel) {
       throw new ErroApi(

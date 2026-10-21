@@ -1,8 +1,22 @@
 "use client";
 
-import { Check, ChevronDown, Mic, TriangleAlert, X } from "lucide-react";
+import { Check, ChevronDown, Mic, Play, TriangleAlert, X } from "lucide-react";
 import { useState } from "react";
-import { Cartao, dia, Estado, numero, pct, Pilula, quando, Rotulo, useDados } from "./comum";
+import { Botao } from "@/components/ui/botao";
+import { useSessao } from "@/lib/sessao";
+import {
+  Cartao,
+  dia,
+  ErroLinha,
+  Estado,
+  numero,
+  pct,
+  Pilula,
+  quando,
+  Rotulo,
+  useAcao,
+  useDados,
+} from "./comum";
 import type { Qualidade as TQualidade } from "./tipos";
 
 const CAUSAS: Record<string, string> = {
@@ -20,6 +34,67 @@ function Barra({ valor, limiar }: { valor: number | null; limiar: number }) {
         style={{ width: `${Math.max(0, Math.min(100, valor ?? 0))}%` }}
       />
     </span>
+  );
+}
+
+const ESTADO_PEDIDO: Record<string, { rotulo: string; tom: "ambar" | "verde" | "terracota" | "neutro" }> = {
+  pendente: { rotulo: "à espera do avaliador", tom: "ambar" },
+  a_correr: { rotulo: "a correr", tom: "ambar" },
+  terminado: { rotulo: "terminado", tom: "verde" },
+  falhou: { rotulo: "falhou", tom: "terracota" },
+};
+const MOTIVO_PEDIDO: Record<string, string> = {
+  manual: "pedido no painel",
+  ingestao: "fontes mudaram",
+  mudanca_agente: "versão nova do agente",
+};
+
+/** "Correr teste agora" e os pedidos ao avaliador (o avaliador corre à parte). */
+function CorrerTeste({ d, onPedido }: { d: TQualidade; onPedido: () => void }) {
+  const { pedido, pode } = useSessao();
+  const acao = useAcao();
+  const ultimo = d.pedidos[0];
+  const emCurso = ultimo && (ultimo.estado === "pendente" || ultimo.estado === "a_correr");
+  return (
+    <Cartao className="flex flex-col gap-3 p-5">
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+          <Rotulo>Testar agora</Rotulo>
+          <p className="text-[13px] text-tinta-2">
+            O avaliador faz as perguntas ao agente e o juiz avalia cada resposta. Demora alguns minutos; o resultado
+            aparece aqui.
+          </p>
+        </div>
+        {pode("conhecimento") && (
+          <Botao
+            icone={Play}
+            disabled={acao.aCorrer || !!emCurso}
+            onClick={async () => {
+              const r = await acao.executar(() =>
+                pedido("/v1/painel/conhecimento/qualidade/correr", { metodo: "POST", corpo: {} }),
+              );
+              if (r !== undefined) onPedido();
+            }}
+          >
+            {emCurso ? "Teste pedido" : "Correr teste agora"}
+          </Botao>
+        )}
+      </div>
+      <ErroLinha erro={acao.erro} />
+      {d.pedidos.length > 0 && (
+        <ul className="flex flex-col gap-1.5 border-t border-linha pt-3">
+          {d.pedidos.map((p) => (
+            <li key={p.id} className="flex flex-wrap items-center gap-2 text-[13px]">
+              <Pilula tom={ESTADO_PEDIDO[p.estado]?.tom ?? "neutro"}>{ESTADO_PEDIDO[p.estado]?.rotulo ?? p.estado}</Pilula>
+              <span className="text-tinta">{MOTIVO_PEDIDO[p.motivo] ?? p.motivo}</span>
+              {p.amostra && <span className="text-tinta-3">· amostra</span>}
+              <span className="text-tinta-3">· {quando(p.criado_em)}</span>
+              {p.erro && <span className="w-full text-xs text-terracota-escuro">{p.erro}</span>}
+            </li>
+          ))}
+        </ul>
+      )}
+    </Cartao>
   );
 }
 
@@ -71,6 +146,8 @@ export function Qualidade() {
           </Pilula>
         )}
       </div>
+
+      <CorrerTeste d={d} onPedido={q.recarregar} />
 
       <div className="grid gap-6 lg:grid-cols-[360px_minmax(0,1fr)]">
         <section className="flex flex-col gap-3 rounded-2xl bg-tinta p-6">

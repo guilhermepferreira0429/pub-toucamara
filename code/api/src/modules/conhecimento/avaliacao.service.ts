@@ -32,6 +32,22 @@ interface ResumoExecucao {
   taxa: number | null;
 }
 
+export interface PedidoAvaliacao {
+  id: string;
+  motivo: string;
+  conjunto: string;
+  amostra: boolean;
+  estado: 'pendente' | 'a_correr' | 'terminado' | 'falhou';
+  execucao_id: string | null;
+  erro: string | null;
+  criado_em: Date;
+  iniciado_em: Date | null;
+  terminado_em: Date | null;
+}
+
+const COLUNAS_PEDIDO = `id, motivo, conjunto, amostra, estado, execucao_id, erro,
+  criado_em, iniciado_em, terminado_em`;
+
 /** Colunas de `avaliacao.resultados` que o painel mostra (taxa em número). */
 const COLUNAS_RESULTADO = `r.total, r.certas, r.passadas_bem, r.erradas, r.sem_resposta,
   r.por_responder, r.por_avaliar, r.taxa::float8 AS taxa`;
@@ -106,6 +122,51 @@ export class AvaliacaoService {
    * Página "Qualidade": última execução do chat (total e por categoria),
    * evolução das últimas 20, as erradas da última e a última amostra de voz.
    */
+  /**
+   * Pede uma avaliação ao avaliador (que corre à parte, com a chave do juiz).
+   * Se já houver uma pendente para o mesmo conjunto, devolve essa.
+   */
+  async pedirAvaliacao(
+    municipioId: string,
+    motivo: 'manual' | 'ingestao' | 'mudanca_agente',
+    opcoes: {
+      porId?: string | null;
+      amostra?: boolean;
+      conjunto?: string;
+    } = {},
+  ) {
+    const conjunto = opcoes.conjunto ?? 'Perguntas base';
+    const [novo] = await this.db.query<PedidoAvaliacao>(
+      `INSERT INTO avaliacao.pedidos (municipio_id, motivo, conjunto, amostra, pedido_por)
+       VALUES ($1, $2, $3, $4, $5)
+       ON CONFLICT (municipio_id, conjunto) WHERE estado = 'pendente' DO NOTHING
+       RETURNING ${COLUNAS_PEDIDO}`,
+      [
+        municipioId,
+        motivo,
+        conjunto,
+        opcoes.amostra ?? false,
+        opcoes.porId ?? null,
+      ],
+    );
+    if (novo) return { ...novo, ja_havia: false };
+    const [pendente] = await this.db.query<PedidoAvaliacao>(
+      `SELECT ${COLUNAS_PEDIDO} FROM avaliacao.pedidos
+       WHERE municipio_id = $1 AND conjunto = $2 AND estado = 'pendente'`,
+      [municipioId, conjunto],
+    );
+    return { ...pendente, ja_havia: true };
+  }
+
+  /** Os últimos pedidos (para a página Qualidade mostrar o que está a correr). */
+  pedidos(municipioId: string, limite = 5) {
+    return this.db.query<PedidoAvaliacao>(
+      `SELECT ${COLUNAS_PEDIDO} FROM avaliacao.pedidos
+       WHERE municipio_id = $1 ORDER BY criado_em DESC LIMIT $2`,
+      [municipioId, limite],
+    );
+  }
+
   async qualidade(municipioId: string) {
     const ultimas = await this.db.query<ResumoExecucao>(
       `SELECT e.id AS execucao_id, s.nome AS sistema, e.agente_versao, e.motivo,
@@ -119,9 +180,10 @@ export class AvaliacaoService {
        LIMIT 20`,
       [municipioId],
     );
-    const [estado, voz] = await Promise.all([
+    const [estado, voz, pedidos] = await Promise.all([
       this.estadoPublicacao(municipioId),
       this.ultimaVoz(municipioId),
+      this.pedidos(municipioId),
     ]);
 
     // Da mais antiga para a mais recente, para o gráfico.
@@ -156,6 +218,7 @@ export class AvaliacaoService {
     const d = estado.decisao;
     return {
       limiar: LIMIAR_PUBLICACAO,
+      pedidos,
       versao_atual: estado.versao_atual,
       publicacao: d.permitir
         ? {

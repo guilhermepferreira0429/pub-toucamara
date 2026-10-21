@@ -242,6 +242,16 @@ export interface ResultadoExecucao {
 
 export interface Qualidade {
   limiar: number;
+  pedidos: {
+    id: string;
+    motivo: string;
+    conjunto: string;
+    amostra: boolean;
+    estado: "pendente" | "a_correr" | "terminado" | "falhou";
+    execucao_id: string | null;
+    erro: string | null;
+    criado_em: string;
+  }[];
   versao_atual: string | null;
   publicacao: {
     pode_publicar: boolean;
