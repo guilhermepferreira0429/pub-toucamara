@@ -185,17 +185,25 @@ describe('Resumo diário (e2e)', () => {
       [MUN, cat, NA_JANELA(4)],
     );
 
-    // Requerimento, processo (novo e com prazo a acabar hoje) e pagamento.
+    // Requerimento, processo (novo e com prazo a acabar hoje) e pagamento,
+    // com um tipo de processo do próprio município (o RLS do painel não deixa
+    // ver os tipos de outra câmara).
+    const tipo = randomUUID();
+    await ctx.db.query(
+      `INSERT INTO tipos_processo (id, municipio_id, codigo, nome, prazo_dias_uteis, formulario)
+       SELECT $1, $2, codigo, nome, prazo_dias_uteis, formulario FROM tipos_processo WHERE id = $3`,
+      [tipo, MUN, TIPO_CP_ID],
+    );
     const req = randomUUID();
     await ctx.db.query(
       `INSERT INTO requerimentos (id, municipio_id, tipo_processo_id, criado_em) VALUES ($1, $2, $3, $4)`,
-      [req, MUN, TIPO_CP_ID, NA_JANELA(1)],
+      [req, MUN, tipo, NA_JANELA(1)],
     );
     await ctx.db.query(
       `INSERT INTO processos (municipio_id, numero, tipo_processo_id, assunto, fase, prazo_fim, criado_em) VALUES
          ($1, 'CP 1/2019', $2, 'Porta', 'apreciacao', '2019-06-12', $3),
          ($1, 'CP 2/2019', $2, 'Muro', 'notificado', '2019-06-12', '2019-05-01T10:00:00Z')`,
-      [MUN, TIPO_CP_ID, NA_JANELA(2)],
+      [MUN, tipo, NA_JANELA(2)],
     );
     await ctx.db.query(
       `INSERT INTO pagamentos (municipio_id, requerimento_id, valor_cent, detalhe, estado, pago_em, modo_teste) VALUES

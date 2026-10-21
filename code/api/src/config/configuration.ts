@@ -29,6 +29,8 @@ export const databaseConfig = registerAs('database', () => ({
   database: process.env.DB_NAME || 'toucamara',
   ssl: process.env.DB_SSL === 'true',
   max: parseInt(process.env.DB_POOL_MAX || '10', 10),
+  // RLS por município nos pedidos do painel (migração 0046). false desliga.
+  rlsPainel: process.env.DB_RLS_PAINEL !== 'false',
 }));
 
 export const agenteConfig = registerAs('agente', () => ({
