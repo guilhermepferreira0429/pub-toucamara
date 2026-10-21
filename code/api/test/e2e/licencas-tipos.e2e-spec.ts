@@ -9,6 +9,7 @@ import {
   linha,
   novaChamada,
   smsPara,
+  MUNICIPIO_ID,
 } from './app';
 
 /** Um dia útil daqui a ~3 semanas (AAAA-MM-DD). */
@@ -61,7 +62,7 @@ describe('Licenças: outros tipos e simulação de regras (e2e)', () => {
       `SELECT l.id, l.estado, l.tipo, l.processo_id, t.codigo
        FROM licencas l JOIN processos p ON p.id = l.processo_id
        JOIN tipos_processo t ON t.id = p.tipo_processo_id
-       WHERE p.numero = $1`,
+       WHERE p.numero = $1 AND p.municipio_id = '${MUNICIPIO_ID}'`,
       [numero],
     );
     if (!l) throw new Error(`Licença ${numero} não existe.`);
@@ -645,11 +646,13 @@ describe('Licenças: outros tipos e simulação de regras (e2e)', () => {
     // Os outros e2e podem ter pedido licenças de ruído na mesma BD.
     const n = await linha<{ n: number }>(
       ctx.db,
-      `SELECT count(*)::int AS n FROM licencas WHERE tipo = 'ruido'`,
+      `SELECT count(*)::int AS n FROM licencas WHERE tipo = 'ruido' AND municipio_id = $1`,
+      [MUNICIPIO_ID],
     );
     const h = await linha<{ n: number }>(
       ctx.db,
-      `SELECT count(*)::int AS n FROM licenca_historico WHERE tipo = 'ruido'`,
+      `SELECT count(*)::int AS n FROM licenca_historico WHERE tipo = 'ruido' AND municipio_id = $1`,
+      [MUNICIPIO_ID],
     );
     expect(s.body).toMatchObject({
       tipo: 'ruido',

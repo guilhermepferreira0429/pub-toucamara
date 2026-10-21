@@ -36,7 +36,7 @@ Object.assign(process.env, {
   DB_PASSWORD: process.env.DB_PASSWORD || 'toucamara',
   DB_NAME: nomeBd,
   DB_SSL: 'false',
-  DB_POOL_MAX: '5',
+  DB_POOL_MAX: process.env.DB_POOL_MAX || '5',
   DB_RLS_PAINEL: process.env.DB_RLS_PAINEL || 'true',
   MIGRACOES_NO_ARRANQUE: 'true',
 

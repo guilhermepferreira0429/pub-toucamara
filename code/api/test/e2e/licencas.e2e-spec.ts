@@ -9,6 +9,7 @@ import {
   linha,
   novaChamada,
   smsPara,
+  MUNICIPIO_ID,
 } from './app';
 
 /** O próximo sábado com pelo menos 10 dias de distância (AAAA-MM-DD). */
@@ -94,7 +95,7 @@ describe('Licenças decididas na chamada (e2e)', () => {
       `SELECT l.id, l.estado, l.processo_id, p.numero, p.fase::text AS fase, t.codigo
        FROM licencas l JOIN processos p ON p.id = l.processo_id
        JOIN tipos_processo t ON t.id = p.tipo_processo_id
-       WHERE p.numero = $1`,
+       WHERE p.numero = $1 AND p.municipio_id = '${MUNICIPIO_ID}'`,
       [r.body.numero],
     );
     expect(l).toMatchObject({
@@ -194,7 +195,7 @@ describe('Licenças decididas na chamada (e2e)', () => {
 
     const l = await linha(
       ctx.db,
-      `SELECT l.id FROM licencas l JOIN processos p ON p.id = l.processo_id WHERE p.numero = $1`,
+      `SELECT l.id FROM licencas l JOIN processos p ON p.id = l.processo_id WHERE p.numero = $1 AND p.municipio_id = '${MUNICIPIO_ID}'`,
       [r.body.numero],
     );
     const rec = await ctx
@@ -221,7 +222,7 @@ describe('Licenças decididas na chamada (e2e)', () => {
     ).expect(200);
     const l = await linha(
       ctx.db,
-      `SELECT l.id, l.processo_id FROM licencas l JOIN processos p ON p.id = l.processo_id WHERE p.numero = $1`,
+      `SELECT l.id, l.processo_id FROM licencas l JOIN processos p ON p.id = l.processo_id WHERE p.numero = $1 AND p.municipio_id = '${MUNICIPIO_ID}'`,
       [r.body.numero],
     );
     const ap = await ctx
@@ -275,7 +276,7 @@ describe('Licenças decididas na chamada (e2e)', () => {
     expect(r.body).toMatchObject({ proposta: 'aprovar', pagamento: null });
     const l = await linha(
       ctx.db,
-      `SELECT l.estado FROM licencas l JOIN processos p ON p.id = l.processo_id WHERE p.numero = $1`,
+      `SELECT l.estado FROM licencas l JOIN processos p ON p.id = l.processo_id WHERE p.numero = $1 AND p.municipio_id = '${MUNICIPIO_ID}'`,
       [r.body.numero],
     );
     expect(l.estado).toBe('por_aprovar');

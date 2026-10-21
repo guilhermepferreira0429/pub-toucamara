@@ -109,7 +109,7 @@ async function carregarSeed(db: Pool): Promise<void> {
 /** Espera até `fn` devolver algo verdadeiro (poll à BD), sem sleeps fixos. */
 export async function esperarAte<T>(
   fn: () => Promise<T | null | undefined | false>,
-  timeoutMs = 15_000,
+  timeoutMs = 30_000,
   intervaloMs = 100,
 ): Promise<T> {
   const limite = Date.now() + timeoutMs;

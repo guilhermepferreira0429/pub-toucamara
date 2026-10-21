@@ -134,8 +134,12 @@ export class MensagensService implements OnModuleInit {
   }
 
   onModuleInit() {
-    this.jobs.trabalhar<{ mensagemId: string }>(FILA_SMS, ({ mensagemId }) =>
-      this.enviarAgora(mensagemId),
+    // 4 em paralelo: numa emergência ou numa campanha saem dezenas de SMS
+    // seguidos e os outros (códigos, links) não podem ficar à espera.
+    this.jobs.trabalhar<{ mensagemId: string }>(
+      FILA_SMS,
+      ({ mensagemId }) => this.enviarAgora(mensagemId),
+      { concorrencia: 4 },
     );
     const { smtp } = this.cfg();
     if (smtp.host) {

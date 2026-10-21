@@ -81,7 +81,7 @@ describe('Licenças: avisos antes de expirar e renovação (e2e)', () => {
     const l = await existe<{ id: string; processo_id: string }>(
       ctx.db,
       `SELECT l.id, l.processo_id FROM licencas l JOIN processos p ON p.id = l.processo_id
-       WHERE p.numero = $1`,
+       WHERE p.numero = $1 AND p.municipio_id = '${MUNICIPIO_ID}'`,
       [r.body.numero],
     );
     await pagar(l.processo_id);
@@ -215,7 +215,7 @@ describe('Licenças: avisos antes de expirar e renovação (e2e)', () => {
     }>(
       ctx.db,
       `SELECT l.renova_licenca_id, l.dados FROM licencas l JOIN processos p ON p.id = l.processo_id
-       WHERE p.numero = $1`,
+       WHERE p.numero = $1 AND p.municipio_id = '${MUNICIPIO_ID}'`,
       [r.body.numero],
     );
     expect(nova.renova_licenca_id).toBe(l.id);
