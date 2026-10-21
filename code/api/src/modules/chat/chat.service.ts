@@ -384,7 +384,7 @@ export class ChatService {
       sessao,
       texto,
       (e) => {
-        if (e.evento === 'texto') saida += (e.dados as { texto: string }).texto;
+        if (e.evento === 'texto') saida += e.dados.texto;
         if (e.evento === 'erro') {
           erro = (e.dados as { mensagem?: string }).mensagem ?? 'erro';
         }

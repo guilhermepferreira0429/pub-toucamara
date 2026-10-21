@@ -217,7 +217,11 @@ export class MensagensService implements OnModuleInit {
 
     const { smsProvider } = this.cfg();
     if (smsProvider === 'twilio') {
-      const r = await this.enviarTwilio(m.destino, m.corpo, m.canal === 'whatsapp');
+      const r = await this.enviarTwilio(
+        m.destino,
+        m.corpo,
+        m.canal === 'whatsapp',
+      );
       if ('sid' in r) {
         await this.db.query(
           `UPDATE mensagens_saida SET estado = 'enviada', enviada_em = now(), provider_id = $2 WHERE id = $1`,
