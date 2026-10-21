@@ -1,4 +1,14 @@
-import { Body, Controller, Get, HttpCode, Ip, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  Ip,
+  Param,
+  Post,
+  Query,
+  Redirect,
+} from '@nestjs/common';
 import { z } from 'zod';
 import { MunicipioAtual, UtilizadorAtual } from '../../common/pedido.js';
 import type { UtilizadorPainel } from '../../common/pedido.js';
@@ -7,6 +17,7 @@ import { DatabaseService } from '../../database/database.service.js';
 import { HorarioService } from '../atendimento/horario.service.js';
 import type { Municipio } from '../municipios/municipios.service.js';
 import { AuthService } from './auth.service.js';
+import { OidcService } from './oidc.service.js';
 import { Painel } from './painel.guard.js';
 import { permissoesDe } from './permissoes.js';
 
@@ -16,7 +27,35 @@ export class AuthController {
     private readonly auth: AuthService,
     private readonly horario: HorarioService,
     private readonly db: DatabaseService,
+    private readonly oidc: OidcService,
   ) {}
+
+  /** Botões "Entrar com a conta da câmara" (um por município com OIDC). */
+  @Get('oidc')
+  fornecedoresOidc() {
+    return this.oidc.fornecedores();
+  }
+
+  /** O browser vai para o fornecedor de identidade da câmara. */
+  @Get('oidc/:municipio/iniciar')
+  @Redirect()
+  async iniciarOidc(@Param('municipio') slug: string) {
+    return { url: await this.oidc.iniciar(slug), statusCode: 302 };
+  }
+
+  /** Volta do fornecedor: segue para a web com o token de entrada (ou o erro). */
+  @Get('oidc/retorno')
+  @Redirect()
+  async retornoOidc(@Query() q: Record<string, string | undefined>) {
+    return {
+      url: await this.oidc.retorno({
+        code: q['code'],
+        state: q['state'],
+        error: q['error'],
+      }),
+      statusCode: 302,
+    };
+  }
 
   /** Manda o link mágico. Responde 204 exista ou não o email. */
   @Post('link')

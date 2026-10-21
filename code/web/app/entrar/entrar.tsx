@@ -1,12 +1,53 @@
 "use client";
 
-import { Mail } from "lucide-react";
+import { KeyRound, Mail } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Botao } from "@/components/ui/botao";
 import { Logo } from "@/components/ui/marca";
-import { api, ErroApi } from "@/lib/api";
+import { api, API_URL, ErroApi } from "@/lib/api";
 import { SessaoProvider, useSessao } from "@/lib/sessao";
+
+const ERROS_OIDC: Record<string, string> = {
+  sem_acesso: "A sua conta da câmara não tem acesso ao painel. Peça acesso à chefia.",
+  token_invalido: "Não foi possível confirmar a sua conta da câmara. Tente outra vez.",
+  pedido_expirado: "O pedido expirou. Tente outra vez.",
+  recusado_pelo_fornecedor: "O login da câmara foi cancelado.",
+  fornecedor_indisponivel: "O login da câmara não está disponível agora. Use o link por email.",
+};
+
+interface FornecedorOidc {
+  municipio: string;
+  nome: string;
+  nome_botao: string;
+}
+
+/** "Entrar com a conta da câmara" (OIDC), quando a câmara o tem configurado. */
+function BotoesOidc() {
+  const [itens, setItens] = useState<FornecedorOidc[]>([]);
+  useEffect(() => {
+    api<{ itens: FornecedorOidc[] }>("/v1/painel/auth/oidc")
+      .then((r) => setItens(r.itens))
+      .catch(() => setItens([]));
+  }, []);
+  if (!itens.length) return null;
+  return (
+    <div className="flex flex-col gap-2">
+      {itens.map((f) => (
+        <a
+          key={f.municipio}
+          href={`${API_URL}/v1/painel/auth/oidc/${encodeURIComponent(f.municipio)}/iniciar`}
+          className="flex h-12 items-center justify-center gap-2 rounded-xl bg-tinta px-4 text-sm font-semibold text-white hover:bg-tinta/90"
+        >
+          <KeyRound className="size-4" aria-hidden />
+          {f.nome_botao}
+          {itens.length > 1 ? ` · ${f.nome}` : ""}
+        </a>
+      ))}
+      <p className="text-center text-xs text-tinta-3">ou receba um link por email</p>
+    </div>
+  );
+}
 
 /**
  * Entrar no painel por link mágico: pede o email, a API manda o link; ao
@@ -14,13 +55,17 @@ import { SessaoProvider, useSessao } from "@/lib/sessao";
  */
 function Formulario() {
   const router = useRouter();
-  const token = useSearchParams().get("token");
+  const params = useSearchParams();
+  const token = params.get("token");
+  const erroOidc = params.get("erro");
   const { entrar } = useSessao();
   const [email, setEmail] = useState("");
   const [estado, setEstado] = useState<"inicio" | "a_enviar" | "enviado" | "a_entrar">(
     token ? "a_entrar" : "inicio",
   );
-  const [erro, setErro] = useState<string | null>(null);
+  const [erro, setErro] = useState<string | null>(
+    erroOidc ? (ERROS_OIDC[erroOidc] ?? "Não foi possível entrar com a conta da câmara.") : null,
+  );
   const usado = useRef(false);
 
   useEffect(() => {
@@ -65,6 +110,7 @@ function Formulario() {
         ) : (
           <form onSubmit={pedirLink} className="flex flex-col gap-4">
             <h1 className="font-display text-2xl font-bold">Entrar no painel</h1>
+            <BotoesOidc />
             <label className="flex flex-col gap-1.5 text-sm font-medium text-tinta-2">
               Email de trabalho
               <span className="flex h-12 items-center gap-2 rounded-xl border border-linha bg-papel px-3">

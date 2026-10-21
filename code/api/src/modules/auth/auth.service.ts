@@ -90,6 +90,30 @@ export class AuthService {
     });
   }
 
+  /**
+   * Token de entrada de uso único para um utilizador ativo do município (o
+   * mesmo do link mágico), depois de o fornecedor OIDC da câmara o
+   * identificar. A equipa interna não entra por aqui.
+   */
+  async linkDeEntrada(
+    email: string,
+    municipioId: string,
+  ): Promise<string | null> {
+    const [u] = await this.db.query<{ id: string }>(
+      `SELECT id FROM utilizadores
+       WHERE lower(email) = $1 AND ativo AND municipio_id = $2`,
+      [email, municipioId],
+    );
+    if (!u) return null;
+    const token = randomBytes(32).toString('base64url');
+    await this.db.query(
+      `INSERT INTO links_magicos (utilizador_id, token_hash, expira_em)
+       VALUES ($1, $2, now() + interval '2 minutes')`,
+      [u.id, hashToken(token)],
+    );
+    return token;
+  }
+
   /** Troca o token do link por um JWT. */
   async entrar(
     token: string,
