@@ -21,6 +21,11 @@ import {
   esquemaRecusar,
   LicencasService,
 } from './licencas.service.js';
+import { esquemaTipo, TipoLicenca } from './tipos.js';
+
+function tipoDe(t: string): TipoLicenca {
+  return validar(z.object({ tipo: esquemaTipo }), { tipo: t }).tipo;
+}
 
 const ESTADOS = [
   'a_pagar',
@@ -30,23 +35,26 @@ const ESTADOS = [
   'recusada',
 ] as const;
 
-/** Painel · Licenças decididas na chamada. */
+/** Painel · Licenças decididas na chamada (todos os tipos). */
 @Controller('painel/licencas')
 @Painel('processos')
 export class LicencasPainelController {
   constructor(private readonly licencas: LicencasService) {}
 
-  /** ?estado= */
+  /** ?estado=&tipo= */
   @Get()
   listar(@MunicipioAtual() m: Municipio, @Query() query: unknown) {
-    const { estado } = validar(
-      z.object({ estado: z.enum(ESTADOS).optional() }),
+    const filtro = validar(
+      z.object({
+        estado: z.enum(ESTADOS).optional(),
+        tipo: esquemaTipo.optional(),
+      }),
       query,
     );
-    return this.licencas.listar(m, estado);
+    return this.licencas.listar(m, filtro);
   }
 
-  /** As regras em código que o agente aplica (os números da câmara). */
+  /** As regras em código que o agente aplica (as do ruído, como antes). */
   @Get('regras')
   regras(@MunicipioAtual() m: Municipio) {
     return this.licencas.configRuido(m.id).then((config) => ({ config }));
@@ -60,6 +68,65 @@ export class LicencasPainelController {
     @Body() body: unknown,
   ) {
     return this.licencas.guardarConfig(m, u, validar(esquemaConfigRuido, body));
+  }
+
+  /** Todos os tipos: regras em vigor, campos editáveis e histórico. */
+  @Get('tipos')
+  tipos(@MunicipioAtual() m: Municipio) {
+    return this.licencas.tipos(m).then((tipos) => ({ tipos }));
+  }
+
+  @Get('regras/:tipo')
+  regrasDe(@MunicipioAtual() m: Municipio, @Param('tipo') tipo: string) {
+    const t = tipoDe(tipo);
+    return this.licencas
+      .configDe(m.id, t)
+      .then((config) => ({ tipo: t, config }));
+  }
+
+  @Put('regras/:tipo')
+  @Painel('agente')
+  guardarRegrasDe(
+    @MunicipioAtual() m: Municipio,
+    @UtilizadorAtual() u: UtilizadorPainel,
+    @Param('tipo') tipo: string,
+    @Body() body: unknown,
+  ) {
+    const t = tipoDe(tipo);
+    return this.licencas.guardarConfig(
+      m,
+      u,
+      this.licencas.validarConfig(t, body),
+      t,
+    );
+  }
+
+  /**
+   * "Testar uma lei antes de a aprovar": corre as regras propostas (o
+   * corpo, as mesmas do PUT) contra os pedidos antigos, sem gravar nada.
+   */
+  @Post('regras/:tipo/simular')
+  @HttpCode(200)
+  @Painel('agente')
+  simular(
+    @MunicipioAtual() m: Municipio,
+    @Param('tipo') tipo: string,
+    @Body() body: unknown,
+  ) {
+    const t = tipoDe(tipo);
+    return this.licencas.simular(m, t, this.licencas.validarConfig(t, body));
+  }
+
+  /** Pedidos antigos de demonstração para este tipo (só se ainda não houver). */
+  @Post('historico/:tipo/demonstracao')
+  @HttpCode(200)
+  @Painel('agente')
+  historicoDemonstracao(
+    @MunicipioAtual() m: Municipio,
+    @UtilizadorAtual() u: UtilizadorPainel,
+    @Param('tipo') tipo: string,
+  ) {
+    return this.licencas.carregarHistoricoDemonstracao(m, u, tipoDe(tipo));
   }
 
   @Get(':id')

@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { hojeLisboa } from '../../common/dias-uteis.js';
 import { ErroApi } from '../../common/erros.js';
 import { proximoNumero } from '../../common/numeracao.js';
+import { validar } from '../../common/validacao.js';
 import type { UtilizadorPainel } from '../../common/pedido.js';
 import { DatabaseService, Tx } from '../../database/database.service.js';
 import type { ContextoFerramenta } from '../../ferramentas/ferramenta.js';
@@ -18,17 +19,18 @@ import {
 import type { Municipio } from '../municipios/municipios.service.js';
 import { MunicipiosService } from '../municipios/municipios.service.js';
 import { PagamentosService } from '../pagamentos/pagamentos.service.js';
-import { formatarEuros } from '../pagamentos/taxas.js';
+import { formatarEuros, LinhaTaxa } from '../pagamentos/taxas.js';
+import { AvaliacaoLicenca, diaCurto, diaPorExtenso } from './comum.js';
+import { gerarHistoricoDemonstracao } from './historico-demonstracao.js';
 import { gerarPdfLicenca } from './licenca-pdf.js';
 import {
   ATIVIDADES,
   Atividade,
-  Avaliacao,
-  avaliarRuido,
   ConfigRuido,
   esquemaConfigRuido,
-  lerConfigRuido,
 } from './regras.js';
+import { PedidoAntigo, simular } from './simulacao.js';
+import { decisaoDita, DEFS, TipoLicenca, TIPOS } from './tipos.js';
 
 const hora = z
   .string()
@@ -98,17 +100,37 @@ export const esquemaRecusar = z.object({
 export type EstadoLicenca =
   'a_pagar' | 'por_aprovar' | 'para_tecnico' | 'emitida' | 'recusada';
 
-interface Linha {
+/** O que todas as configurações têm (o resto depende do tipo). */
+export interface ConfigComum {
+  aprovacao: 'funcionario' | 'automatica';
+  fonte: { titulo: string; url: string | null };
+  demonstracao: boolean;
+  /** Só na do ruído (a taxa fixa das licenças antigas, sem `avaliacao.taxa`). */
+  taxa_cent?: number;
+}
+
+/** Dados comuns às entradas de todas as ferramentas. */
+export interface DadosComuns {
+  morada: string;
+  nome?: string;
+  metodo?: 'mbway' | 'multibanco';
+  [k: string]: unknown;
+}
+
+export interface Linha {
   id: string;
   municipio_id: string;
   processo_id: string;
   numero: string;
-  tipo: 'ruido';
+  tipo: TipoLicenca;
   municipe_id: string | null;
   conversa_id: string | null;
-  dados: z.output<typeof entradaPedirRuido>;
-  avaliacao: Avaliacao;
-  config_usada: ConfigRuido;
+  dados: DadosComuns;
+  /** As licenças de ruído antigas não têm `taxa` (era a fixa da config). */
+  avaliacao: Omit<AvaliacaoLicenca, 'taxa'> & {
+    taxa?: AvaliacaoLicenca['taxa'];
+  };
+  config_usada: ConfigComum;
   proposta: 'aprovar' | 'tecnico';
   estado: EstadoLicenca;
   taxa_cent: number;
@@ -147,10 +169,14 @@ const SELECT = `
 
 const ALFABETO = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
+/** Pedidos dos últimos 5 anos entram na simulação. */
+const ANOS_SIMULACAO = 5;
+
 /**
- * Licenças decididas na chamada (começa pela licença especial de ruído):
- * as regras correm em código, a taxa paga-se em modo de teste e um
- * funcionário aprova com um clique (ou a câmara deixa emitir sozinha).
+ * Licenças decididas na chamada (ruído, ocupação da via pública, esplanada,
+ * dístico de residente): as regras correm em código, a taxa paga-se em modo
+ * de teste e um funcionário aprova com um clique (ou a câmara deixa emitir
+ * sozinha). A câmara pode testar regras novas contra os pedidos antigos.
  */
 @Injectable()
 export class LicencasService {
@@ -171,21 +197,35 @@ export class LicencasService {
   // Regras (painel)
   // ------------------------------------------------------------------
 
-  async configRuido(municipioId: string): Promise<ConfigRuido> {
+  async configDe(municipioId: string, tipo: TipoLicenca): Promise<unknown> {
     const [r] = await this.db.query<{ config: unknown }>(
-      `SELECT config FROM licenca_regras WHERE municipio_id = $1 AND tipo = 'ruido'`,
-      [municipioId],
+      `SELECT config FROM licenca_regras WHERE municipio_id = $1 AND tipo = $2`,
+      [municipioId, tipo],
     );
-    return lerConfigRuido(r?.config);
+    return DEFS[tipo].ler(r?.config);
   }
 
-  async guardarConfig(m: Municipio, u: UtilizadorPainel, c: ConfigRuido) {
+  async configRuido(municipioId: string): Promise<ConfigRuido> {
+    return (await this.configDe(municipioId, 'ruido')) as ConfigRuido;
+  }
+
+  /** Valida as regras de um tipo (400 com o que está mal). */
+  validarConfig(tipo: TipoLicenca, body: unknown): unknown {
+    return validar(DEFS[tipo].esquemaConfig, body);
+  }
+
+  async guardarConfig(
+    m: Municipio,
+    u: UtilizadorPainel,
+    c: unknown,
+    tipo: TipoLicenca = 'ruido',
+  ) {
     await this.db.query(
       `INSERT INTO licenca_regras (municipio_id, tipo, config, atualizado_por)
-       VALUES ($1, 'ruido', $2, $3)
+       VALUES ($1, $2, $3, $4)
        ON CONFLICT (municipio_id, tipo) DO UPDATE
          SET config = EXCLUDED.config, atualizado_por = EXCLUDED.atualizado_por, atualizado_em = now()`,
-      [m.id, JSON.stringify(c), u.id],
+      [m.id, tipo, JSON.stringify(c), u.id],
     );
     await this.auditoria.registar({
       municipioId: m.id,
@@ -194,19 +234,154 @@ export class LicencasService {
       acao: 'mudar_regras_licenca',
       objetoTipo: 'licenca_regras',
       objetoId: m.id,
-      dados: { tipo: 'ruido' },
+      dados: { tipo },
     });
     return { config: c };
   }
 
+  /** Os tipos, com as regras em vigor e os campos que o painel edita. */
+  async tipos(m: Municipio) {
+    const regras = await this.db.query<{
+      tipo: TipoLicenca;
+      config: unknown;
+      atualizado_em: Date;
+    }>(
+      `SELECT tipo, config, atualizado_em FROM licenca_regras WHERE municipio_id = $1`,
+      [m.id],
+    );
+    const historico = await this.db.query<{
+      tipo: TipoLicenca;
+      n: number;
+      demo: number;
+    }>(
+      `SELECT tipo, count(*)::int AS n, count(*) FILTER (WHERE demonstracao)::int AS demo
+       FROM licenca_historico WHERE municipio_id = $1 GROUP BY tipo`,
+      [m.id],
+    );
+    const licencas = await this.db.query<{ tipo: TipoLicenca; n: number }>(
+      `SELECT tipo, count(*)::int AS n FROM licencas WHERE municipio_id = $1 GROUP BY tipo`,
+      [m.id],
+    );
+    return TIPOS.map((t) => {
+      const d = DEFS[t];
+      const r = regras.find((x) => x.tipo === t);
+      const h = historico.find((x) => x.tipo === t);
+      return {
+        tipo: t,
+        nome: d.nome,
+        codigo: d.codigo,
+        ferramenta: d.ferramenta,
+        config: d.ler(r?.config),
+        atualizado_em: r?.atualizado_em.toISOString() ?? null,
+        campos: d.campos,
+        pedidos: licencas.find((x) => x.tipo === t)?.n ?? 0,
+        historico: { pedidos: h?.n ?? 0, demonstracao: h?.demo ?? 0 },
+      };
+    });
+  }
+
   // ------------------------------------------------------------------
-  // Ferramenta do agente
+  // Testar regras antes de as aprovar
   // ------------------------------------------------------------------
 
-  async pedirRuido(
-    ctx: ContextoFerramenta,
-    e: z.output<typeof entradaPedirRuido>,
+  /**
+   * Corre as regras propostas (sem gravar) contra os pedidos dos últimos
+   * anos deste tipo e compara com as regras em vigor.
+   */
+  async simular(m: Municipio, tipo: TipoLicenca, propostas: unknown) {
+    const d = DEFS[tipo];
+    const atuais = await this.configDe(m.id, tipo);
+    const feriados = await this.municipios.feriados(m.id);
+    const pedidos = await this.db.query<PedidoAntigo<unknown>>(
+      `SELECT l.id, p.numero AS referencia,
+              to_char((l.criada_em AT TIME ZONE 'Europe/Lisbon')::date, 'YYYY-MM-DD') AS pedido_em,
+              l.dados, false AS demonstracao
+       FROM licencas l JOIN processos p ON p.id = l.processo_id
+       WHERE l.municipio_id = $1 AND l.tipo = $2
+         AND l.criada_em >= now() - make_interval(years => $3)
+       UNION ALL
+       SELECT h.id, h.referencia, to_char(h.pedido_em, 'YYYY-MM-DD'), h.dados, h.demonstracao
+       FROM licenca_historico h
+       WHERE h.municipio_id = $1 AND h.tipo = $2
+         AND h.pedido_em >= (now() - make_interval(years => $3))::date
+       ORDER BY 3`,
+      [m.id, tipo, ANOS_SIMULACAO],
+    );
+    const resultado = simular(
+      atuais,
+      propostas,
+      pedidos,
+      (dados, config, pedidoEm) => {
+        const a = d.avaliar(dados, config, pedidoEm, feriados);
+        return {
+          aprovado: a.proposta === 'aprovar',
+          decisao: decisaoDita(a.proposta),
+          taxa_cent: a.taxa.total_cent,
+          regras: a.regras,
+        };
+      },
+      {
+        exemplos: 10,
+        resumir: (dados) => {
+          const r = d.resumo(dados, propostas, null);
+          return `${r.assunto} · ${r.morada}`;
+        },
+      },
+    );
+    return {
+      tipo,
+      nome: d.nome,
+      anos: ANOS_SIMULACAO,
+      ...resultado,
+      // Os textos de cada regra (para o "porquê" agregado).
+      nota: 'A receita conta só os pedidos aprovados na hora (dentro das regras). Os que vão a técnico podem ainda ser aprovados e pagar.',
+    };
+  }
+
+  /**
+   * Carrega pedidos antigos de demonstração para este tipo, só se ainda não
+   * houver histórico (para a simulação ter com que trabalhar).
+   */
+  async carregarHistoricoDemonstracao(
+    m: Municipio,
+    u: UtilizadorPainel,
+    tipo: TipoLicenca,
   ) {
+    const [ja] = await this.db.query<{ n: number }>(
+      `SELECT count(*)::int AS n FROM licenca_historico WHERE municipio_id = $1 AND tipo = $2`,
+      [m.id, tipo],
+    );
+    if (ja.n > 0) return { criados: 0, ja_havia: ja.n };
+    const lista = gerarHistoricoDemonstracao(tipo, hojeLisboa());
+    await this.db.query(
+      `INSERT INTO licenca_historico (municipio_id, tipo, referencia, pedido_em, dados, demonstracao)
+       SELECT $1, $2, x.referencia, x.pedido_em::date, x.dados, true
+       FROM jsonb_to_recordset($3::jsonb) AS x(referencia text, pedido_em text, dados jsonb)
+       ON CONFLICT DO NOTHING`,
+      [m.id, tipo, JSON.stringify(lista)],
+    );
+    await this.auditoria.registar({
+      municipioId: m.id,
+      atorTipo: 'utilizador',
+      atorId: u.id,
+      acao: 'carregar_historico_licencas_demonstracao',
+      objetoTipo: 'licenca_regras',
+      objetoId: m.id,
+      dados: { tipo, pedidos: lista.length },
+    });
+    return { criados: lista.length, ja_havia: 0 };
+  }
+
+  // ------------------------------------------------------------------
+  // Ferramentas do agente
+  // ------------------------------------------------------------------
+
+  pedirRuido(ctx: ContextoFerramenta, e: z.output<typeof entradaPedirRuido>) {
+    return this.pedir('ruido', ctx, e);
+  }
+
+  async pedir(tipo: TipoLicenca, ctx: ContextoFerramenta, e: DadosComuns) {
+    const def = DEFS[tipo];
     const m = ctx.municipio;
     const telefone = normalizarTelefone(ctx.telefone);
     if (!ctx.municipeId && !telefone) {
@@ -215,15 +390,17 @@ export class LicencasService {
         motivo: 'precisa_identificacao',
         instrucao:
           ctx.canal === 'chat'
-            ? 'Para pedir a licença a pessoa tem de se identificar no chat com o número de telemóvel (recebe um código por SMS). Depois chama outra vez.'
-            : 'Não há um número para onde mandar a licença. Pede o número de telemóvel e usa identificar_municipe, ou passa a um funcionário.',
+            ? `Para pedir ${def.feminino ? 'a' : 'o'} ${def.curto} a pessoa tem de se identificar no chat com o número de telemóvel (recebe um código por SMS). Depois chama outra vez.`
+            : `Não há um número para onde mandar ${def.feminino ? 'a' : 'o'} ${def.curto}. Pede o número de telemóvel e usa identificar_municipe, ou passa a um funcionário.`,
       };
     }
-    const config = await this.configRuido(m.id);
+    const config = (await this.configDe(m.id, tipo)) as ConfigComum;
     const feriados = await this.municipios.feriados(m.id);
-    const avaliacao = avaliarRuido(e, config, hojeLisboa(), feriados);
+    const avaliacao = def.avaliar(e, config, hojeLisboa(), feriados);
+    const resumo = def.resumo(e, config, null);
     const aprovar = avaliacao.proposta === 'aprovar';
-    const comTaxa = aprovar && config.taxa_cent > 0;
+    const taxa = avaliacao.taxa.total_cent;
+    const comTaxa = aprovar && taxa > 0;
 
     const r = await this.db.transaction(async (tx) => {
       const municipeId =
@@ -236,9 +413,9 @@ export class LicencasService {
           [municipeId, e.nome],
         );
       }
-      const tipoId = await this.tipoLer(tx, m.id);
+      const tipoId = await this.tipoProcesso(tx, m.id, tipo);
       const ano = new Date().getFullYear();
-      const numero = `LER ${await proximoNumero(tx, m.id, 'LER', ano)}/${ano}`;
+      const numero = `${def.codigo} ${await proximoNumero(tx, m.id, def.codigo, ano)}/${ano}`;
       const [p] = await tx.query<{ id: string }>(
         `INSERT INTO processos (municipio_id, numero, tipo_processo_id, municipe_id, conversa_origem_id,
            assunto, morada, fase, prazo_inicio)
@@ -249,7 +426,7 @@ export class LicencasService {
           tipoId,
           municipeId,
           ctx.conversaId,
-          `${e.descricao} · ${diaCurto(e.data)}`,
+          resumo.assunto,
           e.morada,
           hojeLisboa(),
         ],
@@ -261,8 +438,8 @@ export class LicencasService {
         [
           p.id,
           aprovar
-            ? `Pedido de licença de ruído verificado pelas regras: cumpre todas (${avaliacao.regras.length}). Proposta: aprovar.`
-            : `Pedido de licença de ruído verificado pelas regras: ${falhadas.length} por cumprir. Vai para um técnico.`,
+            ? `Pedido de ${def.curto} verificado pelas regras: cumpre todas (${avaliacao.regras.length}). Proposta: aprovar.`
+            : `Pedido de ${def.curto} verificado pelas regras: ${falhadas.length} por cumprir. Vai para um técnico.`,
           JSON.stringify({ avaliacao }),
         ],
       );
@@ -278,10 +455,11 @@ export class LicencasService {
       const [l] = await tx.query<{ id: string }>(
         `INSERT INTO licencas (municipio_id, processo_id, tipo, municipe_id, conversa_id, dados,
            avaliacao, config_usada, proposta, estado, taxa_cent, codigo_verificacao)
-         VALUES ($1, $2, 'ruido', $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING id`,
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING id`,
         [
           m.id,
           p.id,
+          tipo,
           municipeId,
           ctx.conversaId,
           JSON.stringify(e),
@@ -289,14 +467,14 @@ export class LicencasService {
           JSON.stringify(config),
           avaliacao.proposta,
           estado,
-          aprovar ? config.taxa_cent : 0,
+          aprovar ? taxa : 0,
           codigo,
         ],
       );
       await this.conversas.momento(
         ctx.conversaId,
         'requerimento',
-        { licenca_id: l.id, numero, proposta: avaliacao.proposta },
+        { licenca_id: l.id, numero, proposta: avaliacao.proposta, tipo },
         tx,
       );
       if (!aprovar && telefone) {
@@ -306,7 +484,7 @@ export class LicencasService {
             municipeId,
             destino: telefone,
             motivo: 'processo',
-            corpo: `${m.nome}: recebemos o pedido de licença de ruído ${numero}. Precisa de ser visto por um técnico (${falhadas[0]?.texto ?? 'fora das regras'}). Damos resposta por SMS.`,
+            corpo: `${m.nome}: recebemos o pedido de ${def.curto} ${numero}. Precisa de ser visto por um técnico (${falhadas[0]?.texto ?? 'fora das regras'}). Damos resposta por SMS.`,
             relacionado: { processo_id: p.id, licenca_id: l.id },
             chave: `licenca_tecnico:${l.id}`,
           },
@@ -327,43 +505,30 @@ export class LicencasService {
             e.metodo ??
             (telefone?.startsWith('+3519') ? 'mbway' : 'multibanco'),
         },
-        {
-          linhas: [
-            {
-              codigo: 'LER',
-              descricao: 'Licença especial de ruído',
-              unidade: 'fixo',
-              quantidade: 1,
-              valor_unitario_cent: config.taxa_cent,
-              valor_cent: config.taxa_cent,
-            },
-          ],
-          total_cent: config.taxa_cent,
-        },
+        { linhas: avaliacao.taxa.linhas, total_cent: taxa },
       );
     }
 
-    const regrasDitas = avaliacao.regras.map(
-      (x) => `${x.ok ? '✓' : '✗'} ${x.texto}`,
-    );
+    const seguePorSms = `${def.feminino ? 'a' : 'o'} ${def.curto} segue por SMS, com um código QR.`;
     return {
       pedida: true,
+      tipo,
       numero: r.numero,
       proposta: avaliacao.proposta,
-      regras: regrasDitas,
+      regras: avaliacao.regras.map((x) => `${x.ok ? '✓' : '✗'} ${x.texto}`),
       condicoes: avaliacao.condicoes,
-      taxa: aprovar ? formatarEuros(config.taxa_cent) : null,
+      taxa: aprovar ? formatarEuros(taxa) : null,
       pagamento,
       regras_de_demonstracao: config.demonstracao,
       fonte: config.fonte.titulo,
       dizer: aprovar
         ? `Verifiquei as regras e o seu pedido cumpre todas. ` +
           (comTaxa
-            ? `A taxa é de ${formatarEuros(config.taxa_cent)}. ${pagamento?.dizer ?? ''} `
+            ? `A taxa é de ${formatarEuros(taxa)}. ${pagamento?.dizer ?? ''} `
             : '') +
           (config.aprovacao === 'automatica'
-            ? 'Assim que estiver paga, a licença segue por SMS, com um código QR.'
-            : 'Assim que estiver paga, um funcionário confirma e a licença segue por SMS, com um código QR.')
+            ? `Assim que estiver paga, ${seguePorSms}`
+            : `Assim que estiver paga, um funcionário confirma e ${seguePorSms}`)
         : `O pedido ficou registado com o número ${r.numero}, mas não cabe nas regras automáticas: ${avaliacao.regras
             .filter((x) => !x.ok)
             .map((x) => x.texto)
@@ -420,14 +585,18 @@ export class LicencasService {
   // Painel
   // ------------------------------------------------------------------
 
-  async listar(m: Municipio, estado?: EstadoLicenca) {
+  async listar(
+    m: Municipio,
+    filtro: { estado?: EstadoLicenca; tipo?: TipoLicenca } = {},
+  ) {
     await this.sincronizar(m.id);
     const linhas = await this.db.query<Linha>(
       `${SELECT} WHERE l.municipio_id = $1 AND ($2::text IS NULL OR l.estado = $2)
+         AND ($3::text IS NULL OR l.tipo = $3)
        ORDER BY CASE l.estado WHEN 'por_aprovar' THEN 0 WHEN 'para_tecnico' THEN 1
                   WHEN 'a_pagar' THEN 2 ELSE 3 END, l.criada_em DESC
        LIMIT 100`,
-      [m.id, estado ?? null],
+      [m.id, filtro.estado ?? null, filtro.tipo ?? null],
     );
     const [contagens] = await this.db.query<Record<EstadoLicenca, number>>(
       `SELECT count(*) FILTER (WHERE estado = 'a_pagar')::int AS a_pagar,
@@ -435,13 +604,14 @@ export class LicencasService {
               count(*) FILTER (WHERE estado = 'para_tecnico')::int AS para_tecnico,
               count(*) FILTER (WHERE estado = 'emitida')::int AS emitida,
               count(*) FILTER (WHERE estado = 'recusada')::int AS recusada
-       FROM licencas WHERE municipio_id = $1`,
-      [m.id],
+       FROM licencas WHERE municipio_id = $1 AND ($2::text IS NULL OR tipo = $2)`,
+      [m.id, filtro.tipo ?? null],
     );
     return {
       licencas: linhas.map((l) => this.paraPainel(l)),
       contagens,
       config: await this.configRuido(m.id),
+      tipos: await this.tipos(m),
     };
   }
 
@@ -471,7 +641,7 @@ export class LicencasService {
             : 'Esta licença já foi decidida.',
         );
       }
-      const taxa = l.config_usada.taxa_cent;
+      const taxa = taxaDe(l).total_cent;
       await tx.query(
         `UPDATE licencas SET decidida_por = $2, decidida_em = now(), taxa_cent = $3,
            estado = CASE WHEN $3 > 0 THEN 'a_pagar' ELSE estado END
@@ -501,19 +671,7 @@ export class LicencasService {
       await this.pagamentos.criar(
         ctx,
         { processo_id: r.l.processo_id, metodo: 'multibanco' },
-        {
-          linhas: [
-            {
-              codigo: 'LER',
-              descricao: 'Licença especial de ruído',
-              unidade: 'fixo',
-              quantidade: 1,
-              valor_unitario_cent: r.l.config_usada.taxa_cent,
-              valor_cent: r.l.config_usada.taxa_cent,
-            },
-          ],
-          total_cent: r.l.config_usada.taxa_cent,
-        },
+        taxaDe(r.l),
       );
     }
     await this.auditoria.registar({
@@ -563,13 +721,14 @@ export class LicencasService {
         `Licença recusada: ${d.motivo}`,
       );
       if (l.telefone) {
+        const def = DEFS[l.tipo];
         await this.mensagens.sms(
           {
             municipioId: m.id,
             municipeId: l.municipe_id,
             destino: l.telefone,
             motivo: 'processo',
-            corpo: `${m.nome}: a licença de ruído ${l.numero} não foi concedida. ${d.motivo}`,
+            corpo: `${m.nome}: ${def.feminino ? 'a' : 'o'} ${def.curto} ${l.numero} não foi ${def.feminino ? 'concedida' : 'concedido'}. ${d.motivo}`,
             relacionado: { processo_id: l.processo_id, licenca_id: l.id },
             chave: `licenca_recusada:${l.id}`,
           },
@@ -595,26 +754,34 @@ export class LicencasService {
   async publico(codigo: string) {
     const l = await this.porCodigo(codigo);
     const municipio = await this.municipios.porId(l.municipio_id);
+    const def = DEFS[l.tipo];
+    const r = this.resumoDe(l);
     const hoje = hojeLisboa();
+    const emitida = l.estado === 'emitida';
     return {
+      tipo: l.tipo,
+      titulo: def.nome,
+      feminino: def.feminino,
       numero: l.numero,
       municipio: municipio.nome,
       estado: l.estado,
-      valida: l.estado === 'emitida' && l.dados.data >= hoje,
-      expirada: l.estado === 'emitida' && l.dados.data < hoje,
+      valida: emitida && (r.valida_ate === null || r.valida_ate >= hoje),
+      expirada: emitida && r.valida_ate !== null && r.valida_ate < hoje,
+      valida_ate: emitida ? r.valida_ate : null,
       titular: abreviarNome(l.titular),
-      atividade: ATIVIDADES[l.dados.atividade],
-      descricao: l.dados.descricao,
-      morada: l.dados.morada,
-      dia: diaPorExtenso(l.dados.data),
-      horario: `${l.dados.hora_inicio} às ${l.dados.hora_fim}`,
+      atividade: r.atividade,
+      descricao: r.descricao,
+      morada: r.morada,
+      rotulo_dia: r.rotulo_dia,
+      dia: r.dia,
+      horario: r.horario,
+      detalhes: r.detalhes,
       condicoes: l.avaliacao.condicoes,
-      emitida_em:
-        l.estado === 'emitida' ? (l.decidida_em?.toISOString() ?? null) : null,
+      emitida_em: emitida ? (l.decidida_em?.toISOString() ?? null) : null,
       fonte: l.config_usada.fonte.titulo,
       modo_teste: l.pagamento?.modo_teste ?? true,
       regras_de_demonstracao: l.config_usada.demonstracao,
-      pdf: l.estado === 'emitida',
+      pdf: emitida,
     };
   }
 
@@ -628,15 +795,20 @@ export class LicencasService {
       );
     }
     const municipio = await this.municipios.porId(l.municipio_id);
+    const def = DEFS[l.tipo];
+    const r = this.resumoDe(l);
     const pdf = await gerarPdfLicenca({
       municipio: `Câmara Municipal de ${municipio.nome}`,
       numero: l.numero,
-      titulo: 'Licença especial de ruído',
+      titulo: def.nome,
       titular: l.titular,
-      atividade: `${ATIVIDADES[l.dados.atividade]}: ${l.dados.descricao}`,
-      morada: l.dados.morada,
-      dia: diaPorExtenso(l.dados.data),
-      horario: `das ${l.dados.hora_inicio} às ${l.dados.hora_fim}`,
+      atividade:
+        l.tipo === 'ruido' ? `${r.atividade}: ${r.descricao}` : r.atividade,
+      morada: r.morada,
+      rotuloDia: r.rotulo_dia,
+      dia: r.dia,
+      horario: r.horario ? `das ${r.horario}` : null,
+      detalhes: r.detalhes,
       condicoes: l.avaliacao.condicoes,
       fonte: l.config_usada.fonte.titulo,
       emitida: {
@@ -653,6 +825,14 @@ export class LicencasService {
 
   // ------------------------------------------------------------------
 
+  private resumoDe(l: Linha) {
+    const emitida =
+      l.estado === 'emitida' && l.decidida_em
+        ? hojeLisboa(l.decidida_em)
+        : null;
+    return DEFS[l.tipo].resumo(l.dados, l.config_usada, emitida);
+  }
+
   private async emitir(
     tx: Tx,
     id: string,
@@ -666,7 +846,8 @@ export class LicencasService {
       codigo_verificacao: string;
       numero: string;
       telefone: string | null;
-      data: string;
+      tipo: TipoLicenca;
+      data: string | null;
     }>(
       `UPDATE licencas l SET estado = 'emitida', decidida_em = coalesce(l.decidida_em, now()),
          decidida_por = coalesce(l.decidida_por, $2)
@@ -674,7 +855,7 @@ export class LicencasService {
        WHERE l.id = $1 AND p.id = l.processo_id
        RETURNING l.processo_id, l.municipio_id, l.municipe_id, l.codigo_verificacao, p.numero,
          (SELECT telefone_e164 FROM municipes WHERE id = l.municipe_id) AS telefone,
-         l.dados->>'data' AS data`,
+         l.tipo, l.dados->>'data' AS data`,
       [id, utilizadorId],
     );
     await tx.query(
@@ -682,23 +863,25 @@ export class LicencasService {
          atualizado_em = now() WHERE id = $1`,
       [l.processo_id],
     );
+    const def = DEFS[l.tipo];
     await this.evento(
       tx,
       l.processo_id,
       utilizadorId,
       origem === 'regras'
-        ? 'Licença emitida automaticamente depois do pagamento (regras da câmara).'
-        : 'Licença aprovada e emitida.',
+        ? `${def.nome} ${def.feminino ? 'emitida' : 'emitido'} automaticamente depois do pagamento (regras da câmara).`
+        : `${def.nome} ${def.feminino ? 'aprovada e emitida' : 'aprovado e emitido'}.`,
     );
     if (l.telefone) {
       const municipio = await this.municipios.porId(l.municipio_id);
+      const para = l.data ? ` para ${diaCurto(l.data)}` : '';
       await this.mensagens.sms(
         {
           municipioId: l.municipio_id,
           municipeId: l.municipe_id,
           destino: l.telefone,
           motivo: 'processo',
-          corpo: `${municipio.nome}: a sua licença de ruído ${l.numero} para ${diaCurto(l.data)} está emitida. Licença e QR: ${this.urlVerificacao(l.codigo_verificacao)}`,
+          corpo: `${municipio.nome}: ${def.feminino ? 'a sua' : 'o seu'} ${def.curto} ${l.numero}${para} está ${def.feminino ? 'emitida' : 'emitido'}. Documento e QR: ${this.urlVerificacao(l.codigo_verificacao)}`,
           relacionado: { processo_id: l.processo_id, licenca_id: id },
           chave: `licenca_emitida:${id}`,
         },
@@ -729,15 +912,20 @@ export class LicencasService {
     return `${this.config.get<string>('app.webUrl') ?? ''}/licenca/${codigo}`;
   }
 
-  /** O tipo de processo 'LER' do município (cria-o na primeira licença). */
-  private async tipoLer(tx: Tx, municipioId: string): Promise<string> {
+  /** O tipo de processo do município para este tipo de licença (cria-o na primeira). */
+  private async tipoProcesso(
+    tx: Tx,
+    municipioId: string,
+    tipo: TipoLicenca,
+  ): Promise<string> {
+    const def = DEFS[tipo];
     const [t] = await tx.query<{ id: string }>(
       `INSERT INTO tipos_processo (municipio_id, codigo, nome, prazo_dias_uteis, formulario, frase_do_agente)
-       VALUES ($1, 'LER', 'Licença especial de ruído', 5, '[]',
+       VALUES ($1, $2, $3, $4, '[]',
          'Verifico as regras durante a chamada; se cumprir, paga a taxa e a licença chega por SMS.')
        ON CONFLICT (municipio_id, codigo) DO UPDATE SET codigo = EXCLUDED.codigo
        RETURNING id`,
-      [municipioId],
+      [municipioId, def.codigo, def.nome, def.prazo_dias_uteis],
     );
     return t.id;
   }
@@ -784,18 +972,29 @@ export class LicencasService {
   }
 
   private paraPainel(l: Linha) {
+    const r = this.resumoDe(l);
     return {
       id: l.id,
       numero: l.numero,
       processo_id: l.processo_id,
       tipo: l.tipo,
+      tipo_nome: DEFS[l.tipo].nome,
       estado: l.estado,
       proposta: l.proposta,
-      dados: { ...l.dados, atividade_texto: ATIVIDADES[l.dados.atividade] },
-      dia: diaPorExtenso(l.dados.data),
+      dados: {
+        ...l.dados,
+        // Compatível com o ecrã antigo (ruído).
+        atividade_texto:
+          l.tipo === 'ruido'
+            ? ATIVIDADES[l.dados.atividade as Atividade]
+            : r.atividade,
+      },
+      resumo: r,
+      dia: l.tipo === 'ruido' ? diaPorExtenso(l.dados.data as string) : r.dia,
       avaliacao: l.avaliacao,
       config_usada: l.config_usada,
       taxa_cent: l.taxa_cent,
+      taxa_se_aprovada_cent: taxaDe(l).total_cent,
       titular: l.titular,
       telefone: l.telefone,
       conversa_id: l.conversa_id,
@@ -811,23 +1010,26 @@ export class LicencasService {
 
 export { esquemaConfigRuido };
 
-function diaPorExtenso(dia: string): string {
-  return new Intl.DateTimeFormat('pt-PT', {
-    timeZone: 'UTC',
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  }).format(new Date(`${dia}T12:00:00Z`));
-}
-
-function diaCurto(dia: string): string {
-  return new Intl.DateTimeFormat('pt-PT', {
-    timeZone: 'UTC',
-    weekday: 'short',
-    day: 'numeric',
-    month: 'short',
-  }).format(new Date(`${dia}T12:00:00Z`));
+/** A taxa da licença (as de ruído antigas não guardavam as linhas). */
+function taxaDe(l: Linha): { linhas: LinhaTaxa[]; total_cent: number } {
+  if (l.avaliacao.taxa) return l.avaliacao.taxa;
+  const v = l.config_usada.taxa_cent ?? 0;
+  return {
+    linhas:
+      v > 0
+        ? [
+            {
+              codigo: DEFS[l.tipo].codigo,
+              descricao: DEFS[l.tipo].nome,
+              unidade: 'fixo',
+              quantidade: 1,
+              valor_unitario_cent: v,
+              valor_cent: v,
+            },
+          ]
+        : [],
+    total_cent: v,
+  };
 }
 
 /** "Maria Silva" → "Maria S." (a página do QR é pública). */

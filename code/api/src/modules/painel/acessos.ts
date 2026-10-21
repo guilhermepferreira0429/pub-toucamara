@@ -39,6 +39,8 @@ const VERBOS: Record<string, string> = {
   recusar_licenca: 'recusou',
   aprovar_licenca: 'aprovou',
   mudar_regras_licenca: 'mudou as regras de',
+  carregar_historico_licencas_demonstracao:
+    'carregou pedidos antigos de demonstração de',
   ligou_assistente_ia: 'ligou um assistente de IA',
   desligou_assistente_ia: 'desligou um assistente de IA',
   ensinar_agente: 'propôs uma resposta nova ao agente em',
@@ -66,7 +68,7 @@ const OBJETOS: Record<string, string> = {
   campanha_destinatario: 'uma campanha',
   contacto_cuidado: 'ação social',
   licenca: 'uma licença',
-  licenca_regras: 'licença de ruído',
+  licenca_regras: 'uma licença',
   ligacao_ia: '',
   municipe: 'um munícipe',
   relatorio: 'um relatório',
