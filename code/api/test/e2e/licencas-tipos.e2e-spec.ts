@@ -451,11 +451,22 @@ describe('Licenças: outros tipos e simulação de regras (e2e)', () => {
       .set(chefe)
       .send({ ...atual.body.config, taxa_cent: 3000 })
       .expect(200);
+    // Os outros e2e podem ter pedido licenças de ruído na mesma BD.
+    const n = await linha<{ n: number }>(
+      ctx.db,
+      `SELECT count(*)::int AS n FROM licencas WHERE tipo = 'ruido'`,
+    );
+    const h = await linha<{ n: number }>(
+      ctx.db,
+      `SELECT count(*)::int AS n FROM licenca_historico WHERE tipo = 'ruido'`,
+    );
     expect(s.body).toMatchObject({
       tipo: 'ruido',
-      pedidos_de_demonstracao: 0,
-      total: 0,
+      total: (n?.n ?? 0) + (h?.n ?? 0),
     });
+    // Só muda a taxa: ninguém muda de decisão.
+    expect(s.body.deixam_de_ser_aprovados).toBe(0);
+    expect(s.body.passam_a_ser_aprovados).toBe(0);
   });
 
   it('permissões: técnico vê, mas não muda nem simula regras; atendimento não vê licenças', async () => {

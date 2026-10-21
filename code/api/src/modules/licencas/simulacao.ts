@@ -157,6 +157,9 @@ export function simular<C, D>(
         porque.push(`Deixa de contar: ${y.texto}`);
       }
     }
+    if (porque.length === 0 && a.decisao !== d.decisao) {
+      porque.push(`A resposta passa de "${a.decisao}" a "${d.decisao}".`);
+    }
     if (mudaTaxa) {
       porque.push(`Taxa cobrada: ${euros(taxaA)} → ${euros(taxaD)}.`);
     }

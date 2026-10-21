@@ -1,12 +1,17 @@
 import {
+  Body,
   Controller,
   Get,
   HttpCode,
   Module,
   OnModuleInit,
   Param,
+  ParseUUIDPipe,
   Post,
 } from '@nestjs/common';
+import { z } from 'zod';
+import { validar } from '../../common/validacao.js';
+import { esquemaRegrasZona } from './simulacao-pdm.js';
 import { MunicipioAtual, UtilizadorAtual } from '../../common/pedido.js';
 import type { UtilizadorPainel } from '../../common/pedido.js';
 import { ferramenta } from '../../ferramentas/ferramenta.js';
@@ -38,6 +43,19 @@ export class OrdenamentoPainelController {
     @UtilizadorAtual() u: UtilizadorPainel,
   ) {
     return this.ordenamento.carregarDemonstracao(m, u);
+  }
+
+  /** { regras } propostas para a zona → o que mudava nas perguntas antigas (não grava). */
+  @Post('zonas/:id/simular')
+  @HttpCode(200)
+  @Painel('conhecimento')
+  simular(
+    @MunicipioAtual() m: Municipio,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: unknown,
+  ) {
+    const { regras } = validar(z.object({ regras: esquemaRegrasZona }), body);
+    return this.ordenamento.simularZona(m, id, regras);
   }
 }
 
