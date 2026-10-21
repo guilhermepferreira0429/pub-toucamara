@@ -247,6 +247,7 @@ describe('Painel (e2e)', () => {
         reclamacoes: true,
         reunioes: true,
         contratacao: true,
+        transparencia: true,
       });
 
       const a = await ctx

@@ -36,6 +36,9 @@ export const PERMISSOES = {
   // Contratação pública (interno): a chefia e os técnicos que tratam das
   // compras; mudar os limiares e aprovar é da chefia (recurso 'agente').
   contratacao: ['tecnico', 'chefe_divisao'],
+  // Dados abertos: quem vê os indicadores vê o que se publica; ligar,
+  // desligar e publicar já é decisão da chefia.
+  transparencia: ['chefe_divisao'],
 } as const satisfies Record<string, readonly Perfil[]>;
 
 export type Recurso = keyof typeof PERMISSOES;

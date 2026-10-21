@@ -56,6 +56,7 @@ import { ProcedimentosModule } from './modules/procedimentos/procedimentos.modul
 import { ProcessosModule } from './modules/processos/processos.module.js';
 import { RelatoriosModule } from './modules/relatorios/relatorios.module.js';
 import { RequerimentosModule } from './modules/requerimentos/requerimentos.module.js';
+import { TransparenciaModule } from './modules/transparencia/transparencia.module.js';
 
 @Module({
   imports: [
@@ -121,6 +122,8 @@ import { RequerimentosModule } from './modules/requerimentos/requerimentos.modul
     ReclamacoesModule,
     ReunioesModule,
     ContratacaoModule,
+    // Transparência: dados abertos e indicadores no portal
+    TransparenciaModule,
   ],
   controllers: [AppController],
   providers: [AppService],

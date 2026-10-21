@@ -97,6 +97,9 @@ const VERBOS: Record<string, string> = {
   devolver_contratacao: 'devolveu ao rascunho',
   alterar_peca_contratacao: 'alterou uma peça de',
   mudar_regras_contratacao: 'mudou os limiares',
+  publicar_dados_abertos: 'publicou',
+  ligar_dados_abertos: 'ligou a publicação de',
+  desligar_dados_abertos: 'desligou a publicação de',
 };
 
 const OBJETOS: Record<string, string> = {
@@ -138,6 +141,7 @@ const OBJETOS: Record<string, string> = {
   contrato_publico: 'um contrato público',
   contratos_publicos: 'o registo de contratos públicos',
   contratacao_config: 'da contratação pública',
+  conjunto_dados: 'um conjunto de dados abertos',
 };
 
 export function frase(acao: string, objetoTipo: string): string {
