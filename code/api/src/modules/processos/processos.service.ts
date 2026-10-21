@@ -5,6 +5,7 @@ import {
   hojeLisboa,
   somarDiasUteis,
 } from '../../common/dias-uteis.js';
+import { gerarPdfOficio } from './oficio-pdf.js';
 import { ErroApi } from '../../common/erros.js';
 import { proximoNumero } from '../../common/numeracao.js';
 import { DatabaseService, Tx } from '../../database/database.service.js';
@@ -442,7 +443,7 @@ export class ProcessosService {
         'Processo não existe.',
       );
     }
-    const [eventos, docs, dias] = await Promise.all([
+    const [eventos, docs, dias, pagamento, avaliacao] = await Promise.all([
       this.db.query<{ em: Date; tipo: string; descricao: string }>(
         `SELECT em, tipo, descricao FROM processo_eventos
          WHERE processo_id = $1 AND NOT interno ORDER BY em, id`,
@@ -450,6 +451,11 @@ export class ProcessosService {
       ),
       this.emFalta(p),
       this.diasRestantes(municipioId, p.prazo_fim, p.fase),
+      this.pagamentoPublico(municipioId, p.id),
+      this.db.query<{ nota: number }>(
+        'SELECT nota FROM avaliacoes_servico WHERE processo_id = $1',
+        [p.id],
+      ),
     ]);
     return {
       municipio: p.municipio,
@@ -475,7 +481,144 @@ export class ProcessosService {
       linha_do_tempo: eventos,
       // A página envia documentos pelo token do requerimento (POST /public/requerimentos/:token/documentos).
       requerimento_token: p.requerimento_token,
+      // V2 · Pagar taxa: o último pagamento (o link abre a página de pagar).
+      pagamento,
+      // V2 · Decisão: o PDF e "como foi tratar disto connosco?".
+      decisao_pdf: !!p.decisao && FASES_FECHADAS.includes(p.fase),
+      avaliacao: avaliacao[0]?.nota ?? null,
     };
+  }
+
+  /** O pagamento mais recente do processo (pendente primeiro), com o código do link. */
+  private async pagamentoPublico(municipioId: string, processoId: string) {
+    const [pg] = await this.db.query<{
+      id: string;
+      estado: string;
+      valor_cent: number;
+      guia_numero: string | null;
+      pagar_ate: string | null;
+      pago_em: Date | null;
+      metodo: string | null;
+      modo_teste: boolean;
+    }>(
+      `SELECT pg.id, pg.estado::text AS estado, pg.valor_cent, pg.guia_numero,
+              to_char(pg.pagar_ate, 'YYYY-MM-DD') AS pagar_ate, pg.pago_em, pg.metodo::text AS metodo,
+              pg.modo_teste
+       FROM pagamentos pg
+       LEFT JOIN requerimentos r ON r.id = pg.requerimento_id
+       WHERE pg.processo_id = $1 OR r.processo_id = $1
+       ORDER BY (pg.estado = 'pendente') DESC, pg.criado_em DESC LIMIT 1`,
+      [processoId],
+    );
+    if (!pg || (pg.estado !== 'pendente' && pg.estado !== 'pago')) return null;
+    const { id, ...resto } = pg;
+    let codigo: string | null = null;
+    if (pg.estado === 'pendente') {
+      const [l] = await this.db.query<{ codigo: string }>(
+        `SELECT codigo FROM links_curtos
+         WHERE destino_tipo = 'pagamento' AND destino_id = $1 AND expira_em > now()
+         ORDER BY expira_em DESC LIMIT 1`,
+        [id],
+      );
+      codigo =
+        l?.codigo ??
+        (await this.links.criar(municipioId, 'pagamento', id)).codigo;
+    }
+    return { ...resto, codigo };
+  }
+
+  /** "Como foi tratar disto connosco?": uma vez por processo, depois da decisão. */
+  async avaliarPublico(codigo: string, nota: number) {
+    const { destinoId, municipioId } = await this.links.resolver(
+      codigo,
+      'processo',
+    );
+    const [p] = await this.db.query<{ fase: Fase; decisao: string | null }>(
+      'SELECT fase, decisao FROM processos WHERE id = $1 AND municipio_id = $2',
+      [destinoId, municipioId],
+    );
+    if (!p || !p.decisao || !FASES_FECHADAS.includes(p.fase)) {
+      throw new ErroApi(
+        HttpStatus.CONFLICT,
+        'processo_aberto',
+        'Só se avalia depois da decisão.',
+      );
+    }
+    await this.db.query(
+      `INSERT INTO avaliacoes_servico (municipio_id, processo_id, nota) VALUES ($1, $2, $3)
+       ON CONFLICT (processo_id) DO UPDATE SET nota = EXCLUDED.nota, criada_em = now()`,
+      [municipioId, destinoId, nota],
+    );
+    return { avaliacao: nota };
+  }
+
+  /**
+   * O PDF da decisão: o ofício assinado, se houver; senão a decisão em
+   * texto simples. A assinatura simulada vai escrita no documento.
+   */
+  async pdfDecisao(codigo: string): Promise<{ nome: string; pdf: Buffer }> {
+    const { destinoId, municipioId } = await this.links.resolver(
+      codigo,
+      'processo',
+    );
+    const [p] = await this.db.query<{
+      numero: string;
+      assunto: string;
+      tipo: string;
+      fase: Fase;
+      decisao: string | null;
+      decidido_em: Date | null;
+      municipio: string;
+      oficio: string | null;
+      assinado_por: string | null;
+      assinado_em: Date | null;
+      assinatura: string | null;
+    }>(
+      `SELECT p.numero, p.assunto, t.nome AS tipo, p.fase, p.decisao, p.decidido_em, m.nome AS municipio,
+              g.corpo AS oficio, u.nome AS assinado_por, g.assinado_em, g.assinatura::text AS assinatura
+       FROM processos p
+       JOIN tipos_processo t ON t.id = p.tipo_processo_id
+       JOIN municipios m ON m.id = p.municipio_id
+       LEFT JOIN LATERAL (
+         SELECT corpo, assinado_por, assinado_em, assinatura FROM documentos_gerados
+         WHERE processo_id = p.id AND tipo = 'oficio' AND estado IN ('assinado','enviado')
+         ORDER BY assinado_em DESC NULLS LAST LIMIT 1) g ON true
+       LEFT JOIN utilizadores u ON u.id = g.assinado_por
+       WHERE p.id = $1 AND p.municipio_id = $2`,
+      [destinoId, municipioId],
+    );
+    if (!p || !p.decisao || !FASES_FECHADAS.includes(p.fase)) {
+      throw new ErroApi(
+        HttpStatus.NOT_FOUND,
+        'sem_decisao',
+        'Este processo ainda não tem decisão.',
+      );
+    }
+    const quando = p.decidido_em ?? new Date();
+    const corpo =
+      p.oficio ??
+      [
+        `${p.tipo}: ${p.assunto}.`,
+        p.decisao === 'admitido'
+          ? 'A câmara municipal admitiu o pedido. Pode iniciar os trabalhos, cumprindo o projeto apresentado, as condições legais e os prazos aplicáveis.'
+          : 'A câmara municipal indeferiu o pedido. Para saber os motivos e o que pode fazer a seguir, contacte a câmara indicando o número do processo.',
+        'Conserve este documento durante a obra: pode ser-lhe pedido.',
+      ].join('\n\n');
+    const pdf = await gerarPdfOficio({
+      municipio: `Câmara Municipal de ${p.municipio}`,
+      titulo:
+        p.decisao === 'admitido' ? 'Decisão: admitido' : 'Decisão: indeferido',
+      numeroProcesso: p.numero,
+      assuntoProcesso: p.assunto,
+      data: quando.toISOString().slice(0, 10),
+      corpo,
+      aprovacao: {
+        por: p.assinado_por ?? 'a câmara municipal',
+        em: p.assinado_em ?? quando,
+        simulada: p.assinatura !== 'cmd' && p.assinatura !== 'cartao_cidadao',
+      },
+    });
+    return { nome: `decisao-${p.numero.replace(/\W+/g, '-')}.pdf`, pdf };
   }
 }
 

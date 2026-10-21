@@ -8,7 +8,9 @@ import {
   Patch,
   Post,
   Query,
+  StreamableFile,
 } from '@nestjs/common';
+import { z } from 'zod';
 import { MunicipioAtual, UtilizadorAtual } from '../../common/pedido.js';
 import type { UtilizadorPainel } from '../../common/pedido.js';
 import { validar } from '../../common/validacao.js';
@@ -230,5 +232,27 @@ export class ProcessosPublicoController {
   @Get(':codigo')
   ver(@Param('codigo') codigo: string) {
     return this.processos.publico(codigo);
+  }
+
+  /** V2 · Decisão: "Guarde a decisão". */
+  @Get(':codigo/decisao.pdf')
+  async decisaoPdf(@Param('codigo') codigo: string) {
+    const { nome, pdf } = await this.processos.pdfDecisao(codigo);
+    return new StreamableFile(pdf, {
+      type: 'application/pdf',
+      disposition: `inline; filename="${nome}"`,
+      length: pdf.length,
+    });
+  }
+
+  /** { nota: 1 (difícil) a 3 (fácil) } */
+  @Post(':codigo/avaliacao')
+  @HttpCode(200)
+  avaliar(@Param('codigo') codigo: string, @Body() body: unknown) {
+    const { nota } = validar(
+      z.object({ nota: z.number().int().min(1).max(3) }),
+      body,
+    );
+    return this.processos.avaliarPublico(codigo, nota);
   }
 }
