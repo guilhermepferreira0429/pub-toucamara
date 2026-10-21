@@ -246,6 +246,7 @@ describe('Painel (e2e)', () => {
         procedimentos: true,
         reclamacoes: true,
         reunioes: true,
+        contratacao: true,
       });
 
       const a = await ctx
@@ -261,6 +262,7 @@ describe('Painel (e2e)', () => {
         conhecimento: false,
         equipa: false,
         agente: false,
+        contratacao: false,
       });
     });
 

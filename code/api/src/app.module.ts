@@ -49,6 +49,7 @@ import { ApoiosModule } from './modules/apoios/apoios.module.js';
 import { OrdenamentoModule } from './modules/ordenamento/ordenamento.module.js';
 import { ReclamacoesModule } from './modules/reclamacoes/reclamacoes.module.js';
 import { ReunioesModule } from './modules/reunioes/reunioes.module.js';
+import { ContratacaoModule } from './modules/contratacao/contratacao.module.js';
 import { PortaIasModule } from './modules/porta-ias/porta-ias.module.js';
 import { PerguntasChefiaModule } from './modules/perguntas-chefia/perguntas-chefia.module.js';
 import { ProcedimentosModule } from './modules/procedimentos/procedimentos.module.js';
@@ -119,6 +120,7 @@ import { RequerimentosModule } from './modules/requerimentos/requerimentos.modul
     PortaIasModule,
     ReclamacoesModule,
     ReunioesModule,
+    ContratacaoModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -33,6 +33,9 @@ export const PERMISSOES = {
   // vereadores e quem secretaria (os serviços administrativos, perfil
   // 'atendimento': não há um perfil próprio de secretariado).
   reunioes: ['atendimento', 'chefe_divisao', 'vereador'],
+  // Contratação pública (interno): a chefia e os técnicos que tratam das
+  // compras; mudar os limiares e aprovar é da chefia (recurso 'agente').
+  contratacao: ['tecnico', 'chefe_divisao'],
 } as const satisfies Record<string, readonly Perfil[]>;
 
 export type Recurso = keyof typeof PERMISSOES;

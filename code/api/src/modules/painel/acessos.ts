@@ -92,6 +92,11 @@ const VERBOS: Record<string, string> = {
   editar_ata: 'editou',
   aprovar_ata: 'aprovou',
   publicar_ata: 'publicou',
+  importar_contratos_base: 'importou contratos do portal BASE para',
+  enviar_revisao_contratacao: 'enviou para revisão jurídica',
+  devolver_contratacao: 'devolveu ao rascunho',
+  alterar_peca_contratacao: 'alterou uma peça de',
+  mudar_regras_contratacao: 'mudou os limiares',
 };
 
 const OBJETOS: Record<string, string> = {
@@ -129,6 +134,10 @@ const OBJETOS: Record<string, string> = {
   reclamacoes_config: 'as reclamações',
   reuniao: 'uma reunião',
   ata: 'uma ata',
+  procedimento_contratacao: 'um procedimento de contratação pública',
+  contrato_publico: 'um contrato público',
+  contratos_publicos: 'o registo de contratos públicos',
+  contratacao_config: 'da contratação pública',
 };
 
 export function frase(acao: string, objetoTipo: string): string {

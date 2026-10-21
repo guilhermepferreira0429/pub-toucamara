@@ -7,6 +7,7 @@ import { RegistoFerramentas } from '../../ferramentas/registo-ferramentas.servic
 import { ClaudeService } from '../../ia/claude.service.js';
 import { AuditoriaService } from '../auditoria/auditoria.service.js';
 import type { ResultadoPesquisa } from '../conhecimento/conhecimento.service.js';
+import { ContratacaoService } from '../contratacao/contratacao.service.js';
 import type { Municipio } from '../municipios/municipios.service.js';
 import {
   conteudoAssistente,
@@ -83,6 +84,7 @@ export class AssistenteService {
     private readonly claude: ClaudeService,
     private readonly auditoria: AuditoriaService,
     private readonly procedimentos: ProcedimentosService,
+    private readonly contratacao: ContratacaoService,
   ) {}
 
   async perguntar(
@@ -90,6 +92,12 @@ export class AssistenteService {
     u: UtilizadorPainel,
     { pergunta }: z.output<typeof esquemaPerguntar>,
   ) {
+    // "Cabe no ajuste direto?" com um valor: responde o motor da contratação
+    // pública (regras do município, sem IA), não os procedimentos escritos.
+    const contratacao = await this.contratacao.responderPergunta(m, pergunta);
+    if (contratacao)
+      return this.registarContratacao(m, u, pergunta, contratacao);
+
     const [procs, pesquisa] = await Promise.all([
       this.procedimentos.procurar(m.id, pergunta, MAX_PROCEDIMENTOS),
       this.conhecimento(m, pergunta),
@@ -239,6 +247,34 @@ export class AssistenteService {
       resposta,
       fontes,
       perguntar_a: perguntarA,
+      criada_em: linha.criada_em,
+    };
+  }
+
+  private async registarContratacao(
+    m: Municipio,
+    u: UtilizadorPainel,
+    pergunta: string,
+    c: NonNullable<
+      Awaited<ReturnType<ContratacaoService['responderPergunta']>>
+    >,
+  ) {
+    const [linha] = await this.db.query<{ id: string; criada_em: string }>(
+      `INSERT INTO assistente_perguntas (municipio_id, utilizador_id, pergunta, resposta, modo, fontes, estado, perguntar_a)
+       VALUES ($1, $2, $3, $4, 'sem_ia', '[]', 'respondida', '[]') RETURNING id, criada_em`,
+      [m.id, u.id, pergunta, c.resposta],
+    );
+    return {
+      id: linha.id,
+      pergunta,
+      modo: 'sem_ia' as const,
+      ia: false,
+      motivo_sem_ia: null,
+      estado: 'respondida' as const,
+      resposta: c.resposta,
+      fontes: [] as FonteAssistente[],
+      perguntar_a: [] as QuemPerguntar[],
+      contratacao: c.contratacao,
       criada_em: linha.criada_em,
     };
   }

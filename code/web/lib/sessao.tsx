@@ -34,7 +34,8 @@ export type Recurso =
   | "procedimentos_ver"
   | "procedimentos"
   | "reclamacoes"
-  | "reunioes";
+  | "reunioes"
+  | "contratacao";
 
 export type Perfil =
   | "atendimento"
@@ -42,7 +43,7 @@ export type Perfil =
   | "chefe_divisao"
   | "vereador"
   | "equipa_toucamara"
-  | "admin";
+  | "admin"
 
 export interface Eu {
   utilizador: {
