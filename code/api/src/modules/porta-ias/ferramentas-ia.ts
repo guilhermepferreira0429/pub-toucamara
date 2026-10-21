@@ -11,6 +11,7 @@ export const FERRAMENTAS_PUBLICAS = [
   'encaminhar',
   'simular_taxa',
   'ver_vagas',
+  'o_que_posso_fazer',
 ] as const;
 
 /** Com a chave pessoal: as ações em nome da pessoa. */
@@ -38,6 +39,7 @@ export const SO_LEITURA = new Set<string>([
   'encaminhar',
   'simular_taxa',
   'ver_vagas',
+  'o_que_posso_fazer',
   'estado_ocorrencia',
   'estado_processo',
   'redigir',
@@ -49,6 +51,7 @@ export const TITULOS: Record<string, string> = {
   encaminhar: 'Que entidade trata disto',
   simular_taxa: 'Simular uma taxa municipal',
   ver_vagas: 'Ver vagas para atendimento',
+  o_que_posso_fazer: 'O que posso fazer nesta morada (PDM)',
   registar_ocorrencia: 'Registar um problema na via pública',
   estado_ocorrencia: 'Estado de uma ocorrência',
   estado_processo: 'Estado de um processo',
@@ -106,6 +109,8 @@ export function resumirPedido(
       return 'Simulou uma taxa';
     case 'ver_vagas':
       return 'Viu vagas para atendimento';
+    case 'o_que_posso_fazer':
+      return `Perguntou o que pode fazer em ${texto(entrada.morada, 60) ?? '…'}`;
     case 'registar_ocorrencia':
       if (r.registada === false) return 'Ocorrência por classificar';
       return `${r.duplicada ? 'Juntou a ocorrência' : 'Registou a ocorrência'} ${texto(r.numero) ?? ''}: ${texto(entrada.categoria, 40) ?? ''} em ${texto(entrada.morada, 60) ?? '…'}`.replace(
