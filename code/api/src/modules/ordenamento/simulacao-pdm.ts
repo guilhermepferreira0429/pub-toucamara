@@ -28,6 +28,8 @@ export interface ConsultaAntiga {
   medidas: { area_m2?: number; altura_m?: number };
 }
 
+const virgula = (v: number) => String(v).replace('.', ',');
+
 function resultado(regras: RegrasZona, c: ConsultaAntiga) {
   const a = avaliarObra(regras[c.obra], c.medidas);
   const controlo = a.controlo;
@@ -64,8 +66,10 @@ export function simularZona(
     {
       exemplos: 10,
       resumir: (d) =>
-        `${OBRAS[d.obra]}${d.medidas.area_m2 ? ` · ${d.medidas.area_m2} m²` : ''}${
-          d.medidas.altura_m ? ` · ${d.medidas.altura_m} m de altura` : ''
+        `${OBRAS[d.obra]}${d.medidas.area_m2 ? ` · ${virgula(d.medidas.area_m2)} m²` : ''}${
+          d.medidas.altura_m
+            ? ` · ${virgula(d.medidas.altura_m)} m de altura`
+            : ''
         }`,
     },
   );
