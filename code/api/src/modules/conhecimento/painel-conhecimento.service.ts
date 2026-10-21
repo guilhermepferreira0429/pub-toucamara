@@ -995,6 +995,15 @@ export class PainelConhecimentoService {
                      THEN coalesce(fo.ultima_leitura_em + fo.ler_a_cada, now()) END AS proxima_leitura_em,
                 fo.entidade_id, e.nome AS entidade,
                 (SELECT count(*) FROM fonte_versoes v WHERE v.fonte_id = fo.id)::int AS versoes,
+                (SELECT count(DISTINCT rv.resposta_id) FROM resposta_fontes rf
+                 JOIN resposta_versoes rv ON rv.id = rf.resposta_versao_id
+                 JOIN trechos t ON t.id = rf.trecho_id
+                 JOIN fonte_versoes v ON v.id = t.fonte_versao_id
+                 WHERE v.fonte_id = fo.id)::int AS respostas,
+                (SELECT count(*) FROM citacoes ci
+                 JOIN trechos t ON t.id = ci.trecho_id
+                 JOIN fonte_versoes v ON v.id = t.fonte_versao_id
+                 WHERE v.fonte_id = fo.id)::int AS citacoes,
                 (SELECT count(*) FROM alteracoes a
                  WHERE a.fonte_id = fo.id AND a.estado = 'por_rever')::int AS alteracoes_por_rever
          FROM fontes fo JOIN entidades e ON e.id = fo.entidade_id

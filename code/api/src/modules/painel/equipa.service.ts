@@ -1,3 +1,5 @@
+import { ACOES_DADOS_PESSOAIS, frase, ligacao } from './acessos.js';
+import { Cursor, pagina } from '../../common/paginacao.js';
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { ErroApi } from '../../common/erros.js';
 import type { UtilizadorPainel } from '../../common/pedido.js';
@@ -102,6 +104,65 @@ export class EquipaService {
     private readonly auth: AuthService,
     private readonly auditoria: AuditoriaService,
   ) {}
+
+  /** "Registo de acessos": quem viu e alterou o quê (só se acrescenta). */
+  async acessos(
+    m: Municipio,
+    f: { limite: number; cursor: Cursor | null; so_dados_pessoais: boolean },
+  ) {
+    const linhas = await this.db.query<{
+      id: string;
+      em: Date;
+      ator_tipo: string;
+      ator_nome: string | null;
+      acao: string;
+      objeto_tipo: string;
+      objeto_id: string;
+      ip: string | null;
+    }>(
+      `SELECT a.id::text AS id, a.em, a.ator_tipo::text AS ator_tipo, u.nome AS ator_nome,
+              a.acao, a.objeto_tipo, a.objeto_id, host(a.ip) AS ip
+       FROM audit_log a
+       LEFT JOIN utilizadores u ON a.ator_tipo = 'utilizador' AND u.id::text = a.ator_id::text
+       WHERE a.municipio_id = $1
+         AND (NOT $2::boolean OR a.acao = ANY($3::text[]))
+         AND ($4::timestamptz IS NULL OR (a.em, a.id) < ($4::timestamptz, $5::bigint))
+       ORDER BY a.em DESC, a.id DESC
+       LIMIT $6`,
+      [
+        m.id,
+        f.so_dados_pessoais,
+        ACOES_DADOS_PESSOAIS,
+        f.cursor?.em ?? null,
+        f.cursor?.id ?? null,
+        f.limite + 1,
+      ],
+    );
+    const p = pagina(linhas, f.limite, (l) => ({ em: l.em, id: l.id }));
+    return {
+      ...p,
+      itens: p.itens.map((l) => ({
+        id: l.id,
+        em: l.em.toISOString(),
+        quem:
+          l.ator_tipo === 'utilizador'
+            ? (l.ator_nome ?? 'Utilizador removido')
+            : l.ator_tipo === 'municipe'
+              ? 'Munícipe'
+              : l.ator_tipo === 'agente'
+                ? 'Agente'
+                : 'Sistema',
+        ator_tipo: l.ator_tipo,
+        acao: l.acao,
+        frase: frase(l.acao, l.objeto_tipo),
+        dados_pessoais: (ACOES_DADOS_PESSOAIS as readonly string[]).includes(
+          l.acao,
+        ),
+        ligacao: ligacao(l.objeto_tipo, l.objeto_id),
+        ip: l.ip,
+      })),
+    };
+  }
 
   listar(m: Municipio) {
     return this.db.query(

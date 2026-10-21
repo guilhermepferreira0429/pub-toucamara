@@ -50,7 +50,7 @@ export function IndicadoresProcessos({ visao }: { visao?: VisaoGeral }) {
             rotulo="tempo médio até à decisão"
             detalhe={
               t.total.decididos
-                ? `dias úteis · mediana ${decimal(t.total.mediana_dias_uteis, 0)} · ${numero(t.total.decididos)} decididos em 90 dias`
+                ? `dias úteis · mediana ${decimal(t.total.mediana_dias_uteis, 0)} · ${pct(t.total.dentro_do_prazo_pct)} dentro do prazo`
                 : "Ainda sem decisões nos últimos 90 dias"
             }
           />
@@ -74,12 +74,14 @@ export function IndicadoresProcessos({ visao }: { visao?: VisaoGeral }) {
         {t ? (
           <CartaoNumero
             escuro
-            valor={pct(t.total.dentro_do_prazo_pct)}
-            rotulo="decididos dentro do prazo"
+            valor={pct(t.completos_a_primeira.pct)}
+            rotulo="pedidos completos à primeira"
             detalhe={
-              t.total.com_prazo
-                ? `${numero(t.total.com_prazo)} decisões com prazo legal`
-                : "Sem decisões com prazo nos últimos 90 dias"
+              t.completos_a_primeira.total
+                ? t.completos_a_primeira.pelo_agente.total && t.completos_a_primeira.outros_canais.total
+                  ? `pelo agente ${pct(t.completos_a_primeira.pelo_agente.pct)} · outros canais ${pct(t.completos_a_primeira.outros_canais.pct)}`
+                  : `${numero(t.completos_a_primeira.completos)} de ${numero(t.completos_a_primeira.total)} entraram sem faltar nada`
+                : "Ainda sem pedidos nos últimos 90 dias"
             }
             corDetalhe="text-[#9FD3A8]"
           />
@@ -283,7 +285,7 @@ function Prazos({
       className="w-full shrink-0 xl:w-[440px]"
       acao={
         <Link
-          href="/painel/processos"
+          href="/painel/processos?a_terminar=true"
           className="shrink-0 text-[13px] font-semibold text-terracota-escuro hover:underline"
         >
           Ver processos

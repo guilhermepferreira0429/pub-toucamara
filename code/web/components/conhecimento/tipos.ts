@@ -291,6 +291,9 @@ export interface Fonte {
   entidade_id: string;
   entidade: string;
   versoes: number;
+  /** Respostas curadas que citam esta fonte e citações em conversas. */
+  respostas?: number;
+  citacoes?: number;
   alteracoes_por_rever: number;
 }
 

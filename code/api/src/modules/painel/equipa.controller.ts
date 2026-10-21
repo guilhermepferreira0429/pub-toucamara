@@ -7,8 +7,10 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  Query,
 } from '@nestjs/common';
 import { z } from 'zod';
+import { esquemaPaginacao } from '../../common/paginacao.js';
 import { MunicipioAtual, UtilizadorAtual } from '../../common/pedido.js';
 import type { UtilizadorPainel } from '../../common/pedido.js';
 import { validar } from '../../common/validacao.js';
@@ -44,6 +46,24 @@ export class EquipaController {
   @Painel('equipa')
   listar(@MunicipioAtual() m: Municipio) {
     return this.equipa.listar(m).then((itens) => ({ itens }));
+  }
+
+  /** ?so_dados_pessoais=true&limite=&cursor= */
+  @Get('equipa/acessos')
+  @Painel('equipa')
+  acessos(@MunicipioAtual() m: Municipio, @Query() query: unknown) {
+    return this.equipa.acessos(
+      m,
+      validar(
+        esquemaPaginacao.extend({
+          so_dados_pessoais: z
+            .enum(['true', 'false'])
+            .default('false')
+            .transform((v) => v === 'true'),
+        }),
+        query,
+      ),
+    );
   }
 
   /**

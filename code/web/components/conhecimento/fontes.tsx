@@ -298,6 +298,13 @@ export function Fontes() {
                 <div className="mt-auto flex flex-wrap items-center justify-between gap-2 border-t border-linha pt-2.5">
                   <span className="text-xs font-semibold text-tinta">
                     {f.versoes} {f.versoes === 1 ? "versão" : "versões"}
+                    {typeof f.respostas === "number" && (
+                      <span className="font-normal text-tinta-2">
+                        {" "}
+                        · usada em {f.respostas} {f.respostas === 1 ? "resposta" : "respostas"}
+                        {f.citacoes ? ` · citada ${f.citacoes}×` : ""}
+                      </span>
+                    )}
                   </span>
                   <a href={f.url} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-xs text-tinta-3 hover:text-tinta">
                     {anfitriao(f.url)}

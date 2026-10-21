@@ -19,6 +19,8 @@ import {
   useAcao,
   useDados,
   useEquipaInterna,
+  useMais,
+  type Pagina,
 } from "@/components/conhecimento/comum";
 import { useSessao, type Perfil } from "@/lib/sessao";
 
@@ -391,6 +393,74 @@ function DadosPessoais() {
   );
 }
 
+interface Acesso {
+  id: string;
+  em: string;
+  quem: string;
+  ator_tipo: string;
+  acao: string;
+  frase: string;
+  dados_pessoais: boolean;
+  ligacao: string | null;
+  ip: string | null;
+}
+
+/** "Registo de acessos": quem viu e alterou o quê (só se acrescenta). */
+function RegistoAcessos() {
+  const [soPessoais, setSoPessoais] = useState(true);
+  const base = `/v1/painel/equipa/acessos?limite=20&so_dados_pessoais=${soPessoais}`;
+  const r = useDados<Pagina<Acesso>>(base);
+  const mais = useMais(base, r);
+  return (
+    <Cartao className="flex flex-col">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-linha px-6 py-4">
+        <div>
+          <h2 className="font-display text-[19px] font-bold text-tinta">Registo de acessos</h2>
+          <p className="text-[13px] text-tinta-3">
+            Cada vez que alguém ouve uma gravação, vê dados de uma pessoa ou muda alguma coisa, fica aqui. Não se apaga.
+          </p>
+        </div>
+        <label className="flex items-center gap-2 text-[13px] font-semibold text-tinta">
+          Só dados pessoais
+          <Interruptor ligado={soPessoais} onMudar={setSoPessoais} rotulo="Só dados pessoais" />
+        </label>
+      </div>
+      <Estado aCarregar={r.aCarregar} erro={r.erro} vazio={r.dados?.itens.length === 0} textoVazio="Ainda não há acessos registados.">
+        <ul className="divide-y divide-linha">
+          {(r.dados?.itens ?? []).map((a) => (
+            <li key={a.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-6 py-2.5 text-[13px]">
+              <span className="w-28 shrink-0 text-tinta-3">{quando(a.em)}</span>
+              <span className="font-semibold text-tinta">{a.quem}</span>
+              <span className="text-tinta-2">
+                {a.ligacao ? (
+                  <a href={a.ligacao} className="hover:underline">
+                    {a.frase}
+                  </a>
+                ) : (
+                  a.frase
+                )}
+              </span>
+              {a.dados_pessoais && (
+                <span className="rounded-full bg-terracota-suave px-2 py-0.5 text-[11px] font-bold text-terracota-escuro">
+                  dados pessoais
+                </span>
+              )}
+              {a.ip && <span className="ml-auto font-mono text-[11px] text-tinta-3">{a.ip}</span>}
+            </li>
+          ))}
+        </ul>
+        {mais.haMais && (
+          <div className="border-t border-linha px-6 py-3">
+            <Botao variante="discreto" tamanho="pequeno" disabled={mais.aCorrer} onClick={mais.mais}>
+              Ver mais
+            </Botao>
+          </div>
+        )}
+      </Estado>
+    </Cartao>
+  );
+}
+
 /** "Equipa e acessos" (frame V2): equipa, permissões, gestão documental e RGPD. */
 export function PaginaEquipa() {
   const { eu, pode } = useSessao();
@@ -533,6 +603,8 @@ export function PaginaEquipa() {
           <GestaoDocumental />
           <DadosPessoais />
         </div>
+
+        <RegistoAcessos />
       </div>
 
       <Dialogo titulo="Convidar pessoa" aberto={convidar} onFechar={() => setConvidar(false)}>
