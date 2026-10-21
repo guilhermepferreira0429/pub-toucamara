@@ -242,6 +242,8 @@ describe('Painel (e2e)', () => {
         equipa: true,
         agente: true,
         acao_social: true,
+        procedimentos_ver: true,
+        procedimentos: true,
       });
 
       const a = await ctx

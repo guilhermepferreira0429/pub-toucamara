@@ -55,6 +55,11 @@ const VERBOS: Record<string, string> = {
   alterar_perguntas_camara: 'mudou',
   juntar_familiar: 'juntou um familiar a',
   alterar_agente: 'alterou',
+  arquivar: 'arquivou',
+  iniciar_entrevista: 'começou',
+  concluir_entrevista: 'concluiu',
+  cancelar_entrevista: 'cancelou',
+  tratar_lacuna: 'tratou',
 };
 
 const OBJETOS: Record<string, string> = {
@@ -78,6 +83,9 @@ const OBJETOS: Record<string, string> = {
   perguntas_camara: 'as perguntas da câmara',
   juncao_familiar: 'uma chamada',
   agente_config: 'o agente',
+  procedimento: 'um procedimento interno',
+  entrevista: 'uma entrevista sobre um procedimento',
+  assistente_pergunta: 'uma pergunta sem resposta do assistente interno',
 };
 
 export function frase(acao: string, objetoTipo: string): string {
@@ -99,6 +107,10 @@ export function ligacao(objetoTipo: string, objetoId: string): string | null {
       return `/painel/processos/${objetoId}`;
     case 'campanha':
       return `/painel/campanhas/${objetoId}`;
+    case 'procedimento':
+      return `/painel/procedimentos/${objetoId}`;
+    case 'entrevista':
+      return `/painel/procedimentos/entrevistas/${objetoId}`;
     default:
       return null;
   }
