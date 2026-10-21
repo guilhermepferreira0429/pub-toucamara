@@ -37,6 +37,7 @@ const CANAL_ROTULO: Record<string, string> = {
   email: "por email",
   balcao: "ao balcão",
   whatsapp: "por WhatsApp",
+  ia: "por um assistente de IA",
 };
 
 const Mapa = dynamic(() => import("./mapa-ocorrencias"), {

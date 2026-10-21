@@ -39,6 +39,7 @@ import { MunicipiosModule } from './modules/municipios/municipios.module.js';
 import { OcorrenciasModule } from './modules/ocorrencias/ocorrencias.module.js';
 import { PagamentosModule } from './modules/pagamentos/pagamentos.module.js';
 import { PainelModule } from './modules/painel/painel.module.js';
+import { PortaIasModule } from './modules/porta-ias/porta-ias.module.js';
 import { PerguntasChefiaModule } from './modules/perguntas-chefia/perguntas-chefia.module.js';
 import { ProcessosModule } from './modules/processos/processos.module.js';
 import { RelatoriosModule } from './modules/relatorios/relatorios.module.js';
@@ -93,6 +94,8 @@ import { RequerimentosModule } from './modules/requerimentos/requerimentos.modul
     ModelosModule,
     IntegracoesModule,
     AvisosZonaModule,
+    // Porta para as IAs (MCP)
+    PortaIasModule,
   ],
   controllers: [AppController],
   providers: [AppService],

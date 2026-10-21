@@ -15,6 +15,7 @@ import {
   Megaphone,
   MessagesSquare,
   Search,
+  Sparkles,
   Users,
   type LucideIcon,
 } from "lucide-react";
@@ -81,6 +82,12 @@ const SECCOES: Seccao[] = [
         icone: Inbox,
         recurso: "entrada",
         contagem: "entrada",
+      },
+      {
+        rotulo: "Porta para as IAs",
+        href: "/painel/ias",
+        icone: Sparkles,
+        recurso: "conversas",
       },
     ],
   },

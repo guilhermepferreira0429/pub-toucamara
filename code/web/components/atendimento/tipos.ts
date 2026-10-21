@@ -8,7 +8,7 @@ export interface Pagina<T> {
   proximo_cursor: string | null;
 }
 
-export type Canal = "telefone" | "chat" | "sms" | "email" | "balcao" | "whatsapp";
+export type Canal = "telefone" | "chat" | "sms" | "email" | "balcao" | "whatsapp" | "ia";
 
 export type Resultado =
   | "em_curso"

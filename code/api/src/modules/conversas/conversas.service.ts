@@ -6,7 +6,7 @@ import {
 } from '../municipes/municipes.service.js';
 
 export type Canal =
-  'telefone' | 'chat' | 'sms' | 'email' | 'balcao' | 'whatsapp';
+  'telefone' | 'chat' | 'sms' | 'email' | 'balcao' | 'whatsapp' | 'ia';
 
 export type TipoMomento =
   | 'consentimento'

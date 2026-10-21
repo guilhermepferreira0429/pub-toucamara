@@ -9,6 +9,7 @@ import {
   Phone,
   PhoneOff,
   Siren,
+  Sparkles,
   Store,
   UserRound,
   type LucideIcon,
@@ -172,6 +173,7 @@ export const CANAIS: Record<string, { rotulo: string; icone: LucideIcon }> = {
   email: { rotulo: "Email", icone: Mail },
   balcao: { rotulo: "Balcão", icone: Store },
   whatsapp: { rotulo: "WhatsApp", icone: MessageCircle },
+  ia: { rotulo: "Assistente de IA", icone: Sparkles },
 };
 
 export function canal(c: string) {

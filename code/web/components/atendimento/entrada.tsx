@@ -12,6 +12,7 @@ import {
   MessageCircle,
   MessagesSquare,
   Phone,
+  Sparkles,
   Store,
   UserRound,
   type LucideIcon,
@@ -36,6 +37,7 @@ const ICONES_CANAL: Record<string, { icone: LucideIcon; rotulo: string }> = {
   chat: { icone: MessageCircle, rotulo: "Chat" },
   email: { icone: Mail, rotulo: "Email" },
   balcao: { icone: Store, rotulo: "Balcão" },
+  ia: { icone: Sparkles, rotulo: "Assistente de IA" },
 };
 
 const TIPOS: Record<TipoItem, { rotulo: string; tom: Tom; icone: LucideIcon }> = {

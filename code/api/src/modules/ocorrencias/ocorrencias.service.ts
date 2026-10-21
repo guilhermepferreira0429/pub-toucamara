@@ -224,7 +224,7 @@ export class OcorrenciasService {
 
     const comoJuntarFoto = r.smsEnviado
       ? 'Vai receber um SMS com um link para juntar uma fotografia, se puder.'
-      : ctx.canal === 'chat'
+      : ctx.canal !== 'telefone'
         ? `Pode juntar uma fotografia neste link: ${r.link.url}`
         : 'Não há um número de telemóvel para enviar o link da fotografia.';
     return {
@@ -234,7 +234,7 @@ export class OcorrenciasService {
       duplicada: !!r.original,
       localizada_no_mapa: !!coords,
       sms_enviado: r.smsEnviado,
-      ...(ctx.canal === 'chat' ? { link_foto: r.link.url } : {}),
+      ...(ctx.canal !== 'telefone' ? { link_foto: r.link.url } : {}),
       dizer: r.original
         ? `Esse problema já está reportado, com o número ${r.numeroVisivel}. Juntámos o seu aviso e vai ser avisado quando estiver resolvido. ${comoJuntarFoto}`
         : `Fica registada com o número ${r.numeroVisivel}. ${comoJuntarFoto}`,
