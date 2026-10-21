@@ -11,6 +11,7 @@ import { CampanhasService, entradaResposta } from './campanhas.service.js';
 @Module({
   controllers: [CampanhasController],
   providers: [CampanhasService],
+  exports: [CampanhasService],
 })
 export class CampanhasModule implements OnModuleInit {
   constructor(

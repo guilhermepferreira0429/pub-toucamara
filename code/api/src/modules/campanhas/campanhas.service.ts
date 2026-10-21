@@ -82,6 +82,18 @@ export const entradaResposta = z.object({
     ),
 });
 
+/** Uma pessoa a quem ligar (`contacto_id` nulo: não está na lista da ação social). */
+export interface AlvoCampanha {
+  contacto_id: string | null;
+  municipe_id: string;
+  telefone: string | null;
+  aceita_chamadas: boolean;
+  /** Link para o contexto da chamada (o agente pode dizê-lo ou mandá-lo). */
+  link?: string;
+  /** O que o agente deve saber desta pessoa (antes das perguntas). */
+  nota?: string;
+}
+
 /** Campanhas de 9h às 21h, todos os dias (o calor não espera por segunda). */
 const HORA_INICIO = 9;
 const HORA_FIM = 21;
@@ -273,97 +285,113 @@ export class CampanhasService {
           'Não há pessoas inscritas para estas freguesias.',
         );
       }
-      const [c] = await tx.query<{ id: string }>(
-        `INSERT INTO campanhas (municipio_id, tipo, titulo, mensagem, perguntas, sms_recurso,
+      return this.lancar(tx, m, u, d, alvo, agora);
+    });
+  }
+
+  /**
+   * Lança uma campanha para uma lista já escolhida (p. ex. os apoios: quem
+   * tinha direito e não pediu). `contacto_id` pode faltar (munícipes fora da
+   * lista da ação social); `link` e `nota` vão no contexto da chamada.
+   */
+  async lancar(
+    tx: Tx,
+    m: Municipio,
+    u: UtilizadorPainel,
+    d: z.output<typeof esquemaCampanha>,
+    alvo: AlvoCampanha[],
+    agora = new Date(),
+  ) {
+    const [c] = await tx.query<{ id: string }>(
+      `INSERT INTO campanhas (municipio_id, tipo, titulo, mensagem, perguntas, sms_recurso,
            freguesias, ignorar_horario, criada_por)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id`,
+      [
+        m.id,
+        d.tipo,
+        d.titulo,
+        d.mensagem,
+        JSON.stringify(d.perguntas),
+        d.sms_recurso,
+        d.freguesias?.length ? d.freguesias : null,
+        d.ignorar_horario,
+        u.id,
+      ],
+    );
+    const quando = d.ignorar_horario
+      ? agora
+      : proximaHoraCampanha(agora, m.fuso);
+    let aLigar = 0;
+    for (const a of alvo) {
+      const destId = randomUUID();
+      if (!telefoneLigavel(a.telefone)) {
+        await tx.query(
+          `INSERT INTO campanha_destinatarios (id, campanha_id, contacto_id, municipe_id, estado)
+             VALUES ($1, $2, $3, $4, 'sem_ligacao')`,
+          [destId, c.id, a.contacto_id, a.municipe_id],
+        );
+        continue;
+      }
+      const contexto: ContextoChamada = {
+        numero_processo: '',
+        o_que_mudou: d.mensagem,
+        o_que_falta: '',
+        prazo: '',
+        link: a.link ?? '',
+        nota: `${a.nota ? `${a.nota} ` : ''}Perguntas: ${d.perguntas.join(' ')} No fim, regista a resposta com resposta_campanha.`,
+        campanha: {
+          id: c.id,
+          destinatario_id: destId,
+          perguntas: d.perguntas,
+        },
+      };
+      const chave = `campanha:${destId}`;
+      // A recusa de chamadas é tratada pelo job (cancela e manda o SMS).
+      const [ch] = await tx.query<{ id: string }>(
+        `INSERT INTO chamadas_saida (municipio_id, municipe_id, telefone_e164, motivo, contexto,
+             recurso, agendada_para, forcar_horario, chave, criada_por)
+           VALUES ($1, $2, $3, 'campanha', $4, $5, $6, true, $7, $8) RETURNING id`,
         [
           m.id,
-          d.tipo,
-          d.titulo,
-          d.mensagem,
-          JSON.stringify(d.perguntas),
-          d.sms_recurso,
-          d.freguesias?.length ? d.freguesias : null,
-          d.ignorar_horario,
+          a.municipe_id,
+          a.telefone,
+          JSON.stringify(contexto),
+          JSON.stringify({
+            corpo: d.sms_recurso,
+            chave,
+            motivo: 'aviso',
+            relacionado: { campanha_id: c.id },
+          }),
+          quando,
+          chave,
           u.id,
         ],
       );
-      const quando = d.ignorar_horario
-        ? agora
-        : proximaHoraCampanha(agora, m.fuso);
-      let aLigar = 0;
-      for (const a of alvo) {
-        const destId = randomUUID();
-        if (!telefoneLigavel(a.telefone)) {
-          await tx.query(
-            `INSERT INTO campanha_destinatarios (id, campanha_id, contacto_id, municipe_id, estado)
-             VALUES ($1, $2, $3, $4, 'sem_ligacao')`,
-            [destId, c.id, a.contacto_id, a.municipe_id],
-          );
-          continue;
-        }
-        const contexto: ContextoChamada = {
-          numero_processo: '',
-          o_que_mudou: d.mensagem,
-          o_que_falta: '',
-          prazo: '',
-          link: '',
-          nota: `Perguntas: ${d.perguntas.join(' ')} No fim, regista a resposta com resposta_campanha.`,
-          campanha: {
-            id: c.id,
-            destinatario_id: destId,
-            perguntas: d.perguntas,
-          },
-        };
-        const chave = `campanha:${destId}`;
-        // A recusa de chamadas é tratada pelo job (cancela e manda o SMS).
-        const [ch] = await tx.query<{ id: string }>(
-          `INSERT INTO chamadas_saida (municipio_id, municipe_id, telefone_e164, motivo, contexto,
-             recurso, agendada_para, forcar_horario, chave, criada_por)
-           VALUES ($1, $2, $3, 'campanha', $4, $5, $6, true, $7, $8) RETURNING id`,
-          [
-            m.id,
-            a.municipe_id,
-            a.telefone,
-            JSON.stringify(contexto),
-            JSON.stringify({
-              corpo: d.sms_recurso,
-              chave,
-              motivo: 'aviso',
-              relacionado: { campanha_id: c.id },
-            }),
-            quando,
-            chave,
-            u.id,
-          ],
-        );
-        await tx.query(
-          `INSERT INTO campanha_destinatarios (id, campanha_id, contacto_id, municipe_id, estado, chamada_saida_id)
+      await tx.query(
+        `INSERT INTO campanha_destinatarios (id, campanha_id, contacto_id, municipe_id, estado, chamada_saida_id)
            VALUES ($1, $2, $3, $4, 'a_ligar', $5)`,
-          [destId, c.id, a.contacto_id, a.municipe_id, ch.id],
-        );
-        aLigar++;
-      }
-      await this.auditoria.registar(
-        {
-          municipioId: m.id,
-          atorTipo: 'utilizador',
-          atorId: u.id,
-          acao: 'lancar_campanha',
-          objetoTipo: 'campanha',
-          objetoId: c.id,
-          dados: { tipo: d.tipo, destinatarios: alvo.length, a_ligar: aLigar },
-        },
-        tx,
+        [destId, c.id, a.contacto_id, a.municipe_id, ch.id],
       );
-      return {
-        id: c.id,
-        destinatarios: alvo.length,
-        a_ligar: aLigar,
-        comeca_em: quando.toISOString(),
-      };
-    });
+      aLigar++;
+    }
+    await this.auditoria.registar(
+      {
+        municipioId: m.id,
+        atorTipo: 'utilizador',
+        atorId: u.id,
+        acao: 'lancar_campanha',
+        objetoTipo: 'campanha',
+        objetoId: c.id,
+        dados: { tipo: d.tipo, destinatarios: alvo.length, a_ligar: aLigar },
+      },
+      tx,
+    );
+    return {
+      id: c.id,
+      destinatarios: alvo.length,
+      a_ligar: aLigar,
+      comeca_em: quando.toISOString(),
+    };
   }
 
   async listar(m: Municipio) {
@@ -428,11 +456,11 @@ export class CampanhasService {
       );
     }
     const dest = await this.db.query<Destinatario>(
-      `SELECT d.id, cc.nome, mu.telefone_e164 AS telefone, cc.morada, cc.freguesia, cc.notas,
+      `SELECT d.id, coalesce(cc.nome, mu.nome, 'Munícipe') AS nome, mu.telefone_e164 AS telefone, cc.morada, cc.freguesia, cc.notas,
               d.estado, d.necessidades, d.nota, d.respondido_em, d.tratado_em, d.tratado_nota,
               ut.nome AS tratado_por_nome, cs.tentativas, cs.erro AS chamada_erro, cs.conversa_id
        FROM campanha_destinatarios d
-       JOIN contactos_cuidado cc ON cc.id = d.contacto_id
+       LEFT JOIN contactos_cuidado cc ON cc.id = d.contacto_id
        JOIN municipes mu ON mu.id = d.municipe_id
        LEFT JOIN chamadas_saida cs ON cs.id = d.chamada_saida_id
        LEFT JOIN utilizadores ut ON ut.id = d.tratado_por

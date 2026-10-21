@@ -55,6 +55,12 @@ const VERBOS: Record<string, string> = {
   alterar_perguntas_camara: 'mudou',
   juntar_familiar: 'juntou um familiar a',
   alterar_agente: 'alterou',
+  pedir_apoio: 'fez',
+  mudar_apoio: 'mudou os critérios de',
+  criar_apoio: 'acrescentou',
+  carregar_apoios_demonstracao: 'carregou os apoios de demonstração',
+  ligar_quem_tem_direito:
+    'pediu ao agente para ligar a quem pode ter direito a',
 };
 
 const OBJETOS: Record<string, string> = {
@@ -78,6 +84,9 @@ const OBJETOS: Record<string, string> = {
   perguntas_camara: 'as perguntas da câmara',
   juncao_familiar: 'uma chamada',
   agente_config: 'o agente',
+  apoio: 'um apoio',
+  apoios: '',
+  pedido_apoio: 'um pedido de apoio',
 };
 
 export function frase(acao: string, objetoTipo: string): string {
