@@ -17,6 +17,7 @@ import {
   Mail,
   MapPin,
   MessageSquareText,
+  NotebookPen,
   Package,
   Phone,
   Send,
@@ -992,6 +993,36 @@ function CartaoConsulta({ dados }: { dados: Dados }) {
   );
 }
 
+/* ------------------------------------------------------------------ */
+/* Reclamação formal (registar_reclamacao)                              */
+/* ------------------------------------------------------------------ */
+
+function CartaoReclamacao({ dados }: { dados: Dados }) {
+  if (dados.registada !== true) return null;
+  const link = txt(dados.link);
+  return (
+    <div className={`${CAIXA} gap-3 border-linha p-4`}>
+      <p className="flex items-center gap-2.5">
+        <span className="flex size-8 items-center justify-center rounded-full bg-verde" aria-hidden>
+          <NotebookPen className="size-4 text-white" />
+        </span>
+        <span className="flex flex-col">
+          <span className="text-[15px] font-bold text-tinta">Reclamação registada</span>
+          {txt(dados.numero) && <span className="font-mono text-[13px] text-tinta-2">{txt(dados.numero)}</span>}
+        </span>
+      </p>
+      <ul className="rounded-xl bg-creme px-3">
+        {txt(dados.responder_ate_dito) && (
+          <Linha icone={Calendar}>A câmara responde até {txt(dados.responder_ate_dito)}</Linha>
+        )}
+        {dados.sms_enviado === true && <Linha icone={Send}>Enviámos o número e o link por SMS</Linha>}
+      </ul>
+      {dados.prazo_de_demonstracao === true && <Etiqueta className="self-start">prazo de demonstração</Etiqueta>}
+      {link && <LinkCartao href={link}>Ver a reclamação</LinkCartao>}
+    </div>
+  );
+}
+
 /** O cartão certo para cada tipo (os desconhecidos não aparecem). */
 export function CartaoChat({ cartao, acoes }: { cartao: Cartao; acoes: AcoesCartao }) {
   switch (cartao.tipo) {
@@ -1023,6 +1054,8 @@ export function CartaoChat({ cartao, acoes }: { cartao: Cartao; acoes: AcoesCart
       return <CartaoApoios ferramenta={cartao.ferramenta} dados={cartao.dados} />;
     case "consulta":
       return <CartaoConsulta dados={cartao.dados} />;
+    case "reclamacao":
+      return <CartaoReclamacao dados={cartao.dados} />;
     default:
       return null;
   }

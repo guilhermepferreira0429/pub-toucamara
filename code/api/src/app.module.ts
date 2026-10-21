@@ -47,6 +47,7 @@ import { ConsultasPublicasModule } from './modules/consultas-publicas/consultas-
 import { LicencasModule } from './modules/licencas/licencas.module.js';
 import { ApoiosModule } from './modules/apoios/apoios.module.js';
 import { OrdenamentoModule } from './modules/ordenamento/ordenamento.module.js';
+import { ReclamacoesModule } from './modules/reclamacoes/reclamacoes.module.js';
 import { PortaIasModule } from './modules/porta-ias/porta-ias.module.js';
 import { PerguntasChefiaModule } from './modules/perguntas-chefia/perguntas-chefia.module.js';
 import { ProcedimentosModule } from './modules/procedimentos/procedimentos.module.js';
@@ -115,6 +116,7 @@ import { RequerimentosModule } from './modules/requerimentos/requerimentos.modul
     ConsultasPublicasModule,
     // Porta para as IAs (MCP)
     PortaIasModule,
+    ReclamacoesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
