@@ -24,6 +24,8 @@ Object.assign(process.env, {
   PORT: '0',
   ALLOWED_ORIGINS: 'http://localhost:3000',
   WEB_URL,
+  API_URL: 'http://localhost:3001',
+  OPENAPI_PUBLICO: 'false',
   DADOS_CHAVE: 'chave-dados-e2e',
   NIF_PEPPER: 'pepper-e2e',
 
@@ -70,5 +72,6 @@ Object.assign(process.env, {
 
   ELEVENLABS_WEBHOOK_SECRET: SEGREDO_ELEVENLABS,
   ELEVENLABS_API_KEY: '',
+  ELEVENLABS_SOBREPOR_VOZ: 'false',
   PAGAMENTOS_WEBHOOK_SECRET: SEGREDO_PAGAMENTOS,
 });
