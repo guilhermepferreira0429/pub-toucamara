@@ -47,6 +47,11 @@ const VERBOS: Record<string, string> = {
   gerar_relatorio: 'gerou',
   enviar_aviso_zona: 'enviou',
   carregar_zonas_demonstracao: 'carregou as zonas de demonstração do',
+  criar: 'criou',
+  atualizar: 'alterou',
+  acrescentar_documento: 'acrescentou um documento exigido a',
+  alterar_documento: 'alterou um documento exigido de',
+  remover_documento: 'removeu um documento exigido de',
 };
 
 const OBJETOS: Record<string, string> = {
@@ -66,6 +71,7 @@ const OBJETOS: Record<string, string> = {
   zonas_pdm: 'PDM',
   pergunta_sem_resposta: 'Conhecimento',
   utilizador: 'um utilizador',
+  tipo_processo: 'um tipo de processo',
 };
 
 export function frase(acao: string, objetoTipo: string): string {

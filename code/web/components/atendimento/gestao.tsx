@@ -50,7 +50,9 @@ export function IndicadoresProcessos({ visao }: { visao?: VisaoGeral }) {
             rotulo="tempo médio até à decisão"
             detalhe={
               t.total.decididos
-                ? `dias úteis · mediana ${decimal(t.total.mediana_dias_uteis, 0)} · ${pct(t.total.dentro_do_prazo_pct)} dentro do prazo`
+                ? `dias úteis · mediana ${decimal(t.total.mediana_dias_uteis, 0)}${
+                    t.total.dentro_do_prazo_pct === null ? "" : ` · ${pct(t.total.dentro_do_prazo_pct)} dentro do prazo`
+                  }`
                 : "Ainda sem decisões nos últimos 90 dias"
             }
           />

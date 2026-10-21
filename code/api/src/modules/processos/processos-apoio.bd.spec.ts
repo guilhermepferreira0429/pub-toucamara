@@ -84,7 +84,7 @@ correr('apoio ao técnico (BD)', () => {
     } as unknown as ArmazenamentoService;
     const auditoria = new AuditoriaService(db);
     const municipios = new MunicipiosService(db);
-    const tipos = new TiposProcessoService(db);
+    const tipos = new TiposProcessoService(db, auditoria);
     const processos = new ProcessosService(
       db,
       config,

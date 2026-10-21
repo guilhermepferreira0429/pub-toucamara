@@ -88,6 +88,7 @@ const MATRIZ: { rotulo: string; perfis: PerfilCamara[] }[] = [
   { rotulo: "Ver indicadores e relatórios", perfis: ["tecnico", "chefe_divisao", "vereador"] },
   { rotulo: "Gerir a equipa", perfis: ["chefe_divisao"] },
   { rotulo: "Avisos por zona e agente", perfis: ["chefe_divisao"] },
+  { rotulo: "Ação social (campanhas e pessoas inscritas)", perfis: ["atendimento", "chefe_divisao"] },
 ];
 
 const OBJETOS: Record<string, string> = {

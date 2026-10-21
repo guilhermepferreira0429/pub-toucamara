@@ -335,6 +335,8 @@ export interface TipoProcesso {
   frase_do_agente: string | null;
   ativo: boolean;
   servico: string | null;
+  servico_id: string | null;
+  usado_este_ano: number;
   formulario: CampoFormulario[];
   documentos: DocumentoTipo[];
 }
