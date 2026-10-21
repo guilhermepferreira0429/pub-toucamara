@@ -25,7 +25,29 @@ import {
   zonaDe,
 } from './regras.js';
 import type { PedidoAntigo } from '../licencas/simulacao.js';
-import { ConsultaAntiga, simularZona } from './simulacao-pdm.js';
+import { hojeLisboa } from '../../common/dias-uteis.js';
+import { gerarConsultasDemonstracao } from './consultas-demonstracao.js';
+import {
+  ConsultaAntiga,
+  esquemaRegrasZona,
+  simularZona,
+} from './simulacao-pdm.js';
+
+/** PUT das regras de uma zona: as regras e, se vierem, os dados da zona. */
+export const esquemaMudarZona = z.object({
+  regras: esquemaRegrasZona,
+  nome: z.string().trim().min(2).max(120).optional(),
+  descricao: z.string().trim().max(1000).nullable().optional(),
+  fonte: z
+    .object({
+      titulo: z.string().trim().min(2).max(300),
+      artigo: z.string().trim().max(120).nullable().default(null),
+      url: z.string().trim().url().max(500).nullable().default(null),
+    })
+    .optional(),
+  /** Desligar quando os valores passam a ser os do PDM em vigor. */
+  demonstracao: z.boolean().optional(),
+});
 
 export const entradaOQuePossoFazer = z.object({
   morada: z
@@ -84,6 +106,22 @@ export class OrdenamentoService {
     private readonly conversas: ConversasService,
     private readonly auditoria: AuditoriaService,
   ) {}
+
+  async zona(municipioId: string, zonaId: string): Promise<Zona> {
+    const [zona] = await this.db.query<Zona>(
+      `SELECT id, codigo, nome, categoria, descricao, poligono, regras, fonte, demonstracao
+       FROM zonas_pdm WHERE id = $1 AND municipio_id = $2`,
+      [zonaId, municipioId],
+    );
+    if (!zona) {
+      throw new ErroApi(
+        HttpStatus.NOT_FOUND,
+        'zona_desconhecida',
+        'Esta zona não existe.',
+      );
+    }
+    return zona;
+  }
 
   async zonas(municipioId: string): Promise<Zona[]> {
     return this.db.query<Zona>(
@@ -281,7 +319,7 @@ export class OrdenamentoService {
   // ------------------------------------------------------------------
 
   async painel(m: Municipio) {
-    const [zonas, consultas, porObra] = await Promise.all([
+    const [zonas, consultas, porObra, perguntas] = await Promise.all([
       this.zonas(m.id),
       this.db.query<{
         id: string;
@@ -292,9 +330,11 @@ export class OrdenamentoService {
         controlo: Controlo | null;
         zona: string | null;
         criada_em: Date;
+        demonstracao: boolean;
       }>(
         `SELECT q.id, q.morada, q.lat, q.lng, q.obra, q.resultado->>'controlo' AS controlo,
-                z.nome AS zona, q.criada_em
+                z.nome AS zona, q.criada_em,
+                coalesce((q.resultado->>'demonstracao')::boolean, false) AS demonstracao
          FROM consultas_pdm q LEFT JOIN zonas_pdm z ON z.id = q.zona_id
          WHERE q.municipio_id = $1 ORDER BY q.criada_em DESC LIMIT 200`,
         [m.id],
@@ -305,9 +345,25 @@ export class OrdenamentoService {
          GROUP BY 1, 2 ORDER BY n DESC`,
         [m.id],
       ),
+      // As perguntas de cada zona que a simulação usa (últimos 5 anos).
+      this.db.query<{ zona_id: string; total: number; demonstracao: number }>(
+        `SELECT zona_id, count(*)::int AS total,
+                count(*) FILTER (WHERE resultado->>'demonstracao' = 'true')::int AS demonstracao
+         FROM consultas_pdm
+         WHERE municipio_id = $1 AND zona_id IS NOT NULL AND criada_em >= now() - interval '5 years'
+         GROUP BY 1`,
+        [m.id],
+      ),
     ]);
+    const porZona = new Map(perguntas.map((p) => [p.zona_id, p]));
     return {
-      zonas,
+      zonas: zonas.map((z) => ({
+        ...z,
+        perguntas: {
+          total: porZona.get(z.id)?.total ?? 0,
+          demonstracao: porZona.get(z.id)?.demonstracao ?? 0,
+        },
+      })),
       consultas: consultas.map((q) => ({
         ...q,
         obra_texto: OBRAS[q.obra],
@@ -324,23 +380,12 @@ export class OrdenamentoService {
    * (sem gravar) contra as perguntas já feitas nessa zona nos últimos 5 anos.
    */
   async simularZona(m: Municipio, zonaId: string, propostas: RegrasZona) {
-    const [zona] = await this.db.query<Zona>(
-      `SELECT id, codigo, nome, categoria, descricao, poligono, regras, fonte, demonstracao
-       FROM zonas_pdm WHERE id = $1 AND municipio_id = $2`,
-      [zonaId, m.id],
-    );
-    if (!zona) {
-      throw new ErroApi(
-        HttpStatus.NOT_FOUND,
-        'zona_desconhecida',
-        'Esta zona não existe.',
-      );
-    }
+    const zona = await this.zona(m.id, zonaId);
     const consultas = await this.db.query<PedidoAntigo<ConsultaAntiga>>(
       `SELECT id, codigo AS referencia,
               to_char((criada_em AT TIME ZONE 'Europe/Lisbon')::date, 'YYYY-MM-DD') AS pedido_em,
               jsonb_build_object('obra', obra, 'medidas', coalesce(resultado->'medidas', '{}'::jsonb)) AS dados,
-              false AS demonstracao
+              coalesce((resultado->>'demonstracao')::boolean, false) AS demonstracao
        FROM consultas_pdm
        WHERE municipio_id = $1 AND zona_id = $2 AND criada_em >= now() - interval '5 years'
        ORDER BY criada_em`,
@@ -356,6 +401,153 @@ export class OrdenamentoService {
       ...simularZona(zona.regras, propostas, consultas),
       nota: 'Aqui "aprovado" quer dizer que se resolve sem licença (isento ou comunicação prévia). As perguntas são as que as pessoas fizeram ao agente nesta zona.',
     };
+  }
+
+  /**
+   * Grava as regras de uma zona (e, se vierem, o nome, a descrição, a fonte
+   * e a marca de demonstração). O agente usa-as logo na pergunta seguinte.
+   */
+  async gravarRegras(
+    m: Municipio,
+    u: UtilizadorPainel,
+    zonaId: string,
+    e: z.output<typeof esquemaMudarZona>,
+  ): Promise<Zona> {
+    const antes = await this.zona(m.id, zonaId);
+    const depois: Zona = {
+      ...antes,
+      regras: e.regras,
+      nome: e.nome ?? antes.nome,
+      descricao: e.descricao !== undefined ? e.descricao : antes.descricao,
+      fonte: e.fonte ?? antes.fonte,
+      demonstracao: e.demonstracao ?? antes.demonstracao,
+    };
+    // Na auditoria: as regras sempre, o resto só se mudou.
+    const campos = ['nome', 'descricao', 'fonte', 'demonstracao'] as const;
+    const mudou = campos.filter(
+      (k) => JSON.stringify(antes[k]) !== JSON.stringify(depois[k]),
+    );
+    const parte = (z: Zona) =>
+      Object.fromEntries([
+        ['regras', z.regras],
+        ...mudou.map((k) => [k, z[k]]),
+      ]) as Record<string, unknown>;
+    await this.db.transaction(async (tx) => {
+      await tx.query(
+        `UPDATE zonas_pdm SET regras = $3, nome = $4, descricao = $5, fonte = $6, demonstracao = $7
+         WHERE id = $1 AND municipio_id = $2`,
+        [
+          antes.id,
+          m.id,
+          JSON.stringify(depois.regras),
+          depois.nome,
+          depois.descricao,
+          JSON.stringify(depois.fonte),
+          depois.demonstracao,
+        ],
+      );
+      await this.auditoria.registar(
+        {
+          municipioId: m.id,
+          atorTipo: 'utilizador',
+          atorId: u.id,
+          acao: 'mudar_regras_zona',
+          objetoTipo: 'zona_pdm',
+          objetoId: antes.id,
+          dados: {
+            codigo: antes.codigo,
+            antes: parte(antes),
+            depois: parte(depois),
+          },
+        },
+        tx,
+      );
+    });
+    return depois;
+  }
+
+  /**
+   * Carrega perguntas antigas de demonstração (moradas dentro das zonas),
+   * só se ainda não houver: para a simulação ter com que trabalhar. A
+   * resposta guardada é a das regras em vigor de cada zona.
+   */
+  async carregarConsultasDemonstracao(m: Municipio, u: UtilizadorPainel) {
+    const zonas = await this.zonas(m.id);
+    if (zonas.length === 0) {
+      throw new ErroApi(
+        HttpStatus.CONFLICT,
+        'sem_zonas',
+        'Carregue primeiro as zonas do PDM.',
+      );
+    }
+    const [ja] = await this.db.query<{ n: number }>(
+      `SELECT count(*)::int AS n FROM consultas_pdm
+       WHERE municipio_id = $1 AND resultado->>'demonstracao' = 'true'`,
+      [m.id],
+    );
+    if (ja.n > 0) return { criadas: 0, ja_havia: ja.n };
+
+    const linhas = gerarConsultasDemonstracao(hojeLisboa()).flatMap((c) => {
+      const zona = zonaDe([c.lat, c.lng], zonas);
+      if (!zona) return [];
+      const a = avaliarObra(zona.regras[c.obra], c.medidas);
+      const controlo: Controlo | null = a.em_falta.length ? null : a.controlo;
+      return [
+        {
+          morada: c.morada,
+          lat: c.lat,
+          lng: c.lng,
+          zona_id: zona.id,
+          obra: c.obra,
+          criada_em: c.criada_em,
+          codigo: Array.from(
+            { length: 8 },
+            () => ALFABETO[randomInt(ALFABETO.length)],
+          ).join(''),
+          resultado: {
+            controlo,
+            controlo_dito: controlo ? CONTROLO_DITO[controlo] : null,
+            limites: a.limites,
+            notas: a.notas,
+            passos: controlo ? passos(controlo) : [],
+            dizer: controlo
+              ? `A morada fica em ${zona.nome}: para ${OBRAS[c.obra].toLowerCase()}, ${CONTROLO_DITO[controlo]}. (Pergunta de demonstração.)`
+              : `A morada fica em ${zona.nome}. Um técnico tem de ver o caso. (Pergunta de demonstração.)`,
+            zona: {
+              codigo: zona.codigo,
+              nome: zona.nome,
+              categoria: zona.categoria,
+              demonstracao: zona.demonstracao,
+              fonte: zona.fonte,
+            },
+            medidas: c.medidas,
+            demonstracao: true,
+          },
+        },
+      ];
+    });
+    await this.db.transaction(async (tx) => {
+      await tx.query(
+        `INSERT INTO consultas_pdm (municipio_id, morada, lat, lng, zona_id, obra, resultado, codigo, criada_em)
+         SELECT $1, x.morada, x.lat, x.lng, x.zona_id, x.obra, x.resultado, x.codigo, x.criada_em
+         FROM jsonb_to_recordset($2::jsonb) AS x(morada text, lat double precision, lng double precision,
+           zona_id uuid, obra text, resultado jsonb, codigo text, criada_em timestamptz)`,
+        [m.id, JSON.stringify(linhas)],
+      );
+      await this.auditoria.registar(
+        {
+          municipioId: m.id,
+          atorTipo: 'utilizador',
+          atorId: u.id,
+          acao: 'carregar_consultas_pdm_demonstracao',
+          objetoTipo: 'zonas_pdm',
+          objetoId: m.id,
+          dados: { perguntas: linhas.length },
+        },
+        tx,
+      );
+    });
+    return { criadas: linhas.length, ja_havia: 0 };
   }
 
   /** Carrega as zonas de demonstração (só se o município ainda não tiver zonas). */

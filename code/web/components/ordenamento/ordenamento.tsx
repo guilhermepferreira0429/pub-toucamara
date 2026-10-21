@@ -1,10 +1,11 @@
 "use client";
 
-import { Map as IconeMapa, Upload } from "lucide-react";
+import { Map as IconeMapa, Pencil, Upload } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useState } from "react";
 import {
   Cartao,
+  Dialogo,
   ErroLinha,
   Estado,
   haQuanto,
@@ -18,7 +19,8 @@ import {
 import { CabecalhoPagina } from "@/components/painel/cabecalho";
 import { Botao } from "@/components/ui/botao";
 import { useSessao } from "@/lib/sessao";
-import { CATEGORIA_ROTULO, COR_CATEGORIA, type Ponto } from "./tipos";
+import { EditarRegrasZona, obraCurta } from "./regras-zona";
+import { CATEGORIA_ROTULO, COR_CATEGORIA, CONTROLO, type Controlo, type Degrau, type Zona } from "./tipos";
 
 /*
  * Painel · Ordenamento: as zonas do PDM que o agente usa para responder
@@ -30,26 +32,6 @@ const Mapa = dynamic(() => import("./mapa-zonas"), {
   ssr: false,
   loading: () => <div className="h-full w-full animate-pulse bg-creme-2" />,
 });
-
-type Controlo = "isento" | "comunicacao_previa" | "licenca" | "nao_permitido";
-
-interface Degrau {
-  controlo: Controlo;
-  area_max_m2?: number;
-  altura_max_m?: number;
-}
-
-interface Zona {
-  id: string;
-  codigo: string;
-  nome: string;
-  categoria: string;
-  descricao: string | null;
-  poligono: Ponto[];
-  regras: Record<string, { degraus: Degrau[]; acima: Controlo; notas: string[] }>;
-  fonte: { titulo: string };
-  demonstracao: boolean;
-}
 
 interface Dados {
   zonas: Zona[];
@@ -63,17 +45,11 @@ interface Dados {
     controlo: Controlo | null;
     zona: string | null;
     criada_em: string;
+    demonstracao: boolean;
   }[];
   por_obra: { obra: string; obra_texto: string; controlo: Controlo | null; n: number }[];
   obras: Record<string, string>;
 }
-
-const CONTROLO: Record<Controlo, { rotulo: string; cor: string; tom: "verde" | "terracota" | "ambar" | "tinta" }> = {
-  isento: { rotulo: "isento", cor: "#3f8f4e", tom: "verde" },
-  comunicacao_previa: { rotulo: "comunicação prévia", cor: "#c98a12", tom: "ambar" },
-  licenca: { rotulo: "licença", cor: "#c4502c", tom: "terracota" },
-  nao_permitido: { rotulo: "não permitido", cor: "#1b2a3a", tom: "tinta" },
-};
 
 function regraCurta(r: { degraus: Degrau[]; acima: Controlo } | undefined): string {
   if (!r) return "—";
@@ -92,6 +68,7 @@ export function PaginaOrdenamento() {
   const d = useDados<Dados>(pode("conhecimento_ver") ? "/v1/painel/ordenamento" : null);
   const carregar = useAcao();
   const [zonaAberta, setZonaAberta] = useState<string | null>(null);
+  const [editar, setEditar] = useState<string | null>(null);
 
   if (!pode("conhecimento_ver")) {
     return (
@@ -104,6 +81,7 @@ export function PaginaOrdenamento() {
 
   const dados = d.dados;
   const demonstracao = dados?.zonas.some((z) => z.demonstracao);
+  const aEditar = dados?.zonas.find((z) => z.id === editar) ?? null;
   return (
     <div className="flex flex-col pb-12">
       <CabecalhoPagina
@@ -141,7 +119,8 @@ export function PaginaOrdenamento() {
         ) : (
           dados && (
             <div className="grid gap-6 px-10 xl:grid-cols-[minmax(0,1fr)_420px]">
-              <Cartao className="h-fit overflow-hidden xl:sticky xl:top-6">
+              {/* isolate: as camadas do Leaflet (z-index 400+) não passam por cima do diálogo. */}
+              <Cartao className="isolate h-fit overflow-hidden xl:sticky xl:top-6">
                 <Mapa
                   zonas={dados.zonas}
                   destacar={zonaAberta}
@@ -201,6 +180,17 @@ export function PaginaOrdenamento() {
                       />
                       <span className="font-semibold text-tinta">{z.nome}</span>
                       <span className="font-mono text-xs text-tinta-3">{z.codigo}</span>
+                      {pode("conhecimento") && (
+                        <Botao
+                          tamanho="pequeno"
+                          variante="discreto"
+                          icone={Pencil}
+                          className="ml-auto"
+                          onClick={() => setEditar(z.id)}
+                        >
+                          Mudar regras
+                        </Botao>
+                      )}
                     </div>
                     <p className="mt-1 text-xs text-tinta-3">
                       {CATEGORIA_ROTULO[z.categoria] ?? z.categoria}
@@ -210,12 +200,19 @@ export function PaginaOrdenamento() {
                       {Object.entries(dados.obras).map(([k, v]) => (
                         <div key={k} className="grid grid-cols-[120px_1fr] gap-2">
                           <dt className="truncate text-tinta-2" title={v}>
-                            {v.split(" (")[0].split(",")[0]}
+                            {obraCurta(v)}
                           </dt>
                           <dd className="text-tinta">{regraCurta(z.regras[k])}</dd>
                         </div>
                       ))}
                     </dl>
+                    <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-tinta-3">
+                      {z.demonstracao && <Pilula tom="ambar">regras de demonstração</Pilula>}
+                      <span>
+                        {numero(z.perguntas.total)} perguntas nesta zona
+                        {z.perguntas.demonstracao ? ` (${numero(z.perguntas.demonstracao)} de demonstração)` : ""}
+                      </span>
+                    </div>
                   </Cartao>
                 ))}
 
@@ -230,6 +227,7 @@ export function PaginaOrdenamento() {
                           <span className="block text-xs text-tinta-3">
                             {q.zona ?? "fora das zonas"} ·{" "}
                             {q.controlo ? CONTROLO[q.controlo].rotulo : "para técnico"} · {haQuanto(q.criada_em)}
+                            {q.demonstracao ? " · demonstração" : ""}
                           </span>
                         </li>
                       ))}
@@ -241,6 +239,25 @@ export function PaginaOrdenamento() {
           )
         )}
       </Estado>
+      {dados && aEditar && (
+        <Dialogo
+          titulo={`Regras · ${aEditar.nome}`}
+          aberto
+          onFechar={() => setEditar(null)}
+          largura="max-w-5xl"
+        >
+          <EditarRegrasZona
+            key={aEditar.id}
+            zona={aEditar}
+            obras={dados.obras}
+            onGuardado={() => {
+              setEditar(null);
+              d.recarregar();
+            }}
+            onPerguntas={d.recarregar}
+          />
+        </Dialogo>
+      )}
     </div>
   );
 }
