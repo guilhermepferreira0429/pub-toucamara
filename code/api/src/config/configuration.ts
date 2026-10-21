@@ -10,6 +10,8 @@ export const appConfig = registerAs('app', () => ({
     .filter(Boolean),
   // Endereço público da web (links curtos dos SMS, páginas sem login).
   webUrl: (process.env.WEB_URL || 'http://localhost:3000').replace(/\/$/, ''),
+  // Endereço público da API (callbacks do Twilio na junção do familiar).
+  apiUrl: (process.env.API_URL || 'http://localhost:3001').replace(/\/$/, ''),
   // Chave da cifra do NIF (pgp_sym_encrypt) e pepper do hash para procurar.
   // Obrigatórias em produção. Perder a chave = perder os NIF guardados.
   dadosChave: process.env.DADOS_CHAVE || '',

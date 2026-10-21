@@ -53,6 +53,7 @@ const VERBOS: Record<string, string> = {
   alterar_documento: 'alterou um documento exigido de',
   remover_documento: 'removeu um documento exigido de',
   alterar_perguntas_camara: 'mudou',
+  juntar_familiar: 'juntou um familiar a',
   alterar_agente: 'alterou',
 };
 
@@ -75,6 +76,7 @@ const OBJETOS: Record<string, string> = {
   utilizador: 'um utilizador',
   tipo_processo: 'um tipo de processo',
   perguntas_camara: 'as perguntas da câmara',
+  juncao_familiar: 'uma chamada',
   agente_config: 'o agente',
 };
 
