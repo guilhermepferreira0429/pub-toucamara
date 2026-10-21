@@ -2,6 +2,7 @@ import { Module, OnModuleInit } from '@nestjs/common';
 import { RegistoFerramentas } from '../../ferramentas/registo-ferramentas.service.js';
 import { ConversasService } from '../conversas/conversas.service.js';
 import { MunicipesService } from '../municipes/municipes.service.js';
+import { ApoioPassagemService } from './apoio-passagem.service.js';
 import { ferramentasAtendimento } from './atendimento.ferramentas.js';
 import { EncaminhamentoController } from './encaminhamento.controller.js';
 import { EncaminhamentoService } from './encaminhamento.service.js';
@@ -16,7 +17,12 @@ import { PassagensService } from './passagens.service.js';
  */
 @Module({
   controllers: [PassagensController, EncaminhamentoController],
-  providers: [HorarioService, EncaminhamentoService, PassagensService],
+  providers: [
+    HorarioService,
+    EncaminhamentoService,
+    PassagensService,
+    ApoioPassagemService,
+  ],
   exports: [HorarioService],
 })
 export class AtendimentoModule implements OnModuleInit {

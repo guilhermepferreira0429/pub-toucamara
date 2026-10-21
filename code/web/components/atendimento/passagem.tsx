@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { useSessao } from "@/lib/sessao";
 import { MudarEncaminhamento } from "./acoes-entrada";
+import { ApoioFuncionario } from "./apoio-funcionario";
 import { BotaoAcao, Ficha } from "./caixa";
 import { useDados, useFuso } from "./dados";
 import {
@@ -152,6 +153,15 @@ export function PassagemDetalhe({ id, aoMudar }: { id: string; aoMudar?: () => v
           {d.atribuida_a ? (minha ? "Consigo" : d.atribuida_a.nome) : "Ninguém pegou ainda"}
         </LinhaFicha>
       </Ficha>
+
+      {!fechada && (
+        <ApoioFuncionario
+          passagemId={d.id}
+          resumo={d.resumo}
+          ultimaResposta={d.respostas?.length ? d.respostas[d.respostas.length - 1].corpo : null}
+          onUsar={setTexto}
+        />
+      )}
 
       {d.respostas && d.respostas.length > 0 && (
         <section className="flex flex-col gap-2">
