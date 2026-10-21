@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  BadgeCheck,
   BookOpen,
   Bot,
   ChartColumn,
@@ -114,6 +115,12 @@ const SECCOES: Seccao[] = [
         icone: MapPin,
         recurso: "ocorrencias_ver",
         contagem: "ocorrencias",
+      },
+      {
+        rotulo: "Licenças",
+        href: "/painel/licencas",
+        icone: BadgeCheck,
+        recurso: "processos",
       },
     ],
   },

@@ -40,6 +40,7 @@ import { OcorrenciasModule } from './modules/ocorrencias/ocorrencias.module.js';
 import { PagamentosModule } from './modules/pagamentos/pagamentos.module.js';
 import { PainelModule } from './modules/painel/painel.module.js';
 import { CampanhasModule } from './modules/campanhas/campanhas.module.js';
+import { LicencasModule } from './modules/licencas/licencas.module.js';
 import { PortaIasModule } from './modules/porta-ias/porta-ias.module.js';
 import { PerguntasChefiaModule } from './modules/perguntas-chefia/perguntas-chefia.module.js';
 import { ProcessosModule } from './modules/processos/processos.module.js';
@@ -91,6 +92,7 @@ import { RequerimentosModule } from './modules/requerimentos/requerimentos.modul
     PerguntasChefiaModule,
     ChamadasSaidaModule,
     CampanhasModule,
+    LicencasModule,
     // V2
     EntradaModule,
     ModelosModule,
