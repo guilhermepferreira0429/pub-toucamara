@@ -84,6 +84,9 @@ const VERBOS: Record<string, string> = {
   converter_email_reclamacao: 'registou como reclamação formal',
   mudar_prazo_reclamacoes: 'mudou o prazo de resposta de',
   acrescentar_anexo_reclamacao: 'juntou um anexo a',
+  publicar_dados_abertos: 'publicou',
+  ligar_dados_abertos: 'ligou a publicação de',
+  desligar_dados_abertos: 'desligou a publicação de',
 };
 
 const OBJETOS: Record<string, string> = {
@@ -118,6 +121,7 @@ const OBJETOS: Record<string, string> = {
   consulta_publica: 'uma consulta pública',
   reclamacao: 'uma reclamação',
   reclamacoes_config: 'as reclamações',
+  conjunto_dados: 'um conjunto de dados abertos',
 };
 
 export function frase(acao: string, objetoTipo: string): string {

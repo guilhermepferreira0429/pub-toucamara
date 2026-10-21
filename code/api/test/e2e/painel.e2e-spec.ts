@@ -245,6 +245,7 @@ describe('Painel (e2e)', () => {
         procedimentos_ver: true,
         procedimentos: true,
         reclamacoes: true,
+        transparencia: true,
       });
 
       const a = await ctx
