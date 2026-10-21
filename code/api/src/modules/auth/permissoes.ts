@@ -29,6 +29,9 @@ export const PERMISSOES = {
   // Livro de reclamações: quem atende regista e responde; a chefia muda o
   // prazo (recurso 'agente').
   reclamacoes: ['atendimento', 'tecnico', 'chefe_divisao'],
+  // Contratação pública (interno): a chefia e os técnicos que tratam das
+  // compras; mudar os limiares e aprovar é da chefia (recurso 'agente').
+  contratacao: ['tecnico', 'chefe_divisao'],
 } as const satisfies Record<string, readonly Perfil[]>;
 
 export type Recurso = keyof typeof PERMISSOES;
