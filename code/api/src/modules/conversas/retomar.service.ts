@@ -18,7 +18,13 @@ import {
 export interface RespostaInicioChamada {
   type: 'conversation_initiation_client_data';
   dynamic_variables: VariaveisInicio;
+  /** Voz e ritmo do painel (só com ELEVENLABS_SOBREPOR_VOZ=true). */
+  conversation_config_override?: { tts: { voice_id?: string; speed: number } };
 }
+
+/** Ritmo do painel → velocidade do TTS do ElevenLabs (0,7 a 1,2). */
+export const VELOCIDADE_RITMO = { calmo: 0.9, normal: 1, rapido: 1.1 } as const;
+export type Ritmo = keyof typeof VELOCIDADE_RITMO;
 
 /** A conversa anterior, para o contexto da primeira mensagem do chat. */
 export interface AnteriorParaContexto {
@@ -61,10 +67,13 @@ export class RetomarService {
   async inicioChamada(
     p: PedidoInicioChamada,
     agora = new Date(),
+    sobreporVoz = false,
   ): Promise<RespostaInicioChamada> {
+    let voz: RespostaInicioChamada['conversation_config_override'];
     const resposta = (v: VariaveisInicio): RespostaInicioChamada => ({
       type: 'conversation_initiation_client_data',
       dynamic_variables: v,
+      ...(voz ? { conversation_config_override: voz } : {}),
     });
     try {
       const municipio = await this.municipioDaChamada(
@@ -76,6 +85,16 @@ export class RetomarService {
           `Início de chamada sem município (agent_id ${p.agent_id ?? '—'}): sem contexto.`,
         );
         return resposta(VARIAVEIS_VAZIAS);
+      }
+      // O override tem de estar autorizado no agente do ElevenLabs (Security
+      // › Overrides), senão a chamada é recusada: por isso só com a flag.
+      if (sobreporVoz) {
+        voz = {
+          tts: {
+            ...(municipio.voz_id ? { voice_id: municipio.voz_id } : {}),
+            speed: VELOCIDADE_RITMO[municipio.ritmo] ?? 1,
+          },
+        };
       }
       const telefone = normalizarTelefone(p.caller_id);
       // Só leitura: o munícipe novo é criado pela primeira ferramenta.
@@ -119,17 +138,28 @@ export class RetomarService {
   private async municipioDaChamada(
     agentId: string | null,
     numero: string | null,
-  ): Promise<{ id: string; fuso: string } | null> {
+  ): Promise<{
+    id: string;
+    fuso: string;
+    voz_id: string | null;
+    ritmo: Ritmo;
+  } | null> {
     if (!agentId && !numero) return null;
-    const [m] = await this.db.query<{ id: string; fuso: string }>(
-      `SELECT * FROM (
+    const [m] = await this.db.query<{
+      id: string;
+      fuso: string;
+      voz_id: string | null;
+      ritmo: Ritmo;
+    }>(
+      `SELECT x.id, x.fuso, a.voz_id, coalesce(a.ritmo, 'normal') AS ritmo FROM (
          SELECT m.id, m.fuso, 1 AS ordem FROM agente_config a
          JOIN municipios m ON m.id = a.municipio_id
          WHERE a.elevenlabs_agent_id = $1
          UNION ALL
          SELECT id, fuso, 2 FROM municipios
          WHERE regexp_replace(telefone_linha, '[^0-9+]', '', 'g') = $2
-       ) x ORDER BY ordem LIMIT 1`,
+       ) x LEFT JOIN agente_config a ON a.municipio_id = x.id
+       ORDER BY x.ordem LIMIT 1`,
       [agentId, numero],
     );
     return m ?? null;

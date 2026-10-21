@@ -719,6 +719,8 @@ describe('Painel (e2e)', () => {
       trata_por: 'você',
       idiomas: ['pt-PT', 'en'],
       voz_id: null,
+      voz_nome: null,
+      ritmo: 'normal',
     };
 
     it('GET: a câmara vê mas não edita; PUT do chefe → 403 so_equipa_interna', async () => {

@@ -3,6 +3,7 @@ import { JobsService } from '../../jobs/jobs.service.js';
 import { ConhecimentoModule } from '../conhecimento/conhecimento.module.js';
 import { AgenteController } from './agente.controller.js';
 import { AgenteService } from './agente.service.js';
+import { PerguntasCamaraService } from './perguntas-camara.service.js';
 import { EquipaController } from './equipa.controller.js';
 import { EquipaService } from './equipa.service.js';
 import { GestaoController } from './gestao.controller.js';
@@ -30,6 +31,7 @@ import { VisaoGeralController } from './visao-geral.controller.js';
     PainelService,
     EquipaService,
     AgenteService,
+    PerguntasCamaraService,
     RgpdService,
     GestaoService,
   ],

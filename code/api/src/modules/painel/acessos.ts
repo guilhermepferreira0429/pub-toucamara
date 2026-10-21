@@ -52,6 +52,8 @@ const VERBOS: Record<string, string> = {
   acrescentar_documento: 'acrescentou um documento exigido a',
   alterar_documento: 'alterou um documento exigido de',
   remover_documento: 'removeu um documento exigido de',
+  alterar_perguntas_camara: 'mudou',
+  alterar_agente: 'alterou',
 };
 
 const OBJETOS: Record<string, string> = {
@@ -72,6 +74,8 @@ const OBJETOS: Record<string, string> = {
   pergunta_sem_resposta: 'Conhecimento',
   utilizador: 'um utilizador',
   tipo_processo: 'um tipo de processo',
+  perguntas_camara: 'as perguntas da câmara',
+  agente_config: 'o agente',
 };
 
 export function frase(acao: string, objetoTipo: string): string {

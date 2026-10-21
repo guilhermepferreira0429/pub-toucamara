@@ -58,6 +58,8 @@ export class WebhookElevenLabsController {
   async inicioChamada(@Body() body: unknown) {
     const r = await this.retomar.inicioChamada(
       validar(esquemaInicioChamada, body ?? {}),
+      new Date(),
+      this.config.get<boolean>('webhooks.elevenlabsSobreporVoz') ?? false,
     );
     // O prompt é o mesmo das chamadas de saída: as variáveis delas vão
     // vazias (tipo_chamada = 'entrada'), senão o ElevenLabs recusa a chamada.

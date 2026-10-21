@@ -87,5 +87,8 @@ export const armazenamentoConfig = registerAs('armazenamento', () => ({
 export const webhooksConfig = registerAs('webhooks', () => ({
   elevenlabsSegredo: process.env.ELEVENLABS_WEBHOOK_SECRET || '',
   elevenlabsApiKey: process.env.ELEVENLABS_API_KEY || '',
+  // Voz e ritmo do painel na chamada (conversation_config_override). Só com
+  // os overrides de TTS autorizados no agente do ElevenLabs.
+  elevenlabsSobreporVoz: process.env.ELEVENLABS_SOBREPOR_VOZ === 'true',
   pagamentosSegredo: process.env.PAGAMENTOS_WEBHOOK_SECRET || '',
 }));

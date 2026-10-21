@@ -18,6 +18,10 @@ import { validar } from '../../common/validacao.js';
 import { Painel } from '../auth/painel.guard.js';
 import type { Municipio } from '../municipios/municipios.service.js';
 import { AgenteService } from './agente.service.js';
+import {
+  COMPORTAMENTOS,
+  PerguntasCamaraService,
+} from './perguntas-camara.service.js';
 
 const esquemaConfig = z.object({
   nome: z.string().trim().min(1).max(60),
@@ -28,6 +32,14 @@ const esquemaConfig = z.object({
     .min(1)
     .max(10),
   voz_id: z.string().trim().max(100).nullish(),
+  voz_nome: z.string().trim().max(80).nullish(),
+  ritmo: z.enum(['calmo', 'normal', 'rapido']).default('normal'),
+});
+
+const esquemaPerguntaCamara = z.object({
+  texto: z.string().trim().min(5).max(500),
+  comportamento: z.enum(COMPORTAMENTOS).default('responder'),
+  nota: z.string().trim().max(300).nullish(),
 });
 
 const esquemaPronuncias = z.object({
@@ -61,7 +73,10 @@ const esquemaAlterarRegra = esquemaRegra
 @Controller('painel/agente')
 @Painel('agente')
 export class AgenteController {
-  constructor(private readonly agente: AgenteService) {}
+  constructor(
+    private readonly agente: AgenteService,
+    private readonly perguntasCamara: PerguntasCamaraService,
+  ) {}
 
   @Get()
   obter(
@@ -139,5 +154,34 @@ export class AgenteController {
     @Ip() ip: string,
   ) {
     await this.agente.apagarRegra(m, u, id, ip);
+  }
+
+  // --- As perguntas da câmara (corridas pelo avaliador) -------------------
+
+  @Get('perguntas')
+  perguntas(@MunicipioAtual() m: Municipio) {
+    return this.perguntasCamara.listar(m);
+  }
+
+  @Post('perguntas')
+  acrescentarPergunta(
+    @MunicipioAtual() m: Municipio,
+    @UtilizadorAtual() u: UtilizadorPainel,
+    @Body() body: unknown,
+  ) {
+    return this.perguntasCamara.acrescentar(
+      m,
+      u,
+      validar(esquemaPerguntaCamara, body),
+    );
+  }
+
+  @Delete('perguntas/:id')
+  removerPergunta(
+    @MunicipioAtual() m: Municipio,
+    @UtilizadorAtual() u: UtilizadorPainel,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.perguntasCamara.remover(m, u, id);
   }
 }
