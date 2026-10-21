@@ -33,7 +33,8 @@ export type Recurso =
   | "acao_social"
   | "procedimentos_ver"
   | "procedimentos"
-  | "reclamacoes";
+  | "reclamacoes"
+  | "reunioes";
 
 export type Perfil =
   | "atendimento"

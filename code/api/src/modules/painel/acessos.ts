@@ -84,6 +84,13 @@ const VERBOS: Record<string, string> = {
   converter_email_reclamacao: 'registou como reclamação formal',
   mudar_prazo_reclamacoes: 'mudou o prazo de resposta de',
   acrescentar_anexo_reclamacao: 'juntou um anexo a',
+  enviar_gravacao_reuniao: 'enviou a gravação de',
+  transcrever_reuniao: 'pediu a transcrição da gravação de',
+  gravar_transcricao_reuniao: 'gravou a transcrição de',
+  gerar_rascunho_ata: 'gerou o rascunho de',
+  editar_ata: 'editou',
+  aprovar_ata: 'aprovou',
+  publicar_ata: 'publicou',
 };
 
 const OBJETOS: Record<string, string> = {
@@ -118,6 +125,8 @@ const OBJETOS: Record<string, string> = {
   consulta_publica: 'uma consulta pública',
   reclamacao: 'uma reclamação',
   reclamacoes_config: 'as reclamações',
+  reuniao: 'uma reunião',
+  ata: 'uma ata',
 };
 
 export function frase(acao: string, objetoTipo: string): string {
