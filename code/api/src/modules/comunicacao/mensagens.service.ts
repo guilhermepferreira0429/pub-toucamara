@@ -25,7 +25,8 @@ export type MotivoMensagem =
   | 'identificacao'
   | 'aviso'
   | 'familiar'
-  | 'resposta_sms';
+  | 'resposta_sms'
+  | 'apoio';
 
 export interface NovoSms {
   municipioId: string;

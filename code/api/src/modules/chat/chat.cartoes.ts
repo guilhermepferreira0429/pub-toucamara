@@ -15,7 +15,8 @@ export type TipoCartao =
   | 'ocorrencia'
   | 'passagem'
   | 'vagas'
-  | 'processo';
+  | 'processo'
+  | 'apoios';
 
 export interface FonteCartao {
   titulo: string;
@@ -53,6 +54,9 @@ const POR_FERRAMENTA: Record<
   ver_vagas: 'vagas',
   // Os processos (fase, prazo, o que falta) ou precisa_identificacao.
   estado_processo: 'processo',
+  // A que apoios pode ter direito (e o pedido de um apoio).
+  que_apoios_tenho: 'apoios',
+  pedir_apoio: 'apoios',
 };
 
 function objeto(v: unknown): Record<string, unknown> {

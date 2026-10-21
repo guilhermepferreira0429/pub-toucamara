@@ -61,6 +61,12 @@ const VERBOS: Record<string, string> = {
   concluir_entrevista: 'concluiu',
   cancelar_entrevista: 'cancelou',
   tratar_lacuna: 'tratou',
+  pedir_apoio: 'fez',
+  mudar_apoio: 'mudou os critérios de',
+  criar_apoio: 'acrescentou',
+  carregar_apoios_demonstracao: 'carregou os apoios de demonstração',
+  ligar_quem_tem_direito:
+    'pediu ao agente para ligar a quem pode ter direito a',
 };
 
 const OBJETOS: Record<string, string> = {
@@ -88,6 +94,9 @@ const OBJETOS: Record<string, string> = {
   procedimento: 'um procedimento interno',
   entrevista: 'uma entrevista sobre um procedimento',
   assistente_pergunta: 'uma pergunta sem resposta do assistente interno',
+  apoio: 'um apoio',
+  apoios: '',
+  pedido_apoio: 'um pedido de apoio',
 };
 
 export function frase(acao: string, objetoTipo: string): string {
