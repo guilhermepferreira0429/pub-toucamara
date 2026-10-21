@@ -31,7 +31,13 @@ import { useSessao } from "@/lib/sessao";
  */
 
 type EstadoChamada = "agendada" | "a_ligar" | "atendida" | "nao_atendida" | "falhou" | "cancelada";
-type MotivoChamada = "processo_fase" | "pedido_documento" | "lembrete_prazo" | "manual" | "campanha";
+type MotivoChamada =
+  | "processo_fase"
+  | "pedido_documento"
+  | "lembrete_prazo"
+  | "manual"
+  | "campanha"
+  | "renovacao_licenca";
 
 interface Chamada {
   id: string;
@@ -77,6 +83,10 @@ const MOTIVOS: Record<MotivoChamada, { rotulo: string; dito: string }> = {
   campanha: {
     rotulo: "Ação social",
     dito: "a câmara está a ligar às pessoas inscritas para saber se está tudo bem",
+  },
+  renovacao_licenca: {
+    rotulo: "Licença a expirar",
+    dito: "a sua licença está quase a expirar e pode renová-la já nesta chamada",
   },
 };
 
