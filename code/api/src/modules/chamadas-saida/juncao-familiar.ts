@@ -16,7 +16,7 @@
  * O webhook do Twilio é assinado: X-Twilio-Signature = base64(HMAC-SHA1(
  * auth token, URL completo + cada parâmetro POST ordenado, nome+valor)).
  */
-import { createHmac, timingSafeEqual } from 'crypto';
+export { assinaturaTwilio, assinaturaValida } from '../../common/twilio.js';
 
 export const URL_TWILIO = 'https://api.twilio.com/2010-04-01';
 
@@ -83,32 +83,6 @@ export function estadoDoParticipante(
     default:
       return null; // queued, initiated, ringing: nada muda
   }
-}
-
-export function assinaturaTwilio(
-  authToken: string,
-  url: string,
-  parametros: Record<string, string>,
-): string {
-  const dados =
-    url +
-    Object.keys(parametros)
-      .sort()
-      .map((k) => k + parametros[k])
-      .join('');
-  return createHmac('sha1', authToken).update(dados, 'utf8').digest('base64');
-}
-
-export function assinaturaValida(
-  authToken: string,
-  url: string,
-  parametros: Record<string, string>,
-  recebida: string | undefined,
-): boolean {
-  if (!authToken || !recebida) return false;
-  const esperada = Buffer.from(assinaturaTwilio(authToken, url, parametros));
-  const dada = Buffer.from(recebida);
-  return esperada.length === dada.length && timingSafeEqual(esperada, dada);
 }
 
 /** Como o agente fala do familiar: "a sua filha Ana", "o Rui". */

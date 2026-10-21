@@ -8,6 +8,7 @@ import {
   ParseUUIDPipe,
   Post,
 } from '@nestjs/common';
+import { parametrosTwilio } from '../../common/twilio.js';
 import { JuncaoFamiliarService } from './juncao-familiar.service.js';
 
 /** StatusCallback do Twilio para o familiar chamado para a sala (assinado). */
@@ -22,10 +23,11 @@ export class JuncoesTwilioController {
     @Body() body: Record<string, unknown>,
     @Headers('x-twilio-signature') assinatura: string | undefined,
   ) {
-    const parametros = Object.fromEntries(
-      Object.entries(body ?? {}).map(([k, v]) => [k, String(v)]),
+    const r = await this.juncoes.estadoTwilio(
+      id,
+      parametrosTwilio(body),
+      assinatura,
     );
-    const r = await this.juncoes.estadoTwilio(id, parametros, assinatura);
     if (!r.ok) throw new ForbiddenException('Assinatura do Twilio inválida.');
   }
 }

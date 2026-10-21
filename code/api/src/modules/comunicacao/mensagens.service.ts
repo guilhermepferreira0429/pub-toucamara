@@ -6,6 +6,7 @@ import { comunicacaoConfig } from '../../config/configuration.js';
 import { DatabaseService, Tx } from '../../database/database.service.js';
 import { JobsService } from '../../jobs/jobs.service.js';
 import { mascararTelefone } from '../municipes/municipes.service.js';
+import { assinaturaValida } from '../../common/twilio.js';
 import { infoSms, transliterar } from './sms.js';
 
 export type MotivoMensagem =
@@ -74,6 +75,50 @@ export class MensagensService implements OnModuleInit {
     return this.config.getOrThrow<ConfigType<typeof comunicacaoConfig>>(
       'comunicacao',
     );
+  }
+
+  /** Onde o Twilio avisa o estado do SMS (só com a API num endereço público). */
+  urlEstadoSms(): string | null {
+    const api = this.config.get<string>('app.apiUrl') ?? '';
+    return /^https:\/\//.test(api) ? `${api}/v1/webhooks/sms/estado` : null;
+  }
+
+  /**
+   * StatusCallback do Twilio (assinado): `delivered` → entregue; `failed` e
+   * `undelivered` → falhou, com o código do erro. Um SMS entregue não volta
+   * atrás (os avisos podem chegar fora de ordem). Devolve false se a
+   * assinatura não for válida.
+   */
+  async estadoTwilio(
+    parametros: Record<string, string>,
+    assinatura: string | undefined,
+  ): Promise<boolean> {
+    const url = this.urlEstadoSms();
+    const { twilio } = this.cfg();
+    if (
+      !url ||
+      !assinaturaValida(twilio.authToken, url, parametros, assinatura)
+    ) {
+      return false;
+    }
+    const sid = parametros['MessageSid'] ?? parametros['SmsSid'];
+    const estado = parametros['MessageStatus'] ?? parametros['SmsStatus'];
+    if (!sid) return true;
+    if (estado === 'delivered') {
+      await this.db.query(
+        `UPDATE mensagens_saida SET estado = 'entregue', entregue_em = now(), erro = NULL
+         WHERE provider_id = $1 AND canal = 'sms'`,
+        [sid],
+      );
+    } else if (estado === 'failed' || estado === 'undelivered') {
+      const codigo = parametros['ErrorCode'];
+      await this.db.query(
+        `UPDATE mensagens_saida SET estado = 'falhou', erro = $2
+         WHERE provider_id = $1 AND canal = 'sms' AND estado <> 'entregue'`,
+        [sid, `Twilio: ${estado}${codigo ? ` (${codigo})` : ''}`],
+      );
+    }
+    return true;
   }
 
   private producao(): boolean {
@@ -214,6 +259,9 @@ export class MensagensService implements OnModuleInit {
           To: destino,
           From: smsRemetente,
           Body: corpo,
+          ...(this.urlEstadoSms()
+            ? { StatusCallback: this.urlEstadoSms()! }
+            : {}),
         }),
         signal: AbortSignal.timeout(15_000),
       },
