@@ -115,6 +115,15 @@ const VERBOS: Record<string, string> = {
   pedir_consulta_arquivo: 'registou',
   atender_pedido_arquivo: 'tratou',
   encerrar_pedido_arquivo: 'encerrou',
+  criar_emergencia: 'preparou',
+  simular_emergencia: 'simulou',
+  enviar_emergencia: 'enviou',
+  encerrar_emergencia: 'encerrou',
+  responder_emergencia: 'registou a resposta de uma pessoa a',
+  alertar_pedido_ajuda_emergencia:
+    'alertou as chefias e a proteção civil de um pedido de ajuda em',
+  tratar_pedido_ajuda_emergencia: 'tratou um pedido de ajuda de',
+  mudar_config_emergencias: 'mudou o ritmo de envio e os contactos de',
 };
 
 const OBJETOS: Record<string, string> = {
@@ -164,6 +173,8 @@ const OBJETOS: Record<string, string> = {
   arquivo_config: 'o arquivo antigo',
   documento_arquivo: 'um documento do arquivo antigo',
   pedido_arquivo: 'um pedido de consulta ao arquivo',
+  emergencia: 'um aviso de emergência',
+  emergencias_config: 'os avisos de emergência',
 };
 
 export function frase(acao: string, objetoTipo: string): string {
@@ -189,6 +200,8 @@ export function ligacao(objetoTipo: string, objetoId: string): string | null {
       return `/painel/procedimentos/${objetoId}`;
     case 'reclamacao':
       return `/painel/reclamacoes?id=${objetoId}`;
+    case 'emergencia':
+      return `/painel/emergencias?id=${objetoId}`;
     case 'entrevista':
       return `/painel/procedimentos/entrevistas/${objetoId}`;
     default:

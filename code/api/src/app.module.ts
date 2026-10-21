@@ -23,6 +23,7 @@ import { ArmazenamentoModule } from './modules/armazenamento/armazenamento.modul
 import { AtendimentoModule } from './modules/atendimento/atendimento.module.js';
 import { AuditoriaModule } from './modules/auditoria/auditoria.service.js';
 import { AvisosZonaModule } from './modules/avisos-zona/avisos-zona.module.js';
+import { EmergenciasModule } from './modules/emergencias/emergencias.module.js';
 import { EntradaModule } from './modules/entrada/entrada.module.js';
 import { IntegracoesModule } from './modules/integracoes/integracoes.module.js';
 import { ModelosModule } from './modules/modelos/modelos.module.js';
@@ -116,6 +117,7 @@ import { TransparenciaModule } from './modules/transparencia/transparencia.modul
     ModelosModule,
     IntegracoesModule,
     AvisosZonaModule,
+    EmergenciasModule,
     // Memória da câmara: procedimentos internos, entrevistas e assistente
     ProcedimentosModule,
     ConsultasPublicasModule,
