@@ -8,6 +8,8 @@ import { z } from 'zod';
 import type { Feriados } from '../../common/dias-uteis.js';
 import {
   AvaliacaoLicenca,
+  CAMPOS_AVISOS,
+  ConfigAvisos,
   dataPorExtenso,
   diaCurto,
   diaPorExtenso,
@@ -52,12 +54,36 @@ import {
   lerConfigOcupacao,
   PedidoOcupacao,
 } from './regras-ocupacao.js';
+import {
+  areaPublicidade,
+  avaliarPublicidade,
+  CONFIG_PUBLICIDADE_OMISSAO,
+  ConfigPublicidade,
+  entradaPublicidade,
+  esquemaConfigPublicidade,
+  isentaPublicidade,
+  lerConfigPublicidade,
+  PedidoPublicidade,
+  SUPORTES,
+} from './regras-publicidade.js';
+import {
+  avaliarRecinto,
+  CONFIG_RECINTO_OMISSAO,
+  ConfigRecinto,
+  entradaRecinto,
+  ESTRUTURAS,
+  esquemaConfigRecinto,
+  lerConfigRecinto,
+  PedidoRecinto,
+} from './regras-recinto.js';
 
 export const TIPOS = [
   'ruido',
   'ocupacao_via',
   'esplanada',
   'distico_residente',
+  'publicidade',
+  'recinto_improvisado',
 ] as const;
 export type TipoLicenca = (typeof TIPOS)[number];
 
@@ -117,6 +143,25 @@ export interface DefTipo {
   ): AvaliacaoLicenca;
   /** `emitida`: dia da emissão (AAAA-MM-DD), se já foi emitida. */
   resumo(dados: unknown, config: unknown, emitida: string | null): Resumo;
+  /**
+   * Tem validade e renova-se (avisos antes de expirar e `renovar_licenca`):
+   * os campos de `aviso_*` estão na config.
+   */
+  renovavel: boolean;
+}
+
+/** Os avisos de um tipo renovável (as regras já lidas). */
+export function avisosDe(
+  tipo: TipoLicenca,
+  config: unknown,
+): ConfigAvisos | null {
+  if (!DEFS[tipo].renovavel) return null;
+  const c = config as Partial<ConfigAvisos>;
+  return {
+    aviso_1_dias: c.aviso_1_dias ?? 0,
+    aviso_2_dias: c.aviso_2_dias ?? 0,
+    aviso_por_chamada: c.aviso_por_chamada ?? false,
+  };
 }
 
 const RUIDO: DefTipo = {
@@ -127,6 +172,7 @@ const RUIDO: DefTipo = {
   codigo: 'LER',
   prazo_dias_uteis: 5,
   ferramenta: 'pedir_licenca_ruido',
+  renovavel: false,
   esquemaConfig: esquemaConfigRuido,
   omissao: CONFIG_RUIDO_OMISSAO,
   ler: lerConfigRuido,
@@ -225,6 +271,7 @@ const OCUPACAO: DefTipo = {
   codigo: 'OVP',
   prazo_dias_uteis: 10,
   ferramenta: 'pedir_licenca_ocupacao_via',
+  renovavel: true,
   esquemaConfig: esquemaConfigOcupacao,
   omissao: CONFIG_OCUPACAO_OMISSAO,
   ler: lerConfigOcupacao,
@@ -276,6 +323,7 @@ const OCUPACAO: DefTipo = {
       rotulo: 'Taxa por m² e por dia',
       tipo: 'euros',
     },
+    ...CAMPOS_AVISOS,
   ],
   avaliar: (d, c, h, f) =>
     avaliarOcupacao(d as PedidoOcupacao, c as ConfigOcupacao, h, f),
@@ -313,6 +361,7 @@ const ESPLANADA: DefTipo = {
   codigo: 'ESP',
   prazo_dias_uteis: 10,
   ferramenta: 'pedir_licenca_esplanada',
+  renovavel: true,
   esquemaConfig: esquemaConfigEsplanada,
   omissao: CONFIG_ESPLANADA_OMISSAO,
   ler: lerConfigEsplanada,
@@ -365,6 +414,7 @@ const ESPLANADA: DefTipo = {
       tipo: 'euros',
     },
     { chave: 'taxa_minima_cent', rotulo: 'Taxa mínima', tipo: 'euros' },
+    ...CAMPOS_AVISOS,
   ],
   avaliar: (d, c, h, f) =>
     avaliarEsplanada(d as PedidoEsplanada, c as ConfigEsplanada, h, f),
@@ -398,6 +448,7 @@ const DISTICO: DefTipo = {
   codigo: 'DRE',
   prazo_dias_uteis: 5,
   ferramenta: 'pedir_distico_residente',
+  renovavel: true,
   esquemaConfig: esquemaConfigDistico,
   omissao: CONFIG_DISTICO_OMISSAO,
   ler: lerConfigDistico,
@@ -428,6 +479,7 @@ const DISTICO: DefTipo = {
       rotulo: 'Exige o carro em nome de quem pede',
       tipo: 'booleano',
     },
+    ...CAMPOS_AVISOS,
   ],
   avaliar: (d, c) => avaliarDistico(d as PedidoDistico, c as ConfigDistico),
   resumo(dados, config, emitida) {
@@ -456,11 +508,209 @@ const DISTICO: DefTipo = {
   },
 };
 
+const PUBLICIDADE: DefTipo = {
+  tipo: 'publicidade',
+  nome: 'Licença de publicidade',
+  curto: 'licença de publicidade',
+  feminino: true,
+  codigo: 'PUB',
+  prazo_dias_uteis: 10,
+  ferramenta: 'pedir_licenca_publicidade',
+  renovavel: true,
+  esquemaConfig: esquemaConfigPublicidade,
+  omissao: CONFIG_PUBLICIDADE_OMISSAO,
+  ler: lerConfigPublicidade,
+  campos: [
+    {
+      chave: 'suportes',
+      rotulo: 'Suportes aceites sem técnico',
+      tipo: 'opcoes',
+      opcoes: SUPORTES,
+    },
+    {
+      chave: 'area_isenta_m2',
+      rotulo: 'Isenta até (no próprio estabelecimento)',
+      tipo: 'decimal',
+      unidade: 'm²',
+    },
+    {
+      chave: 'area_max_m2',
+      rotulo: 'Área máxima sem técnico',
+      tipo: 'decimal',
+      unidade: 'm²',
+    },
+    {
+      chave: 'alheia_vai_a_tecnico',
+      rotulo: 'Fora do próprio estabelecimento vai a técnico',
+      tipo: 'booleano',
+    },
+    {
+      chave: 'centro_historico_vai_a_tecnico',
+      rotulo: 'Centro histórico vai a técnico',
+      tipo: 'booleano',
+    },
+    {
+      chave: 'iluminado_vai_a_tecnico',
+      rotulo: 'Iluminada vai a técnico',
+      tipo: 'booleano',
+    },
+    {
+      chave: 'meses_max',
+      rotulo: 'Meses no máximo',
+      tipo: 'inteiro',
+      unidade: 'meses',
+    },
+    {
+      chave: 'antecedencia_min_dias_uteis',
+      rotulo: 'Antecedência mínima',
+      tipo: 'inteiro',
+      unidade: 'dias úteis',
+    },
+    {
+      chave: 'antecedencia_max_dias',
+      rotulo: 'Antecedência máxima',
+      tipo: 'inteiro',
+      unidade: 'dias',
+    },
+    {
+      chave: 'taxa_m2_mes_cent',
+      rotulo: 'Taxa por m² e por mês',
+      tipo: 'euros',
+    },
+    {
+      chave: 'taxa_iluminado_m2_mes_cent',
+      rotulo: 'Taxa por m² e por mês (iluminada)',
+      tipo: 'euros',
+    },
+    { chave: 'taxa_minima_cent', rotulo: 'Taxa mínima', tipo: 'euros' },
+    ...CAMPOS_AVISOS,
+  ],
+  avaliar: (d, c, h, f) =>
+    avaliarPublicidade(d as PedidoPublicidade, c as ConfigPublicidade, h, f),
+  resumo(dados, config) {
+    const d = dados as PedidoPublicidade;
+    const fim = somarDias(somarMeses(d.data_inicio, d.meses), -1);
+    const isenta = isentaPublicidade(d, config as ConfigPublicidade);
+    return {
+      assunto: `Publicidade · ${d.estabelecimento}`,
+      atividade: `${SUPORTES[d.suporte]} de ${d.estabelecimento}`,
+      descricao: d.mensagem,
+      morada: d.morada,
+      rotulo_dia: 'Período',
+      dia: `De ${dataPorExtenso(d.data_inicio)} a ${dataPorExtenso(fim)}`,
+      horario: null,
+      detalhes: [
+        { rotulo: 'Suporte', valor: SUPORTES[d.suporte] },
+        {
+          rotulo: 'Medidas',
+          valor: `${num(d.largura_m)} × ${num(d.altura_m)} m (${num(areaPublicidade(d))} m²)`,
+        },
+        { rotulo: 'Iluminado', valor: d.iluminado ? 'sim' : 'não' },
+        {
+          rotulo: 'No próprio estabelecimento',
+          valor: d.no_proprio_estabelecimento ? 'sim' : 'não',
+        },
+        ...(isenta
+          ? [
+              {
+                rotulo: 'Regime',
+                valor: 'mera comunicação (isenta de licença)',
+              },
+            ]
+          : []),
+      ],
+      valida_ate: fim,
+    };
+  },
+};
+
+const RECINTO: DefTipo = {
+  tipo: 'recinto_improvisado',
+  nome: 'Licença de recinto improvisado',
+  curto: 'licença de recinto improvisado',
+  feminino: true,
+  codigo: 'LRI',
+  prazo_dias_uteis: 10,
+  ferramenta: 'pedir_licenca_recinto_improvisado',
+  renovavel: false,
+  esquemaConfig: esquemaConfigRecinto,
+  omissao: CONFIG_RECINTO_OMISSAO,
+  ler: lerConfigRecinto,
+  campos: [
+    {
+      chave: 'estruturas',
+      rotulo: 'Estruturas aceites sem vistoria',
+      tipo: 'opcoes',
+      opcoes: ESTRUTURAS,
+    },
+    {
+      chave: 'lotacao_max',
+      rotulo: 'Lotação sem vistoria',
+      tipo: 'inteiro',
+      unidade: 'pessoas',
+    },
+    {
+      chave: 'dias_max',
+      rotulo: 'Dias no máximo',
+      tipo: 'inteiro',
+      unidade: 'dias',
+    },
+    {
+      chave: 'antecedencia_min_dias_uteis',
+      rotulo: 'Antecedência mínima',
+      tipo: 'inteiro',
+      unidade: 'dias úteis',
+    },
+    {
+      chave: 'antecedencia_max_dias',
+      rotulo: 'Antecedência máxima',
+      tipo: 'inteiro',
+      unidade: 'dias',
+    },
+    { chave: 'taxa_base_cent', rotulo: 'Taxa fixa', tipo: 'euros' },
+    { chave: 'taxa_dia_cent', rotulo: 'Taxa por dia', tipo: 'euros' },
+  ],
+  avaliar: (d, c, h, f) =>
+    avaliarRecinto(d as PedidoRecinto, c as ConfigRecinto, h, f),
+  resumo(dados) {
+    const d = dados as PedidoRecinto;
+    const fim = somarDias(d.data_inicio, d.dias - 1);
+    return {
+      assunto: `Recinto improvisado · ${d.descricao}`,
+      atividade: `Recinto improvisado: ${d.descricao}`,
+      descricao: d.descricao,
+      morada: d.morada,
+      rotulo_dia: 'Período',
+      dia:
+        d.dias === 1
+          ? diaPorExtenso(d.data_inicio)
+          : `De ${dataPorExtenso(d.data_inicio)} a ${dataPorExtenso(fim)} (${d.dias} dias)`,
+      horario: null,
+      detalhes: [
+        { rotulo: 'Lotação', valor: `${d.lotacao} pessoas` },
+        {
+          rotulo: 'Estruturas',
+          valor: d.estruturas.length
+            ? d.estruturas.map((e) => ESTRUTURAS[e].toLowerCase()).join(', ')
+            : 'nenhuma',
+        },
+        {
+          rotulo: 'Música',
+          valor: d.musica ? 'sim (com licença de ruído)' : 'não',
+        },
+      ],
+      valida_ate: fim,
+    };
+  },
+};
+
 export const DEFS: Record<TipoLicenca, DefTipo> = {
   ruido: RUIDO,
   ocupacao_via: OCUPACAO,
   esplanada: ESPLANADA,
   distico_residente: DISTICO,
+  publicidade: PUBLICIDADE,
+  recinto_improvisado: RECINTO,
 };
 
 /** As entradas das ferramentas novas (a do ruído está no serviço). */
@@ -468,6 +718,8 @@ export const ENTRADAS = {
   ocupacao_via: entradaOcupacao,
   esplanada: entradaEsplanada,
   distico_residente: entradaDistico,
+  publicidade: entradaPublicidade,
+  recinto_improvisado: entradaRecinto,
 };
 
 export const esquemaTipo = z.enum(TIPOS);

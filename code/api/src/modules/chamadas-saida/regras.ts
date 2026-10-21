@@ -32,6 +32,8 @@ export const MOTIVOS_CHAMADA = [
   // Campanhas de contacto (ação social): agendadas pelo módulo campanhas,
   // sem passar por `decidirChamada` (só a quem se inscreveu).
   'campanha',
+  // Licença a expirar (módulo licencas): só a quem prefere telefone.
+  'renovacao_licenca',
 ] as const;
 export type MotivoChamada = (typeof MOTIVOS_CHAMADA)[number];
 
@@ -314,6 +316,8 @@ export const MOTIVO_FALADO: Record<MotivoChamada, string> = {
   manual: 'o técnico pediu para falar consigo sobre o processo',
   campanha:
     'a câmara está a ligar às pessoas inscritas para saber se está tudo bem',
+  renovacao_licenca:
+    'a sua licença está quase a expirar e pode renová-la já nesta chamada',
 };
 
 export function variaveisSaida(

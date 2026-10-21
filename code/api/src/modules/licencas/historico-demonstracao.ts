@@ -71,6 +71,24 @@ const CAFES = [
   'Gelataria Vila Flor',
   'Tasca do Zé',
 ];
+const LOJAS = [
+  'Sapataria Moderna',
+  'Farmácia do Toural',
+  'Óptica Vimaranense',
+  'Barbearia Afonso',
+  'Florista Vila Flor',
+  'Mercearia da Rainha',
+  'Cabeleireiro Linda',
+  'Livraria Gil Vicente',
+];
+const EVENTOS = [
+  'Arraial de São João da associação',
+  'Festa da freguesia',
+  'Concerto ao ar livre no largo',
+  'Festival de folclore',
+  'Feira medieval',
+  'Noite de fados no adro',
+];
 const LETRAS = 'ABCDEFGHIJLMNOPRSTUVXZ';
 
 const SEMENTE: Record<TipoLicenca, number> = {
@@ -78,6 +96,8 @@ const SEMENTE: Record<TipoLicenca, number> = {
   ocupacao_via: 23,
   esplanada: 37,
   distico_residente: 41,
+  publicidade: 53,
+  recinto_improvisado: 67,
 };
 
 /** n pedidos espalhados pelos últimos `anos` anos antes de `hoje`. */
@@ -227,6 +247,65 @@ function dados(
         ]),
         morada_comprovada: g.sim(0.9),
         viatura_em_nome: g.sim(0.92),
+      };
+    }
+    case 'publicidade': {
+      const suporte = g.pesado([
+        ['placa', 30],
+        ['letras', 20],
+        ['tabuleta', 20],
+        ['toldo', 10],
+        ['lona', 10],
+        ['bandeirola', 5],
+        ['cavalete', 5],
+      ] as const);
+      const [largura, altura] = g.pesado([
+        [[g.um([0.5, 0.6, 0.8, 1]), g.um([0.4, 0.5, 0.8, 1])], 55],
+        [[g.um([1.5, 2, 2.5, 3]), g.um([0.5, 0.8, 1, 1.5])], 30],
+        [[g.um([3, 4, 5]), g.um([1.5, 2, 3])], 15],
+      ] as const);
+      return {
+        suporte,
+        estabelecimento: g.um(LOJAS),
+        mensagem: 'Nome e logótipo do estabelecimento',
+        morada: morada(),
+        largura_m: largura,
+        altura_m: altura,
+        iluminado: g.sim(0.3),
+        no_proprio_estabelecimento: g.sim(0.85),
+        centro_historico: g.sim(0.25),
+        data_inicio: somarDias(pedidoEm, g.entre(2, 30)),
+        meses: g.um([6, 12, 12, 12]),
+      };
+    }
+    case 'recinto_improvisado': {
+      const estruturas = (
+        ['palco', 'tenda', 'barracas', 'bancadas'] as const
+      ).filter((_, i) => g.sim([0.7, 0.5, 0.6, 0.12][i]));
+      return {
+        descricao: g.um(EVENTOS),
+        morada: morada(),
+        data_inicio: somarDias(
+          pedidoEm,
+          g.pesado([
+            [g.entre(3, 12), 25],
+            [g.entre(13, 40), 55],
+            [g.entre(41, 90), 20],
+          ]),
+        ),
+        dias: g.pesado([
+          [1, 40],
+          [2, 25],
+          [3, 20],
+          [g.entre(4, 10), 15],
+        ]),
+        lotacao: g.pesado([
+          [g.entre(50, 300), 65],
+          [g.entre(301, 1000), 25],
+          [g.entre(1001, 3000), 10],
+        ]),
+        estruturas,
+        musica: g.sim(0.85),
       };
     }
   }

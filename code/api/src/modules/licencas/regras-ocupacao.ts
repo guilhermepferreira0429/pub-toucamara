@@ -12,6 +12,7 @@ import { z } from 'zod';
 import type { Feriados } from '../../common/dias-uteis.js';
 import {
   AvaliacaoLicenca,
+  camposAvisos,
   camposComuns,
   num,
   propostaDe,
@@ -31,6 +32,10 @@ const CHAVES_EQUIPAMENTO = Object.keys(EQUIPAMENTOS) as [
   ...Equipamento[],
 ];
 
+/** Avisos antes de expirar (de demonstração): a ocupação dura dias, não meses. */
+const AVISO_1 = 5;
+const AVISO_2 = 2;
+
 export const esquemaConfigOcupacao = z.object({
   /** O que se autoriza sem técnico. */
   equipamentos: z.array(z.enum(CHAVES_EQUIPAMENTO)).min(1),
@@ -47,6 +52,7 @@ export const esquemaConfigOcupacao = z.object({
   /** Por m² e por dia. */
   taxa_m2_dia_cent: z.number().int().min(0).max(10_000),
   ...camposComuns,
+  ...camposAvisos(AVISO_1, AVISO_2),
 });
 export type ConfigOcupacao = z.output<typeof esquemaConfigOcupacao>;
 
@@ -67,6 +73,9 @@ export const CONFIG_OCUPACAO_OMISSAO: ConfigOcupacao = {
     url: null,
   },
   demonstracao: true,
+  aviso_1_dias: AVISO_1,
+  aviso_2_dias: AVISO_2,
+  aviso_por_chamada: false,
 };
 
 export function lerConfigOcupacao(v: unknown): ConfigOcupacao {

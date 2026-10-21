@@ -39,6 +39,9 @@ export const FERRAMENTAS_PESSOAIS = [
   'pedir_licenca_ocupacao_via',
   'pedir_licenca_esplanada',
   'pedir_distico_residente',
+  'pedir_licenca_publicidade',
+  'pedir_licenca_recinto_improvisado',
+  'renovar_licenca',
 ] as const;
 
 /** Não mudam nada: o cliente pode correr sem pedir confirmação. */
@@ -69,6 +72,9 @@ export const TITULOS: Record<string, string> = {
   pedir_licenca_ocupacao_via: 'Pedir licença de ocupação da via pública',
   pedir_licenca_esplanada: 'Pedir licença de esplanada',
   pedir_distico_residente: 'Pedir dístico de residente',
+  pedir_licenca_publicidade: 'Pedir licença de publicidade',
+  pedir_licenca_recinto_improvisado: 'Pedir licença de recinto improvisado',
+  renovar_licenca: 'Renovar uma licença a expirar',
   registar_ocorrencia: 'Registar um problema na via pública',
   estado_ocorrencia: 'Estado de uma ocorrência',
   estado_processo: 'Estado de um processo',

@@ -9,11 +9,16 @@
 import { z } from 'zod';
 import {
   AvaliacaoLicenca,
+  camposAvisos,
   camposComuns,
   euros,
   propostaDe,
   RegraAvaliada,
 } from './comum.js';
+
+/** Avisos antes de expirar (de demonstração). */
+const AVISO_1 = 30;
+const AVISO_2 = 7;
 
 export const esquemaConfigDistico = z.object({
   /** Quantos dísticos por casa (fogo), no máximo, sem análise. */
@@ -29,6 +34,7 @@ export const esquemaConfigDistico = z.object({
   /** O carro tem de estar em nome de quem pede (ou com declaração da empresa ou do leasing). */
   exige_viatura_em_nome: z.boolean(),
   ...camposComuns,
+  ...camposAvisos(AVISO_1, AVISO_2),
 });
 export type ConfigDistico = z.output<typeof esquemaConfigDistico>;
 
@@ -45,6 +51,9 @@ export const CONFIG_DISTICO_OMISSAO: ConfigDistico = {
     url: null,
   },
   demonstracao: true,
+  aviso_1_dias: AVISO_1,
+  aviso_2_dias: AVISO_2,
+  aviso_por_chamada: false,
 };
 
 export function lerConfigDistico(v: unknown): ConfigDistico {

@@ -139,3 +139,44 @@ export function diaCurto(dia: string): string {
     month: 'short',
   }).format(new Date(`${dia}T12:00:00Z`));
 }
+
+/**
+ * Avisos antes de a licença expirar (tipos com validade): quantos dias
+ * antes vão o 1.º e o 2.º aviso (0 = não vai) e se, a quem prefere
+ * telefone, o agente liga em vez do SMS. Com valores por omissão, para as
+ * regras gravadas antes destes campos continuarem a ler-se.
+ */
+export function camposAvisos(aviso1: number, aviso2: number) {
+  return {
+    aviso_1_dias: z.number().int().min(0).max(365).default(aviso1),
+    aviso_2_dias: z.number().int().min(0).max(365).default(aviso2),
+    aviso_por_chamada: z.boolean().default(false),
+  };
+}
+
+export interface ConfigAvisos {
+  aviso_1_dias: number;
+  aviso_2_dias: number;
+  aviso_por_chamada: boolean;
+}
+
+/** Os campos dos avisos, como o painel os edita. */
+export const CAMPOS_AVISOS = [
+  {
+    chave: 'aviso_1_dias',
+    rotulo: '1.º aviso antes de expirar (0 = não avisa)',
+    tipo: 'inteiro' as const,
+    unidade: 'dias',
+  },
+  {
+    chave: 'aviso_2_dias',
+    rotulo: '2.º aviso antes de expirar (0 = não avisa)',
+    tipo: 'inteiro' as const,
+    unidade: 'dias',
+  },
+  {
+    chave: 'aviso_por_chamada',
+    rotulo: 'A quem prefere telefone, o agente liga em vez do SMS',
+    tipo: 'booleano' as const,
+  },
+];
