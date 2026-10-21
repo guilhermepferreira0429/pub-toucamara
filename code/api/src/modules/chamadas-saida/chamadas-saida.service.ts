@@ -962,6 +962,18 @@ export class ChamadasSaidaService {
       };
     }
     const v = variaveisSaida(c.id, c.motivo, c.contexto);
+    if (c.motivo === 'campanha') {
+      return {
+        chamada_de_saida: true,
+        motivo: v.motivo,
+        mensagem: c.contexto.o_que_mudou ?? '',
+        perguntas: c.contexto.campanha?.perguntas ?? [],
+        instrucao:
+          'Diz a mensagem, faz as perguntas uma de cada vez e ouve com calma. ' +
+          'No fim usa resposta_campanha: estado "bem" ou "precisa_ajuda", com as necessidades e o que a pessoa disse. ' +
+          'Se houver perigo para a vida (não respira, caiu e não se levanta, dor no peito), diz para ligar já 112.',
+      };
+    }
     return {
       chamada_de_saida: true,
       motivo: v.motivo,

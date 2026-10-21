@@ -20,6 +20,8 @@ export const PERMISSOES = {
   conhecimento: ['chefe_divisao'],
   equipa: ['chefe_divisao'],
   agente: ['chefe_divisao'],
+  // Campanhas de contacto e a lista de pessoas inscritas (dados sensíveis).
+  acao_social: ['atendimento', 'chefe_divisao'],
 } as const satisfies Record<string, readonly Perfil[]>;
 
 export type Recurso = keyof typeof PERMISSOES;
