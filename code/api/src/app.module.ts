@@ -46,6 +46,7 @@ import { LicencasModule } from './modules/licencas/licencas.module.js';
 import { OrdenamentoModule } from './modules/ordenamento/ordenamento.module.js';
 import { PortaIasModule } from './modules/porta-ias/porta-ias.module.js';
 import { PerguntasChefiaModule } from './modules/perguntas-chefia/perguntas-chefia.module.js';
+import { ProcedimentosModule } from './modules/procedimentos/procedimentos.module.js';
 import { ProcessosModule } from './modules/processos/processos.module.js';
 import { RelatoriosModule } from './modules/relatorios/relatorios.module.js';
 import { RequerimentosModule } from './modules/requerimentos/requerimentos.module.js';
@@ -104,6 +105,8 @@ import { RequerimentosModule } from './modules/requerimentos/requerimentos.modul
     ModelosModule,
     IntegracoesModule,
     AvisosZonaModule,
+    // Memória da câmara: procedimentos internos, entrevistas e assistente
+    ProcedimentosModule,
     // Porta para as IAs (MCP)
     PortaIasModule,
   ],

@@ -7,6 +7,8 @@ import {
   ChartColumn,
   ChevronsUpDown,
   FolderOpen,
+  GraduationCap,
+  ClipboardList,
   Inbox,
   LayoutDashboard,
   Lock,
@@ -140,6 +142,18 @@ const SECCOES: Seccao[] = [
         icone: BookOpen,
         recurso: "conhecimento_ver",
         contagem: "conhecimento",
+      },
+      {
+        rotulo: "Procedimentos",
+        href: "/painel/procedimentos",
+        icone: ClipboardList,
+        recurso: "procedimentos_ver",
+      },
+      {
+        rotulo: "Assistente interno",
+        href: "/painel/assistente",
+        icone: GraduationCap,
+        recurso: "procedimentos_ver",
       },
       {
         rotulo: "Ordenamento",

@@ -22,6 +22,10 @@ export const PERMISSOES = {
   agente: ['chefe_divisao'],
   // Campanhas de contacto e a lista de pessoas inscritas (dados sensíveis).
   acao_social: ['atendimento', 'chefe_divisao'],
+  // Procedimentos internos e assistente (só funcionários): todos leem,
+  // escrevem rascunhos e dão entrevistas; a chefia publica e arquiva.
+  procedimentos_ver: ['atendimento', 'tecnico', 'chefe_divisao', 'vereador'],
+  procedimentos: ['chefe_divisao'],
 } as const satisfies Record<string, readonly Perfil[]>;
 
 export type Recurso = keyof typeof PERMISSOES;

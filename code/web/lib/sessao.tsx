@@ -30,7 +30,9 @@ export type Recurso =
   | "conhecimento"
   | "equipa"
   | "agente"
-  | "acao_social";
+  | "acao_social"
+  | "procedimentos_ver"
+  | "procedimentos";
 
 export type Perfil =
   | "atendimento"
