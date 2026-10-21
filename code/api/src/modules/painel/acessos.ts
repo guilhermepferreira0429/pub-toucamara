@@ -67,6 +67,13 @@ const VERBOS: Record<string, string> = {
   carregar_apoios_demonstracao: 'carregou os apoios de demonstração',
   ligar_quem_tem_direito:
     'pediu ao agente para ligar a quem pode ter direito a',
+  abrir_consulta: 'abriu',
+  fechar_consulta: 'fechou',
+  resumir_opinioes: 'resumiu as opiniões de',
+  exportar_participacoes: 'exportou as participações (anonimizadas) de',
+  ligar_consulta: 'mandou o agente ligar às pessoas inscritas sobre',
+  participar_consulta: 'participou em',
+  alterar_participacao: 'mudou a participação em',
 };
 
 const OBJETOS: Record<string, string> = {
@@ -97,6 +104,7 @@ const OBJETOS: Record<string, string> = {
   apoio: 'um apoio',
   apoios: '',
   pedido_apoio: 'um pedido de apoio',
+  consulta_publica: 'uma consulta pública',
 };
 
 export function frase(acao: string, objetoTipo: string): string {

@@ -23,6 +23,7 @@ import {
   Siren,
   TriangleAlert,
   UserRound,
+  Vote,
   type LucideIcon,
 } from "lucide-react";
 import { useState } from "react";
@@ -963,6 +964,34 @@ function CartaoApoios({ ferramenta, dados }: { ferramenta: string; dados: Dados 
 
 /* ------------------------------------------------------------------ */
 
+/* ------------------------------------------------------------------ */
+/* Consulta pública (participar_consulta)                               */
+/* ------------------------------------------------------------------ */
+
+function CartaoConsulta({ dados }: { dados: Dados }) {
+  if (dados.registada !== true) return null;
+  const link = txt(dados.link);
+  return (
+    <div className={`${CAIXA} gap-3 border-linha p-4`}>
+      <p className="flex items-center gap-2.5">
+        <span className="flex size-8 items-center justify-center rounded-full bg-verde" aria-hidden>
+          <Vote className="size-4 text-white" />
+        </span>
+        <span className="flex flex-col">
+          <span className="text-[15px] font-bold text-tinta">A sua opinião foi registada</span>
+          {txt(dados.consulta) && <span className="text-[13px] text-tinta-2">{txt(dados.consulta)}</span>}
+        </span>
+      </p>
+      <ul className="rounded-xl bg-creme px-3">
+        {txt(dados.freguesia) && <Linha icone={MapPin}>Freguesia: {txt(dados.freguesia)}</Linha>}
+        {txt(dados.relatorio) && <Linha icone={Calendar}>Relatório a {txt(dados.relatorio)}</Linha>}
+      </ul>
+      {dados.alterada === true && <Feito>Substitui a resposta anterior</Feito>}
+      {link && <LinkCartao href={link}>Ver a consulta</LinkCartao>}
+    </div>
+  );
+}
+
 /** O cartão certo para cada tipo (os desconhecidos não aparecem). */
 export function CartaoChat({ cartao, acoes }: { cartao: Cartao; acoes: AcoesCartao }) {
   switch (cartao.tipo) {
@@ -992,6 +1021,8 @@ export function CartaoChat({ cartao, acoes }: { cartao: Cartao; acoes: AcoesCart
       return <CartaoProcesso dados={cartao.dados} />;
     case "apoios":
       return <CartaoApoios ferramenta={cartao.ferramenta} dados={cartao.dados} />;
+    case "consulta":
+      return <CartaoConsulta dados={cartao.dados} />;
     default:
       return null;
   }

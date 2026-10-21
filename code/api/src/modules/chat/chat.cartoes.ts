@@ -16,7 +16,8 @@ export type TipoCartao =
   | 'passagem'
   | 'vagas'
   | 'processo'
-  | 'apoios';
+  | 'apoios'
+  | 'consulta';
 
 export interface FonteCartao {
   titulo: string;
@@ -57,6 +58,8 @@ const POR_FERRAMENTA: Record<
   // A que apoios pode ter direito (e o pedido de um apoio).
   que_apoios_tenho: 'apoios',
   pedir_apoio: 'apoios',
+  // Consulta pública: participação registada (dizer, relatório, link).
+  participar_consulta: 'consulta',
 };
 
 function objeto(v: unknown): Record<string, unknown> {

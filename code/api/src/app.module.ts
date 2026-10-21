@@ -42,6 +42,7 @@ import { OcorrenciasModule } from './modules/ocorrencias/ocorrencias.module.js';
 import { PagamentosModule } from './modules/pagamentos/pagamentos.module.js';
 import { PainelModule } from './modules/painel/painel.module.js';
 import { CampanhasModule } from './modules/campanhas/campanhas.module.js';
+import { ConsultasPublicasModule } from './modules/consultas-publicas/consultas-publicas.module.js';
 import { LicencasModule } from './modules/licencas/licencas.module.js';
 import { ApoiosModule } from './modules/apoios/apoios.module.js';
 import { OrdenamentoModule } from './modules/ordenamento/ordenamento.module.js';
@@ -109,6 +110,7 @@ import { RequerimentosModule } from './modules/requerimentos/requerimentos.modul
     AvisosZonaModule,
     // Memória da câmara: procedimentos internos, entrevistas e assistente
     ProcedimentosModule,
+    ConsultasPublicasModule,
     // Porta para as IAs (MCP)
     PortaIasModule,
   ],
