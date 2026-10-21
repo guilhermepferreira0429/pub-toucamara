@@ -29,6 +29,8 @@ interface LicencaPublica {
   titulo?: string;
   feminino?: boolean;
   valida_ate?: string | null;
+  /** Tipos com validade: quantos dias antes avisamos (null se não avisa). */
+  aviso_dias_antes?: number | null;
   rotulo_dia?: string;
   detalhes?: { rotulo: string; valor: string }[];
   numero: string;
@@ -51,6 +53,16 @@ interface LicencaPublica {
 }
 
 const semSubscricao = () => () => {};
+
+/** "30 de novembro de 2026". */
+function dataPorExtenso(dia: string): string {
+  return new Intl.DateTimeFormat("pt-PT", {
+    timeZone: "UTC",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  }).format(new Date(`${dia}T12:00:00Z`));
+}
 
 export function PaginaLicenca({ codigo }: { codigo: string }) {
   const { c, tentarOutraVez } = usePublico<LicencaPublica>(
@@ -95,6 +107,12 @@ export function PaginaLicenca({ codigo }: { codigo: string }) {
             {l.titular ? `Em nome de ${l.titular.replace(/\.$/, "")}. ` : ""}
             {l.atividade}.
           </p>
+          {l.valida && l.valida_ate && (
+            <p className="text-[15px] font-semibold text-white">
+              {fem ? "Válida" : "Válido"} até {dataPorExtenso(l.valida_ate)}
+              {l.aviso_dias_antes ? ` · avisamos ${l.aviso_dias_antes} dias antes` : ""}
+            </p>
+          )}
         </CartaoDestaque>
       ) : (
         <Nota icone={ShieldAlert} tom={l.estado === "recusada" ? "terracota" : "ambar"} papel="status">
@@ -169,6 +187,11 @@ export function PaginaLicenca({ codigo }: { codigo: string }) {
         <ModoTeste texto="assinatura simulada" />
         {l.regras_de_demonstracao && <ModoTeste texto="regras de demonstração" />}
       </div>
+      {l.valida && l.aviso_dias_antes ? (
+        <p className="text-[13px] leading-[1.45] text-tinta-3">
+          Para renovar, ligue ou escreva-nos e o assistente trata de tudo, com os mesmos dados.
+        </p>
+      ) : null}
       <p className="text-[13px] leading-[1.45] text-tinta-3">
         Base: {l.fonte}. Verificada pelas regras da câmara no momento do pedido
         {l.emitida_em ? " e aprovada por um funcionário" : ""}.

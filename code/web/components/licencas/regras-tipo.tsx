@@ -25,7 +25,13 @@ import { useSessao } from "@/lib/sessao";
  * passava a ser, quanto mudava a receita das taxas e exemplos concretos).
  */
 
-export type TipoLicenca = "ruido" | "ocupacao_via" | "esplanada" | "distico_residente";
+export type TipoLicenca =
+  | "ruido"
+  | "ocupacao_via"
+  | "esplanada"
+  | "distico_residente"
+  | "publicidade"
+  | "recinto_improvisado";
 
 export interface CampoRegra {
   chave: string;
@@ -51,6 +57,8 @@ export interface InfoTipo {
   campos: CampoRegra[];
   pedidos: number;
   historico: { pedidos: number; demonstracao: number };
+  /** Tem validade: avisa antes de expirar e renova-se pelo agente. */
+  renovavel?: boolean;
 }
 
 interface Exemplo {

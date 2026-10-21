@@ -22,6 +22,7 @@ import {
   LicencasService,
 } from './licencas.service.js';
 import { esquemaTipo, TipoLicenca } from './tipos.js';
+import { LicencasAvisosService } from './avisos.service.js';
 
 function tipoDe(t: string): TipoLicenca {
   return validar(z.object({ tipo: esquemaTipo }), { tipo: t }).tipo;
@@ -39,7 +40,10 @@ const ESTADOS = [
 @Controller('painel/licencas')
 @Painel('processos')
 export class LicencasPainelController {
-  constructor(private readonly licencas: LicencasService) {}
+  constructor(
+    private readonly licencas: LicencasService,
+    private readonly avisos: LicencasAvisosService,
+  ) {}
 
   /** ?estado=&tipo= */
   @Get()
@@ -74,6 +78,19 @@ export class LicencasPainelController {
   @Get('tipos')
   tipos(@MunicipioAtual() m: Municipio) {
     return this.licencas.tipos(m).then((tipos) => ({ tipos }));
+  }
+
+  /**
+   * Calendário de obrigações: as licenças que expiram nos próximos dias
+   * (?dias=60), por semana, com o estado do aviso e da renovação.
+   */
+  @Get('a-expirar')
+  aExpirar(@MunicipioAtual() m: Municipio, @Query() query: unknown) {
+    const { dias } = validar(
+      z.object({ dias: z.coerce.number().int().min(1).max(366).default(60) }),
+      query,
+    );
+    return this.avisos.aExpirar(m, dias);
   }
 
   @Get('regras/:tipo')

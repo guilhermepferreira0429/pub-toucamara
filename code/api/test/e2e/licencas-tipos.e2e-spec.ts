@@ -140,7 +140,7 @@ describe('Licenças: outros tipos e simulação de regras (e2e)', () => {
       tipo_nome: 'Licença de ocupação da via pública',
       resumo: { rotulo_dia: 'Período' },
     });
-    expect(lista.body.tipos).toHaveLength(4);
+    expect(lista.body.tipos).toHaveLength(6);
 
     const ap = await ctx
       .http()
@@ -309,6 +309,195 @@ describe('Licenças: outros tipos e simulação de regras (e2e)', () => {
     await pdfDe(d.body.codigo_verificacao);
   });
 
+  it('publicidade: placa de 2 m² no próprio estabelecimento → paga → aprovar → página e PDF', async () => {
+    const chamada = novaChamada('pub');
+    const r = await ferramenta(ctx, chamada, 'pedir_licenca_publicidade', {
+      suporte: 'placa',
+      estabelecimento: 'Sapataria Moderna',
+      mensagem: 'Nome e logótipo da loja',
+      morada: 'Rua de Santo António 30, Guimarães',
+      largura_m: 2,
+      altura_m: 1,
+      iluminado: false,
+      no_proprio_estabelecimento: true,
+      data_inicio: daquiA(),
+      meses: 12,
+      nome: 'Sapataria Moderna Lda',
+    }).expect(200);
+    expect(r.body).toMatchObject({
+      pedida: true,
+      tipo: 'publicidade',
+      numero: expect.stringMatching(/^PUB \d+\/\d{4}$/),
+      proposta: 'aprovar',
+      // 2 m² × 12 meses × 1,50 €
+      pagamento: { modo_teste: true, valor_cent: 3600 },
+      regras_de_demonstracao: true,
+      fonte: expect.stringContaining('Lei 97/88'),
+    });
+    const l = await licencaDe(r.body.numero);
+    expect(l).toMatchObject({ estado: 'a_pagar', codigo: 'PUB' });
+    await pagar(l.processo_id);
+    await ctx.app.get(LicencasService).sincronizar();
+    const ap = await ctx
+      .http()
+      .post(`/v1/painel/licencas/${l.id}/aprovar`)
+      .set(chefe)
+      .expect(200);
+    expect(ap.body.estado).toBe('emitida');
+    const pub = await ctx
+      .http()
+      .get(`/v1/public/licencas/${ap.body.codigo_verificacao}`)
+      .expect(200);
+    expect(pub.body).toMatchObject({
+      tipo: 'publicidade',
+      titulo: 'Licença de publicidade',
+      valida: true,
+      rotulo_dia: 'Período',
+      aviso_dias_antes: 30,
+      detalhes: expect.arrayContaining([
+        { rotulo: 'Medidas', valor: '2 × 1 m (2 m²)' },
+      ]),
+    });
+    expect(pub.body.valida_ate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    await pdfDe(ap.body.codigo_verificacao);
+  });
+
+  it('publicidade pequena no próprio estabelecimento: mera comunicação, sem taxa; fora dele vai a técnico', async () => {
+    const base = {
+      suporte: 'letras',
+      estabelecimento: 'Barbearia Afonso',
+      mensagem: 'Barbearia',
+      morada: 'Rua da Rainha 4, Guimarães',
+      largura_m: 1,
+      altura_m: 0.5,
+      iluminado: false,
+      no_proprio_estabelecimento: true,
+      data_inicio: daquiA(),
+      meses: 12,
+    };
+    const r = await ferramenta(
+      ctx,
+      novaChamada('pub'),
+      'pedir_licenca_publicidade',
+      base,
+    ).expect(200);
+    expect(r.body).toMatchObject({ proposta: 'aprovar', pagamento: null });
+    expect(r.body.regras.join(' ')).toContain('mera comunicação');
+    expect((await licencaDe(r.body.numero)).estado).toBe('por_aprovar');
+
+    const t = await ferramenta(
+      ctx,
+      novaChamada('pub'),
+      'pedir_licenca_publicidade',
+      { ...base, no_proprio_estabelecimento: false, centro_historico: true },
+    ).expect(200);
+    expect(t.body).toMatchObject({ proposta: 'tecnico', pagamento: null });
+    expect(t.body.regras.filter((x: string) => x.startsWith('✗'))).toHaveLength(
+      2,
+    );
+  });
+
+  it('recinto improvisado: arraial com palco e música → aprova e lembra a licença de ruído; com bancadas e muita gente vai a vistoria', async () => {
+    const chamada = novaChamada('lri');
+    const arraial = {
+      descricao: 'Arraial de São Martinho da associação',
+      morada: 'Largo da Oliveira, Guimarães',
+      data_inicio: daquiA(),
+      dias: 2,
+      lotacao: 200,
+      estruturas: ['palco', 'barracas'],
+      musica: true,
+      nome: 'Associação Recreativa',
+    };
+    const r = await ferramenta(
+      ctx,
+      chamada,
+      'pedir_licenca_recinto_improvisado',
+      arraial,
+    ).expect(200);
+    expect(r.body).toMatchObject({
+      pedida: true,
+      tipo: 'recinto_improvisado',
+      numero: expect.stringMatching(/^LRI /),
+      proposta: 'aprovar',
+      tambem_ruido: true,
+      // 25 € + 2 dias × 10 €
+      pagamento: { valor_cent: 4500 },
+      dizer: expect.stringContaining('licença especial de ruído'),
+    });
+    const l = await licencaDe(r.body.numero);
+    await pagar(l.processo_id);
+    await ctx.app.get(LicencasService).sincronizar();
+    const ap = await ctx
+      .http()
+      .post(`/v1/painel/licencas/${l.id}/aprovar`)
+      .set(chefe)
+      .expect(200);
+    const pub = await ctx
+      .http()
+      .get(`/v1/public/licencas/${ap.body.codigo_verificacao}`)
+      .expect(200);
+    expect(pub.body).toMatchObject({
+      titulo: 'Licença de recinto improvisado',
+      valida: true,
+      // Não se renova: não há avisos.
+      aviso_dias_antes: null,
+      detalhes: expect.arrayContaining([
+        { rotulo: 'Lotação', valor: '200 pessoas' },
+      ]),
+    });
+    expect(pub.body.condicoes.join(' ')).toContain('licença especial de ruído');
+    await pdfDe(ap.body.codigo_verificacao);
+
+    const v = await ferramenta(
+      ctx,
+      novaChamada('lri'),
+      'pedir_licenca_recinto_improvisado',
+      {
+        ...arraial,
+        lotacao: 900,
+        estruturas: ['palco', 'bancadas'],
+        musica: false,
+      },
+    ).expect(200);
+    expect(v.body).toMatchObject({ proposta: 'tecnico', pagamento: null });
+    expect(v.body.tambem_ruido).toBeUndefined();
+    expect(v.body.regras.filter((x: string) => x.startsWith('✗'))).toHaveLength(
+      2,
+    );
+  });
+
+  it('simular publicidade e recinto com os pedidos de demonstração', async () => {
+    for (const [tipo, mudar] of [
+      ['publicidade', { area_max_m2: 12 }],
+      ['recinto_improvisado', { lotacao_max: 1000 }],
+    ] as const) {
+      const antes = await ctx
+        .http()
+        .get(`/v1/painel/licencas/regras/${tipo}`)
+        .set(chefe)
+        .expect(200);
+      const c = await ctx
+        .http()
+        .post(`/v1/painel/licencas/historico/${tipo}/demonstracao`)
+        .set(chefe)
+        .expect(200);
+      expect(c.body).toEqual({ criados: 120, ja_havia: 0 });
+      const s = await ctx
+        .http()
+        .post(`/v1/painel/licencas/regras/${tipo}/simular`)
+        .set(chefe)
+        .send({ ...antes.body.config, ...mudar })
+        .expect(200);
+      expect(s.body).toMatchObject({
+        tipo,
+        pedidos_de_demonstracao: 120,
+        deixam_de_ser_aprovados: 0,
+      });
+      expect(s.body.passam_a_ser_aprovados).toBeGreaterThan(0);
+    }
+  });
+
   it('tipos: as regras de cada um, os campos editáveis e a validação', async () => {
     const t = await ctx
       .http()
@@ -320,6 +509,8 @@ describe('Licenças: outros tipos e simulação de regras (e2e)', () => {
       'ocupacao_via',
       'esplanada',
       'distico_residente',
+      'publicidade',
+      'recinto_improvisado',
     ]);
     const dre = t.body.tipos.find(
       (x: { tipo: string }) => x.tipo === 'distico_residente',

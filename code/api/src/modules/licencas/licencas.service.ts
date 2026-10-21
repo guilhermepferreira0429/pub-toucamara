@@ -30,7 +30,8 @@ import {
   esquemaConfigRuido,
 } from './regras.js';
 import { PedidoAntigo, simular } from './simulacao.js';
-import { decisaoDita, DEFS, TipoLicenca, TIPOS } from './tipos.js';
+import { diasDeAviso } from './avisos-validade.js';
+import { avisosDe, decisaoDita, DEFS, TipoLicenca, TIPOS } from './tipos.js';
 
 const hora = z
   .string()
@@ -276,6 +277,7 @@ export class LicencasService {
         campos: d.campos,
         pedidos: licencas.find((x) => x.tipo === t)?.n ?? 0,
         historico: { pedidos: h?.n ?? 0, demonstracao: h?.demo ?? 0 },
+        renovavel: d.renovavel,
       };
     });
   }
@@ -380,7 +382,12 @@ export class LicencasService {
     return this.pedir('ruido', ctx, e);
   }
 
-  async pedir(tipo: TipoLicenca, ctx: ContextoFerramenta, e: DadosComuns) {
+  async pedir(
+    tipo: TipoLicenca,
+    ctx: ContextoFerramenta,
+    e: DadosComuns,
+    opcoes: { renova?: { id: string; numero: string } } = {},
+  ) {
     const def = DEFS[tipo];
     const m = ctx.municipio;
     const telefone = normalizarTelefone(ctx.telefone);
@@ -437,9 +444,12 @@ export class LicencasService {
          VALUES ($1, 'criado', $2, 'agente', $3)`,
         [
           p.id,
-          aprovar
-            ? `Pedido de ${def.curto} verificado pelas regras: cumpre todas (${avaliacao.regras.length}). Proposta: aprovar.`
-            : `Pedido de ${def.curto} verificado pelas regras: ${falhadas.length} por cumprir. Vai para um técnico.`,
+          (opcoes.renova
+            ? `Renovação ${def.feminino ? 'da' : 'do'} ${def.curto} ${opcoes.renova.numero}. `
+            : '') +
+            (aprovar
+              ? `Pedido de ${def.curto} verificado pelas regras: cumpre todas (${avaliacao.regras.length}). Proposta: aprovar.`
+              : `Pedido de ${def.curto} verificado pelas regras: ${falhadas.length} por cumprir. Vai para um técnico.`),
           JSON.stringify({ avaliacao }),
         ],
       );
@@ -454,8 +464,8 @@ export class LicencasService {
           : 'por_aprovar';
       const [l] = await tx.query<{ id: string }>(
         `INSERT INTO licencas (municipio_id, processo_id, tipo, municipe_id, conversa_id, dados,
-           avaliacao, config_usada, proposta, estado, taxa_cent, codigo_verificacao)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING id`,
+           avaliacao, config_usada, proposta, estado, taxa_cent, codigo_verificacao, renova_licenca_id)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING id`,
         [
           m.id,
           p.id,
@@ -469,6 +479,7 @@ export class LicencasService {
           estado,
           aprovar ? taxa : 0,
           codigo,
+          opcoes.renova?.id ?? null,
         ],
       );
       await this.conversas.momento(
@@ -514,6 +525,7 @@ export class LicencasService {
       pedida: true,
       tipo,
       numero: r.numero,
+      ...(opcoes.renova ? { renova: opcoes.renova.numero } : {}),
       proposta: avaliacao.proposta,
       regras: avaliacao.regras.map((x) => `${x.ok ? '✓' : '✗'} ${x.texto}`),
       condicoes: avaliacao.condicoes,
@@ -782,6 +794,11 @@ export class LicencasService {
       modo_teste: l.pagamento?.modo_teste ?? true,
       regras_de_demonstracao: l.config_usada.demonstracao,
       pdf: emitida,
+      // "Válida até … · avisamos 30 dias antes" (tipos com validade).
+      aviso_dias_antes:
+        emitida && r.valida_ate && r.valida_ate >= hoje
+          ? avisoMaisCedo(l.tipo, await this.configDe(l.municipio_id, l.tipo))
+          : null,
     };
   }
 
@@ -848,6 +865,9 @@ export class LicencasService {
       telefone: string | null;
       tipo: TipoLicenca;
       data: string | null;
+      dados: unknown;
+      config_usada: unknown;
+      decidida_em: Date;
     }>(
       `UPDATE licencas l SET estado = 'emitida', decidida_em = coalesce(l.decidida_em, now()),
          decidida_por = coalesce(l.decidida_por, $2)
@@ -855,9 +875,16 @@ export class LicencasService {
        WHERE l.id = $1 AND p.id = l.processo_id
        RETURNING l.processo_id, l.municipio_id, l.municipe_id, l.codigo_verificacao, p.numero,
          (SELECT telefone_e164 FROM municipes WHERE id = l.municipe_id) AS telefone,
-         l.tipo, l.dados->>'data' AS data`,
+         l.tipo, l.dados->>'data' AS data, l.dados AS dados, l.config_usada AS config_usada,
+         l.decidida_em AS decidida_em`,
       [id, utilizadorId],
     );
+    // Até quando vale (para os avisos antes de expirar e o painel).
+    await tx.query('UPDATE licencas SET valida_ate = $2 WHERE id = $1', [
+      id,
+      DEFS[l.tipo].resumo(l.dados, l.config_usada, hojeLisboa(l.decidida_em))
+        .valida_ate,
+    ]);
     await tx.query(
       `UPDATE processos SET fase = 'notificado', decisao = 'admitido', decidido_em = now(),
          atualizado_em = now() WHERE id = $1`,
@@ -908,7 +935,7 @@ export class LicencasService {
     );
   }
 
-  private urlVerificacao(codigo: string): string {
+  urlVerificacao(codigo: string): string {
     return `${this.config.get<string>('app.webUrl') ?? ''}/licenca/${codigo}`;
   }
 
@@ -1030,6 +1057,12 @@ function taxaDe(l: Linha): { linhas: LinhaTaxa[]; total_cent: number } {
         : [],
     total_cent: v,
   };
+}
+
+/** Quantos dias antes vai o 1.º aviso (null se o tipo não avisa). */
+function avisoMaisCedo(tipo: TipoLicenca, config: unknown): number | null {
+  const a = avisosDe(tipo, config);
+  return a ? (diasDeAviso(a)[0] ?? null) : null;
 }
 
 /** "Maria Silva" → "Maria S." (a página do QR é pública). */

@@ -12,6 +12,7 @@ import { z } from 'zod';
 import type { Feriados } from '../../common/dias-uteis.js';
 import {
   AvaliacaoLicenca,
+  camposAvisos,
   camposComuns,
   num,
   propostaDe,
@@ -22,6 +23,10 @@ import {
 const hora = z
   .string()
   .regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Hora no formato HH:MM.');
+
+/** Avisos antes de expirar (de demonstração). */
+const AVISO_1 = 30;
+const AVISO_2 = 7;
 
 export const esquemaConfigEsplanada = z.object({
   area_max_m2: z.number().positive().max(1000),
@@ -41,6 +46,7 @@ export const esquemaConfigEsplanada = z.object({
   taxa_m2_mes_cent: z.number().int().min(0).max(100_000),
   taxa_minima_cent: z.number().int().min(0).max(100_000),
   ...camposComuns,
+  ...camposAvisos(AVISO_1, AVISO_2),
 });
 export type ConfigEsplanada = z.output<typeof esquemaConfigEsplanada>;
 
@@ -63,6 +69,9 @@ export const CONFIG_ESPLANADA_OMISSAO: ConfigEsplanada = {
     url: null,
   },
   demonstracao: true,
+  aviso_1_dias: AVISO_1,
+  aviso_2_dias: AVISO_2,
+  aviso_por_chamada: false,
 };
 
 export function lerConfigEsplanada(v: unknown): ConfigEsplanada {

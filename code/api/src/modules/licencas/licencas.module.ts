@@ -8,6 +8,7 @@ import {
   LicencasPublicoController,
 } from './licencas.controller.js';
 import { entradaPedirRuido, LicencasService } from './licencas.service.js';
+import { entradaRenovar, LicencasAvisosService } from './avisos.service.js';
 import { ENTRADAS } from './tipos.js';
 
 /** O fim de todas as descrições: o que fazer com o resultado. */
@@ -17,6 +18,8 @@ const DEPOIS =
   'Se vier precisa_identificacao, segue a instrução.';
 
 export const FILA_LICENCAS = 'licencas_pagas';
+/** Avisos antes de uma licença expirar (todos os dias de manhã). */
+export const FILA_AVISOS_LICENCAS = 'licencas_avisos';
 
 /**
  * Licenças decididas na chamada: regras em código, taxa em modo de teste,
@@ -25,13 +28,14 @@ export const FILA_LICENCAS = 'licencas_pagas';
 @Module({
   imports: [PagamentosModule],
   controllers: [LicencasPainelController, LicencasPublicoController],
-  providers: [LicencasService],
+  providers: [LicencasService, LicencasAvisosService],
 })
 export class LicencasModule implements OnModuleInit {
   constructor(
     private readonly registo: RegistoFerramentas,
     private readonly jobs: JobsService,
     private readonly licencas: LicencasService,
+    private readonly avisos: LicencasAvisosService,
   ) {}
 
   onModuleInit() {
@@ -82,6 +86,55 @@ export class LicencasModule implements OnModuleInit {
         executar: (ctx, e) => this.licencas.pedir('distico_residente', ctx, e),
       }),
     );
+    this.registo.registar(
+      ferramenta({
+        nome: 'pedir_licenca_publicidade',
+        descricao:
+          'Pede a licença de publicidade (placa, letras, tabuleta, toldo, lona na fachada, bandeirola ou cavalete com um anúncio) e verifica as regras da câmara na hora. ' +
+          'O anúncio pequeno do próprio estabelecimento não precisa de licença: fica uma mera comunicação, sem taxa. ' +
+          'Antes, pergunta que suporte é, o nome do estabelecimento ou da marca, o que diz o anúncio, a morada, a largura e a altura em metros, se é iluminado, se fica no próprio estabelecimento, se é no centro histórico, a partir de que dia e por quantos meses; confirma tudo com a pessoa. ' +
+          DEPOIS,
+        entrada: ENTRADAS.publicidade,
+        executar: (ctx, e) => this.licencas.pedir('publicidade', ctx, e),
+      }),
+    );
+    this.registo.registar(
+      ferramenta({
+        nome: 'pedir_licenca_recinto_improvisado',
+        descricao:
+          'Pede a licença de recinto improvisado (arraial, festa, concerto ou espetáculo ao ar livre com palco, tenda, barracas ou bancadas montados para o evento) e verifica as regras da câmara na hora. ' +
+          'Antes, pergunta o que é o evento, o local, o primeiro dia e quantos dias dura, quantas pessoas no máximo ao mesmo tempo, que estruturas monta e se há música ou som; confirma tudo com a pessoa. ' +
+          'Se houver música, a pessoa precisa também da licença especial de ruído: depois desta, pede-a com pedir_licenca_ruido (vem tambem_ruido: true). ' +
+          DEPOIS,
+        entrada: ENTRADAS.recinto_improvisado,
+        executar: async (ctx, e) => {
+          const r = await this.licencas.pedir('recinto_improvisado', ctx, e);
+          if (!e.musica || !('dizer' in r)) return r;
+          return {
+            ...r,
+            tambem_ruido: true,
+            dizer: `${r.dizer} Como vai haver música, precisa também da licença especial de ruído: trato já dela consigo?`,
+          };
+        },
+      }),
+    );
+    this.registo.registar(
+      ferramenta({
+        nome: 'renovar_licenca',
+        descricao:
+          'Renova uma licença que está a expirar (esplanada, dístico de residente, publicidade, ocupação da via pública), com os mesmos dados da anterior. ' +
+          'Chama primeiro sem confirmar: encontra as licenças da pessoa a expirar e devolve os dados. Lê-os à pessoa, pergunta só o que mudou e chama outra vez com confirmar: true e as alteracoes. ' +
+          'Se vier escolher: true, pergunta qual quer renovar e passa o numero. ' +
+          DEPOIS,
+        entrada: entradaRenovar,
+        executar: (ctx, e) => this.avisos.renovar(ctx, e),
+      }),
+    );
+    this.jobs.trabalhar(FILA_AVISOS_LICENCAS, async () => {
+      await this.avisos.avisar();
+    });
+    // Todos os dias às 9h47 (Lisboa), dentro do horário em que se pode ligar.
+    this.jobs.agendar(FILA_AVISOS_LICENCAS, '47 9 * * *');
     this.jobs.trabalhar(FILA_LICENCAS, async () => {
       await this.licencas.sincronizar();
     });

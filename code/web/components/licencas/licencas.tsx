@@ -16,6 +16,7 @@ import {
   useAcao,
   useDados,
 } from "@/components/conhecimento/comum";
+import { AExpirar } from "@/components/licencas/a-expirar";
 import { InfoTipo, RegrasTipo, TipoLicenca } from "@/components/licencas/regras-tipo";
 import { CabecalhoPagina } from "@/components/painel/cabecalho";
 import { Botao } from "@/components/ui/botao";
@@ -24,7 +25,9 @@ import { useSessao } from "@/lib/sessao";
 
 /*
  * Painel · Licenças decididas na chamada (ruído, ocupação da via pública,
- * esplanada, dístico de residente). O agente verifica as regras durante a
+ * esplanada, dístico de residente, publicidade, recinto improvisado). O
+ * separador "A expirar" é o calendário de obrigações (avisos antes de a
+ * licença expirar e renovações). O agente verifica as regras durante a
  * chamada; aqui um funcionário vê o que foi verificado e aprova com um
  * clique. À direita, as regras em código do tipo escolhido, com os números
  * da câmara e o "Simular" contra os pedidos antigos.
@@ -83,6 +86,7 @@ export function PaginaLicencas() {
   const { pode } = useSessao();
   const [filtro, setFiltro] = useState<Estado | "todas">("todas");
   const [tipo, setTipo] = useState<TipoLicenca | "todos">("todos");
+  const [vista, setVista] = useState<"pedidos" | "a_expirar">("pedidos");
   const params = new URLSearchParams();
   if (filtro !== "todas") params.set("estado", filtro);
   if (tipo !== "todos") params.set("tipo", tipo);
@@ -107,6 +111,27 @@ export function PaginaLicencas() {
         titulo="Licenças decididas na chamada"
         descricao="O agente verifica as regras enquanto a pessoa está ao telefone. Dentro das regras, a taxa paga-se logo e aqui só falta um clique. Fora das regras, chega ao técnico já analisado."
       />
+      <div className="flex gap-1 px-10 pb-4" role="tablist" aria-label="Vista">
+        {(
+          [
+            ["pedidos", "Pedidos"],
+            ["a_expirar", "A expirar"],
+          ] as const
+        ).map(([v, rotulo]) => (
+          <button
+            key={v}
+            type="button"
+            role="tab"
+            aria-selected={vista === v}
+            onClick={() => setVista(v)}
+            className={`border-b-2 px-3 py-2 text-sm font-semibold ${
+              vista === v ? "border-terracota text-tinta" : "border-transparent text-tinta-3 hover:text-tinta-2"
+            }`}
+          >
+            {rotulo}
+          </button>
+        ))}
+      </div>
       <div className="flex flex-wrap gap-2 px-10 pb-3" role="group" aria-label="Tipo de licença">
         {(["todos", ...tipos.map((t) => t.tipo)] as const).map((t) => {
           const info = tipos.find((x) => x.tipo === t);
@@ -126,7 +151,11 @@ export function PaginaLicencas() {
           );
         })}
       </div>
-      <div className="flex flex-wrap gap-2 px-10 pb-5" role="group" aria-label="Estado">
+      <div
+        className={`flex flex-wrap gap-2 px-10 pb-5 ${vista === "a_expirar" ? "hidden" : ""}`}
+        role="group"
+        aria-label="Estado"
+      >
         {FILTROS.map((f) => {
           const n = f === "todas" ? null : d.dados?.contagens[f];
           return (
@@ -146,18 +175,22 @@ export function PaginaLicencas() {
         })}
       </div>
       <div className="grid gap-6 px-10 xl:grid-cols-[minmax(0,1fr)_380px]">
-        <div className="flex min-w-0 flex-col gap-4">
-          <Estado
-            aCarregar={d.aCarregar}
-            erro={d.erro}
-            vazio={d.dados?.licencas.length === 0}
-            textoVazio="Ainda não há pedidos. Ligue para a linha e peça uma licença: de ruído para uma festa, um andaime, uma esplanada ou o dístico de residente."
-          >
-            {(d.dados?.licencas ?? []).map((l) => (
-              <CartaoLicenca key={l.id} l={l} onMudou={d.recarregar} />
-            ))}
-          </Estado>
-        </div>
+        {vista === "a_expirar" ? (
+          <AExpirar tipo={tipo} />
+        ) : (
+          <div className="flex min-w-0 flex-col gap-4">
+            <Estado
+              aCarregar={d.aCarregar}
+              erro={d.erro}
+              vazio={d.dados?.licencas.length === 0}
+              textoVazio="Ainda não há pedidos. Ligue para a linha e peça uma licença: de ruído para uma festa, um andaime, uma esplanada, o dístico de residente, uma placa publicitária ou um arraial."
+            >
+              {(d.dados?.licencas ?? []).map((l) => (
+                <CartaoLicenca key={l.id} l={l} onMudou={d.recarregar} />
+              ))}
+            </Estado>
+          </div>
+        )}
         {regras && <RegrasTipo key={`${regras.tipo}:${regras.atualizado_em}`} info={regras} onMudou={d.recarregar} />}
       </div>
     </div>

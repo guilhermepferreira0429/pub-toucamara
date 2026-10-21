@@ -56,7 +56,7 @@ interface Agente {
   regras_encaminhamento: Regra[];
   pode_editar: boolean;
 }
-type Motivo = "processo_fase" | "pedido_documento" | "lembrete_prazo" | "manual";
+type Motivo = "processo_fase" | "pedido_documento" | "lembrete_prazo" | "manual" | "renovacao_licenca";
 interface ConfigChamadas {
   ativo: boolean;
   motivos: Motivo[];
@@ -79,6 +79,7 @@ const MOTIVOS: Record<Motivo, string> = {
   pedido_documento: "Pedir um documento em falta",
   lembrete_prazo: "Lembrar um prazo",
   manual: "Chamadas pedidas por um funcionário",
+  renovacao_licenca: "Lembrar uma licença a expirar (a quem prefere telefone)",
 };
 
 function Identidade({
