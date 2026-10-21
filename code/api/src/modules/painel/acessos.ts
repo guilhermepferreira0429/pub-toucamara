@@ -106,6 +106,15 @@ const VERBOS: Record<string, string> = {
   cancelar_visita: 'cancelou',
   acrescentar_foto_visita: 'juntou uma fotografia a',
   mudar_config_fiscalizacao: 'mudou o planeamento de',
+  carregar_arquivo: 'carregou digitalizações para',
+  transcrever_documento_arquivo: 'transcreveu',
+  rever_documento_arquivo: 'reviu os dados de',
+  ligar_documento_arquivo: 'ligou a um munícipe ou processo',
+  pesquisar_arquivo: 'pesquisou',
+  mudar_regras_arquivo: 'mudou os prazos e taxas de',
+  pedir_consulta_arquivo: 'registou',
+  atender_pedido_arquivo: 'tratou',
+  encerrar_pedido_arquivo: 'encerrou',
 };
 
 const OBJETOS: Record<string, string> = {
@@ -150,6 +159,11 @@ const OBJETOS: Record<string, string> = {
   conjunto_dados: 'um conjunto de dados abertos',
   visita_fiscalizacao: 'uma visita de fiscalização',
   fiscalizacao_config: 'a fiscalização',
+  arquivo: 'o arquivo antigo',
+  arquivo_lote: 'o arquivo antigo (um lote)',
+  arquivo_config: 'o arquivo antigo',
+  documento_arquivo: 'um documento do arquivo antigo',
+  pedido_arquivo: 'um pedido de consulta ao arquivo',
 };
 
 export function frase(acao: string, objetoTipo: string): string {

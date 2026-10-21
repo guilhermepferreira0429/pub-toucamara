@@ -37,7 +37,8 @@ export type Recurso =
   | "reunioes"
   | "contratacao"
   | "transparencia"
-  | "fiscalizacao";
+  | "fiscalizacao"
+  | "arquivo";
 
 export type Perfil =
   | "atendimento"

@@ -42,6 +42,10 @@ export const PERMISSOES = {
   // Fiscalização: os técnicos (fiscais) e a chefia planeiam as visitas e
   // ditam os relatórios; a configuração do planeamento é da chefia ('agente').
   fiscalizacao: ['tecnico', 'chefe_divisao'],
+  // Arquivo antigo: quem atende trata os pedidos de consulta; pesquisar,
+  // carregar digitalizações e rever metadados é dos técnicos e da chefia
+  // (arquivo/regras.ts, PERFIS_DOCUMENTOS).
+  arquivo: ['atendimento', 'tecnico', 'chefe_divisao'],
 } as const satisfies Record<string, readonly Perfil[]>;
 
 export type Recurso = keyof typeof PERMISSOES;

@@ -46,6 +46,7 @@ import { CampanhasModule } from './modules/campanhas/campanhas.module.js';
 import { ConsultasPublicasModule } from './modules/consultas-publicas/consultas-publicas.module.js';
 import { LicencasModule } from './modules/licencas/licencas.module.js';
 import { ApoiosModule } from './modules/apoios/apoios.module.js';
+import { ArquivoModule } from './modules/arquivo/arquivo.module.js';
 import { OrdenamentoModule } from './modules/ordenamento/ordenamento.module.js';
 import { FiscalizacaoModule } from './modules/fiscalizacao/fiscalizacao.module.js';
 import { ReclamacoesModule } from './modules/reclamacoes/reclamacoes.module.js';
@@ -126,6 +127,8 @@ import { TransparenciaModule } from './modules/transparencia/transparencia.modul
     // Transparência: dados abertos e indicadores no portal
     TransparenciaModule,
     FiscalizacaoModule,
+    // Arquivo antigo digitalizado e pedidos de consulta
+    ArquivoModule,
   ],
   controllers: [AppController],
   providers: [AppService],
