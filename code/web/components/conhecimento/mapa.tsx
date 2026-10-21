@@ -92,10 +92,12 @@ function Mosaico({ temas }: { temas: TemaMapa[] }) {
               ? "col-span-2"
               : "col-span-1";
         return (
-          <li
-            key={t.tema_id}
-            className={`flex flex-col justify-between overflow-hidden rounded-[14px] ${grande || medio ? "p-5" : "p-3.5"} ${cor.fundo} ${span}`}
-          >
+          <li key={t.tema_id} className={span}>
+            <Link
+              href={`/painel/conhecimento/respostas?tema=${t.tema_id}`}
+              title={`Ver as respostas de ${t.nome}`}
+              className={`flex h-full flex-col justify-between overflow-hidden rounded-[14px] transition-opacity hover:opacity-90 ${grande || medio ? "p-5" : "p-3.5"} ${cor.fundo}`}
+            >
             <div className="min-w-0">
               <p
                 className={`font-display font-bold leading-tight ${cor.texto} ${grande || medio ? "text-2xl" : "text-[15px]"}`}
@@ -111,6 +113,7 @@ function Mosaico({ temas }: { temas: TemaMapa[] }) {
             >
               {p === null ? "sem resposta" : pct(p)}
             </p>
+            </Link>
           </li>
         );
       })}

@@ -354,9 +354,10 @@ function Responder({
 
 export function SemResposta() {
   const [filtro, setFiltro] = useState<"" | EstadoPsr>("");
+  const [ordem, setOrdem] = useState<"vezes" | "recentes">("vezes");
   const [escolhida, setEscolhida] = useState<string | null>(null);
   const mapa = useDados<Mapa>("/v1/painel/conhecimento/mapa");
-  const base = `/v1/painel/conhecimento/sem-resposta?limite=50${filtro ? `&estado=${filtro}` : ""}`;
+  const base = `/v1/painel/conhecimento/sem-resposta?limite=50&ordem=${ordem}${filtro ? `&estado=${filtro}` : ""}`;
   const lista = useDados<Pagina<PerguntaSemResposta>>(base);
   const mais = useMais(base, lista);
   const itens = lista.dados?.itens ?? [];
@@ -389,8 +390,8 @@ export function SemResposta() {
 
       <div className="grid items-start gap-6 lg:grid-cols-[440px_minmax(0,1fr)]">
         <Cartao className="flex flex-col overflow-hidden">
-          <div className="flex items-center justify-between gap-2 border-b border-linha px-5 py-4">
-            <Rotulo>Perguntas sem resposta</Rotulo>
+          <div className="flex items-center gap-3 border-b border-linha px-5 py-4">
+            <Rotulo className="flex-1">Perguntas sem resposta</Rotulo>
             <label className="text-xs font-semibold text-tinta-2">
               <span className="sr-only">Estado</span>
               <select
@@ -403,6 +404,17 @@ export function SemResposta() {
                     {f.rotulo}
                   </option>
                 ))}
+              </select>
+            </label>
+            <label className="text-xs font-semibold text-tinta-2">
+              <span className="sr-only">Ordenar</span>
+              <select
+                value={ordem}
+                onChange={(e) => setOrdem(e.target.value as "vezes" | "recentes")}
+                className="bg-transparent outline-none"
+              >
+                <option value="vezes">Mais perguntadas</option>
+                <option value="recentes">Mais recentes</option>
               </select>
             </label>
           </div>

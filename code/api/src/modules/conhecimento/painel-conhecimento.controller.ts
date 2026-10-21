@@ -264,10 +264,13 @@ export class PainelConhecimentoController {
   @Painel('conhecimento_ver')
   semResposta(@MunicipioAtual() m: Municipio, @Query() q: unknown) {
     const f = validar(
-      esquemaPaginacao.extend({ estado: z.enum(ESTADOS_PSR).optional() }),
+      esquemaPaginacao.extend({
+        estado: z.enum(ESTADOS_PSR).optional(),
+        ordem: z.enum(['vezes', 'recentes']).default('vezes'),
+      }),
       q,
     );
-    return this.svc.semResposta(m.id, f.estado, f.limite, f.cursor);
+    return this.svc.semResposta(m.id, f.estado, f.limite, f.cursor, f.ordem);
   }
 
   /**

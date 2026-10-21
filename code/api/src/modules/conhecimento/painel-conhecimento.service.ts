@@ -908,11 +908,36 @@ export class PainelConhecimentoService {
     estado: string | undefined,
     limite: number,
     cursor: Cursor | null,
+    ordem: 'vezes' | 'recentes' = 'vezes',
   ) {
+    const colunas = `p.id, p.texto, p.vezes, p.primeira_em, p.ultima_em, p.estado,
+              p.o_que_falta, p.resposta_id, r.pergunta_tipo AS resposta`;
+    if (ordem === 'recentes') {
+      const linhas = await this.db.query<{ id: string; ultima_em: Date }>(
+        `SELECT ${colunas}
+         FROM perguntas_sem_resposta p
+         LEFT JOIN respostas r ON r.id = p.resposta_id
+         WHERE p.municipio_id = $1
+           AND ($2::text IS NULL OR p.estado = $2)
+           AND ($3::timestamptz IS NULL OR (date_trunc('milliseconds', p.ultima_em), p.id) < ($3::timestamptz, $4::uuid))
+         ORDER BY date_trunc('milliseconds', p.ultima_em) DESC, p.id DESC
+         LIMIT $5`,
+        [
+          municipioId,
+          estado ?? null,
+          cursor?.em ?? null,
+          cursor?.id ?? null,
+          limite + 1,
+        ],
+      );
+      return pagina(linhas, limite, (l) => ({
+        em: l.ultima_em.toISOString(),
+        id: l.id,
+      }));
+    }
     const vezes = cursor ? parseInt(cursor.em, 10) : null;
     const linhas = await this.db.query<{ id: string; vezes: number }>(
-      `SELECT p.id, p.texto, p.vezes, p.primeira_em, p.ultima_em, p.estado,
-              p.o_que_falta, p.resposta_id, r.pergunta_tipo AS resposta
+      `SELECT ${colunas}
        FROM perguntas_sem_resposta p
        LEFT JOIN respostas r ON r.id = p.resposta_id
        WHERE p.municipio_id = $1

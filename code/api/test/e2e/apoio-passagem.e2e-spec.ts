@@ -1,10 +1,11 @@
-/* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment -- os corpos do supertest são `any`; as asserções do jest verificam a forma. */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-argument -- os corpos do supertest são `any`; as asserções do jest verificam a forma. */
 import {
   arrancarApp,
   Contexto,
   entrarPainel,
   ferramenta,
   linha,
+  MUNICIPIO_ID,
   novaChamada,
 } from './app';
 
@@ -86,6 +87,46 @@ describe('Ajuda ao funcionário (e2e)', () => {
       estado: 'com_equipa',
       o_que_falta: expect.stringContaining('comunicação à câmara'),
     });
+  });
+
+  it('sem resposta: ordena por mais perguntadas ou mais recentes, e pagina', async () => {
+    for (const [texto, vezes, dias] of [
+      ['Ordem A antiga e muito perguntada', 90, 20],
+      ['Ordem B recente', 2, 0],
+      ['Ordem C do meio', 5, 3],
+    ] as const) {
+      await ctx.db.query(
+        `INSERT INTO perguntas_sem_resposta (municipio_id, texto, vezes, ultima_em)
+         VALUES ($1, $2, $3, now() - make_interval(days => $4))`,
+        [MUNICIPIO_ID, texto, vezes, dias],
+      );
+    }
+    const textos = async (q: string) => {
+      const todas: string[] = [];
+      let cursor: string | null = null;
+      do {
+        const r = await ctx
+          .http()
+          .get(
+            `/v1/painel/conhecimento/sem-resposta?limite=1&${q}${cursor ? `&cursor=${cursor}` : ''}`,
+          )
+          .set(chefe)
+          .expect(200);
+        todas.push(...r.body.itens.map((x: { texto: string }) => x.texto));
+        cursor = r.body.proximo_cursor;
+      } while (cursor);
+      return todas.filter((t) => t.startsWith('Ordem '));
+    };
+    expect(await textos('ordem=vezes')).toEqual([
+      'Ordem A antiga e muito perguntada',
+      'Ordem C do meio',
+      'Ordem B recente',
+    ]);
+    expect(await textos('ordem=recentes')).toEqual([
+      'Ordem B recente',
+      'Ordem C do meio',
+      'Ordem A antiga e muito perguntada',
+    ]);
   });
 
   it('passagem de outro município ou inexistente → 404', async () => {
