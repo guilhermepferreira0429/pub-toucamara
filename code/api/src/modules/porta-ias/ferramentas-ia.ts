@@ -14,6 +14,7 @@ export const FERRAMENTAS_PUBLICAS = [
   'o_que_posso_fazer',
   'consultas_abertas',
   'que_apoios_tenho',
+  'procurar_deliberacoes',
 ] as const;
 
 /** Com a chave pessoal: as ações em nome da pessoa. */
@@ -57,6 +58,7 @@ export const SO_LEITURA = new Set<string>([
   'estado_processo',
   'redigir',
   'conversa_anterior',
+  'procurar_deliberacoes',
 ]);
 
 export const TITULOS: Record<string, string> = {
@@ -67,6 +69,7 @@ export const TITULOS: Record<string, string> = {
   o_que_posso_fazer: 'O que posso fazer nesta morada (PDM)',
   consultas_abertas: 'Consultas públicas abertas',
   que_apoios_tenho: 'A que apoios tenho direito',
+  procurar_deliberacoes: 'Deliberações da câmara e da assembleia',
   participar_consulta: 'Participar numa consulta pública',
   pedir_apoio: 'Pedir um apoio',
   pedir_licenca_ruido: 'Pedir licença especial de ruído',
@@ -132,6 +135,8 @@ export function resumirPedido(
       return `Quem trata de: ${texto(entrada.assunto ?? entrada.pergunta) ?? '…'}`;
     case 'simular_taxa':
       return 'Simulou uma taxa';
+    case 'procurar_deliberacoes':
+      return `Procurou deliberações sobre "${texto(entrada.assunto) ?? '…'}"${r.sem_resultados ? ' (nenhuma)' : ''}`;
     case 'ver_vagas':
       return 'Viu vagas para atendimento';
     case 'o_que_posso_fazer':
