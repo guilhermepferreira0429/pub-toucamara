@@ -55,6 +55,33 @@ class ErroApi implements Exception {
   String toString() => 'ErroApi($estado, $codigo): $mensagem';
 }
 
+/// Um evento de `text/event-stream` (o chat responde assim).
+class EventoSse {
+  const EventoSse(this.evento, this.dados);
+  final String evento;
+  final dynamic dados;
+
+  /// `event: texto\ndata: {"texto":"Olá"}` → EventoSse; comentários → null.
+  static EventoSse? doBloco(String bloco) {
+    var evento = 'message';
+    final linhas = <String>[];
+    for (final l in bloco.split('\n')) {
+      if (l.startsWith('event:')) {
+        evento = l.substring(6).trim();
+      } else if (l.startsWith('data:')) {
+        linhas.add(l.substring(5).trimLeft());
+      }
+    }
+    if (linhas.isEmpty) return null;
+    final texto = linhas.join('\n');
+    try {
+      return EventoSse(evento, jsonDecode(texto));
+    } on FormatException {
+      return EventoSse(evento, texto);
+    }
+  }
+}
+
 /// Sem rede (ou o servidor não responde): a ação fica na fila.
 class SemRede implements Exception {
   SemRede(this.motivo);
@@ -137,6 +164,48 @@ class ClienteApi {
     }
     if (texto.isEmpty) return null;
     return jsonDecode(texto);
+  }
+
+  /// Eventos SSE (`event:` + `data:` JSON) de um POST: o chat. Um erro antes
+  /// de começar (JSON) sai como [ErroApi]; sem rede, [SemRede].
+  Stream<EventoSse> sse(String caminho, {Object? corpo}) async* {
+    final req = http.Request('POST', uri(caminho));
+    req.headers.addAll(
+      _cabecalhos(json: true)..['Accept'] = 'text/event-stream',
+    );
+    req.body = jsonEncode(corpo ?? const {});
+    http.StreamedResponse r;
+    try {
+      r = await _http.send(req).timeout(limite);
+    } on TimeoutException {
+      throw SemRede('O servidor demorou demasiado a responder.');
+    } on http.ClientException catch (e) {
+      debugPrint('Sem ligação: ${e.message}');
+      throw SemRede('Sem ligação à internet ou ao servidor da câmara.');
+    }
+    if (r.statusCode >= 400) {
+      final texto = await r.stream.bytesToString();
+      final e = ErroApi.daResposta(r.statusCode, texto);
+      if (e.sessaoInvalida && token != null) aoSessaoInvalida?.call();
+      throw e;
+    }
+    var resto = '';
+    try {
+      await for (final pedaco in r.stream.transform(utf8.decoder)) {
+        resto += pedaco.replaceAll('\r\n', '\n');
+        var fim = resto.indexOf('\n\n');
+        while (fim >= 0) {
+          final ev = EventoSse.doBloco(resto.substring(0, fim));
+          resto = resto.substring(fim + 2);
+          if (ev != null) yield ev;
+          fim = resto.indexOf('\n\n');
+        }
+      }
+    } on http.ClientException {
+      throw SemRede('A ligação caiu a meio da resposta.');
+    }
+    final ultimo = EventoSse.doBloco(resto);
+    if (ultimo != null) yield ultimo;
   }
 
   /// Bytes (o PDF do relatório).

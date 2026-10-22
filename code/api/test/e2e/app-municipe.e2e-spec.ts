@@ -889,6 +889,134 @@ describe('App do munícipe (e2e)', () => {
     });
   });
 
+  describe('avisar-me (feed "perto de mim")', () => {
+    it('subscrever pelo sítio (GPS) e pela freguesia, juntar tipos, listar só as dela, cancelar', async () => {
+      const ponto = { lat: base.lat + 0.01, lng: base.lng + 0.01 };
+      const r = await app(A.token)
+        .post('agora/subscricoes', {
+          tipos: ['obras', 'incidentes'],
+          ...ponto,
+          raio_m: 500,
+          descricao: 'Perto de casa',
+        })
+        .expect(201);
+      expect(r.body).toMatchObject({
+        subscrito: true,
+        subscricao_id: expect.any(String),
+        tipos: ['obras', 'incidentes'],
+        zona: 'Perto de casa (500 m à volta)',
+        parametros: { demonstracao: true },
+      });
+      expect(
+        await linha(
+          ctx.db,
+          `SELECT municipe_id, canal, lat, lng, raio_m, rua, ativa FROM agora_subscricoes WHERE id = $1`,
+          [r.body.subscricao_id],
+        ),
+      ).toEqual({
+        municipe_id: A.id,
+        canal: 'app',
+        ...ponto,
+        raio_m: 500,
+        rua: 'Perto de casa',
+        ativa: true,
+      });
+      expect(
+        await linha(
+          ctx.db,
+          `SELECT ator_tipo, ator_id FROM audit_log WHERE acao = 'subscrever_agora' AND objeto_id = $1`,
+          [r.body.subscricao_id],
+        ),
+      ).toEqual({ ator_tipo: 'municipe', ator_id: A.id });
+
+      // O mesmo sítio: junta os tipos na mesma subscrição.
+      const mesma = await app(A.token)
+        .post('agora/subscricoes', {
+          tipos: ['eventos'],
+          ...ponto,
+          raio_m: 500,
+        })
+        .expect(201);
+      expect(mesma.body.subscricao_id).toBe(r.body.subscricao_id);
+
+      const f = await app(A.token)
+        .post('agora/subscricoes', {
+          tipos: ['avisos'],
+          freguesia: 'freguesia app',
+        })
+        .expect(201);
+      expect(f.body.zona).toBe('freguesia de Freguesia App');
+
+      const nao = await app(A.token)
+        .post('agora/subscricoes', {
+          tipos: ['avisos'],
+          freguesia: 'Zzqq Inexistente',
+        })
+        .expect(422);
+      expect(nao.body.erro.codigo).toBe('freguesia_desconhecida');
+      await app(A.token)
+        .post('agora/subscricoes', { tipos: ['avisos'] })
+        .expect(400);
+      await app(A.token)
+        .post('agora/subscricoes', { tipos: ['consultas'], ...ponto })
+        .expect(400);
+
+      const la = await app(A.token).get('agora/subscricoes').expect(200);
+      expect(la.body.subscricoes).toHaveLength(2);
+      const porSitio = la.body.subscricoes.find(
+        (x: { id: string }) => x.id === r.body.subscricao_id,
+      );
+      expect(porSitio).toMatchObject({
+        tipos: ['eventos', 'incidentes', 'obras'],
+        zona: 'Perto de casa (500 m à volta)',
+      });
+      const lb = await app(B.token).get('agora/subscricoes').expect(200);
+      expect(lb.body.subscricoes).toHaveLength(0);
+
+      // B não cancela a de A; A cancela; outra vez → 404.
+      await app(B.token)
+        .delete(`agora/subscricoes/${r.body.subscricao_id}`)
+        .expect(404);
+      await app(A.token)
+        .delete(`agora/subscricoes/${r.body.subscricao_id}`)
+        .expect(200);
+      await app(A.token)
+        .delete(`agora/subscricoes/${r.body.subscricao_id}`)
+        .expect(404);
+      expect(
+        (await app(A.token).get('agora/subscricoes').expect(200)).body
+          .subscricoes,
+      ).toHaveLength(1);
+      await ctx.http().get('/v1/app/agora/subscricoes').expect(401);
+    });
+
+    it('reportar com Idempotency-Key: o reenvio da fila devolve a mesma ocorrência', async () => {
+      const cats = await app(B.token).get('ocorrencias/categorias').expect(200);
+      const corpo = {
+        categoria: cats.body.categorias[0].nome,
+        descricao: 'Sinal caído (reenvio da fila)',
+        lat: base.lat + 0.05,
+        lng: base.lng + 0.05,
+      };
+      const chave = `fila-${letras}-${randomInt(1e9)}`;
+      const envia = () =>
+        app(B.token)
+          .post('ocorrencias', corpo)
+          .set('Idempotency-Key', chave)
+          .expect(201);
+      const a = await envia();
+      const b = await envia();
+      expect(b.body.numero).toBe(a.body.numero);
+      expect(
+        await linha(
+          ctx.db,
+          `SELECT count(*)::int AS n FROM ocorrencias WHERE municipe_id = $1 AND descricao = $2`,
+          [B.id, corpo.descricao],
+        ),
+      ).toEqual({ n: 1 });
+    });
+  });
+
   describe('sair', () => {
     it('sair revoga a sessão e desliga o push dos telemóveis dela', async () => {
       const s = await linha(

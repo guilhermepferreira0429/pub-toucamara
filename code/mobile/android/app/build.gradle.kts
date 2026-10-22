@@ -5,6 +5,16 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+// Push (FCM) da app do munícipe: o plugin do Google só entra quando existe
+// src/municipe/google-services.json (fora do git) e se está a compilar o
+// flavor municipe. Sem ele a app compila e corre sem notificações
+// (lib/municipe/notificacoes.dart). Ver code/mobile/README.md.
+val temFirebase = file("src/municipe/google-services.json").exists() &&
+    gradle.startParameter.taskNames.any { it.contains("Municipe", ignoreCase = true) }
+if (temFirebase) {
+    apply(plugin = "com.google.gms.google-services")
+}
+
 android {
     // O namespace é o do código Kotlin (MainActivity); o applicationId muda
     // por flavor.

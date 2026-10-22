@@ -32,6 +32,7 @@ class Acao {
     this.corpo,
     this.ficheiroRef,
     this.usarResultados = const {},
+    this.caminhoDe = const {},
     required this.criadaEm,
     this.tentativas = 0,
     this.ultimoErro,
@@ -62,6 +63,11 @@ class Acao {
   /// Campo do corpo → ações de fotografia cujo `foto_id` entra nele (ex.:
   /// `foto_ids` do fecho), resolvido na hora de enviar.
   final Map<String, List<String>> usarResultados;
+
+  /// `{campo}` no caminho → id da ação anterior cuja resposta traz esse
+  /// campo (ex.: `public/ocorrencias/{token}/fotos` com o `token` devolvido
+  /// ao registar a ocorrência), resolvido na hora de enviar.
+  final Map<String, String> caminhoDe;
   final DateTime criadaEm;
   int tentativas;
   String? ultimoErro;
@@ -86,6 +92,7 @@ class Acao {
     'corpo': corpo,
     'ficheiro_ref': ficheiroRef,
     'usar_resultados': usarResultados,
+    'caminho_de': caminhoDe,
     'criada_em': criadaEm.toIso8601String(),
     'tentativas': tentativas,
     'ultimo_erro': ultimoErro,
@@ -106,6 +113,9 @@ class Acao {
     ficheiroRef: j['ficheiro_ref'] as String?,
     usarResultados: ((j['usar_resultados'] as Map?) ?? const {}).map(
       (k, v) => MapEntry(k as String, (v as List).cast<String>()),
+    ),
+    caminhoDe: ((j['caminho_de'] as Map?) ?? const {}).map(
+      (k, v) => MapEntry(k as String, v as String),
     ),
     criadaEm: DateTime.parse(j['criada_em'] as String),
     tentativas: (j['tentativas'] as num?)?.toInt() ?? 0,
@@ -142,6 +152,7 @@ class FilaOffline extends ChangeNotifier {
     Duration intervalo = const Duration(seconds: 30),
     DateTime Function()? relogio,
     String? Function()? dono,
+    this.codigosDefinitivos = const {},
   }) : _armazem = armazem,
        _dono = dono ?? (() => null),
        _intervalo = intervalo,
@@ -156,6 +167,11 @@ class FilaOffline extends ChangeNotifier {
   final Duration _intervalo;
   final DateTime Function() _relogio;
   final String? Function() _dono;
+
+  /// Códigos de erro que, mesmo com 5xx, não vale a pena repetir sozinho
+  /// (ex.: `armazenamento_indisponivel`): a ação fica "com problema" e não
+  /// prende as seguintes.
+  final Set<String> codigosDefinitivos;
 
   final List<Acao> _acoes = [];
   final Map<String, Map<String, dynamic>> _resultados = {};
@@ -212,7 +228,12 @@ class FilaOffline extends ChangeNotifier {
   Future<void> _guardar() async {
     // Só os resultados que alguma ação ainda vai usar.
     final usados = _acoes
-        .expand((a) => a.usarResultados.values.expand((x) => x))
+        .expand(
+          (a) => [
+            ...a.usarResultados.values.expand((x) => x),
+            ...a.caminhoDe.values,
+          ],
+        )
         .toSet();
     _resultados.removeWhere((k, _) => !usados.contains(k));
     await _armazem.escrever(
@@ -233,9 +254,10 @@ class FilaOffline extends ChangeNotifier {
     Map<String, dynamic>? corpo,
     Map<String, List<String>> usarResultados = const {},
     bool enviarJa = true,
+    String? id,
   }) => _juntar(
     Acao(
-      id: _uuid.v4(),
+      id: id ?? _uuid.v4(),
       tipo: TipoAcao.pedido,
       descricao: descricao,
       alvo: alvo,
@@ -256,6 +278,7 @@ class FilaOffline extends ChangeNotifier {
     required String caminho,
     required Map<String, dynamic> corpo,
     required Uint8List bytes,
+    Map<String, String> caminhoDe = const {},
     bool enviarJa = true,
   }) async {
     final id = _uuid.v4();
@@ -270,6 +293,7 @@ class FilaOffline extends ChangeNotifier {
         caminho: caminho,
         corpo: corpo,
         ficheiroRef: ref,
+        caminhoDe: caminhoDe,
         criadaEm: _relogio(),
         dono: _dono(),
       ),
@@ -284,6 +308,9 @@ class FilaOffline extends ChangeNotifier {
     if (enviarJa) unawaited(enviar());
     return a;
   }
+
+  /// Um id novo para uma ação (para outra a referir em [Acao.caminhoDe]).
+  String novoId() => _uuid.v4();
 
   /// Os bytes de uma fotografia ainda por enviar (para a mostrar).
   Future<Uint8List?> bytesDe(Acao a) async =>
@@ -372,6 +399,10 @@ class FilaOffline extends ChangeNotifier {
       }
       try {
         final resposta = await _enviarUma(a);
+        if (resposta is Map &&
+            _acoes.any((x) => x.caminhoDe.values.contains(a.id))) {
+          _resultados[a.id] = Map<String, dynamic>.from(resposta);
+        }
         _acoes.remove(a);
         if (a.ficheiroRef != null) await ficheiros.apagar(a.ficheiroRef!);
         enviadas++;
@@ -392,7 +423,8 @@ class FilaOffline extends ChangeNotifier {
       } on ErroApi catch (e) {
         a.tentativas++;
         a.ultimoErro = e.mensagem;
-        if (e.transitorio || e.sessaoInvalida) {
+        if ((e.transitorio && !codigosDefinitivos.contains(e.codigo)) ||
+            e.sessaoInvalida) {
           // Servidor indisponível, armazenamento por configurar, sessão a
           // renovar: fica pendente e pára (a ordem conta).
           ultimaFalhaRede = e.mensagem;
@@ -413,7 +445,25 @@ class FilaOffline extends ChangeNotifier {
     return ResultadoEnvio(enviadas: enviadas, falharam: falharam);
   }
 
+  /// O caminho com os `{campo}` trocados pelas respostas anteriores.
+  String _caminho(Acao a) {
+    var c = a.caminho;
+    a.caminhoDe.forEach((campo, id) {
+      final v = _resultados[id]?[campo];
+      if (v == null) {
+        throw ErroApi(
+          409,
+          'falta_anterior',
+          'O pedido de que isto depende não foi enviado.',
+        );
+      }
+      c = c.replaceAll('{$campo}', Uri.encodeComponent('$v'));
+    });
+    return c;
+  }
+
   Future<dynamic> _enviarUma(Acao a) async {
+    final caminho = _caminho(a);
     if (a.tipo == TipoAcao.pedido) {
       final corpo = a.corpo == null
           ? null
@@ -425,7 +475,7 @@ class FilaOffline extends ChangeNotifier {
               _resultados[id]!['foto_id'],
         ];
       });
-      return api.pedido(a.metodo, a.caminho, corpo: corpo, chave: a.chave);
+      return api.pedido(a.metodo, caminho, corpo: corpo, chave: a.chave);
     }
 
     // Fotografia: 1) URL assinada (com a chave: repetir dá a mesma), 2) PUT.
@@ -438,8 +488,7 @@ class FilaOffline extends ChangeNotifier {
       );
     }
     a.intermedio ??= Map<String, dynamic>.from(
-      await api.pedido('POST', a.caminho, corpo: a.corpo, chave: a.chave)
-          as Map,
+      await api.pedido('POST', caminho, corpo: a.corpo, chave: a.chave) as Map,
     );
     await _guardar();
     final i = a.intermedio!;
