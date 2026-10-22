@@ -98,6 +98,53 @@ function CorrerTeste({ d, onPedido }: { d: TQualidade; onPedido: () => void }) {
   );
 }
 
+/**
+ * Valores (€, prazos, horas, telefones, %) que o agente disse no último teste
+ * e que não estão na pergunta nem no gabarito escrito a partir das fontes.
+ */
+function NumerosSemFonte({ n }: { n: NonNullable<TQualidade["numeros"]> }) {
+  const zero = n.numeros_sem_fonte === 0;
+  return (
+    <Cartao className="flex flex-col gap-3 p-6">
+      <div className="flex flex-wrap items-center gap-3">
+        <span
+          className={`flex size-9 shrink-0 items-center justify-center rounded-full ${zero ? "bg-verde-suave" : "bg-ambar-suave"}`}
+        >
+          {zero ? (
+            <Check className="size-4 text-verde" aria-hidden />
+          ) : (
+            <TriangleAlert className="size-4 text-ambar" aria-hidden />
+          )}
+        </span>
+        <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+          <h2 className="font-display text-[19px] font-bold text-tinta">
+            {numero(n.numeros_sem_fonte)} {n.numeros_sem_fonte === 1 ? "número inventado" : "números inventados"}
+          </h2>
+          <p className="text-[13px] text-tinta-2">
+            Em {numero(n.respostas)} respostas do último teste, {numero(n.com_numeros)} dão valores (taxas, prazos,
+            horários, telefones).{" "}
+            {zero
+              ? "Todos estão nas fontes oficiais."
+              : `${numero(n.com_numeros_sem_fonte)} (${pct(n.percentagem, 1)}) dizem pelo menos um que não está na fonte.`}
+          </p>
+        </div>
+      </div>
+      {n.exemplos.length > 0 && (
+        <ul className="flex flex-col">
+          {n.exemplos.map((e) => (
+            <li key={e.resposta_id} className="flex flex-col gap-0.5 border-t border-linha py-2.5">
+              <span className="text-[13px] font-semibold text-tinta">“{e.pergunta}”</span>
+              <span className="text-xs text-tinta-2">
+                Sem fonte: <b className="text-tinta">{e.numeros.join(", ")}</b>
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Cartao>
+  );
+}
+
 export function Qualidade() {
   const q = useDados<TQualidade>("/v1/painel/conhecimento/qualidade");
   const [aberta, setAberta] = useState<string | null>(null);
@@ -209,6 +256,8 @@ export function Qualidade() {
           )}
         </Cartao>
       </div>
+
+      {d.numeros && <NumerosSemFonte n={d.numeros} />}
 
       <div className="grid items-start gap-6 lg:grid-cols-[360px_minmax(0,1fr)]">
         <Cartao className="flex flex-col p-6">

@@ -364,6 +364,7 @@ export class LinguagemSimplesService {
         );
       }
       proposta = await this.claude.extrair(esquemaIa, {
+        tarefa: 'linguagem_simples',
         sistema: SISTEMA_SIMPLES,
         conteudo: conteudoIa(d.fonte_titulo, d.tipo, seccoes),
         esforco: 'high',

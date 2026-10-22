@@ -145,6 +145,8 @@ export class ApoioPassagemService {
     } else {
       try {
         sugerida = await this.claude.extrair(esquemaSugestao, {
+          tarefa: 'sugestao_passagem',
+          minimizar: true,
           sistema: SISTEMA_SUGESTAO,
           conteudo: conteudoSugestao(
             caso,

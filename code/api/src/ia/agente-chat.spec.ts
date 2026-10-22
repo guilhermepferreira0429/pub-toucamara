@@ -150,7 +150,12 @@ describe('correrTurno', () => {
         {
           type: 'tool_result',
           tool_use_id: 't1',
-          content: JSON.stringify({ sem_fonte: false }),
+          // Os resultados vão como dados externos, delimitados.
+          content: expect.stringContaining(
+            `origem="ferramenta" rotulo="procurar_conhecimento">
+${JSON.stringify({ sem_fonte: false })}
+</dados_externos`,
+          ) as unknown as string,
         },
         {
           type: 'tool_result',

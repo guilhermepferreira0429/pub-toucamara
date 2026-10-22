@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { membrosDe, type ServicosEquipa } from "@/components/atendimento/equipa";
+import { BotaoExportar } from "@/components/painel/botao-exportar";
 import { Aviso, CabecalhoPagina } from "@/components/painel/cabecalho";
 import { Botao } from "@/components/ui/botao";
 import { useSessao } from "@/lib/sessao";
@@ -201,7 +202,13 @@ export function ListaProcessos() {
         migalhas={["Processos", "Lista"]}
         titulo="Processos"
         descricao={descricao}
-        acoes={<SeparadoresProcessos atual="/painel/processos" />}
+        acoes={
+          <>
+            <SeparadoresProcessos atual="/painel/processos" />
+            {/* Os mesmos filtros da lista (a API ignora o limite). */}
+            <BotaoExportar caminho={`/v1/painel/processos/exportar.csv?${qs}`} base="processos" />
+          </>
+        }
       />
 
       <div className="flex flex-col gap-5 px-10">

@@ -1,5 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
-import { HttpStatus, Injectable, Logger } from '@nestjs/common';
+import { HttpStatus, Injectable, Logger, Optional } from '@nestjs/common';
 import { ConfigService, ConfigType } from '@nestjs/config';
 import { createHmac, randomBytes, randomInt, timingSafeEqual } from 'crypto';
 import { ErroApi } from '../../common/erros.js';
@@ -8,6 +8,8 @@ import { DatabaseService } from '../../database/database.service.js';
 import { ContextoFerramenta } from '../../ferramentas/ferramenta.js';
 import { RegistoFerramentas } from '../../ferramentas/registo-ferramentas.service.js';
 import { AbrirFluxo, correrTurno, EventoAgente } from '../../ia/agente-chat.js';
+import { tokensDe } from '../../ia/precos.js';
+import { UsoIaService } from '../../ia/uso-ia.service.js';
 import { segredoIgual } from '../agent-tools/agente.guard.js';
 import { MensagensService } from '../comunicacao/mensagens.service.js';
 import { ConversasService } from '../conversas/conversas.service.js';
@@ -92,6 +94,7 @@ export class ChatService {
     private readonly conversas: ConversasService,
     private readonly mensagens: MensagensService,
     private readonly retomar: RetomarService,
+    @Optional() private readonly uso?: UsoIaService,
   ) {
     const cfg = config.getOrThrow<ConfigType<typeof iaConfig>>('ia');
     this.modelo = cfg.modelo;
@@ -314,6 +317,17 @@ export class ChatService {
         },
         sinal,
         esforco: 'low',
+        aoUsar: (m) =>
+          void this.uso?.registar({
+            tarefa: 'chat',
+            modelo: m.model || this.modelo,
+            resultado: m.stop_reason === 'refusal' ? 'recusa' : 'ok',
+            tokens: tokensDe(m.usage),
+            municipioId: sessao.municipio.id,
+            alvo: sessao.conversaId
+              ? { tipo: 'conversa', id: sessao.conversaId }
+              : null,
+          }),
       });
 
       if (r.fim === 'recusa') {

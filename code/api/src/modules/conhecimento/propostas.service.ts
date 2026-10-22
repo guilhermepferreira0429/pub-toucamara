@@ -136,6 +136,7 @@ export class PropostasService {
         : '(nenhum)';
 
     const textoVoz = await this.claude.escrever({
+      tarefa: 'propor_resposta',
       sistema: SISTEMA_VOZ,
       esforco: 'medium',
       maxTokens: 2000,
@@ -152,6 +153,7 @@ export class PropostasService {
     if (a.texto_sms) {
       textoSms =
         (await this.claude.escrever({
+          tarefa: 'propor_resposta',
           sistema: SISTEMA_SMS,
           esforco: 'low',
           maxTokens: 500,
