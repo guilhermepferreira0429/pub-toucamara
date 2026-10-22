@@ -195,6 +195,16 @@ export function ferramenta(
     .send(corpo);
 }
 
+/** `pedir_licenca` (a ferramenta que substituiu as pedir_licenca_<tipo>). */
+export function pedirLicenca(
+  ctx: Contexto,
+  chamada: Chamada | undefined,
+  tipo: string,
+  dados: object,
+) {
+  return ferramenta(ctx, chamada, 'pedir_licenca', { tipo, dados });
+}
+
 /** Id interno da conversa a partir do id do ElevenLabs. */
 export async function conversaId(
   ctx: Contexto,

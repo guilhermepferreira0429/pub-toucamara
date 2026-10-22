@@ -1,29 +1,64 @@
 # Agente de voz (ElevenLabs)
 
-A configuração do agente que atende o `/ligar` (e a linha telefónica) vive aqui e é **gerada a partir do código**. Não se edita à mão no ElevenLabs: muda-se o código e sincroniza-se.
+A configuração dos **dois agentes de voz** vive aqui e é **gerada a partir do código**. Não se edita à mão no ElevenLabs: muda-se o código e sincroniza-se.
 
-| Ficheiro | O que é | De onde vem |
+- **`entrada/`**: o agente que atende quem liga (a linha telefónica e o `/ligar`). Todas as ferramentas do atendimento, sem as exclusivas das chamadas da câmara.
+- **`saida/`**: o agente das chamadas que a câmara faz (campanhas, emergências, antecipações, renovações, processos, consultas e apoios). As exclusivas dessas chamadas mais o núcleo para quando a pessoa aproveita para perguntar outra coisa.
+
+Cada ferramenta diz em que agentes aparece (`agentes` em `ferramenta({ … })`: `'entrada'`, `'saida'`, `'chat'`; por omissão entrada e chat). Está sempre registada uma vez só: a rota `/v1/agent/tools/{nome}` corre qualquer uma, de qualquer agente. O chat mostra as que têm `'chat'` (sem `motivo_da_chamada` nem `resposta_campanha`).
+
+| Ficheiro (em cada pasta) | O que é | De onde vem |
 |---|---|---|
-| `ferramentas.json` | As 48 ferramentas como webhook tools do ElevenLabs (`tool_config`): nome, descrição, `POST ${API_URL}/v1/agent/tools/{nome}`, headers e o esquema dos parâmetros | `RegistoFerramentas` (o zod e a descrição de cada `ferramenta({ … })`) |
-| `prompt.md` | O prompt de sistema da voz | `src/agente-voz/prompt-voz.ts` (regras do chat adaptadas à voz) + `agente_config` do município |
+| `ferramentas.json` | As ferramentas desse agente como webhook tools do ElevenLabs (`tool_config`): nome, descrição, `POST ${API_URL}/v1/agent/tools/{nome}`, headers e o esquema dos parâmetros | `RegistoFerramentas` (o zod, a descrição e os `agentes` de cada `ferramenta({ … })`) |
+| `prompt.md` | O prompt de sistema desse agente: o mesmo núcleo (como responder, o que as ferramentas devolvem, como falar, SMS) e as secções próprias (turistas e início da chamada na entrada; "esta chamada foi feita pela câmara" na saída) | `src/agente-voz/prompt-voz.ts` + `src/ferramentas/regras-gerais.ts` + `agente_config` do município |
 | `agente.json` | Primeira mensagem, idioma, voz e ritmo, variáveis dinâmicas, eventos para o `/ligar`, webhooks, recolha do consentimento. `_notas` explica cada valor `null` | `agente_config`, `municipios`, `src/agente-voz/configuracao.ts` |
+
+### Peso das ferramentas (tokens em cada resposta)
+
+A descrição e o esquema de cada ferramenta vão no contexto de **todas** as respostas do agente: pesam no custo, na latência da voz e na escolha da ferramenta. O `gerar` mostra o peso de cada agente (tokens ≈ caracteres / 4, `src/agente-voz/medir.ts`) e o teste de alinhamento falha acima de `LIMITE_TOKENS` (entrada 8 500, saída 3 000).
+
+| | Ferramentas | Tokens das ferramentas | Prompt |
+|---|---|---|---|
+| Antes (um só agente, out. 2026) | 53 | ≈ 15 400 | ≈ 2 500 |
+| Entrada | 46 | ≈ 8 300 | ≈ 2 700 |
+| Saída | 16 | ≈ 2 300 | ≈ 2 000 |
+
+Para não voltar a crescer:
+- **Descrição = quando usar + o que devolve**, em 1–2 frases, mais só o que é próprio dessa ferramenta. As regras gerais (diz o "dizer", segue a "instrucao", pergunta o que falta, confirma antes de agir, valores de demonstração, pagamentos de teste, erros) estão **uma vez** em `src/ferramentas/regras-gerais.ts` e entram nos prompts da voz, do chat e da porta para IAs.
+- Parâmetros: descrições curtas, sem exemplos longos; enums em vez de texto.
+- Ferramenta nova numa chamada da câmara? `agentes: ['entrada', 'saida', 'chat']` só se a pessoa precisar dela numa chamada nossa.
+
+### Licenças: duas ferramentas para os seis tipos
+
+`campos_da_licenca(tipo)` diz o que perguntar (campo, pergunta, obrigatório, formato, valores), a partir do zod de cada tipo (`src/modules/licencas/ferramentas.ts`, uma só fonte de verdade); `pedir_licenca(tipo, dados)` valida com o esquema desse tipo e pede pelo caminho de sempre (`LicencasService.pedir`: decisão automática, taxa, pagamento, PDF, SMS). Se faltar ou estiver mal algum dado, devolve `em_falta`/`invalidos` em português e não pede nada. `renovar_licenca` fica à parte: não precisa do tipo nem dos dados (lê os da licença anterior e pergunta só o que mudou).
+
+### Chamadas de saída
+
+As chamadas que a câmara faz (`chamadas-saida`) usam `agente_config.elevenlabs_agent_id_saida` (migração `0082`); se estiver vazio, usam o de entrada (`elevenlabs_agent_id`), que não tem as ferramentas das campanhas, emergências e antecipações (o painel avisa: `agente_saida_configurado: false`). O webhook do início e o do fim da chamada reconhecem os dois ids como do mesmo município. Como o id de entrada, define-se na BD:
+
+```sql
+UPDATE agente_config SET elevenlabs_agent_id_saida = '<agent_id>' WHERE municipio_id = (SELECT id FROM municipios WHERE slug = 'guimaraes');
+```
+
+A volta do agente à chamada para juntar um familiar (`juncao_familiar`) entra pela linha da câmara, logo pelo agente de entrada (é o número da linha que escolhe o agente): por isso `estado_familiar` é do de entrada.
 
 Os ficheiros não têm valores de ambiente nem segredos, só marcadores resolvidos no `diff`/`sincronizar`: `${API_URL}`, `${MUNICIPIO}` (header `X-Municipio`) e `${SEGREDO:toucamara_agente_segredo}` (o id do segredo no ElevenLabs).
 
 ## Comandos (em `code/api`)
 
 ```bash
-npm run agente-voz -- gerar                 # escreve os 3 ficheiros (precisa da BD para o agente_config)
+npm run agente-voz -- gerar                 # escreve entrada/ e saida/ (precisa da BD para o agente_config) e mostra o peso
 npm run agente-voz -- diff                  # gera e compara com o ElevenLabs
 npm run agente-voz -- sincronizar           # = diff (não muda nada)
 npm run agente-voz -- sincronizar --confirmar   # aplica
 ```
 
-Opções: `--municipio <slug>` (por omissão `guimaraes`), `--agente <id>` (por omissão `agente_config.elevenlabs_agent_id`), `--criar-segredo` (com `--confirmar`: cria o segredo a partir do `AGENTE_SEGREDO`), `--base <url>` (outra região da API do ElevenLabs, ex.: residência de dados na UE), `--sem-bd` (gera o prompt e o `agente.json` mesmo sem BD, com `null`).
+Opções: `--municipio <slug>` (por omissão `guimaraes`), `--agente-entrada <id>` (por omissão `agente_config.elevenlabs_agent_id`; `--agente <id>` continua a valer), `--agente-saida <id>` (por omissão `agente_config.elevenlabs_agent_id_saida`), `--criar-segredo` (com `--confirmar`: cria o segredo a partir do `AGENTE_SEGREDO`), `--base <url>` (outra região da API do ElevenLabs, ex.: residência de dados na UE), `--sem-bd` (gera o prompt e o `agente.json` mesmo sem BD, com `null`).
 
 - Precisa de `ELEVENLABS_API_KEY` para o `diff` e o `sincronizar`; sem ela diz que só gerou os ficheiros.
 - `API_URL` tem de ser o endereço HTTPS público da API (o ElevenLabs chama-o). Com `localhost` o `diff` avisa e o `sincronizar` recusa.
-- **Depois de mudar uma ferramenta** (nome, descrição, zod): `npm run agente-voz -- gerar` e commit. O teste `src/agente-voz/alinhamento.spec.ts` falha se uma ferramenta registada não estiver em `ferramentas.json` (ou o prompt não falar dela), e o e2e `agente-voz` compara o ficheiro com o que o registo gera.
+- O `diff` e o `sincronizar` tratam os dois agentes, um de cada vez (as ferramentas são do workspace e partilhadas: as de um agente não aparecem como obsoletas no outro).
+- **Depois de mudar uma ferramenta** (nome, descrição, zod, `agentes`): `npm run agente-voz -- gerar` e commit. O teste `src/agente-voz/alinhamento.spec.ts` falha se um agente não tiver exatamente as ferramentas que o código lhe dá, se o prompt não falar delas (ou citar uma que o agente não tem), se uma ferramenta não tiver descrição ou se o peso passar do limite; o e2e `agente-voz` compara os ficheiros com o que o registo gera.
 
 ### O que o `sincronizar --confirmar` faz
 
@@ -44,9 +79,10 @@ Opções: `--municipio <slug>` (por omissão `guimaraes`), `--agente <id>` (por 
 - [ ] `npm run agente-voz -- diff` sem conflitos; depois `npm run agente-voz -- sincronizar --confirmar`
 - [ ] `npm run agente-voz -- diff` outra vez: "O ElevenLabs está igual ao repositório"
 - [ ] No ElevenLabs, confirmar que a voz e o modelo de TTS são multilingues (português) e que o agente responde em português de Portugal
-- [ ] Abrir `/ligar` (com `NEXT_PUBLIC_ELEVENLABS_AGENT_ID` = o mesmo agente) e testar três ferramentas que não estavam no agente:
+- [ ] Criar o segundo agente no ElevenLabs (saída), pôr o id em `agente_config.elevenlabs_agent_id_saida` e sincronizar outra vez
+- [ ] Abrir `/ligar` (com `NEXT_PUBLIC_ELEVENLABS_AGENT_ID` = o agente de **entrada**) e testar três ferramentas que não estavam no agente:
   - [ ] **`o_que_posso_fazer`**: "Quero fazer um anexo de 15 m² no quintal, na Rua de Santo António, 12": diz se é isento, comunicação prévia ou licença, com a fonte
-  - [ ] **`pedir_licenca_ruido`**: "Vou fazer uma festa no sábado, das 20h à meia-noite, com música": confirma os dados lendo-os de volta e diz que vai SMS
+  - [ ] **`campos_da_licenca` + `pedir_licenca`**: "Vou fazer uma festa no sábado, das 20h à meia-noite, com música": pergunta os campos um a um, confirma os dados lendo-os de volta e diz que vai SMS
   - [ ] **`que_apoios_tenho`**: "Tenho 70 anos e a renda está difícil": diz os apoios e pergunta se quer pedir (`pedir_apoio`)
 - [ ] Ver no painel (Conversas → ficha) que as ferramentas ficaram ligadas à conversa e que o SMS do fim ficou gravado
 
@@ -59,3 +95,34 @@ O formato segue o SDK oficial `@elevenlabs/elevenlabs-js` 2.74.0 (out. 2026); a 
 - Que os `dynamic_variable_placeholders` servem de valor quando a variável não chega (chamada pelo browser sem o webhook de início).
 - O código de idioma: vai `pt`; não se confirmou se há um `pt-PT` próprio.
 - Os parâmetros sem descrição no zod (lista em `avisos` de `ferramentas.json`) vão com o nome do campo como descrição: convém descrevê-los no zod.
+
+## Próximo passo (só nota, não implementado): catálogo para as ferramentas raras
+
+Catálogo para as ferramentas raras (arquivo, deliberações, turismo, empresa, cartas) numa só `outros_servicos(servico, dados)`, com uma linha por serviço no prompt: poupa mais ~2–3 mil tokens, mas pode piorar esses fluxos (o agente pode não saber que existem). **Avaliar com o avaliador** (`code/avaliador`, as 180 perguntas) antes e depois: taxa de acerto e ferramenta escolhida; aplicar só se não cair. Precisa da `ANTHROPIC_API_KEY` (o juiz) e da `ELEVENLABS_API_KEY` (o adaptador `tou-voz` simula a conversa com o agente publicado).
+
+Como comparar (em `code/avaliador`):
+
+```bash
+# 1. Antes: o agente de entrada como está
+bun run avaliador executar --sistema "Tou, Câmara? · Guimarães · voz" --motivo manual          # → execução A
+bun run avaliador avaliar --execucao <A>
+
+# 2. Depois: um agente de TESTE no ElevenLabs com a variante (num branch), sincronizado só para ele
+#    (as ferramentas são do workspace: a variante só acrescenta outros_servicos; as raras continuam
+#    a existir para o agente de produção, só saem da lista do agente de teste)
+(cd ../api && npm run agente-voz -- sincronizar --confirmar --agente-entrada <id-agente-teste>)
+bun run avaliador sistemas criar --nome "Tou, Câmara? · Guimarães · voz (catálogo)" --adaptador tou-voz \
+  --municipio guimaraes --config '{"agent_id":"<id-agente-teste>"}' --nosso
+bun run avaliador executar --sistema "Tou, Câmara? · Guimarães · voz (catálogo)" --motivo manual   # → execução B
+bun run avaliador avaliar --execucao <B>
+
+# 3. Taxa de acerto (global e por tema) e as divergências
+bun run avaliador relatorio comparar --execucoes <A>,<B> --pdf
+
+# 4. Ferramenta escolhida, pergunta a pergunta (o adaptador grava-as em avaliacao.respostas.ferramentas)
+psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" "$DB_NAME" -c "SELECT p.ordem, p.categoria, a.ferramentas AS antes, b.ferramentas AS depois
+  FROM avaliacao.respostas a JOIN avaliacao.respostas b USING (pergunta_id)
+  JOIN avaliacao.perguntas p ON p.id = a.pergunta_id
+  WHERE a.execucao_id = '<A>' AND b.execucao_id = '<B>' AND a.ferramentas IS DISTINCT FROM b.ferramentas
+  ORDER BY p.ordem"
+```

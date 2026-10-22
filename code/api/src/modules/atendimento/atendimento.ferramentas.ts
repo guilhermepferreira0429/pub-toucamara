@@ -24,21 +24,16 @@ export function ferramentasAtendimento(
     ferramenta({
       nome: 'encaminhar',
       descricao:
-        'Diz que entidade trata de um assunto que não é da câmara (água e saneamento, lixo e monos, finanças, ' +
-        'segurança social, saúde, emergências...) e o contacto certo, com horário e se está aberto agora. ' +
-        'Usa quando o munícipe pergunta por algo que pode ser de outra entidade. Diz o texto de "dizer" e, se ' +
-        'pedir, os outros contactos. Se vier emergencia: true, segue a "instrucao" de imediato. Se ' +
-        '"passa_a_pessoa" vier preenchido e o caso do munícipe encaixar nessa condição, usa passar_a_humano. ' +
-        'Se vier encontrada: false, procura no conhecimento ou passa a um funcionário; nunca inventes contactos.',
+        'Quando o assunto pode ser de outra entidade (água, lixo e monos, finanças, segurança social, saúde): quem trata e o contacto, com horário. ' +
+        'Outros contactos só se pedir. emergencia: true → segue já a instrucao. Se vier passa_a_pessoa e o caso encaixar, usa passar_a_humano.',
+      agentes: ['entrada', 'saida', 'chat'],
       entrada: z.object({
         assunto: z
           .string()
           .trim()
           .min(2)
           .max(300)
-          .describe(
-            'O problema ou pedido, resumido (ex.: "rotura de água na rua", "recolha de um sofá velho", "IMI").',
-          ),
+          .describe('O problema ou pedido, resumido.'),
       }),
       async executar(ctx, { assunto }) {
         return encaminhamento.procurar(ctx.municipio.id, assunto);
@@ -48,26 +43,22 @@ export function ferramentasAtendimento(
     ferramenta({
       nome: 'identificar_municipe',
       descricao:
-        'Identifica o munícipe pelo número de contribuinte (NIF) que ele diz. Usa só quando é preciso saber ' +
-        'quem é (ex.: estado de um processo, requerimento em nome dele) e depois de lhe pedir o NIF. ' +
-        'Se vier identificado: true, trata-o pelo nome se houver. Se vier nif_invalido, pede para repetir ' +
-        'devagar, algarismo a algarismo. Nunca repitas o NIF em voz alta.',
+        'Só quando é preciso saber quem é (processos, pedidos em nome dela), depois de pedir o NIF. Devolve o nome; nif_invalido → pede para repetir devagar.',
+      agentes: ['entrada', 'saida', 'chat'],
       entrada: z.object({
         nif: z
           .string()
           .trim()
           .min(9)
           .max(20)
-          .describe(
-            'O NIF dito na chamada, 9 algarismos (espaços não importam).',
-          ),
+          .describe('O NIF dito (9 algarismos).'),
         nome: z
           .string()
           .trim()
           .min(2)
           .max(120)
           .optional()
-          .describe('O nome, se o munícipe o disse.'),
+          .describe('O nome, se o disse.'),
       }),
       async executar(ctx, { nif: dito, nome }) {
         const nif = limparNif(dito);
@@ -117,11 +108,9 @@ export function ferramentasAtendimento(
     ferramenta({
       nome: 'passar_a_humano',
       descricao:
-        'Passa o caso a um funcionário da câmara, com um resumo do que ele já precisa de saber. Usa quando o ' +
-        'munícipe pede uma pessoa, quando o conhecimento vem sem fonte, em questões jurídicas ou políticas, ' +
-        'reclamações que não sejam formais (para uma reclamação formal no Livro de Reclamações usa registar_reclamacao), ou quando uma regra diz que passa a pessoa. Antes de chamar, pergunta como prefere a ' +
-        'resposta (SMS, email ou telefone) se ainda não sabes. Depois diz o texto de "dizer" tal como vem ' +
-        '(inclui até quando respondem) e não prometas outro prazo.',
+        'Passa o caso a um funcionário: quando pede uma pessoa, sem fonte, questões jurídicas ou políticas, queixas informais (a formal é registar_reclamacao) ou quando uma regra o diz. ' +
+        'Antes pergunta como prefere a resposta. O "dizer" traz até quando respondem.',
+      agentes: ['entrada', 'saida', 'chat'],
       entrada: z.object({
         motivo: z
           .enum([
@@ -132,27 +121,20 @@ export function ferramentasAtendimento(
             'processo',
             'outro',
           ])
-          .describe(
-            'pedido: pediu uma pessoa; sem_fonte: não há resposta oficial; juridico; politica; processo: sobre um processo em curso; outro.',
-          ),
+          .describe('pedido = pediu uma pessoa; processo = processo em curso.'),
         resumo: z
           .string()
           .trim()
           .min(10)
           .max(2000)
           .describe(
-            'O que o funcionário já sabe, em 2 a 5 frases: o pedido, a morada ou o processo se houver, o que já foi dito e o que falta. Sem NIF.',
+            'O que o funcionário precisa de saber, em 2 a 5 frases (pedido, morada ou processo, o que falta). Sem NIF.',
           ),
         preferencia_resposta: z
           .enum(['sms', 'email', 'telefone', 'chat'])
           .optional()
-          .describe(
-            'Como quer a resposta. Por defeito: SMS ao telefone, chat no chat.',
-          ),
-        email: z
-          .email()
-          .optional()
-          .describe('O email, se escolheu resposta por email e o disse.'),
+          .describe('Por omissão SMS (no chat, chat).'),
+        email: z.email().optional().describe('Se escolheu email.'),
       }),
       async executar(ctx, e) {
         return passagens.criar(ctx, {
@@ -167,18 +149,15 @@ export function ferramentasAtendimento(
     ferramenta({
       nome: 'emergencia',
       descricao:
-        'Regista que a conversa é uma emergência (incêndio, acidente, pessoa ferida ou em perigo, crime a ' +
-        'acontecer). PRIMEIRO diz ao munícipe "Desligue e ligue já para o 112" e SÓ DEPOIS chama esta ' +
-        'ferramenta: ela não chama ninguém nem avisa o 112, só deixa registado. Não faças mais perguntas.',
+        'Só DEPOIS de dizer "desligue e ligue já para o 112": regista a emergência (não chama ninguém nem avisa o 112). Sem mais perguntas.',
+      agentes: ['entrada', 'saida', 'chat'],
       entrada: z.object({
         situacao: z
           .string()
           .trim()
           .max(300)
           .optional()
-          .describe(
-            'O que se passa, numa frase (ex.: "fumo a sair de uma casa").',
-          ),
+          .describe('O que se passa, numa frase.'),
       }),
       async executar(ctx, { situacao }) {
         return passagens.emergencia(ctx, situacao);

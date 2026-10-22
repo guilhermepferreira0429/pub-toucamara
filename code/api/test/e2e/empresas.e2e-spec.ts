@@ -14,6 +14,7 @@ import {
   MUNICIPIO,
   MUNICIPIO_ID,
   novaChamada,
+  pedirLicenca,
   smsPara,
 } from './app';
 
@@ -117,7 +118,11 @@ describe('Balcão para empresas (e2e)', () => {
     );
     expect(esplanada).toMatchObject({
       onde: 'camara',
-      como: { tipo: 'agente', ferramenta: 'pedir_licenca_esplanada' },
+      como: {
+        tipo: 'agente',
+        ferramenta: 'pedir_licenca',
+        tipo_licenca: 'esplanada',
+      },
       demonstracao: true,
     });
     // A taxa vem das regras em vigor da câmara (20 m² × 12 meses × 3 €).
@@ -222,7 +227,7 @@ describe('Balcão para empresas (e2e)', () => {
     expect(r2.body.itens.length).toBeLessThanOrEqual(6);
     expect(r2.body.itens[0]).toMatchObject({
       chave: 'esplanada',
-      pedir_com: 'pedir_licenca_esplanada',
+      pedir_com: 'pedir_licenca (tipo esplanada)',
     });
     expect(r2.body.dizer).toContain('licença de esplanada');
     expect(r2.body.dizer).toContain('SMS');
@@ -278,7 +283,7 @@ describe('Balcão para empresas (e2e)', () => {
 
   /** Uma esplanada de 2 meses, paga e emitida. */
   async function esplanadaEmitida(chamada: Chamada) {
-    const r = await ferramenta(ctx, chamada, 'pedir_licenca_esplanada', {
+    const r = await pedirLicenca(ctx, chamada, 'esplanada', {
       estabelecimento: 'Café do Largo',
       morada: 'Largo do Toural 1, Guimarães',
       data_inicio: daquiA(),

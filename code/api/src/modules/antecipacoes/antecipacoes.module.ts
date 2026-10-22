@@ -35,9 +35,11 @@ export class AntecipacoesModule implements OnModuleInit {
       ferramenta({
         nome: 'explicar_momento',
         descricao:
-          'Explica à pessoa uma data importante que está a chegar nos assuntos dela: um prazo dela a acabar (documento pedido), a audiência prévia (pode responder antes de a câmara indeferir), o prazo da câmara para decidir, a obra que tem de começar antes de a licença caducar ou a taxa por pagar. ' +
-          'Usa numa chamada da câmara com motivo de aviso antecipado, ou quando a pessoa diz que recebeu um aviso ou uma chamada sobre um prazo. Precisa de saber quem é a pessoa. ' +
-          'Diz o que vem em "dizer" e depois o que pode fazer. Se confirmar_com_a_camara for true, não garantas o efeito legal: diz que a câmara confirma.',
+          'Num aviso antecipado (ou se a pessoa diz que recebeu um aviso sobre uma data): explica a data que está a chegar (prazo dela, audiência prévia, prazo da câmara, caducidade da obra, taxa) e o que pode fazer. ' +
+          'confirmar_com_a_camara: true → não garantas o efeito legal.',
+        // Nas chamadas da câmara e no chat (cartão "momento"); ao telefone,
+        // quem liga pergunta pelo processo (estado_processo).
+        agentes: ['saida', 'chat'],
         entrada: entradaExplicar,
         executar: (ctx, e) => this.antecipacoes.explicar(ctx, e),
       }),

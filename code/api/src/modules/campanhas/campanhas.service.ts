@@ -62,24 +62,18 @@ export const esquemaTratar = z.object({
 export const entradaResposta = z.object({
   estado: z
     .enum(['bem', 'precisa_ajuda'])
-    .describe(
-      '"bem" se a pessoa está bem e não precisa de nada; "precisa_ajuda" se pediu ou precisa de alguma coisa, ou se ficaste preocupado.',
-    ),
+    .describe('precisa_ajuda se pediu algo ou ficaste preocupado.'),
   necessidades: z
     .array(z.enum(NECESSIDADES))
     .max(NECESSIDADES.length)
     .default([])
-    .describe(
-      'O que precisa: agua, transporte, medicamentos, companhia, saude, alimentacao, outro.',
-    ),
+    .describe('O que precisa.'),
   nota: z
     .string()
     .trim()
     .max(500)
     .optional()
-    .describe(
-      'O que a pessoa disse, em poucas palavras (ex.: "está sozinha, sem água fresca, tonturas").',
-    ),
+    .describe('O que a pessoa disse, em poucas palavras.'),
 });
 
 /** Uma pessoa a quem ligar (`contacto_id` nulo: não está na lista da ação social). */

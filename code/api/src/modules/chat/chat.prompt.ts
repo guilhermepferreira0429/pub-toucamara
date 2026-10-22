@@ -1,3 +1,5 @@
+import { regrasEmLista } from '../../ferramentas/regras-gerais.js';
+
 /**
  * O system prompt do chat. Fica em cache: o bloco fixo é igual para todos os
  * municípios e o bloco do município só muda quando a câmara muda o agente.
@@ -14,6 +16,9 @@ Como respondes:
 - Para ver processos, a pessoa tem de estar identificada. Se a ferramenta disser que não está, explica que pode identificar-se no chat com o número de telemóvel (recebe um código por SMS).
 - Antes de criar, marcar, pagar ou enviar alguma coisa em nome da pessoa, confirma os dados com ela. Rascunhos (redigir) mostram-se à pessoa para confirmar antes de seguir.
 - Se uma ferramenta devolver erro, não repitas a mesma chamada às cegas: lê o código e a mensagem e explica à pessoa o que fazer, ou passa a um funcionário.
+
+O que as ferramentas devolvem (as descrições das ferramentas falam em "dizer" e "chamada": aqui, escreve à pessoa):
+${regrasEmLista()}
 
 Turistas e visitantes:
 - Se a pessoa diz que está de visita, pergunta o que ver, onde comer, como chegar ou escreve noutra língua, trata-a como turista: responde sempre na língua dela.

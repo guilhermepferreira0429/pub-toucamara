@@ -144,12 +144,9 @@ export class ApoiosModule implements OnModuleInit {
       ferramenta({
         nome: 'que_apoios_tenho',
         descricao:
-          'Diz a que apoios da câmara a pessoa pode ter direito (apoio à renda, tarifa social da água, cheque bebé, cartão do idoso, material escolar…). ' +
-          'Usa quando a pessoa pergunta por apoios ou conta uma dificuldade (renda, contas, filhos, idade). ' +
-          'Chama logo com o que já sabes; se vier perguntar_a_seguir, faz essas perguntas (uma ou duas de cada vez) e chama outra vez com TUDO o que já sabes, incluindo o rendimento (não fica guardado). ' +
-          'Pergunta também se aceita que a câmara lhe volte a ligar sobre estes apoios (aceita_contacto). ' +
-          'Diz o "dizer". No fim, a lista com os documentos segue por SMS. Se a pessoa quiser pedir um apoio, usa pedir_apoio. ' +
-          'É uma indicação: a decisão é da câmara, com os documentos.',
+          'Quando pergunta por apoios ou conta uma dificuldade (renda, contas, filhos, idade): a que apoios da câmara pode ter direito. ' +
+          'Chama logo com o que sabes e depois sempre com TUDO o que já sabes (o rendimento não fica guardado). Pergunta se aceita que a câmara lhe volte a ligar (aceita_contacto). ' +
+          'É uma indicação: decide a câmara, com os documentos; a lista segue por SMS.',
         entrada: entradaQueApoiosTenho,
         executar: (ctx, e) => this.apoios.queApoiosTenho(ctx, e),
       }),
@@ -158,9 +155,9 @@ export class ApoiosModule implements OnModuleInit {
       ferramenta({
         nome: 'pedir_apoio',
         descricao:
-          'Faz o pedido de um apoio da câmara (depois de que_apoios_tenho, ou numa chamada da câmara sobre um apoio). Confirma antes com a pessoa. ' +
-          'Cria um processo para a ação social, com os documentos a entregar, e manda SMS com o número e o link. Diz o "dizer". ' +
-          'Se vier precisa_identificacao, segue a instrução.',
+          'Depois de que_apoios_tenho (ou numa chamada nossa sobre um apoio), quando quer pedir: cria o processo na ação social, com os documentos a entregar, e manda SMS.',
+        // Também nas campanhas dos apoios (a câmara liga a quem tem direito).
+        agentes: ['entrada', 'saida', 'chat'],
         entrada: entradaPedirApoio,
         executar: (ctx, e) => this.apoios.pedirApoio(ctx, e),
       }),

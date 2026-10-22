@@ -94,6 +94,8 @@ const POR_FERRAMENTA: Record<
   preparar_resposta_carta: 'carta',
 };
 
+const LICENCAS = new Set(['pedir_licenca', 'renovar_licenca']);
+
 function objeto(v: unknown): Record<string, unknown> {
   return v !== null && typeof v === 'object' && !Array.isArray(v)
     ? (v as Record<string, unknown>)
@@ -168,6 +170,14 @@ export function cartaoDe(
     if (objeto(resultado).sem_fonte === true) return null;
     const fontes = fontesDe(resultado);
     return fontes.length > 0 ? { tipo: 'fonte', fontes } : null;
+  }
+  // Licenças (pedir_licenca, renovar_licenca): o cartão do pagamento da taxa,
+  // quando há (o resto vem no texto: regras, condições, número).
+  if (LICENCAS.has(nome)) {
+    const pagamento = objeto(objeto(resultado).pagamento);
+    return Object.keys(pagamento).length > 0
+      ? { tipo: 'pagamento', ferramenta: nome, dados: pagamento }
+      : null;
   }
   const tipo = POR_FERRAMENTA[nome];
   if (!tipo) return null;

@@ -1265,19 +1265,22 @@ export class DemoService {
 
     await this.umaVez(c.m, 'licenca:ruido_emitida', 'licenca', async () => {
       const r = (await registo.executar(
-        'pedir_licenca_ruido',
+        'pedir_licenca',
         c.ctx('telefone', c.conversa('festa_maria'), 'maria'),
         {
-          atividade: 'festa_privada',
-          descricao: 'Festa de anos no quintal, com música',
-          morada: 'Rua Gil Vicente, 30, Guimarães',
-          data: proximoDiaSemana(c.agora, c.m.fuso, 6, 10),
-          hora_inicio: '20:00',
-          hora_fim: '01:00',
-          pessoas: 40,
-          musica_amplificada: true,
-          nome: 'Maria Fulana',
-          metodo: 'mbway',
+          tipo: 'ruido',
+          dados: {
+            atividade: 'festa_privada',
+            descricao: 'Festa de anos no quintal, com música',
+            morada: 'Rua Gil Vicente, 30, Guimarães',
+            data: proximoDiaSemana(c.agora, c.m.fuso, 6, 10),
+            hora_inicio: '20:00',
+            hora_fim: '01:00',
+            pessoas: 40,
+            musica_amplificada: true,
+            nome: 'Maria Fulana',
+            metodo: 'mbway',
+          },
         },
       )) as { numero: string };
       const l = await doNumero(r.numero);
@@ -1289,18 +1292,21 @@ export class DemoService {
 
     await this.umaVez(c.m, 'licenca:ruido_tecnico', 'licenca', async () => {
       const r = (await registo.executar(
-        'pedir_licenca_ruido',
+        'pedir_licenca',
         c.ctx('telefone', c.conversa('festa_teresa'), 'teresa'),
         {
-          atividade: 'festa_privada',
-          descricao: 'Jantar de aniversário com música ao vivo',
-          morada: 'Rua Paio Galvão, 12, Guimarães',
-          data: proximoDiaSemana(c.agora, c.m.fuso, 2, 10),
-          hora_inicio: '20:00',
-          hora_fim: '01:00',
-          pessoas: 30,
-          musica_amplificada: true,
-          nome: 'Teresa Beltrana',
+          tipo: 'ruido',
+          dados: {
+            atividade: 'festa_privada',
+            descricao: 'Jantar de aniversário com música ao vivo',
+            morada: 'Rua Paio Galvão, 12, Guimarães',
+            data: proximoDiaSemana(c.agora, c.m.fuso, 2, 10),
+            hora_inicio: '20:00',
+            hora_fim: '01:00',
+            pessoas: 30,
+            musica_amplificada: true,
+            nome: 'Teresa Beltrana',
+          },
         },
       )) as { numero: string };
       const l = await doNumero(r.numero);
@@ -1311,17 +1317,20 @@ export class DemoService {
 
     await this.umaVez(c.m, 'licenca:esplanada', 'licenca', async () => {
       const r = (await registo.executar(
-        'pedir_licenca_esplanada',
+        'pedir_licenca',
         c.ctx('chat', c.conversa('esplanada'), 'manuel'),
         {
-          estabelecimento: 'Café Sicrano',
-          morada: PONTOS.conde_margaride.morada,
-          data_inicio: diaDemo(c.agora, c.m.fuso, 21),
-          meses: 1,
-          area_m2: 10,
-          mesas: 4,
-          passeio_livre_m: 2,
-          nome: 'Café Sicrano, Lda',
+          tipo: 'esplanada',
+          dados: {
+            estabelecimento: 'Café Sicrano',
+            morada: PONTOS.conde_margaride.morada,
+            data_inicio: diaDemo(c.agora, c.m.fuso, 21),
+            meses: 1,
+            area_m2: 10,
+            mesas: 4,
+            passeio_livre_m: 2,
+            nome: 'Café Sicrano, Lda',
+          },
         },
       )) as { numero: string };
       const l = await doNumero(r.numero);

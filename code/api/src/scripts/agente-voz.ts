@@ -1,13 +1,15 @@
 /**
- * A configuração do agente de voz (ElevenLabs) a partir do código.
+ * A configuração dos dois agentes de voz (ElevenLabs) a partir do código.
  *   npm run agente-voz -- gerar        [--municipio guimaraes] [--sem-bd]
- *   npm run agente-voz -- diff         [--municipio …] [--agente <id>]
- *   npm run agente-voz -- sincronizar  [--municipio …] [--agente <id>] [--confirmar] [--criar-segredo]
- *   (diff e sincronizar aceitam --base <url> para outra região da API do ElevenLabs)
+ *   npm run agente-voz -- diff         [--municipio …] [--agente-entrada <id>] [--agente-saida <id>]
+ *   npm run agente-voz -- sincronizar  [--municipio …] [--agente-entrada <id>] [--agente-saida <id>] [--confirmar] [--criar-segredo]
+ *   (--agente <id> continua a valer como --agente-entrada; diff e sincronizar
+ *   aceitam --base <url> para outra região da API do ElevenLabs)
  *
- * Os três geram primeiro `code/api/agente-voz/` (ferramentas.json, prompt.md,
- * agente.json). `diff` e `sincronizar` precisam de ELEVENLABS_API_KEY; sem
- * `--confirmar` o `sincronizar` só mostra o que faria. Ver agente-voz/README.md.
+ * Os três geram primeiro `code/api/agente-voz/entrada/` e `…/saida/`
+ * (ferramentas.json, prompt.md, agente.json). `diff` e `sincronizar` precisam
+ * de ELEVENLABS_API_KEY; sem `--confirmar` o `sincronizar` só mostra o que
+ * faria. Ver agente-voz/README.md.
  */
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
@@ -25,6 +27,9 @@ import {
 } from '../agente-voz/cliente-elevenlabs.js';
 import {
   DadosMunicipio,
+  ferramentasDoAgente,
+  FicheiroAgente,
+  FicheiroFerramentas,
   gerarAgente,
   gerarFerramentas,
   resolver,
@@ -32,7 +37,12 @@ import {
   segredosReferidos,
 } from '../agente-voz/configuracao.js';
 import { Aviso } from '../agente-voz/esquema-elevenlabs.js';
-import { gerarPrompt } from '../agente-voz/prompt-voz.js';
+import { medir, tabelaPeso } from '../agente-voz/medir.js';
+import {
+  AGENTES_VOZ,
+  AgenteVoz,
+  gerarPrompt,
+} from '../agente-voz/prompt-voz.js';
 import { DatabaseService } from '../database/database.service.js';
 import { RegistoFerramentas } from '../ferramentas/registo-ferramentas.service.js';
 
@@ -60,12 +70,15 @@ async function dadosMunicipio(
     voz_nome: null,
     ritmo: null,
     elevenlabs_agent_id: null,
+    elevenlabs_agent_id_saida: null,
     fuso: null,
   };
   try {
     const [m] = await db.query<Omit<DadosMunicipio, 'slug'>>(
       `SELECT m.nome, m.fuso, a.nome AS nome_agente, a.saudacao, a.trata_por, a.idiomas,
-              a.voz_id, a.voz_nome, a.ritmo, a.elevenlabs_agent_id
+              a.voz_id, a.voz_nome, a.ritmo, a.elevenlabs_agent_id,
+              -- (por jsonb: a BD pode ainda não ter a migração 0082)
+              to_jsonb(a) ->> 'elevenlabs_agent_id_saida' AS elevenlabs_agent_id_saida
        FROM municipios m LEFT JOIN agente_config a ON a.municipio_id = m.id
        WHERE m.slug = $1`,
       [slug],
@@ -155,11 +168,25 @@ function mostrarPlano(p: Plano, comAgente: boolean) {
   lista('Definições do agente diferentes (agente.json)', p.agente);
 }
 
+interface Gerado {
+  agente: AgenteVoz;
+  ferramentas: FicheiroFerramentas;
+  prompt: string;
+  config: FicheiroAgente;
+}
+
+/** O id do agente no ElevenLabs: o do comando ou o do agente_config. */
+function idDoAgente(a: AgenteVoz, dados: DadosMunicipio): string | null {
+  if (a === 'saida')
+    return arg('agente-saida') ?? dados.elevenlabs_agent_id_saida;
+  return arg('agente-entrada') ?? arg('agente') ?? dados.elevenlabs_agent_id;
+}
+
 async function main() {
   const comando = process.argv[2];
   if (comando !== 'gerar' && comando !== 'diff' && comando !== 'sincronizar') {
     throw new Error(
-      'Uso: npm run agente-voz -- gerar | diff | sincronizar [--municipio guimaraes] [--agente <id>] [--confirmar] [--criar-segredo]',
+      'Uso: npm run agente-voz -- gerar | diff | sincronizar [--municipio guimaraes] [--agente-entrada <id>] [--agente-saida <id>] [--confirmar] [--criar-segredo]',
     );
   }
   process.env.MIGRACOES_NO_ARRANQUE = 'false';
@@ -174,16 +201,34 @@ async function main() {
       app.get(DatabaseService),
       slug,
     );
-    const ferramentas = gerarFerramentas(registadas);
-    mkdirSync(PASTA, { recursive: true });
-    writeFileSync(join(PASTA, 'ferramentas.json'), json(ferramentas));
+    const gerados: Gerado[] = [];
+    for (const a of AGENTES_VOZ) {
+      const lista = ferramentasDoAgente(registadas, a);
+      const ferramentas = gerarFerramentas(lista, a);
+      const pasta = join(PASTA, a);
+      mkdirSync(pasta, { recursive: true });
+      writeFileSync(join(pasta, 'ferramentas.json'), json(ferramentas));
+      const prompt = gerarPrompt(dados, lista, a);
+      const config = gerarAgente(dados, a);
+      if (!erro || tem('sem-bd')) {
+        writeFileSync(join(pasta, 'prompt.md'), prompt);
+        writeFileSync(join(pasta, 'agente.json'), json(config));
+      }
+      gerados.push({ agente: a, ferramentas, prompt, config });
+      console.log(
+        tabelaPeso(
+          a === 'entrada' ? 'Entrada (quem liga)' : 'Saída (a câmara liga)',
+          medir(ferramentas.ferramentas, prompt),
+        ),
+      );
+    }
+    mostrarAvisos(gerados[0].ferramentas.avisos);
     if (erro && !tem('sem-bd')) {
       // Sem os dados do município, o prompt e o agente.json perdiam valores:
       // ficam como estão (--sem-bd escreve-os na mesma, com null).
       console.log(
-        `⚠ ${erro} Só se escreveu o ferramentas.json (${ferramentas.ferramentas.length} ferramentas); prompt.md e agente.json ficaram como estavam. Use --sem-bd para os gerar com null.`,
+        `⚠ ${erro} Só se escreveram os ferramentas.json; prompt.md e agente.json ficaram como estavam. Use --sem-bd para os gerar com null.`,
       );
-      mostrarAvisos(ferramentas.avisos);
       if (comando !== 'gerar') {
         throw new Error(
           'Sem a BD não se sabe o agente nem o prompt: não se compara.',
@@ -191,14 +236,9 @@ async function main() {
       }
       return;
     }
-    const prompt = gerarPrompt(dados, registadas);
-    const agente = gerarAgente(dados);
-    writeFileSync(join(PASTA, 'prompt.md'), prompt);
-    writeFileSync(join(PASTA, 'agente.json'), json(agente));
     console.log(
-      `Gerado em ${PASTA}: ${ferramentas.ferramentas.length} ferramentas, prompt.md e agente.json (${slug}).`,
+      `Gerado em ${PASTA}/{entrada,saida}: ferramentas.json, prompt.md e agente.json (${slug}).`,
     );
-    mostrarAvisos(ferramentas.avisos);
     if (comando === 'gerar') return;
 
     const config = app.get(ConfigService);
@@ -217,7 +257,6 @@ async function main() {
         `\n⚠ API_URL = ${apiUrl}: o ElevenLabs só chega a um endereço HTTPS público.`,
       );
     }
-    const agenteId = arg('agente') ?? dados.elevenlabs_agent_id;
     // --base: outra região do ElevenLabs (ex.: residência de dados na UE).
     const cliente = new ClienteElevenLabs(
       apiKey,
@@ -226,9 +265,9 @@ async function main() {
     );
 
     let segredos = await cliente.segredos();
-    const faltam = segredosReferidos([ferramentas, agente]).filter(
-      (n) => !segredos.has(n),
-    );
+    const faltam = segredosReferidos(
+      gerados.map((g) => [g.ferramentas, g.config]),
+    ).filter((n) => !segredos.has(n));
     if (faltam.length) {
       if (
         comando === 'sincronizar' &&
@@ -252,60 +291,72 @@ async function main() {
         for (const n of faltam) segredos.set(n, `(em falta: ${n})`);
       }
     }
+    const semSegredo = faltam.some(
+      (n) => !segredos.get(n) || segredos.get(n)!.startsWith('(em falta'),
+    );
     const resolucao = { apiUrl, municipio: slug, segredos };
-    const desejado: Desejado = {
-      ferramentas: resolver(ferramentas.ferramentas, resolucao),
-      prompt,
-      agente: resolver(
-        {
-          conversation_config: agente.conversation_config,
-          platform_settings: agente.platform_settings,
-        },
-        resolucao,
-      ),
-    };
-    const remotas = await cliente.ferramentas();
-    const remoto = agenteId ? await cliente.agente(agenteId) : null;
-    if (!agenteId)
-      console.log(
-        '\n⚠ Sem id do agente (agente_config.elevenlabs_agent_id ou --agente).',
-      );
-    const plano = planear(desejado, remotas, remoto);
-    mostrarPlano(plano, !!remoto);
 
-    if (semAlteracoes(plano)) {
-      console.log('\n✓ O ElevenLabs está igual ao repositório.');
-      return;
-    }
-    if (comando === 'diff') return;
-    if (!tem('confirmar')) {
+    // Um agente de cada vez: as ferramentas são do workspace (partilhadas),
+    // por isso as remotas leem-se de novo depois de aplicar o primeiro.
+    for (const g of gerados) {
+      const outro = gerados.find((x) => x.agente !== g.agente)!;
+      const agenteId = idDoAgente(g.agente, dados);
       console.log(
-        '\nNada foi alterado. Para aplicar: npm run agente-voz -- sincronizar --confirmar',
+        `\n=== Agente de ${g.agente}${agenteId ? ` (${agenteId})` : ''} ===`,
       );
-      return;
-    }
-    if (
-      faltam.some(
-        (n) => !segredos.get(n) || segredos.get(n)!.startsWith('(em falta'),
-      )
-    ) {
-      throw new Error(
-        'Não se sincroniza sem o segredo das ferramentas no ElevenLabs.',
+      const desejado: Desejado = {
+        ferramentas: resolver(g.ferramentas.ferramentas, resolucao),
+        prompt: g.prompt,
+        agente: resolver(
+          {
+            conversation_config: g.config.conversation_config,
+            platform_settings: g.config.platform_settings,
+          },
+          resolucao,
+        ),
+        doOutroAgente: outro.ferramentas.ferramentas.map((f) => f.name),
+      };
+      const remotas = await cliente.ferramentas();
+      const remoto = agenteId ? await cliente.agente(agenteId) : null;
+      if (!agenteId)
+        console.log(
+          g.agente === 'saida'
+            ? '\n⚠ Sem id do agente de saída (agente_config.elevenlabs_agent_id_saida ou --agente-saida): as chamadas da câmara usam o de entrada.'
+            : '\n⚠ Sem id do agente de entrada (agente_config.elevenlabs_agent_id ou --agente-entrada).',
+        );
+      const plano = planear(desejado, remotas, remoto);
+      mostrarPlano(plano, !!remoto);
+
+      if (semAlteracoes(plano)) {
+        console.log('\n✓ O ElevenLabs está igual ao repositório.');
+        continue;
+      }
+      if (comando === 'diff') continue;
+      if (!tem('confirmar')) {
+        console.log(
+          '\nNada foi alterado. Para aplicar: npm run agente-voz -- sincronizar --confirmar',
+        );
+        continue;
+      }
+      if (semSegredo) {
+        throw new Error(
+          'Não se sincroniza sem o segredo das ferramentas no ElevenLabs.',
+        );
+      }
+      if (!publico)
+        throw new Error('API_URL tem de ser HTTPS público para sincronizar.');
+      const r = await aplicar(
+        cliente,
+        plano,
+        desejado,
+        remotas,
+        agenteId ?? null,
+        remoto,
+      );
+      console.log(
+        `\n✓ Sincronizado: ${r.criadas.length} criadas, ${r.atualizadas.length} atualizadas${r.agenteAtualizado ? `, agente com ${r.toolIds.length} ferramentas e o prompt novo` : ''}.`,
       );
     }
-    if (!publico)
-      throw new Error('API_URL tem de ser HTTPS público para sincronizar.');
-    const r = await aplicar(
-      cliente,
-      plano,
-      desejado,
-      remotas,
-      agenteId ?? null,
-      remoto,
-    );
-    console.log(
-      `\n✓ Sincronizado: ${r.criadas.length} criadas, ${r.atualizadas.length} atualizadas${r.agenteAtualizado ? `, agente com ${r.toolIds.length} ferramentas e o prompt novo` : ''}.`,
-    );
   } finally {
     await app.close();
   }

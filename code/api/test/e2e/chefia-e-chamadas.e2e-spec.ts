@@ -2,6 +2,7 @@
 import { randomInt, randomUUID } from 'crypto';
 import { JobsService } from '../../src/jobs/jobs.service';
 import { FILA_CHAMADAS_SAIDA } from '../../src/modules/chamadas-saida/chamadas-saida.module';
+import { ChamadasSaidaService } from '../../src/modules/chamadas-saida/chamadas-saida.service';
 import { MunicipiosService } from '../../src/modules/municipios/municipios.service';
 import {
   arrancarApp,
@@ -323,6 +324,7 @@ describe('Perguntas da chefia e chamadas de saída (e2e)', () => {
         numero_id: null,
         via: 'twilio',
         agente_configurado: true,
+        agente_saida_configurado: false,
         elevenlabs_disponivel: false,
       });
     });
@@ -394,6 +396,7 @@ describe('Perguntas da chefia e chamadas de saída (e2e)', () => {
       expect(r.body).toEqual({
         ...CONFIG_LIGADA,
         agente_configurado: true,
+        agente_saida_configurado: false,
         elevenlabs_disponivel: false,
       });
       const g = await ctx
@@ -565,6 +568,86 @@ describe('Perguntas da chefia e chamadas de saída (e2e)', () => {
       expect(sms.corpo).toContain(
         `tentámos ligar-lhe sobre o processo ${p.numero}`,
       );
+    });
+
+    it('as chamadas da câmara usam o agente de saída; sem ele, o de entrada', async () => {
+      const svc = ctx.app.get(ChamadasSaidaService);
+      const buscarOriginal = svc.buscar;
+      const pedidos: { agent_id: string }[] = [];
+      svc.buscar = (_url, init) => {
+        pedidos.push(JSON.parse(init.body as string) as { agent_id: string });
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({
+              success: true,
+              conversation_id: novaConversa('saida'),
+              callSid: `CA${randomInt(1e6)}`,
+            }),
+          ),
+        );
+      };
+      // Só neste teste: o serviço "tem" a chave do ElevenLabs.
+      Object.defineProperty(svc, 'apiKey', {
+        get: () => 'xi_e2e',
+        configurable: true,
+      });
+      const admin = await entrarPainel(
+        ctx,
+        await criarUtilizador(ctx, 'admin'),
+      );
+      // A config que os testes anteriores deixaram (repõe-se no fim).
+      const antes = await linha<{ chamadas_saida: unknown }>(
+        ctx.db,
+        'SELECT chamadas_saida FROM agente_config WHERE municipio_id = $1',
+        [MUNICIPIO_ID],
+      );
+      try {
+        await ctx.db.query(
+          `UPDATE agente_config SET chamadas_saida = $2, elevenlabs_agent_id_saida = 'agente-e2e-saida'
+           WHERE municipio_id = $1`,
+          [
+            MUNICIPIO_ID,
+            JSON.stringify({
+              ativo: true,
+              motivos: [],
+              numero_id: 'phn_e2e',
+              via: 'twilio',
+            }),
+          ],
+        );
+        const cfg = await ctx
+          .http()
+          .get('/v1/painel/chamadas-saida/config')
+          .set(chefe)
+          .expect(200);
+        expect(cfg.body).toMatchObject({
+          agente_configurado: true,
+          agente_saida_configurado: true,
+        });
+        const p1 = await novoProcesso();
+        const r1 = await ligar(p1.processoId, admin, {
+          forcar_horario: true,
+        }).expect(200);
+        expect(r1.body.estado).toBe('a_ligar');
+        expect(pedidos.at(-1)!.agent_id).toBe('agente-e2e-saida');
+
+        // Sem o agente de saída: o de entrada (como antes).
+        await ctx.db.query(
+          'UPDATE agente_config SET elevenlabs_agent_id_saida = NULL WHERE municipio_id = $1',
+          [MUNICIPIO_ID],
+        );
+        const p2 = await novoProcesso();
+        await ligar(p2.processoId, admin, { forcar_horario: true }).expect(200);
+        expect(pedidos.at(-1)!.agent_id).toBe('agente-e2e');
+        expect(pedidos).toHaveLength(2);
+      } finally {
+        svc.buscar = buscarOriginal;
+        delete (svc as unknown as Record<string, unknown>).apiKey;
+        await ctx.db.query(
+          'UPDATE agente_config SET elevenlabs_agent_id_saida = NULL, chamadas_saida = $2 WHERE municipio_id = $1',
+          [MUNICIPIO_ID, JSON.stringify(antes?.chamadas_saida)],
+        );
+      }
     });
 
     it('processo inexistente → 404; id inválido → 400', async () => {

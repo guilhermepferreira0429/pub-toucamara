@@ -5,6 +5,8 @@
  * identificada pela chave.
  */
 
+import { regrasEmLista } from '../../ferramentas/regras-gerais.js';
+
 /** Sem chave: só informação pública. */
 export const FERRAMENTAS_PUBLICAS = [
   'procurar_conhecimento',
@@ -37,12 +39,8 @@ export const FERRAMENTAS_PESSOAIS = [
   'nao_quero_avisos',
   'participar_consulta',
   'pedir_apoio',
-  'pedir_licenca_ruido',
-  'pedir_licenca_ocupacao_via',
-  'pedir_licenca_esplanada',
-  'pedir_distico_residente',
-  'pedir_licenca_publicidade',
-  'pedir_licenca_recinto_improvisado',
+  'campos_da_licenca',
+  'pedir_licenca',
   'renovar_licenca',
   'registar_reclamacao',
   'pedir_consulta_arquivo',
@@ -52,6 +50,7 @@ export const FERRAMENTAS_PESSOAIS = [
 /** Não mudam nada: o cliente pode correr sem pedir confirmação. */
 export const SO_LEITURA = new Set<string>([
   'procurar_conhecimento',
+  'campos_da_licenca',
   'encaminhar',
   'simular_taxa',
   'ver_vagas',
@@ -76,12 +75,9 @@ export const TITULOS: Record<string, string> = {
   procurar_deliberacoes: 'Deliberações da câmara e da assembleia',
   participar_consulta: 'Participar numa consulta pública',
   pedir_apoio: 'Pedir um apoio',
-  pedir_licenca_ruido: 'Pedir licença especial de ruído',
-  pedir_licenca_ocupacao_via: 'Pedir licença de ocupação da via pública',
-  pedir_licenca_esplanada: 'Pedir licença de esplanada',
-  pedir_distico_residente: 'Pedir dístico de residente',
-  pedir_licenca_publicidade: 'Pedir licença de publicidade',
-  pedir_licenca_recinto_improvisado: 'Pedir licença de recinto improvisado',
+  campos_da_licenca: 'O que é preciso para pedir uma licença',
+  pedir_licenca:
+    'Pedir uma licença (ruído, esplanada, publicidade, ocupação da via, dístico, recinto)',
   renovar_licenca: 'Renovar uma licença a expirar',
   registar_ocorrencia: 'Registar um problema na via pública',
   estado_ocorrencia: 'Estado de uma ocorrência',
@@ -111,6 +107,8 @@ export function instrucoes(municipio: string, pessoal: boolean): string {
     'Responde só com o que as ferramentas devolvem e diz a fonte. Se vier sem_fonte: true, não inventes: usa passar_a_humano (se disponível) ou indica o contacto da câmara.',
     'Emergências (fogo, fumo, acidente, alguém em perigo): diz para ligar já para o 112, antes de qualquer outra coisa.',
     'Antes de uma ação que muda alguma coisa (registar, marcar, pagar, concluir), confirma os dados com a pessoa.',
+    'O que as ferramentas devolvem:',
+    regrasEmLista(),
     pessoal
       ? 'Esta ligação foi autorizada pela pessoa, pelo número de telemóvel verificado por SMS: as ações ficam em nome dela e os SMS vão para esse número.'
       : 'Sem chave pessoal só há informação pública. Para registar ocorrências, marcar ou ver processos, a pessoa liga o assistente em /ia no site da câmara.',

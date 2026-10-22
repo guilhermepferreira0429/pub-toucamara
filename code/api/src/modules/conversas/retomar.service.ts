@@ -134,7 +134,10 @@ export class RetomarService {
     }
   }
 
-  /** Pelo agente (agente_config.elevenlabs_agent_id) ou pelo número da linha. */
+  /**
+   * Pelo agente (o de entrada ou o de saída do agente_config: são do mesmo
+   * município) ou pelo número da linha.
+   */
   private async municipioDaChamada(
     agentId: string | null,
     numero: string | null,
@@ -154,7 +157,7 @@ export class RetomarService {
       `SELECT x.id, x.fuso, a.voz_id, coalesce(a.ritmo, 'normal') AS ritmo FROM (
          SELECT m.id, m.fuso, 1 AS ordem FROM agente_config a
          JOIN municipios m ON m.id = a.municipio_id
-         WHERE a.elevenlabs_agent_id = $1
+         WHERE $1 IN (a.elevenlabs_agent_id, a.elevenlabs_agent_id_saida)
          UNION ALL
          SELECT id, fuso, 2 FROM municipios
          WHERE regexp_replace(telefone_linha, '[^0-9+]', '', 'g') = $2

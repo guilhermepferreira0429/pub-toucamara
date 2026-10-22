@@ -47,18 +47,20 @@ export class ChamadasSaidaModule implements OnModuleInit {
       ferramenta({
         nome: 'juntar_familiar',
         descricao:
-          'Quando a pessoa pede para juntar um familiar ou alguém de confiança à chamada ("fale com o meu filho"). ' +
-          'Pergunta o número e confirma-o em voz alta antes de chamar. Diz o texto de "dizer" e, se modo for "conferencia", ' +
-          'não digas mais nada: a chamada muda e voltas logo a seguir. Se vier precisa_autorizacao, faz a pergunta de "dizer" e, ' +
-          'se a pessoa disser que sim, chama outra vez com autorizou: true. Se modo for "web", o familiar acompanha por um link e o que escrever chega-te como contexto. ' +
-          'Nunca para emergências (aí é o 112).',
+          'Quando pede para juntar à chamada um familiar ou alguém de confiança (nunca em emergências). Confirma o número em voz alta antes. ' +
+          'modo "conferencia": depois do "dizer" não digas mais nada (voltas logo). precisa_autorizacao: pergunta e, com o sim, chama com autorizou: true. modo "web": o que o familiar escrever chega-te como contexto.',
+        // Também nas chamadas da câmara (ex.: campanhas a pessoas idosas).
+        agentes: ['entrada', 'saida', 'chat'],
         entrada: entradaJuntarFamiliar,
         executar: (ctx, e) => this.juncoes.pedir(ctx, e),
       }),
       ferramenta({
         nome: 'estado_familiar',
         descricao:
-          'Numa chamada em que voltaste para juntar um familiar (tipo_chamada juncao_familiar): diz se o familiar já atendeu. Diz o texto de "dizer".',
+          'Quando voltaste à chamada para juntar um familiar (tipo_chamada juncao_familiar): se já atendeu.',
+        // O agente volta à sala ligando para a linha da câmara: entra pelo
+        // agente de entrada (é o número da linha que escolhe o agente).
+        agentes: ['entrada'],
         entrada: z.object({}),
         executar: (ctx) => this.juncoes.estadoParaAgente(ctx),
       }),

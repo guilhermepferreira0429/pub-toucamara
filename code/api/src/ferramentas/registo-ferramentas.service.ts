@@ -2,7 +2,17 @@ import { HttpStatus, Injectable } from '@nestjs/common';
 import { z } from 'zod';
 import { ErroApi } from '../common/erros.js';
 import { validar } from '../common/validacao.js';
-import { ContextoFerramenta, Ferramenta } from './ferramenta.js';
+import {
+  Agente,
+  AGENTES_OMISSAO,
+  ContextoFerramenta,
+  Ferramenta,
+} from './ferramenta.js';
+
+/** Os agentes de uma ferramenta (os por omissão se não disser). */
+export function agentesDe(f: Pick<Ferramenta, 'agentes'>): readonly Agente[] {
+  return f.agentes ?? AGENTES_OMISSAO;
+}
 
 export interface EntradaCatalogo {
   nome: string;
@@ -35,6 +45,11 @@ export class RegistoFerramentas {
     );
   }
 
+  /** As que o modelo deste agente vê (ver `Ferramenta.agentes`). */
+  doAgente(agente: Agente): Ferramenta[] {
+    return this.todas().filter((f) => agentesDe(f).includes(agente));
+  }
+
   obter(nome: string): Ferramenta {
     const f = this.ferramentas.get(nome);
     if (!f) {
@@ -58,8 +73,9 @@ export class RegistoFerramentas {
   }
 
   /** O catálogo em JSON Schema, como o ElevenLabs e a API do Claude o pedem. */
-  catalogo(): EntradaCatalogo[] {
-    return this.todas().map((f) => ({
+  catalogo(agente?: Agente): EntradaCatalogo[] {
+    const lista = agente ? this.doAgente(agente) : this.todas();
+    return lista.map((f) => ({
       nome: f.nome,
       descricao: f.descricao,
       metodo: 'POST',

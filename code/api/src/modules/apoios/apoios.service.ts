@@ -66,16 +66,12 @@ export const entradaQueApoiosTenho = z.object({
     .min(0)
     .max(100_000)
     .optional()
-    .describe(
-      'Quanto entra por mês em casa, somando todas as pessoas, em euros (aproximado chega). Não é guardado: só o escalão.',
-    ),
+    .describe('Euros por mês em casa, todos somados (aproximado).'),
   filhos_idades: z
     .array(z.number().int().min(0).max(30))
     .max(15)
     .optional()
-    .describe(
-      'As idades dos filhos a cargo, em anos (um bebé com menos de 1 ano é 0). [] se não tem filhos a cargo.',
-    ),
+    .describe('Idades dos filhos a cargo (bebé = 0); [] se nenhum.'),
   inquilino: z
     .boolean()
     .optional()
@@ -83,15 +79,11 @@ export const entradaQueApoiosTenho = z.object({
   aceita_contacto: z
     .boolean()
     .optional()
-    .describe(
-      'true se a pessoa disse que aceita que a câmara lhe volte a ligar sobre estes apoios.',
-    ),
+    .describe('Aceita que a câmara lhe volte a ligar sobre isto.'),
   fim: z
     .boolean()
     .optional()
-    .describe(
-      'true quando a pessoa não quer responder a mais perguntas: manda a lista por SMS com o que já se sabe.',
-    ),
+    .describe('true se não quer responder a mais perguntas.'),
 });
 type EntradaQueApoios = z.output<typeof entradaQueApoiosTenho>;
 
@@ -101,15 +93,13 @@ export const entradaPedirApoio = z.object({
     .trim()
     .min(3)
     .max(41)
-    .describe(
-      'O código do apoio, como veio em que_apoios_tenho (ex.: "apoio_renda").',
-    ),
+    .describe('O código do apoio (de que_apoios_tenho).'),
   nome: z
     .string()
     .trim()
     .max(120)
     .optional()
-    .describe('O nome de quem pede, se ainda não o disse.'),
+    .describe('Nome de quem pede, se ainda não o disse.'),
 });
 
 export const esquemaPedirPublico = z.object({

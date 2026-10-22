@@ -10,6 +10,7 @@ import {
   MUNICIPIO,
   MUNICIPIO_ID,
   novaChamada,
+  pedirLicenca,
   smsPara,
 } from './app';
 
@@ -30,12 +31,8 @@ function sabadoDistante(): string {
 }
 
 /** Pedidos que cumprem todas as regras por omissão, com todos os dados. */
-const CUMPRE: Record<
-  string,
-  { ferramenta: string; dados: Record<string, unknown> }
-> = {
+const CUMPRE: Record<string, { dados: Record<string, unknown> }> = {
   ruido: {
-    ferramenta: 'pedir_licenca_ruido',
     dados: {
       atividade: 'festa_privada',
       descricao: 'Festa de anos no quintal',
@@ -48,7 +45,6 @@ const CUMPRE: Record<
     },
   },
   ocupacao_via: {
-    ferramenta: 'pedir_licenca_ocupacao_via',
     dados: {
       equipamento: 'andaime',
       descricao: 'Pintar a fachada',
@@ -61,7 +57,6 @@ const CUMPRE: Record<
     },
   },
   esplanada: {
-    ferramenta: 'pedir_licenca_esplanada',
     dados: {
       estabelecimento: 'Café do Teste',
       morada: 'Largo do Toural 5, Guimarães',
@@ -75,7 +70,6 @@ const CUMPRE: Record<
     },
   },
   distico_residente: {
-    ferramenta: 'pedir_distico_residente',
     dados: {
       morada: 'Rua Nova 5, Guimarães',
       matricula: 'AA-12-BB',
@@ -85,7 +79,6 @@ const CUMPRE: Record<
     },
   },
   publicidade: {
-    ferramenta: 'pedir_licenca_publicidade',
     dados: {
       suporte: 'placa',
       estabelecimento: 'Sapataria do Teste',
@@ -101,7 +94,6 @@ const CUMPRE: Record<
     },
   },
   recinto_improvisado: {
-    ferramenta: 'pedir_licenca_recinto_improvisado',
     dados: {
       descricao: 'Arraial do teste',
       morada: 'Largo da Oliveira, Guimarães',
@@ -172,7 +164,7 @@ describe('Regras públicas e decisão automática (e2e)', () => {
       ...novaChamada(tipo.slice(0, 3)),
       ...(telefone ? { telefone } : {}),
     };
-    const r = await ferramenta(ctx, chamada, c.ferramenta, {
+    const r = await pedirLicenca(ctx, chamada, tipo, {
       ...c.dados,
       ...mudanca,
     }).expect(200);
@@ -247,10 +239,10 @@ describe('Regras públicas e decisão automática (e2e)', () => {
       const sem = Object.fromEntries(
         Object.entries(CUMPRE.ruido.dados).filter(([k]) => k !== 'pessoas'),
       );
-      const r = await ferramenta(
+      const r = await pedirLicenca(
         ctx,
         novaChamada('rui'),
-        'pedir_licenca_ruido',
+        'ruido',
         sem,
       ).expect(200);
       expect(r.body).toMatchObject({
@@ -283,10 +275,10 @@ describe('Regras públicas e decisão automática (e2e)', () => {
     });
 
     it('nem forçando a BD: uma licença marcada automática mas com uma regra falhada não se emite sozinha', async () => {
-      const r = await ferramenta(
+      const r = await pedirLicenca(
         ctx,
         novaChamada('rui'),
-        'pedir_licenca_ruido',
+        'ruido',
         CUMPRE.ruido.dados,
       ).expect(200);
       const l = await licencaDe(r.body.numero);

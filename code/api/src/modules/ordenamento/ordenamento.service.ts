@@ -60,26 +60,22 @@ export const entradaOQuePossoFazer = z.object({
     .trim()
     .min(3)
     .max(300)
-    .describe('A morada do terreno ou da casa: rua, número e freguesia.'),
+    .describe('Rua, número e freguesia.'),
   obra: z
     .enum(Object.keys(OBRAS) as [Obra, ...Obra[]])
-    .describe(
-      'anexo (telheiro, arrumos), muro, piscina, ampliacao, fachada (porta, janela, cor) ou interior.',
-    ),
+    .describe('anexo = telheiro, arrumos; fachada = porta, janela, cor.'),
   area_m2: z
     .number()
     .positive()
     .max(100_000)
     .optional()
-    .describe(
-      'Área em metros quadrados, se a pessoa disser (ou se vier em em_falta).',
-    ),
+    .describe('Área em m², se a disser.'),
   altura_m: z
     .number()
     .positive()
     .max(100)
     .optional()
-    .describe('Altura em metros, se a pessoa disser (ou se vier em em_falta).'),
+    .describe('Altura em metros, se a disser.'),
 });
 
 export interface Zona {

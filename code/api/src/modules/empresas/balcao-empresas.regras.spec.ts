@@ -184,7 +184,8 @@ describe('listaPara', () => {
     const esplanada = l.itens.find((i) => i.chave === 'esplanada')!;
     expect(esplanada.como).toEqual({
       tipo: 'agente',
-      ferramenta: 'pedir_licenca_esplanada',
+      ferramenta: 'pedir_licenca',
+      tipo_licenca: 'esplanada',
       frase: 'Quero pedir a licença de esplanada',
     });
     expect(esplanada.porque).toEqual(['Vai ter esplanada.']);

@@ -66,9 +66,7 @@ export function ferramentasChat(claude: ClaudeService) {
     ferramenta({
       nome: 'redigir',
       descricao:
-        'Redige uma reclamação, um email ou um pedido formal em português, com os factos que a pessoa contou. ' +
-        'Usa quando a pessoa quer escrever à câmara ou a outra entidade. Antes, junta os factos (o quê, onde, quando, o que pede). ' +
-        'Devolve o texto: mostra-o (ou lê-o) à pessoa e pede confirmação antes de seguir; nada é enviado por esta ferramenta.',
+        'Quando quer escrever à câmara ou a outra entidade (reclamação, email, pedido): com os factos (o quê, onde, quando, o que pede) devolve o texto em português, para ler e confirmar. Não envia nada.',
       entrada: entradaRedigir,
       async executar(ctx, entrada) {
         if (!claude.disponivel) {

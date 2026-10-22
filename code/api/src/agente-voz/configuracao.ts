@@ -11,6 +11,7 @@
  * - `${SEGREDO:<nome>}`     → o id do segredo com esse nome no ElevenLabs
  */
 import type { Ferramenta } from '../ferramentas/ferramenta.js';
+import { agentesDe } from '../ferramentas/registo-ferramentas.service.js';
 import { VARIAVEIS_SAIDA_VAZIAS } from '../modules/chamadas-saida/regras.js';
 import { CAMPO_CONSENTIMENTO } from '../modules/conversas/elevenlabs.js';
 import { VARIAVEIS_VAZIAS } from '../modules/conversas/retomar.js';
@@ -19,6 +20,7 @@ import {
   type Ritmo,
 } from '../modules/conversas/retomar.service.js';
 import { Aviso, converterZod, ObjetoEl } from './esquema-elevenlabs.js';
+import type { AgenteVoz } from './prompt-voz.js';
 
 /** Nome do segredo a criar no ElevenLabs (Agents › Secrets) com o AGENTE_SEGREDO. */
 export const SEGREDO_AGENTE = 'toucamara_agente_segredo';
@@ -73,7 +75,18 @@ export function cabecalhosFerramentas(): Record<string, CabecalhoEl> {
   };
 }
 
-export function gerarFerramentas(lista: Ferramenta[]): FicheiroFerramentas {
+/** As ferramentas de um agente de voz (as `agentes` de cada ferramenta). */
+export function ferramentasDoAgente(
+  lista: Ferramenta[],
+  agente: AgenteVoz,
+): Ferramenta[] {
+  return lista.filter((f) => agentesDe(f).includes(agente));
+}
+
+export function gerarFerramentas(
+  lista: Ferramenta[],
+  agente?: AgenteVoz,
+): FicheiroFerramentas {
   const avisos: Aviso[] = [];
   const ferramentas = [...lista]
     .sort((a, b) => a.nome.localeCompare(b.nome))
@@ -96,8 +109,7 @@ export function gerarFerramentas(lista: Ferramenta[]): FicheiroFerramentas {
       };
     });
   return {
-    _leia_me:
-      'Gerado por `npm run agente-voz -- gerar` a partir das ferramentas registadas na API. Não editar à mão: muda o zod/descrição da ferramenta e volta a gerar. Ver README.md.',
+    _leia_me: `Gerado por \`npm run agente-voz -- gerar\` a partir das ferramentas registadas na API${agente ? ` com \`agentes\` a incluir '${agente}'` : ''}. Não editar à mão: muda o zod/descrição da ferramenta e volta a gerar. Ver README.md.`,
     formato:
       'tool_config das webhook tools do ElevenLabs Agents (POST /v1/convai/tools, corpo { tool_config }).',
     marcadores: {
@@ -152,13 +164,25 @@ export interface DadosMunicipio {
   voz_nome: string | null;
   ritmo: string | null;
   elevenlabs_agent_id: string | null;
+  /** O agente das chamadas da câmara (0082); sem ele usa-se o de entrada. */
+  elevenlabs_agent_id_saida: string | null;
   fuso: string | null;
 }
 
 export const AVISO_GRAVACAO =
   'Esta chamada é gravada para a câmara poder confirmar o que lhe foi dito; se não quiser, diga-me.';
 
-export function primeiraMensagem(m: DadosMunicipio): string | null {
+export function primeiraMensagem(
+  m: DadosMunicipio,
+  agente: AgenteVoz = 'entrada',
+): string | null {
+  if (agente === 'saida') {
+    // Foi a câmara que ligou: diz quem fala; o motivo vem logo a seguir
+    // (prompt, com as variáveis da chamada).
+    if (!m.nome) return null;
+    const nome = m.nome_agente ?? 'Tou, Câmara?';
+    return `Olá, daqui fala o assistente ${nome} da Câmara Municipal de ${m.nome}. ${AVISO_GRAVACAO}`;
+  }
   if (!m.saudacao) return null;
   // "Olá, fala com o Tou, Câmara?": o ponto de interrogação é do nome.
   const t = m.saudacao.trim();
@@ -171,13 +195,19 @@ export interface FicheiroAgente {
   /** Comentários por caminho: o que é null e porquê, e o que confirmar. */
   _notas: Record<string, string>;
   municipio: string;
+  /** entrada (quem liga) ou saida (a câmara liga). */
+  agente: AgenteVoz;
   elevenlabs_agent_id: string | null;
   /** Enviado no PATCH /v1/convai/agents/{id} (sem os null). */
   conversation_config: Record<string, unknown>;
   platform_settings: Record<string, unknown>;
 }
 
-export function gerarAgente(m: DadosMunicipio): FicheiroAgente {
+export function gerarAgente(
+  m: DadosMunicipio,
+  agente: AgenteVoz = 'entrada',
+): FicheiroAgente {
+  const saida = agente === 'saida';
   const velocidade =
     m.ritmo && m.ritmo in VELOCIDADE_RITMO
       ? VELOCIDADE_RITMO[m.ritmo as Ritmo]
@@ -187,10 +217,12 @@ export function gerarAgente(m: DadosMunicipio): FicheiroAgente {
     _leia_me:
       'Gerado por `npm run agente-voz -- gerar`. O `sincronizar --confirmar` envia conversation_config e platform_settings sem os valores null (o prompt e a lista de ferramentas vêm de prompt.md e ferramentas.json). Ver README.md.',
     _notas: {
-      elevenlabs_agent_id:
-        'agente_config.elevenlabs_agent_id do município (ou --agente no comando).',
-      'conversation_config.agent.first_message':
-        'agente_config.saudacao + aviso de gravação (na linha telefónica é este o aviso). null se a BD não estava acessível ao gerar.',
+      elevenlabs_agent_id: saida
+        ? 'agente_config.elevenlabs_agent_id_saida do município (ou --agente-saida no comando). Sem ele, as chamadas da câmara usam o agente de entrada.'
+        : 'agente_config.elevenlabs_agent_id do município (ou --agente-entrada / --agente no comando).',
+      'conversation_config.agent.first_message': saida
+        ? 'Quem fala, da câmara, + aviso de gravação (a câmara é que ligou; o motivo vem do prompt). null se a BD não estava acessível ao gerar.'
+        : 'agente_config.saudacao + aviso de gravação (na linha telefónica é este o aviso). null se a BD não estava acessível ao gerar.',
       'conversation_config.agent.language':
         '"pt". A variante de Portugal (PT-PT) vem da voz e do prompt; confirmar no ElevenLabs se há um código pt-PT próprio.',
       'conversation_config.agent.prompt.timezone':
@@ -218,10 +250,13 @@ export function gerarAgente(m: DadosMunicipio): FicheiroAgente {
         'Não está no código (concorrência e limite diário por decidir).',
     },
     municipio: m.slug,
-    elevenlabs_agent_id: m.elevenlabs_agent_id,
+    agente,
+    elevenlabs_agent_id: saida
+      ? m.elevenlabs_agent_id_saida
+      : m.elevenlabs_agent_id,
     conversation_config: {
       agent: {
-        first_message: primeiraMensagem(m),
+        first_message: primeiraMensagem(m, agente),
         language: 'pt',
         prompt: { timezone: m.fuso },
         dynamic_variables: {

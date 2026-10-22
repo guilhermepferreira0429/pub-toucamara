@@ -37,12 +37,8 @@ export class EntregasModule implements OnModuleInit {
       ferramenta({
         nome: 'entregar_pedido',
         descricao:
-          'Entrega o requerimento já concluído no balcão online da câmara, em nome do munícipe, quando ele pede para o agente tratar da entrega. ' +
-          'Primeiro chama sem confirmado: vem o resumo e o codigo_resumo. Lê o resumo à pessoa e pergunta se confirma que quer que entregue em nome dela. ' +
-          'Só com um sim claro chama outra vez com confirmado: true, o codigo_resumo e as palavras_do_municipe (como as disse). ' +
-          'Depois vai um SMS com um link para a pessoa se autenticar com a Chave Móvel Digital e autorizar; diz o que vem em "dizer". ' +
-          'Nesta demonstração a autenticação e a entrega são simuladas e não têm validade legal: diz isso à pessoa. ' +
-          'Se vier requerimento_por_concluir, conclui primeiro o requerimento.',
+          'Quando pede para entregarmos o requerimento concluído no balcão online, em nome dela. Na confirmação manda o codigo_resumo e as palavras_do_municipe; depois a pessoa autoriza com a Chave Móvel Digital pelo link do SMS. ' +
+          'É simulado, sem validade legal: diz isso. requerimento_por_concluir → conclui primeiro.',
         entrada: entradaEntregar,
         executar: (ctx, e) => this.entregas.entregarPedido(ctx, e),
       }),

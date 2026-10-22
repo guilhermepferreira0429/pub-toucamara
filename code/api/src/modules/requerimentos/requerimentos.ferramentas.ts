@@ -5,36 +5,28 @@ import { RequerimentosService } from './requerimentos.service.js';
 const idOpcional = z
   .uuid()
   .optional()
-  .describe(
-    'O requerimento_id devolvido por iniciar_requerimento. Sem ele usa o requerimento aberto nesta conversa.',
-  );
+  .describe('De iniciar_requerimento (sem ele, o desta conversa).');
 
 export function ferramentasRequerimentos(requerimentos: RequerimentosService) {
   return [
     ferramenta({
       nome: 'iniciar_requerimento',
       descricao:
-        'Começa a preencher um requerimento à câmara durante a conversa (ex.: comunicação prévia de obras). ' +
-        'Usa quando o munícipe quer fazer o pedido e o conhecimento confirmou que é este o procedimento. ' +
-        'Devolve os campos e a pergunta a fazer para cada um: diga a frase_do_agente, depois faça a proxima_pergunta, uma de cada vez, e grave cada resposta com preencher_campo. ' +
-        'Se vier encontrado: false, pergunte ao munícipe qual das opcoes é a dele e volte a chamar com o código.',
+        'Quando quer fazer um pedido à câmara e o conhecimento confirmou o procedimento (ex.: comunicação prévia): devolve os campos. ' +
+        'Diz a frase_do_agente, faz a proxima_pergunta (uma de cada vez) e grava cada resposta com preencher_campo.',
       entrada: z.object({
         tipo: z
           .string()
           .trim()
           .min(2)
           .max(200)
-          .describe(
-            'O código do tipo de processo (ex.: "CP") ou o pedido por palavras do munícipe (ex.: "obras de alteração na cozinha").',
-          ),
+          .describe('O código do tipo (ex.: "CP") ou o pedido por palavras.'),
         idioma: z
           .string()
           .trim()
           .regex(/^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})*$/, 'Código BCP 47.')
           .optional()
-          .describe(
-            'A língua em que o munícipe está a falar, em BCP 47 (ex.: "en", "es", "fr", "uk"). Omitir se for português. O requerimento sai sempre em português.',
-          ),
+          .describe('A língua da conversa (BCP 47), se não for português.'),
       }),
       executar: (ctx, { tipo, idioma }) =>
         requerimentos.iniciar(ctx, tipo, idioma),
@@ -43,10 +35,8 @@ export function ferramentasRequerimentos(requerimentos: RequerimentosService) {
     ferramenta({
       nome: 'preencher_campo',
       descricao:
-        'Grava no requerimento um ou mais campos que o munícipe acabou de dizer (o ecrã da câmara mostra-o ao vivo). ' +
-        'Usa a chave de cada campo de iniciar_requerimento. Para corrigir, volte a mandar o campo com o valor certo (ou null para apagar). ' +
-        'Se vierem erros, peça de novo esse campo explicando o problema. Depois faça a proxima_pergunta; quando for null, confirme os dados e chame concluir_requerimento. ' +
-        'O NIF do requerente fica guardado cifrado: não o repita em voz alta.',
+        'A cada resposta do requerimento: grava os campos pelas chaves de iniciar_requerimento (corrigir: manda outra vez; null apaga). Erros → pede de novo esse campo, explicando. ' +
+        'Depois a proxima_pergunta; quando vier null, confirma os dados e concluir_requerimento.',
       entrada: z.object({
         requerimento_id: idOpcional,
         campos: z
@@ -59,7 +49,7 @@ export function ferramentasRequerimentos(requerimentos: RequerimentosService) {
             'Indique pelo menos um campo.',
           )
           .describe(
-            'Campos por chave, ex.: { "morada_obra": "Rua de Santo António, 12", "area_m2": "18,5", "tem_tecnico": "sim" }. Datas como dia/mês/ano.',
+            'Campos por chave, ex.: { "area_m2": "18,5" }. Datas como dia/mês/ano.',
           ),
       }),
       executar: (ctx, { requerimento_id, campos }) =>
@@ -69,8 +59,7 @@ export function ferramentasRequerimentos(requerimentos: RequerimentosService) {
     ferramenta({
       nome: 'concluir_requerimento',
       descricao:
-        'Fecha o preenchimento depois de o munícipe confirmar os dados: o requerimento fica pronto, gera-se o PDF e vai um SMS com o link para rever, assinar e enviar os documentos que faltam. ' +
-        'Diga ao munícipe o texto de o_que_dizer. Se der erro campos_em_falta, faça a proxima_pergunta dos detalhes e grave com preencher_campo antes de tentar outra vez.',
+        'Quando todos os campos estão confirmados: fecha o requerimento (PDF e SMS para rever, assinar e juntar documentos). Erro campos_em_falta → pergunta e grava com preencher_campo antes.',
       entrada: z.object({ requerimento_id: idOpcional }),
       executar: (ctx, { requerimento_id }) =>
         requerimentos.concluir(ctx, requerimento_id),

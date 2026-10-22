@@ -108,6 +108,31 @@ describe('cartaoDe', () => {
     }
   });
 
+  it('pedir_licenca e renovar_licenca mostram o pagamento da taxa, se houver', () => {
+    const pagamento = { metodo: 'mbway', valor_cent: 2500, modo_teste: true };
+    expect(
+      cartaoDe('pedir_licenca', { pedida: true, tipo: 'ruido', pagamento }),
+    ).toEqual({
+      tipo: 'pagamento',
+      ferramenta: 'pedir_licenca',
+      dados: pagamento,
+    });
+    expect(
+      cartaoDe('renovar_licenca', { pedida: true, pagamento }),
+    ).toMatchObject({ tipo: 'pagamento', dados: pagamento });
+    // Sem taxa (ou com dados em falta) não há cartão.
+    expect(
+      cartaoDe('pedir_licenca', {
+        pedida: true,
+        emitida: true,
+        pagamento: null,
+      }),
+    ).toBeNull();
+    expect(
+      cartaoDe('pedir_licenca', { pedida: false, motivo: 'faltam_dados' }),
+    ).toBeNull();
+  });
+
   it('ferramentas desconhecidas e erros não geram cartão', () => {
     expect(cartaoDe('identificar_municipe', { identificado: true })).toBeNull();
     expect(cartaoDe('inventada', {})).toBeNull();
