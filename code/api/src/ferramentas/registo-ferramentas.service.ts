@@ -14,6 +14,17 @@ export function agentesDe(f: Pick<Ferramenta, 'agentes'>): readonly Agente[] {
   return f.agentes ?? AGENTES_OMISSAO;
 }
 
+/**
+ * Corre antes de cada ferramenta e pode responder em vez dela (devolve o
+ * resultado) ou deixar seguir (undefined). Ex.: numa junta de freguesia, o
+ * que só a câmara trata (modules/juntas/funcionalidades.ts).
+ */
+export type FiltroFerramenta = (
+  nome: string,
+  ctx: ContextoFerramenta,
+  entrada: unknown,
+) => Promise<unknown>;
+
 export interface EntradaCatalogo {
   nome: string;
   descricao: string;
@@ -29,6 +40,7 @@ export interface EntradaCatalogo {
 @Injectable()
 export class RegistoFerramentas {
   private readonly ferramentas = new Map<string, Ferramenta>();
+  private readonly filtros: FiltroFerramenta[] = [];
 
   registar(...lista: Ferramenta[]): void {
     for (const f of lista) {
@@ -37,6 +49,11 @@ export class RegistoFerramentas {
       }
       this.ferramentas.set(f.nome, f);
     }
+  }
+
+  /** Acrescenta um filtro (ver FiltroFerramenta). */
+  filtrar(f: FiltroFerramenta): void {
+    this.filtros.push(f);
   }
 
   todas(): Ferramenta[] {
@@ -69,6 +86,10 @@ export class RegistoFerramentas {
     entrada: unknown,
   ): Promise<unknown> {
     const f = this.obter(nome);
+    for (const filtro of this.filtros) {
+      const r = await filtro(nome, ctx, entrada ?? {});
+      if (r !== undefined) return r;
+    }
     return f.executar(ctx, validar(f.entrada, entrada ?? {}));
   }
 

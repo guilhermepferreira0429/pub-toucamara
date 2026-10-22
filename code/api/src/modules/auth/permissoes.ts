@@ -59,6 +59,9 @@ export const PERMISSOES = {
   // Habitação municipal: rendimentos e situação das famílias (dados
   // sensíveis): os técnicos da habitação e a chefia.
   habitacao: ['tecnico', 'chefe_divisao'],
+  // Atestados da junta de freguesia (só nas juntas): quem atende e a chefia
+  // emitem ou recusam os pedidos que o agente recolheu.
+  atestados: ['atendimento', 'tecnico', 'chefe_divisao'],
 } as const satisfies Record<string, readonly Perfil[]>;
 
 export type Recurso = keyof typeof PERMISSOES;

@@ -55,6 +55,7 @@ import { ProcessosDemonstracaoService } from '../processos/processos-demonstraca
 import { TurismoService } from '../turismo/turismo.service.js';
 import { EscolasService } from '../escolas/escolas.service.js';
 import { HabitacaoService } from '../habitacao/habitacao.service.js';
+import { JuntasDemoService } from '../juntas/juntas.demo.js';
 import { PROCESSOS_PERFIS } from '../processos/projetos-perfis-pdf.js';
 import {
   CONVERSAS,
@@ -214,6 +215,12 @@ export function passosDemo(): Passo[] {
       rotulo:
         'Habitação municipal: fogos, inquilinos, reparações e candidaturas pontuadas',
       chaves: ['habitacao'],
+    },
+    {
+      passo: 'junta',
+      rotulo:
+        'Junta de Freguesia de Azurém (demonstração): agente, utilizadores do painel, conhecimento e atestados por emitir',
+      chaves: ['junta'],
     },
     {
       passo: 'balcao',
@@ -561,6 +568,7 @@ export class DemoService {
       ['turismo', () => this.turismo(ctx)],
       ['escolas', () => this.escolas(ctx)],
       ['habitacao', () => this.habitacao(ctx)],
+      ['junta', () => this.junta(ctx)],
       ['balcao', () => this.balcao(ctx)],
       ['antecipacoes', () => this.antecipacoes(ctx)],
     ];
@@ -1655,6 +1663,14 @@ export class DemoService {
       if (r.fogos) c.contar('fogos');
       return c.m.id;
     });
+  }
+
+  /** A junta de freguesia de demonstração, ligada a esta câmara (modules/juntas). */
+  private async junta(c: Preparacao) {
+    const r = await this.svc(JuntasDemoService).preparar(c.m, c.u);
+    if (!r) return;
+    if (r.criada) c.contar('junta');
+    await this.registar(c.m.id, 'junta', 'junta', r.junta.id);
   }
 
   private async entidadeCamara(m: Municipio): Promise<string> {

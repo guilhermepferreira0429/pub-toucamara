@@ -15,6 +15,7 @@ import {
   LayoutDashboard,
   Lock,
   FileText,
+  FileSignature,
   FileQuestion,
   HandCoins,
   HeartHandshake,
@@ -45,6 +46,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Logo } from "@/components/ui/marca";
 import { abrirPesquisa, useTeclaAtalho } from "@/lib/pesquisa";
+import { paginaDisponivel } from "@/lib/juntas";
 import { useSessao, type Perfil, type Recurso } from "@/lib/sessao";
 
 /*
@@ -160,6 +162,12 @@ export const SECCOES: Seccao[] = [
         icone: FolderOpen,
         recurso: "processos",
         contagem: "processos",
+      },
+      {
+        rotulo: "Atestados",
+        href: "/painel/atestados",
+        icone: FileSignature,
+        recurso: "atestados",
       },
       {
         rotulo: "Ocorrências",
@@ -353,7 +361,10 @@ export function BarraLateral({ contagens = {} }: { contagens?: Contagens }) {
   const { eu, pode, sair } = useSessao();
   const caminho = usePathname();
   const demoAtiva = useDemoAtiva();
-  const visivel = (it: Item) => !it.soDemo || (demoAtiva && pode(it.recurso));
+  // Numa junta de freguesia o menu é reduzido (lib/juntas.ts).
+  const visivel = (it: Item) =>
+    paginaDisponivel(eu?.municipio.tipo, it.href) &&
+    (!it.soDemo || (demoAtiva && pode(it.recurso)));
   const tecla = useTeclaAtalho();
 
   const ativo = (href: string) =>

@@ -254,6 +254,7 @@ describe('Painel (e2e)', () => {
         demo: true,
         escolas: true,
         habitacao: true,
+        atestados: true,
       });
 
       const a = await ctx

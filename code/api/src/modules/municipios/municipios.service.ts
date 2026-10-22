@@ -7,6 +7,10 @@ export interface Municipio {
   slug: string;
   nome: string;
   fuso: string;
+  /** 'junta' = junta de freguesia (versão reduzida; modules/juntas). */
+  tipo?: 'camara' | 'junta';
+  /** Numa junta, a câmara do concelho. */
+  concelho_id?: string | null;
 }
 
 // Os municípios quase não mudam; cada pedido do agente não precisa de ir à BD.
@@ -29,7 +33,7 @@ export class MunicipiosService {
     if (emCache && emCache.ate > Date.now()) return emCache.municipio;
 
     const [municipio] = await this.db.query<Municipio>(
-      'SELECT id, slug, nome, fuso FROM municipios WHERE slug = $1',
+      'SELECT id, slug, nome, fuso, tipo, concelho_id FROM municipios WHERE slug = $1',
       [chave],
     );
     if (!municipio) {
