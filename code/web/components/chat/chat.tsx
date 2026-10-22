@@ -61,6 +61,8 @@ const A_FAZER: Record<string, string> = {
   consultas_abertas: "A ver as consultas públicas…",
   participar_consulta: "A registar a sua opinião…",
   registar_reclamacao: "A preparar a sua reclamação…",
+  o_que_se_passa: "A ver o que se passa perto…",
+  avisar_me: "A combinar os avisos…",
 };
 
 const SUGESTOES = [

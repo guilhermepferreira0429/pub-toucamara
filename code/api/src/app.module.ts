@@ -19,6 +19,8 @@ import { FerramentasModule } from './ferramentas/ferramentas.module.js';
 import { IaModule } from './ia/ia.module.js';
 import { JobsModule } from './jobs/jobs.module.js';
 import { AgentToolsModule } from './modules/agent-tools/agent-tools.module.js';
+import { AgoraModule } from './modules/agora/agora.module.js';
+import { NotificacoesModule } from './modules/notificacoes/notificacoes.module.js';
 import { ArmazenamentoModule } from './modules/armazenamento/armazenamento.module.js';
 import { AtendimentoModule } from './modules/atendimento/atendimento.module.js';
 import { AuditoriaModule } from './modules/auditoria/auditoria.service.js';
@@ -47,6 +49,8 @@ import { CampanhasModule } from './modules/campanhas/campanhas.module.js';
 import { ConsultasPublicasModule } from './modules/consultas-publicas/consultas-publicas.module.js';
 import { LicencasModule } from './modules/licencas/licencas.module.js';
 import { ApoiosModule } from './modules/apoios/apoios.module.js';
+import { AppMunicipeModule } from './modules/app-municipe/app-municipe.module.js';
+import { PushModule } from './modules/app-municipe/push.module.js';
 import { ArquivoModule } from './modules/arquivo/arquivo.module.js';
 import { OrdenamentoModule } from './modules/ordenamento/ordenamento.module.js';
 import { FiscalizacaoModule } from './modules/fiscalizacao/fiscalizacao.module.js';
@@ -88,9 +92,12 @@ import { TransparenciaModule } from './modules/transparencia/transparencia.modul
     MunicipesModule,
     ConversasModule,
     ComunicacaoModule,
+    NotificacoesModule,
     ArmazenamentoModule,
     AuthModule,
     AgentToolsModule,
+    // Push para a app do munícipe (global: avisos, emergências, processos).
+    PushModule,
     // Domínios.
     ConhecimentoModule,
     AtendimentoModule,
@@ -118,6 +125,7 @@ import { TransparenciaModule } from './modules/transparencia/transparencia.modul
     IntegracoesModule,
     AvisosZonaModule,
     EmergenciasModule,
+    AgoraModule,
     // Memória da câmara: procedimentos internos, entrevistas e assistente
     ProcedimentosModule,
     ConsultasPublicasModule,
@@ -131,6 +139,8 @@ import { TransparenciaModule } from './modules/transparencia/transparencia.modul
     FiscalizacaoModule,
     // Arquivo antigo digitalizado e pedidos de consulta
     ArquivoModule,
+    // App dos munícipes (Flutter): entrar com o telemóvel, os seus dados, push
+    AppMunicipeModule,
   ],
   controllers: [AppController],
   providers: [AppService],

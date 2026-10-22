@@ -18,7 +18,8 @@ export type TipoCartao =
   | 'processo'
   | 'apoios'
   | 'consulta'
-  | 'reclamacao';
+  | 'reclamacao'
+  | 'agora';
 
 export interface FonteCartao {
   titulo: string;
@@ -63,6 +64,10 @@ const POR_FERRAMENTA: Record<
   participar_consulta: 'consulta',
   // Reclamação formal: número, data-limite de resposta e link.
   registar_reclamacao: 'reclamacao',
+  // O que se passa perto: os itens (frase, link), o link do feed; e a
+  // subscrição "avise-me" (zona, tipos).
+  o_que_se_passa: 'agora',
+  avisar_me: 'agora',
 };
 
 function objeto(v: unknown): Record<string, unknown> {

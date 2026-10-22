@@ -1,10 +1,11 @@
-import { HttpStatus, Injectable, Logger } from '@nestjs/common';
+import { HttpStatus, Injectable, Logger, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { z } from 'zod';
 import { ErroApi } from '../../common/erros.js';
 import type { UtilizadorPainel } from '../../common/pedido.js';
 import { DatabaseService, Tx } from '../../database/database.service.js';
 import type { ContextoFerramenta } from '../../ferramentas/ferramenta.js';
+import { PushService } from '../app-municipe/push.service.js';
 import { AuditoriaService } from '../auditoria/auditoria.service.js';
 import { AvisosZonaService } from '../avisos-zona/avisos-zona.service.js';
 import {
@@ -253,6 +254,8 @@ export class EmergenciasService {
     private readonly mensagens: MensagensService,
     private readonly auditoria: AuditoriaService,
     private readonly config: ConfigService,
+    // Push urgente na app de quem a tem (opcional nos testes feitos à mão).
+    @Optional() private readonly push?: PushService,
   ) {}
 
   // -------------------------------------------------------------------
@@ -983,7 +986,54 @@ export class EmergenciasService {
         tx,
       );
     });
+    await this.avisarNaApp(m, id);
     return this.detalhe(m, id);
+  }
+
+  /**
+   * Depois do COMMIT do envio: push imediato (canal urgente) para quem está
+   * na lista e tem a app. Não espera pelo ritmo dos SMS.
+   */
+  private async avisarNaApp(m: Municipio, id: string): Promise<void> {
+    if (!this.push) return;
+    const [e] = await this.db.query<{
+      titulo: string;
+      mensagem_sms: string;
+      instrucoes: string;
+      numero_emergencia: string;
+    }>(
+      `SELECT titulo, mensagem_sms, instrucoes, numero_emergencia
+       FROM emergencias WHERE id = $1 AND municipio_id = $2`,
+      [id, m.id],
+    );
+    if (!e) return;
+    const ids = await this.db.query<{ municipe_id: string }>(
+      `SELECT DISTINCT municipe_id FROM emergencia_destinatarios
+       WHERE emergencia_id = $1 AND municipe_id IS NOT NULL`,
+      [id],
+    );
+    const pontuar = (t: string) => {
+      const x = t.trim();
+      return x && !/[.!?]$/.test(x) ? `${x}.` : x;
+    };
+    await this.push.enfileirar(
+      ids.map((r) => r.municipe_id),
+      {
+        tipo: 'urgente',
+        titulo: `Emergência: ${e.titulo}`,
+        corpo: [
+          pontuar(e.mensagem_sms),
+          e.instrucoes ? pontuar(e.instrucoes) : '',
+          `Perigo imediato: ligue ${e.numero_emergencia}.`,
+        ]
+          .filter(Boolean)
+          .join(' '),
+        link: '/avisos',
+        id,
+        origem: 'emergencia',
+        chave: `emergencia:${id}`,
+      },
+    );
   }
 
   /**

@@ -76,4 +76,9 @@ Object.assign(process.env, {
   ELEVENLABS_API_KEY: '',
   ELEVENLABS_SOBREPOR_VOZ: 'false',
   PAGAMENTOS_WEBHOOK_SECRET: SEGREDO_PAGAMENTOS,
+
+  // Sem Firebase: o push da app fica em modo consola ('enviado_teste').
+  FIREBASE_PROJECT_ID: '',
+  FIREBASE_CLIENT_EMAIL: '',
+  FIREBASE_PRIVATE_KEY: '',
 });

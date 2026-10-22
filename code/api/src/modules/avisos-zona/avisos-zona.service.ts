@@ -1,4 +1,4 @@
-import { HttpStatus, Injectable, Logger } from '@nestjs/common';
+import { HttpStatus, Injectable, Logger, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { z } from 'zod';
 import { ErroApi } from '../../common/erros.js';
@@ -7,6 +7,7 @@ import type { UtilizadorPainel } from '../../common/pedido.js';
 import { DatabaseService, Tx } from '../../database/database.service.js';
 import type { ContextoFerramenta } from '../../ferramentas/ferramenta.js';
 import { JobsService } from '../../jobs/jobs.service.js';
+import { PushService } from '../app-municipe/push.service.js';
 import { AuditoriaService } from '../auditoria/auditoria.service.js';
 import {
   DestinoLink,
@@ -180,6 +181,8 @@ export class AvisosZonaService {
     private readonly jobs: JobsService,
     private readonly auditoria: AuditoriaService,
     private readonly config: ConfigService,
+    // Push na app de quem a tem (opcional: os testes que constroem o serviço à mão não o passam).
+    @Optional() private readonly push?: PushService,
   ) {}
 
   // -------------------------------------------------------------------
@@ -676,7 +679,10 @@ export class AvisosZonaService {
       [id],
     );
     for (;;) {
-      const feitos = await this.lote(a);
+      const enviados: string[] = [];
+      const feitos = await this.lote(a, enviados);
+      // Depois do COMMIT do lote: o push na app de quem a tem (fila).
+      await this.avisarNaApp(a, enviados);
       if (feitos === null) return; // cancelado entretanto
       if (feitos < LOTE) break;
     }
@@ -689,9 +695,24 @@ export class AvisosZonaService {
     );
   }
 
+  /** O mesmo aviso por push (urgente se for de emergência). */
+  private async avisarNaApp(a: LinhaAviso, municipeIds: string[]) {
+    if (!this.push || !municipeIds.length) return;
+    await this.push.enfileirar(municipeIds, {
+      tipo: a.tipo === 'emergencia' ? 'urgente' : 'avisos',
+      titulo: a.titulo,
+      corpo: a.mensagem,
+      link: '/avisos',
+      id: a.id,
+      origem: 'aviso_zona',
+      chave: `aviso_zona:${a.id}`,
+    });
+  }
+
   /** Um lote numa transação: link + SMS por destinatário. */
   private async lote(
     a: LinhaAviso & { municipio_nome: string },
+    enviados: string[] = [],
   ): Promise<number | null> {
     return this.db.transaction(async (tx) => {
       const [estado] = await tx.query<{ estado: EstadoAviso }>(
@@ -757,6 +778,7 @@ export class AvisosZonaService {
            SET estado = 'enviado', mensagem_id = $2, link_codigo = $3 WHERE id = $1`,
           [d.id, mensagemId, link.codigo],
         );
+        enviados.push(d.municipe_id);
       }
       return lote.length;
     });

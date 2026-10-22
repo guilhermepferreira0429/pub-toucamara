@@ -1,5 +1,7 @@
 import { Injectable, Logger, Optional } from '@nestjs/common';
 import { DatabaseService, Tx } from '../../database/database.service.js';
+import { textoSemLink } from '../app-municipe/fcm.js';
+import { PushService } from '../app-municipe/push.service.js';
 import { ChamadasSaidaService } from '../chamadas-saida/chamadas-saida.service.js';
 import type { MotivoChamada } from '../chamadas-saida/regras.js';
 import {
@@ -77,6 +79,7 @@ export class ProcessosAvisosService {
     private readonly mensagens: MensagensService,
     // Opcional: os testes que constroem o serviço à mão não o passam.
     @Optional() private readonly chamadas?: ChamadasSaidaService,
+    @Optional() private readonly push?: PushService,
   ) {}
 
   /**
@@ -167,7 +170,7 @@ export class ProcessosAvisosService {
     para: Fase,
   ): Promise<CanalUsado | null> {
     if (!FASES_AVISADAS.includes(para)) return null;
-    return this.db.transaction(async (tx) => {
+    const r = await this.db.transaction(async (tx) => {
       const [p] = await tx.query<{
         id: string;
         numero: string;
@@ -187,7 +190,7 @@ export class ProcessosAvisosService {
          FOR UPDATE OF p`,
         [processoId, municipio.id, para],
       );
-      if (!p || p.fase !== para || p.avisado) return null;
+      if (!p || p.fase !== para || p.avisado) return { canal: null };
 
       const [docs, link] = await Promise.all([
         this.processos.emFalta(p, tx),
@@ -200,7 +203,7 @@ export class ProcessosAvisosService {
         prazoFim: p.prazo_fim,
         faltam: docs.faltam,
       });
-      if (!aviso) return null;
+      if (!aviso) return { canal: null };
       const canal = await this.enviar(tx, {
         municipioId: municipio.id,
         municipeId: p.municipe_id,
@@ -220,8 +223,31 @@ export class ProcessosAvisosService {
           { fase: para, canal },
         );
       }
-      return canal;
+      return {
+        canal,
+        push: p.municipe_id
+          ? {
+              municipeId: p.municipe_id,
+              processoId: p.id,
+              numero: p.numero,
+              texto: aviso.texto,
+            }
+          : null,
+      };
     });
+    // Depois do COMMIT: o mesmo aviso por push, se a pessoa tiver a app.
+    if ('push' in r && r.push && this.push) {
+      await this.push.enfileirar([r.push.municipeId], {
+        tipo: 'processos',
+        titulo: `Processo ${r.push.numero}: ${FASE_ROTULO[para]}`,
+        corpo: textoSemLink(r.push.texto),
+        link: `/processos/${r.push.processoId}`,
+        id: r.push.processoId,
+        origem: 'processo_fase',
+        chave: `processo_fase:${r.push.processoId}:${para}`,
+      });
+    }
+    return r.canal;
   }
 
   /** O trabalho do job `lembretes_prazos`. */
