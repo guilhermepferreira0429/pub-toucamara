@@ -37,6 +37,8 @@ export const AREAS = {
   cemiterios: 'cemitérios: sepulturas, concessões, taxas',
   animais: 'animais: canil, adoções, animais perdidos, registo',
   agua: 'água e saneamento (Vimágua): leituras, faturas, avarias',
+  junta:
+    'junta de freguesia: atestados (residência, agregado familiar, situação económica) e prova de vida',
 } as const;
 export type AreaServico = keyof typeof AREAS;
 export const LISTA_AREAS = Object.keys(AREAS) as AreaServico[];

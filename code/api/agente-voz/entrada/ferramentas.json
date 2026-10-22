@@ -1441,7 +1441,8 @@
                 "habitacao",
                 "cemiterios",
                 "animais",
-                "agua"
+                "agua",
+                "junta"
               ]
             }
           },
@@ -1973,7 +1974,8 @@
                 "habitacao",
                 "cemiterios",
                 "animais",
-                "agua"
+                "agua",
+                "junta"
               ]
             },
             "acao": {

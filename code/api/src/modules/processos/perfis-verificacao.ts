@@ -25,7 +25,7 @@ import {
   ELEMENTOS,
   Grandeza,
   GRANDEZAS,
-  lerNumero,
+  lerMedida,
   numeroPt,
   Permitido,
   unidadeDita,
@@ -697,9 +697,9 @@ export function declaradosDoRequerimento(dados: unknown): Declarados {
       : {};
   const valores: Partial<Record<Grandeza, number>> = {};
   for (const g of Object.keys(GRANDEZAS) as Grandeza[]) {
-    const n = lerNumero(d[g]);
-    const def = GRANDEZAS[g];
-    if (n !== null && n >= def.min && n <= def.max) valores[g] = n;
+    // Na unidade da grandeza ('150 cm' → 1,5 m); o que não se percebe fica de fora.
+    const n = lerMedida(g, d[g]);
+    if (n !== null) valores[g] = n;
   }
   return {
     valores,
@@ -714,7 +714,7 @@ export function declaradosDoRequerimento(dados: unknown): Declarados {
 // (a) Documentos esperados
 // ---------------------------------------------------------------------------
 
-const EVIDENCIA_DOCUMENTOS: Evidencia = {
+export const EVIDENCIA_DOCUMENTOS: Evidencia = {
   tipo: 'regra',
   rotulo:
     'Portaria n.º 113/2015 (elementos instrutórios do RJUE) · lista simplificada de demonstração',

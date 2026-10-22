@@ -1,6 +1,8 @@
 "use client";
 
 import {
+  CircleParking,
+  Ticket,
   BookOpen,
   FolderOpen,
   Loader2,
@@ -16,6 +18,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { SECCOES } from "@/components/painel/barra-lateral";
 import { useFocoPreso } from "@/lib/foco";
+import { paginaDisponivel } from "@/lib/juntas";
 import { aoAbrirPesquisa, normalizar, useTeclaAtalho } from "@/lib/pesquisa";
 import { useSessao } from "@/lib/sessao";
 
@@ -34,7 +37,9 @@ type Tipo =
   | "ocorrencia"
   | "reclamacao"
   | "fonte"
-  | "resposta";
+  | "resposta"
+  | "multa"
+  | "reserva";
 
 interface Opcao {
   tipo: Tipo;
@@ -59,6 +64,8 @@ const ICONES: Record<Exclude<Tipo, "ecra">, LucideIcon> = {
   reclamacao: NotebookPen,
   fonte: BookOpen,
   resposta: MessageSquareText,
+  multa: CircleParking,
+  reserva: Ticket,
 };
 
 /** Espera entre teclas antes de perguntar à API. */
@@ -92,7 +99,8 @@ export function PesquisaGlobal() {
 }
 
 function Paleta({ onFechar }: { onFechar: () => void }) {
-  const { pedido, pode } = useSessao();
+  const { pedido, pode, eu } = useSessao();
+  const tipoMunicipio = eu?.municipio.tipo;
   const router = useRouter();
   const caixa = useRef<HTMLDivElement>(null);
   const base = useId();
@@ -141,7 +149,12 @@ function Paleta({ onFechar }: { onFechar: () => void }) {
     const n = normalizar(q);
     const itens = SECCOES.flatMap((s) =>
       s.itens
-        .filter((it) => !it.soDemo && pode(it.recurso))
+        .filter(
+          (it) =>
+            !it.soDemo &&
+            pode(it.recurso) &&
+            paginaDisponivel(tipoMunicipio, it.href),
+        )
         .map((it) => ({ it, seccao: s.titulo })),
     )
       .filter(({ it, seccao }) =>
@@ -159,7 +172,7 @@ function Paleta({ onFechar }: { onFechar: () => void }) {
         icone: it.icone,
       }));
     return itens.length ? { tipo: "ecra", rotulo: "Ecrãs", itens } : null;
-  }, [q, pode]);
+  }, [q, pode, tipoMunicipio]);
 
   const grupos = useMemo(() => {
     const daApi = pesquisavel && resultado?.q === q ? resultado.grupos : [];

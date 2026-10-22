@@ -8,6 +8,7 @@ import {
   CalendarDays,
   ChartColumn,
   ChevronsUpDown,
+  CircleParking,
   FolderOpen,
   GraduationCap,
   ClipboardList,
@@ -15,9 +16,11 @@ import {
   LayoutDashboard,
   Lock,
   FileText,
+  FileSignature,
   FileQuestion,
   HandCoins,
   HeartHandshake,
+  House,
   LogOut,
   Map as IconeMapa,
   MapPin,
@@ -35,6 +38,7 @@ import {
   Siren,
   Sparkles,
   Store,
+  Ticket,
   Users,
   Vote,
   type LucideIcon,
@@ -44,6 +48,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Logo } from "@/components/ui/marca";
 import { abrirPesquisa, useTeclaAtalho } from "@/lib/pesquisa";
+import { paginaDisponivel } from "@/lib/juntas";
 import { useSessao, type Perfil, type Recurso } from "@/lib/sessao";
 
 /*
@@ -161,6 +166,12 @@ export const SECCOES: Seccao[] = [
         contagem: "processos",
       },
       {
+        rotulo: "Atestados",
+        href: "/painel/atestados",
+        icone: FileSignature,
+        recurso: "atestados",
+      },
+      {
         rotulo: "Ocorrências",
         href: "/painel/ocorrencias",
         icone: MapPin,
@@ -202,6 +213,30 @@ export const SECCOES: Seccao[] = [
         href: "/painel/cartas",
         icone: FileQuestion,
         recurso: "processos",
+      },
+      {
+        rotulo: "Escolas",
+        href: "/painel/escolas",
+        icone: GraduationCap,
+        recurso: "escolas",
+      },
+      {
+        rotulo: "Habitação municipal",
+        href: "/painel/habitacao",
+        icone: House,
+        recurso: "habitacao",
+      },
+      {
+        rotulo: "Estacionamento",
+        href: "/painel/estacionamento",
+        icone: CircleParking,
+        recurso: "estacionamento",
+      },
+      {
+        rotulo: "Reservas",
+        href: "/painel/reservas",
+        icone: Ticket,
+        recurso: "reservas",
       },
     ],
   },
@@ -340,7 +375,10 @@ export function BarraLateral({ contagens = {} }: { contagens?: Contagens }) {
   const { eu, pode, sair } = useSessao();
   const caminho = usePathname();
   const demoAtiva = useDemoAtiva();
-  const visivel = (it: Item) => !it.soDemo || (demoAtiva && pode(it.recurso));
+  // Numa junta de freguesia o menu é reduzido (lib/juntas.ts).
+  const visivel = (it: Item) =>
+    paginaDisponivel(eu?.municipio.tipo, it.href) &&
+    (!it.soDemo || (demoAtiva && pode(it.recurso)));
   const tecla = useTeclaAtalho();
 
   const ativo = (href: string) =>

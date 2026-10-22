@@ -53,6 +53,21 @@ export const PERMISSOES = {
   // Preparar a câmara de demonstração e esconder os registos dos testes:
   // só a chefia (e a administração, que pode tudo).
   demo: ['chefe_divisao'],
+  // Escolas (refeições, transporte, atividades, pré-escolar): quem atende e
+  // os técnicos da educação veem e decidem; dados de menores e de saúde.
+  escolas: ['atendimento', 'tecnico', 'chefe_divisao'],
+  // Habitação municipal: rendimentos e situação das famílias (dados
+  // sensíveis): os técnicos da habitação e a chefia.
+  habitacao: ['tecnico', 'chefe_divisao'],
+  // Atestados da junta de freguesia (só nas juntas): quem atende e a chefia
+  // emitem ou recusam os pedidos que o agente recolheu.
+  atestados: ['atendimento', 'tecnico', 'chefe_divisao'],
+  // Estacionamento (multas, defesas, lugares reservados): quem atende e os
+  // técnicos da fiscalização e do trânsito decidem; os vereadores não.
+  estacionamento: ['atendimento', 'tecnico', 'chefe_divisao'],
+  // Reservas de equipamentos e bilhetes: quem atende aprova e recusa; criar e
+  // mudar equipamentos (preços, horário, aprovação) é da chefia ('agente').
+  reservas: ['atendimento', 'tecnico', 'chefe_divisao'],
 } as const satisfies Record<string, readonly Perfil[]>;
 
 export type Recurso = keyof typeof PERMISSOES;
