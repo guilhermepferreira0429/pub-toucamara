@@ -66,6 +66,7 @@ import { RegrasPublicasModule } from './modules/regras-publicas/regras-publicas.
 import { RegrasVersoesModule } from './modules/regras-publicas/versoes.service.js';
 import { FiscalizacaoModule } from './modules/fiscalizacao/fiscalizacao.module.js';
 import { ReclamacoesModule } from './modules/reclamacoes/reclamacoes.module.js';
+import { SatisfacaoModule } from './modules/satisfacao/satisfacao.module.js';
 import { ReunioesModule } from './modules/reunioes/reunioes.module.js';
 import { ContratacaoModule } from './modules/contratacao/contratacao.module.js';
 import { PortaIasModule } from './modules/porta-ias/porta-ias.module.js';
@@ -78,6 +79,7 @@ import { RequerimentosModule } from './modules/requerimentos/requerimentos.modul
 import { TransparenciaModule } from './modules/transparencia/transparencia.module.js';
 import { EntregasModule } from './modules/entregas/entregas.module.js';
 import { CartasModule } from './modules/cartas/cartas.module.js';
+import { PesquisaModule } from './modules/pesquisa/pesquisa.module.js';
 
 @Module({
   imports: [
@@ -155,12 +157,16 @@ import { CartasModule } from './modules/cartas/cartas.module.js';
     // Porta para as IAs (MCP)
     PortaIasModule,
     ReclamacoesModule,
+    // Inquérito de satisfação na página do resumo
+    SatisfacaoModule,
     ReunioesModule,
     ContratacaoModule,
     // Transparência: dados abertos e indicadores no portal
     TransparenciaModule,
     EntregasModule,
     CartasModule,
+    // Pesquisa global do painel (⌘K)
+    PesquisaModule,
     FiscalizacaoModule,
     // Arquivo antigo digitalizado e pedidos de consulta
     ArquivoModule,

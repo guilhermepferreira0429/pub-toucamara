@@ -1196,6 +1196,7 @@ export class FiscalizacaoService {
     if (this.claude.disponivel) {
       try {
         const e = await this.claude.extrair(esquemaEstruturado, {
+          tarefa: 'relatorio_vistoria',
           sistema: SISTEMA_IA,
           conteudo: conteudoIa(v.tipo, v.motivo, checklist, texto),
           esforco: 'medium',

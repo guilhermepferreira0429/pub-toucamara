@@ -34,6 +34,7 @@ import {
   useAcao,
   useDados,
 } from "@/components/conhecimento/comum";
+import { BotaoExportar } from "@/components/painel/botao-exportar";
 import { CabecalhoPagina } from "@/components/painel/cabecalho";
 import { Botao } from "@/components/ui/botao";
 import { useSessao } from "@/lib/sessao";
@@ -220,9 +221,15 @@ export function PaginaReclamacoes() {
         titulo="Livro de reclamações"
         descricao="Reclamações formais com número e prazo legal de resposta, contado em dias úteis com os feriados do município. Entram pelo agente (telefone e chat), pelos emails da triagem, ao balcão ou pelo Livro Amarelo em papel."
         acoes={
-          <Botao icone={Plus} onClick={() => setNova(true)}>
-            Registar reclamação
-          </Botao>
+          <>
+            <BotaoExportar
+              caminho={`/v1/painel/reclamacoes/exportar.csv${filtro === "todas" ? "" : `?estado=${filtro}`}`}
+              base="reclamacoes"
+            />
+            <Botao icone={Plus} onClick={() => setNova(true)}>
+              Registar reclamação
+            </Botao>
+          </>
         }
       />
 

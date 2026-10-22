@@ -3,6 +3,7 @@
 import { MessagesSquare, Search, X } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import { BotaoExportar } from "@/components/painel/botao-exportar";
 import { Aviso, CabecalhoPagina } from "@/components/painel/cabecalho";
 import { useSessao } from "@/lib/sessao";
 import { query, useLista } from "./dados";
@@ -49,18 +50,18 @@ export function ConversasLista() {
     router.replace(s ? `${caminho}?${s}` : caminho, { scroll: false });
   }
 
+  const filtros = {
+    texto: f.texto,
+    canal: f.canal,
+    resultado: f.resultado,
+    revisao: f.revisao,
+    fora_de_horas: f.fora_de_horas,
+    de: f.de,
+    // `ate` é exclusivo na API: o dia escolhido conta inteiro.
+    ate: f.ate ? somarDias(f.ate, 1) : "",
+  };
   const base = pode("conversas")
-    ? `/v1/painel/conversas${query({
-        limite: 30,
-        texto: f.texto,
-        canal: f.canal,
-        resultado: f.resultado,
-        revisao: f.revisao,
-        fora_de_horas: f.fora_de_horas,
-        de: f.de,
-        // `ate` é exclusivo na API: o dia escolhido conta inteiro.
-        ate: f.ate ? somarDias(f.ate, 1) : "",
-      })}`
+    ? `/v1/painel/conversas${query({ limite: 30, ...filtros })}`
     : null;
   const lista = useLista<ConversaLista>(base);
   const filtrado = FILTROS.some((k) => f[k]);
@@ -82,6 +83,12 @@ export function ConversasLista() {
         migalhas={["Atendimento", "Conversas"]}
         titulo="Conversas"
         descricao="Cada conversa resumida, com o que foi respondido e de onde."
+        acoes={
+          <BotaoExportar
+            caminho={`/v1/painel/conversas/exportar.csv${query(filtros)}`}
+            base="conversas"
+          />
+        }
       />
       <div className="flex flex-col gap-4 px-10">
         <form

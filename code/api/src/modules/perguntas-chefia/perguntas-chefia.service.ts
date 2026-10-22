@@ -1,5 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
-import { HttpStatus, Injectable, Logger } from '@nestjs/common';
+import { HttpStatus, Injectable, Logger, Optional } from '@nestjs/common';
 import { ConfigService, ConfigType } from '@nestjs/config';
 import { z } from 'zod';
 import type { Feriados } from '../../common/dias-uteis.js';
@@ -10,6 +10,8 @@ import { validar } from '../../common/validacao.js';
 import { iaConfig } from '../../config/configuration.js';
 import { DatabaseService } from '../../database/database.service.js';
 import type { AbrirFluxo } from '../../ia/agente-chat.js';
+import { tokensDe } from '../../ia/precos.js';
+import { UsoIaService } from '../../ia/uso-ia.service.js';
 import { AuditoriaService } from '../auditoria/auditoria.service.js';
 import { LimitePedidos } from '../chat/limite.js';
 import { MelhoriasService } from '../conhecimento/melhorias.service.js';
@@ -73,13 +75,29 @@ export class PerguntasChefiaService {
     private readonly municipios: MunicipiosService,
     private readonly auditoria: AuditoriaService,
     private readonly melhorias: MelhoriasService,
+    @Optional() private readonly uso?: UsoIaService,
   ) {
     const cfg = config.getOrThrow<ConfigType<typeof iaConfig>>('ia');
     this.modelo = cfg.modelo;
     const cliente = cfg.apiKey ? new Anthropic({ apiKey: cfg.apiKey }) : null;
     this.abrirFluxo = cliente
-      ? (params, sinal) =>
-          cliente.beta.messages.stream(params, { signal: sinal })
+      ? (params, sinal) => {
+          const fluxo = cliente.beta.messages.stream(params, { signal: sinal });
+          // Cada volta terminada fica no registo de uso (no município do pedido).
+          return {
+            [Symbol.asyncIterator]: () => fluxo[Symbol.asyncIterator](),
+            finalMessage: async () => {
+              const m = await fluxo.finalMessage();
+              void this.uso?.registar({
+                tarefa: 'perguntas_painel',
+                modelo: m.model || this.modelo,
+                resultado: m.stop_reason === 'refusal' ? 'recusa' : 'ok',
+                tokens: tokensDe(m.usage),
+              });
+              return m;
+            },
+          };
+        }
       : null;
   }
 

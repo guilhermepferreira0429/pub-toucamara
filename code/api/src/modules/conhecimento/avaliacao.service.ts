@@ -6,6 +6,7 @@ import {
   ExecucaoGate,
   LIMIAR_PUBLICACAO,
 } from './avaliacao.js';
+import { resumirNumeros } from './numeros-na-fonte.js';
 
 export interface EstadoPublicacao {
   decisao: DecisaoPublicacao;
@@ -193,9 +194,10 @@ export class AvaliacaoService {
 
     let ultima: Record<string, unknown> | null = null;
     let erradas: unknown[] = [];
+    let numeros: Awaited<ReturnType<typeof this.numerosSemFonte>> | null = null;
     const u = ultimas[0];
     if (u) {
-      const [categorias, linhas] = await Promise.all([
+      const [categorias, linhas, nums] = await Promise.all([
         this.db.query(
           `SELECT r.categoria, ${COLUNAS_RESULTADO}
            FROM avaliacao.resultados r
@@ -204,7 +206,9 @@ export class AvaliacaoService {
           [u.execucao_id],
         ),
         this.erradas(municipioId, u.execucao_id),
+        this.numerosSemFonte(municipioId, u.execucao_id),
       ]);
+      numeros = nums;
       ultima = {
         ...u,
         perguntas:
@@ -236,8 +240,54 @@ export class AvaliacaoService {
       ultima,
       evolucao,
       erradas,
+      numeros,
       voz,
     };
+  }
+
+  /**
+   * "Números inventados" na última execução: valores (€, prazos, horas,
+   * telefones, %) que o agente disse e que não estão na pergunta nem no
+   * gabarito aprovado (escrito a partir das fontes oficiais). Calcula-se ao
+   * ler: são umas dezenas de respostas e a regra pode mudar sem migração.
+   */
+  private async numerosSemFonte(municipioId: string, execucaoId: string) {
+    const linhas = await this.db.query<{
+      resposta_id: string;
+      pergunta: string;
+      resposta: string | null;
+      gabarito: string | null;
+      factos: string[] | null;
+    }>(
+      `SELECT r.id AS resposta_id, p.texto AS pergunta, r.texto AS resposta,
+              coalesce(g.resposta, ga.resposta) AS gabarito,
+              coalesce(g.factos_obrigatorios, ga.factos_obrigatorios) AS factos
+       FROM avaliacao.respostas r
+       JOIN avaliacao.perguntas p ON p.id = r.pergunta_id
+       LEFT JOIN avaliacao.avaliacao_final f ON f.resposta_id = r.id
+       LEFT JOIN avaliacao.gabarito g ON g.id = f.gabarito_id
+       LEFT JOIN avaliacao.gabarito ga ON f.gabarito_id IS NULL AND ga.pergunta_id = p.id
+            AND ga.municipio_id = $2 AND ga.estado = 'aprovado'
+       WHERE r.execucao_id = $1 AND r.erro IS NULL
+       ORDER BY p.ordem`,
+      [execucaoId, municipioId],
+    );
+    const { porResposta, ...resumo } = resumirNumeros(
+      linhas.map((l) => ({
+        texto: l.resposta,
+        fontes: [l.pergunta, l.gabarito ?? '', ...(l.factos ?? [])],
+      })),
+    );
+    const exemplos = linhas
+      .map((l, i) => ({
+        resposta_id: l.resposta_id,
+        pergunta: l.pergunta,
+        resposta: l.resposta,
+        numeros: porResposta[i].semFonte.map((n) => n.texto),
+      }))
+      .filter((e) => e.numeros.length)
+      .slice(0, 10);
+    return { ...resumo, exemplos };
   }
 
   /** Respostas erradas ou sem resposta, com o gabarito que o juiz usou. */

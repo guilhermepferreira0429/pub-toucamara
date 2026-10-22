@@ -612,6 +612,7 @@ export class ProcessosVerificacoesService {
     }
     try {
       const bruto = await this.claude.extrair(esquemaLeituraProjeto, {
+        tarefa: 'ler_projeto',
         sistema: SISTEMA_LEITURA_PROJETO,
         esforco: 'medium',
         maxTokens: 8000,
