@@ -10,7 +10,9 @@ import {
   Put,
   Query,
   StreamableFile,
+  UseInterceptors,
 } from '@nestjs/common';
+import { IdempotenciaInterceptor } from '../../common/idempotencia.interceptor.js';
 import { MunicipioAtual, UtilizadorAtual } from '../../common/pedido.js';
 import type { UtilizadorPainel } from '../../common/pedido.js';
 import { validar } from '../../common/validacao.js';
@@ -33,6 +35,8 @@ import { esquemaConfig } from './regras.js';
 /** Painel · Fiscalização: visitas, plano do dia e relatório ditado. */
 @Controller('painel/fiscalizacao')
 @Painel('fiscalizacao')
+// A app da equipa de campo reenvia o que guardou sem rede com Idempotency-Key.
+@UseInterceptors(IdempotenciaInterceptor)
 export class FiscalizacaoController {
   constructor(private readonly fiscalizacao: FiscalizacaoService) {}
 

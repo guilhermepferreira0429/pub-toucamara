@@ -52,6 +52,7 @@ import { LicencasModule } from './modules/licencas/licencas.module.js';
 import { LinguagemSimplesModule } from './modules/linguagem-simples/linguagem-simples.module.js';
 import { ApoiosModule } from './modules/apoios/apoios.module.js';
 import { AppMunicipeModule } from './modules/app-municipe/app-municipe.module.js';
+import { EquipaCampoModule } from './modules/equipa-campo/equipa-campo.module.js';
 import { PushModule } from './modules/app-municipe/push.module.js';
 import { ArquivoModule } from './modules/arquivo/arquivo.module.js';
 import { OrdenamentoModule } from './modules/ordenamento/ordenamento.module.js';
@@ -151,6 +152,7 @@ import { EntregasModule } from './modules/entregas/entregas.module.js';
     ArquivoModule,
     // App dos munícipes (Flutter): entrar com o telemóvel, os seus dados, push
     AppMunicipeModule,
+    EquipaCampoModule,
     // Editais e regulamentos em linguagem simples e glossário administrativo
     LinguagemSimplesModule,
   ],
