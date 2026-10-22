@@ -43,6 +43,35 @@ body {
   outline-offset: 2px;
 }
 
+/* Barras de scroll finas, sem fundo nem setas, na cor da marca. Chrome, Edge e
+   Safari usam os pseudo-elementos; o Firefox só conhece scrollbar-width/color
+   (no Chrome estes anulariam os pseudo-elementos, por isso ficam à parte). */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+::-webkit-scrollbar-button {
+  display: none;
+}
+::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--color-terracota) 55%, transparent);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-terracota);
+}
+@supports not selector(::-webkit-scrollbar) {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in srgb, var(--color-terracota) 55%, transparent)
+      transparent;
+  }
+}
+
 /* Quem pediu menos movimento ao sistema não vê animações nem transições. */
 @media (prefers-reduced-motion: reduce) {
   *,
