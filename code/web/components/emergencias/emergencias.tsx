@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertTriangle, Ban, Check, Eye, Phone, Save, Send, Settings, Siren, Upload, Users } from "lucide-react";
+import { AlertTriangle, Ban, Check, Eye, FlaskConical, Phone, RadioTower, Save, Send, Settings, Siren, Upload, Users } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { CabecalhoPagina } from "@/components/painel/cabecalho";
@@ -25,7 +25,7 @@ import { useSessao } from "@/lib/sessao";
 type Tipo = "cheia" | "incendio" | "corte_agua" | "calor_extremo" | "outro";
 type Gravidade = "aviso" | "alerta" | "emergencia";
 type Politica = "nenhuma" | "vulneraveis" | "todos";
-type Fonte = "municipes" | "cuidado" | "lista" | "externa";
+type Fonte = "municipes" | "cuidado" | "lista" | "operadores";
 type EstadoEmergencia = "rascunho" | "ativa" | "encerrada" | "cancelada";
 type Resultado = "por_avisar" | "avisado" | "a_ligar" | "em_seguranca" | "precisa_ajuda" | "nao_atendeu" | "sem_aviso";
 type Tom = "neutro" | "ambar" | "verde" | "terracota" | "tinta";
@@ -35,6 +35,22 @@ interface Guiao {
   perguntas: string[];
 }
 
+/** O modo de uma fonte externa (operadores ou cell broadcast). */
+interface ModoExterno {
+  modo: string;
+  simulada: boolean;
+  configurada: boolean;
+  em_falta: string[];
+  nota: string;
+}
+
+interface FonteExterna {
+  operadores: ModoExterno;
+  cell_broadcast: ModoExterno;
+}
+
+type EstadoDifusao = "por_pedir" | "pedida" | "em_difusao" | "concluida" | "recusada" | "erro" | "cancelada";
+
 interface Config {
   protecao_civil_nome: string | null;
   protecao_civil_email: string | null;
@@ -43,6 +59,7 @@ interface Config {
   demonstracao: boolean;
   guioes: Record<Tipo, Guiao & { instrucoes: string }>;
   precos: { sms_por_segmento: number; chamada_por_minuto: number; minutos_por_chamada: number; nota: string };
+  fonte_externa: FonteExterna;
 }
 
 interface Plano {
@@ -50,10 +67,30 @@ interface Plano {
   nada_enviado: true;
   zona: string;
   aviso_cobertura: string;
-  fontes: { fonte: Fonte; nome: string; estado: "ok" | "nao_configurada" | "erro"; encontrados: number; nota: string | null }[];
+  aviso_simulado: string | null;
+  fonte_externa: FonteExterna;
+  fontes: { fonte: Fonte; nome: string; estado: "ok" | "nao_configurada" | "erro"; encontrados: number; nota: string | null; simulada: boolean }[];
+  operadores: (ModoExterno & {
+    estado: "ok" | "nao_configurada" | "erro";
+    estimativa: { pessoas: number; com_telemovel: number; gerados: number | null; demonstracao: boolean } | null;
+    encontrados: number;
+    novos: number;
+    ja_conhecidos: number;
+    escala_real: { sms: number; minutos: number; custo: number } | null;
+  }) | null;
+  cell_broadcast: (ModoExterno & {
+    estado: "ok" | "nao_configurada";
+    pessoas_estimadas: number | null;
+    demonstracao: boolean;
+    nota_estimativa: string | null;
+    custo_nota: string;
+  }) | null;
   destinatarios: {
     total: number;
     por_fonte: Record<Fonte, number>;
+    so_desta_fonte: Record<Fonte, number>;
+    simulados: number;
+    reais: number;
     em_varias_fontes: number;
     vulneraveis: number;
     so_telefone_fixo: number;
@@ -65,7 +102,7 @@ interface Plano {
   ritmo: { sms_por_minuto: number; chamadas_por_minuto: number; demonstracao: boolean };
   tempo: { minutos_sms: number; minutos_chamadas: number; minutos_ate_todos_avisados: number };
   custo: { moeda: string; sms: number; chamadas: number; total: number; nota: string };
-  amostra: { nome: string; telefone: string; fontes: Fonte[]; vulneravel: boolean; sms: boolean; ligado: boolean }[];
+  amostra: { nome: string; telefone: string; fontes: Fonte[]; vulneravel: boolean; simulado: boolean; zona_aproximada: string | null; sms: boolean; ligado: boolean }[];
   lista_csv?: { invalidas: { linha: number; texto: string }[]; repetidas: number } | null;
 }
 
@@ -98,6 +135,8 @@ interface PedidoAjuda {
   tratado_por_nome: string | null;
 }
 
+type Contagens = Record<Resultado, number> & { total: number; avisados: number };
+
 interface Detalhe {
   id: string;
   tipo: Tipo;
@@ -121,11 +160,42 @@ interface Detalhe {
   encerrada_em: string | null;
   encerrada_nota: string | null;
   aviso_cobertura: string;
-  fonte_externa: "ok" | "nao_configurada" | "erro";
-  contagens: Record<Resultado, number> & { total: number; avisados: number };
+  aviso_simulado: string | null;
+  cell_broadcast: boolean;
+  fonte_externa: FonteExterna;
+  contagens: Contagens;
   por_fonte: Record<Fonte, number>;
+  por_fonte_estado: Record<Fonte, Contagens>;
+  simulados: {
+    total: number;
+    sms_enviados_simulado: number;
+    sms_por_sair: number;
+    chamadas_simuladas: number;
+    enviados_ao_fornecedor: number;
+  };
+  cell_broadcast_difusao: {
+    modo: string;
+    simulado: boolean;
+    estado: EstadoDifusao;
+    referencia_externa: string | null;
+    pessoas_estimadas: number | null;
+    pedida_em: string | null;
+    iniciada_em: string | null;
+    concluida_em: string | null;
+    erro: string | null;
+  } | null;
   precisa_ajuda: PedidoAjuda[];
-  destinatarios: { id: string; nome: string; telefone: string; fontes: Fonte[]; vulneravel: boolean; resultado: Resultado }[];
+  destinatarios: {
+    id: string;
+    nome: string;
+    telefone: string;
+    fontes: Fonte[];
+    vulneravel: boolean;
+    simulado: boolean;
+    zona_aproximada: string | null;
+    chamada_simulada: boolean;
+    resultado: Resultado;
+  }[];
   destinatarios_total: number;
   simulacao?: Plano;
 }
@@ -154,7 +224,17 @@ const FONTES: Record<Fonte, string> = {
   municipes: "Munícipes conhecidos na zona",
   cuidado: "Contactos de cuidado (ação social)",
   lista: "Lista carregada (CSV)",
-  externa: "Fonte externa (operadores / Proteção Civil)",
+  operadores: "Todas as pessoas na zona (operadores)",
+};
+
+const DIFUSAO: Record<EstadoDifusao, { rotulo: string; tom: Tom }> = {
+  por_pedir: { rotulo: "por pedir", tom: "neutro" },
+  pedida: { rotulo: "pedida", tom: "ambar" },
+  em_difusao: { rotulo: "em difusão", tom: "terracota" },
+  concluida: { rotulo: "concluída", tom: "verde" },
+  recusada: { rotulo: "recusada", tom: "terracota" },
+  erro: { rotulo: "erro", tom: "terracota" },
+  cancelada: { rotulo: "cancelada", tom: "neutro" },
 };
 
 const ESTADOS: Record<EstadoEmergencia, { rotulo: string; tom: Tom }> = {
@@ -190,16 +270,54 @@ function Demonstracao() {
   return <Pilula tom="ambar">valores de demonstração</Pilula>;
 }
 
+/** Bem visível: números falsos, que nunca saem. */
+function Simulado({ texto = "simulado" }: { texto?: string }) {
+  return (
+    <Pilula tom="terracota">
+      <FlaskConical className="mr-1 inline size-3" aria-hidden />
+      {texto}
+    </Pilula>
+  );
+}
+
+/** A pílula do modo de uma fonte externa. */
+function PilulaModo({ m }: { m: ModoExterno | undefined }) {
+  if (!m) return null;
+  if (m.simulada) return <Simulado />;
+  return m.configurada ? <Pilula tom="verde">real</Pilula> : <Pilula tom="neutro">por configurar</Pilula>;
+}
+
+/** O que falta para a fonte externa ser real (curto). */
+function FaltaParaReal() {
+  return (
+    <p className="text-xs text-tinta-3">
+      Para ser real falta o acordo com a ANEPC / operadores (base legal e acordo de tratamento de dados), o serviço deles e as
+      credenciais. Até lá os números são gerados para demonstração: ficam registados como enviados (simulado) e nenhum SMS nem
+      chamada sai para eles.
+    </p>
+  );
+}
+
+function AvisoSimulado({ texto }: { texto: string }) {
+  return (
+    <p className="flex items-start gap-2 rounded-xl border border-terracota bg-terracota-suave px-3 py-2.5 text-xs text-terracota-escuro">
+      <FlaskConical className="mt-0.5 size-4 shrink-0" aria-hidden />
+      <span>{texto}</span>
+    </p>
+  );
+}
+
 /** O plano da simulação: quantos, de onde, quanto tempo e quanto custa. */
 function VerPlano({ p }: { p: Plano }) {
   return (
     <div className="flex flex-col gap-4 rounded-xl bg-creme p-4">
       <div className="flex flex-wrap items-baseline gap-2">
         <span className="font-display text-[40px] leading-none font-bold text-terracota">{numero(p.destinatarios.total)}</span>
-        <span className="text-sm text-tinta-2">números conhecidos em {p.zona}</span>
+        <span className="text-sm text-tinta-2">números em {p.zona}</span>
         <Pilula tom="tinta">simulação: nada foi enviado</Pilula>
+        {p.destinatarios.simulados > 0 && <Simulado texto={`${numero(p.destinatarios.simulados)} simulados`} />}
       </div>
-      <Cobertura texto={p.aviso_cobertura} />
+      {p.aviso_simulado ? <AvisoSimulado texto={p.aviso_simulado} /> : <Cobertura texto={p.aviso_cobertura} />}
 
       <div>
         <Rotulo className="mb-2">De onde vem cada número</Rotulo>
@@ -209,12 +327,18 @@ function VerPlano({ p }: { p: Plano }) {
               <span className="flex flex-wrap items-center gap-2">
                 <span className="font-semibold text-tinta">{FONTES[f.fonte]}</span>
                 {f.estado === "ok" ? (
-                  <span className="text-tinta-2">{numero(f.encontrados)}</span>
+                  <span className="text-tinta-2">
+                    {numero(f.encontrados)}
+                    {f.encontrados !== p.destinatarios.so_desta_fonte[f.fonte]
+                      ? ` (${numero(p.destinatarios.so_desta_fonte[f.fonte])} só desta fonte)`
+                      : ""}
+                  </span>
                 ) : (
                   <Pilula tom={f.estado === "erro" ? "terracota" : "neutro"}>
-                    {f.estado === "erro" ? "erro" : "não configurada"}
+                    {f.estado === "erro" ? "erro" : "por configurar"}
                   </Pilula>
                 )}
+                {f.simulada && <Simulado />}
               </span>
               {f.nota && <span className="text-xs text-tinta-3">{f.nota}</span>}
             </li>
@@ -225,6 +349,7 @@ function VerPlano({ p }: { p: Plano }) {
           {numero(p.destinatarios.vulneraveis)} vulneráveis · {numero(p.destinatarios.so_telefone_fixo)} só com
           telefone fixo (sem SMS)
           {p.destinatarios.sem_contacto_possivel ? ` · ${numero(p.destinatarios.sem_contacto_possivel)} sem contacto possível` : ""}
+          {p.destinatarios.simulados ? ` · ${numero(p.destinatarios.reais)} reais e ${numero(p.destinatarios.simulados)} simulados` : ""}
         </p>
         {p.lista_csv && (p.lista_csv.invalidas.length > 0 || p.lista_csv.repetidas > 0) && (
           <p className="mt-1 text-xs text-ambar">
@@ -234,6 +359,56 @@ function VerPlano({ p }: { p: Plano }) {
           </p>
         )}
       </div>
+
+      {(p.operadores || p.cell_broadcast) && (
+        <div className="grid gap-3 sm:grid-cols-2">
+          {p.operadores && (
+            <div className="flex flex-col gap-1 rounded-xl bg-papel p-3">
+              <span className="flex flex-wrap items-center gap-2">
+                <Rotulo>Todas as pessoas na zona</Rotulo>
+                <PilulaModo m={p.operadores} />
+              </span>
+              {p.operadores.estimativa ? (
+                <>
+                  <p className="text-sm text-tinta">
+                    <strong>{numero(p.operadores.estimativa.com_telemovel)}</strong> telemóveis estimados ·{" "}
+                    {numero(p.operadores.novos)} novos na lista
+                    {p.operadores.ja_conhecidos ? ` · ${numero(p.operadores.ja_conhecidos)} já conhecidos (ficam com o canal deles)` : ""}
+                  </p>
+                  {p.operadores.escala_real && p.operadores.estimativa.gerados !== p.operadores.estimativa.com_telemovel && (
+                    <p className="text-xs text-tinta-2">
+                      À escala real: {numero(p.operadores.escala_real.sms)} SMS em {minutos(p.operadores.escala_real.minutos)} ·{" "}
+                      {euro(p.operadores.escala_real.custo)} <Demonstracao />
+                    </p>
+                  )}
+                  {p.operadores.estimativa.demonstracao && (
+                    <p className="text-xs text-tinta-3">População da zona: valores de demonstração (não são os Censos 2021).</p>
+                  )}
+                </>
+              ) : (
+                <p className="text-xs text-tinta-3">{p.operadores.nota}</p>
+              )}
+            </div>
+          )}
+          {p.cell_broadcast && (
+            <div className="flex flex-col gap-1 rounded-xl bg-papel p-3">
+              <span className="flex flex-wrap items-center gap-2">
+                <Rotulo>Cell broadcast</Rotulo>
+                <PilulaModo m={p.cell_broadcast} />
+              </span>
+              {p.cell_broadcast.pessoas_estimadas !== null ? (
+                <p className="text-sm text-tinta">
+                  Para os telemóveis ligados às antenas da zona (cerca de{" "}
+                  <strong>{numero(p.cell_broadcast.pessoas_estimadas)}</strong>), sem números.
+                </p>
+              ) : (
+                <p className="text-xs text-terracota">{p.cell_broadcast.nota_estimativa}</p>
+              )}
+              <p className="text-xs text-tinta-3">{p.cell_broadcast.custo_nota}</p>
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="rounded-xl bg-papel p-3">
@@ -297,9 +472,11 @@ function VerPlano({ p }: { p: Plano }) {
           <ul className="mt-2 flex flex-col gap-1">
             {p.amostra.map((x, i) => (
               <li key={i}>
+                {x.simulado ? "[simulado] " : ""}
                 {x.nome} · {x.telefone} · {x.fontes.map((f) => FONTES[f]).join(", ")}
+                {x.zona_aproximada ? ` · ${x.zona_aproximada}` : ""}
                 {x.vulneravel ? " · vulnerável" : ""}
-                {x.ligado ? " · é ligado" : ""}
+                {x.ligado ? (x.simulado ? " · chamada simulada" : " · é ligado") : ""}
                 {!x.sms ? " · sem SMS (fixo)" : ""}
               </li>
             ))}
@@ -331,6 +508,7 @@ interface Formulario {
   valida_ate: string;
   chamadas: "" | Politica;
   fontes: Fonte[];
+  cell_broadcast: boolean;
   csv: string;
 }
 
@@ -354,7 +532,8 @@ function inicial(c: Config | undefined, tipo: Tipo = "cheia"): Formulario {
     descricao: "",
     valida_ate: "",
     chamadas: "",
-    fontes: ["municipes", "cuidado", "lista", "externa"],
+    fontes: ["municipes", "cuidado", "lista"],
+    cell_broadcast: false,
     csv: "",
   };
 }
@@ -390,6 +569,7 @@ function corpoDe(f: Formulario) {
     valida_ate: f.valida_ate ? new Date(f.valida_ate).toISOString() : undefined,
     chamadas: f.chamadas || undefined,
     fontes: f.fontes,
+    cell_broadcast: f.cell_broadcast,
     lista_csv: f.fontes.includes("lista") && f.csv.trim() ? f.csv : undefined,
   };
 }
@@ -540,12 +720,18 @@ function NovaEmergencia({ config, onCriada }: { config: Config | undefined; onCr
       <fieldset className="flex flex-col gap-2 rounded-xl border border-linha p-4">
         <legend className="px-1 text-[13px] font-semibold text-tinta">De onde vêm os números</legend>
         {(Object.keys(FONTES) as Fonte[]).map((x) => (
-          <label key={x} className="flex items-center gap-2 text-[13px] text-tinta">
+          <label key={x} className="flex flex-wrap items-center gap-2 text-[13px] text-tinta">
             <input type="checkbox" checked={f.fontes.includes(x)} onChange={() => alternarFonte(x)} />
             {FONTES[x]}
-            {x === "externa" && <Pilula tom="neutro">não configurada</Pilula>}
+            {x === "operadores" && <PilulaModo m={config?.fonte_externa.operadores} />}
           </label>
         ))}
+        <label className="flex flex-wrap items-center gap-2 text-[13px] text-tinta">
+          <input type="checkbox" checked={f.cell_broadcast} onChange={() => muda({ cell_broadcast: !f.cell_broadcast })} />
+          <RadioTower className="size-3.5 text-tinta-2" aria-hidden />
+          Cell broadcast (mensagem para todos os telemóveis da zona, sem números)
+          <PilulaModo m={config?.fonte_externa.cell_broadcast} />
+        </label>
         {f.fontes.includes("lista") && (
           <div className="flex flex-col gap-2">
             <Campo rotulo="Lista de telefones (CSV: telefone ou telefone;nome, um por linha)">
@@ -566,7 +752,11 @@ function NovaEmergencia({ config, onCriada }: { config: Config | undefined; onCr
             </label>
           </div>
         )}
-        <Cobertura texto="A lista não é toda a gente da zona: só os números que a câmara conhece. A fonte externa (operadores, cell broadcast, Proteção Civil) ainda não está ligada." />
+        {f.fontes.includes("operadores") || f.cell_broadcast ? (
+          <FaltaParaReal />
+        ) : (
+          <Cobertura texto="Assim a lista não é toda a gente da zona: só os números que a câmara conhece. Para chegar a toda a gente, junte “Todas as pessoas na zona” ou o cell broadcast." />
+        )}
       </fieldset>
 
       <ErroLinha erro={simular.erro ?? guardar.erro} />
@@ -624,8 +814,12 @@ function Confirmar({ d, onFeito }: { d: Detalhe; onFeito: () => void }) {
           <p className="text-sm text-tinta-2">
             «{d.titulo}» vai por SMS e {d.chamadas === "nenhuma" ? "sem chamadas" : "com chamadas do agente"} para{" "}
             <strong className="text-tinta">{numero(esperado)}</strong> números em {d.zona_descricao}, a qualquer hora e também a
-            quem recusou avisos. Para confirmar, escreva o número exato.
+            quem recusou avisos{d.cell_broadcast ? ", e pede o cell broadcast para a zona" : ""}. Para confirmar, escreva o
+            número exato.
           </p>
+          {d.fontes.includes("operadores") && d.fonte_externa.operadores.simulada && (
+            <AvisoSimulado texto="Inclui números simulados (todas as pessoas na zona): ficam registados como enviados (simulado), mas nenhum SMS nem chamada sai para eles." />
+          )}
           <Campo rotulo="Número de pessoas">
             <input type="number" inputMode="numeric" min={0} required className={classeEntrada} value={n} onChange={(e) => setN(e.target.value)} autoFocus />
           </Campo>
@@ -681,6 +875,85 @@ function Contador({ valor, rotulo, tom }: { valor: number; rotulo: string; tom?:
     <div className="flex flex-col rounded-xl bg-creme px-3 py-2.5">
       <span className={`font-display text-[28px] leading-none font-bold ${cor}`}>{numero(valor)}</span>
       <span className="text-xs text-tinta-2">{rotulo}</span>
+    </div>
+  );
+}
+
+/** De onde vieram os números: por fonte e por estado; os simulados à parte. */
+function PorFonte({ d }: { d: Detalhe }) {
+  const fontes = (Object.keys(FONTES) as Fonte[]).filter((f) => d.por_fonte_estado[f]?.total > 0);
+  return (
+    <div className="flex flex-col gap-2">
+      <Rotulo>De onde vieram os números</Rotulo>
+      <div className="overflow-x-auto">
+        <table className="w-full text-left text-xs text-tinta-2">
+          <thead>
+            <tr className="text-tinta-3">
+              <th className="py-1 pr-3 font-semibold">Fonte</th>
+              <th className="py-1 pr-3 font-semibold">Números</th>
+              <th className="py-1 pr-3 font-semibold">Avisados</th>
+              <th className="py-1 pr-3 font-semibold">Em segurança</th>
+              <th className="py-1 pr-3 font-semibold">Precisam de ajuda</th>
+              <th className="py-1 font-semibold">Por avisar</th>
+            </tr>
+          </thead>
+          <tbody>
+            {fontes.map((f) => {
+              const c = d.por_fonte_estado[f];
+              return (
+                <tr key={f} className="border-t border-linha">
+                  <td className="py-1.5 pr-3 text-tinta">
+                    <span className="flex flex-wrap items-center gap-1.5">
+                      {FONTES[f]}
+                      {f === "operadores" && d.simulados.total > 0 && <Simulado />}
+                    </span>
+                  </td>
+                  <td className="py-1.5 pr-3">{numero(c.total)}</td>
+                  <td className="py-1.5 pr-3">{numero(c.avisados)}</td>
+                  <td className="py-1.5 pr-3">{numero(c.em_seguranca)}</td>
+                  <td className="py-1.5 pr-3">{numero(c.precisa_ajuda)}</td>
+                  <td className="py-1.5">{numero(c.por_avisar + c.a_ligar)}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      {d.fontes.includes("operadores") && d.por_fonte.operadores === 0 && !d.fonte_externa.operadores.simulada && (
+        <p className="text-xs text-tinta-3">Todas as pessoas na zona: {d.fonte_externa.operadores.nota}</p>
+      )}
+      {d.simulados.total > 0 && (
+        <p className="text-xs text-tinta-2">
+          Simulados: <strong>{numero(d.simulados.sms_enviados_simulado)}</strong> SMS enviados (simulado)
+          {d.simulados.sms_por_sair ? ` · ${numero(d.simulados.sms_por_sair)} por sair` : ""} ·{" "}
+          {numero(d.simulados.chamadas_simuladas)} chamadas simuladas · {numero(d.simulados.enviados_ao_fornecedor)} enviados ao
+          fornecedor.
+        </p>
+      )}
+      {d.simulados.total > 0 && <FaltaParaReal />}
+    </div>
+  );
+}
+
+/** O cell broadcast: área + texto + estado da difusão. */
+function Difusao({ x }: { x: NonNullable<Detalhe["cell_broadcast_difusao"]> }) {
+  return (
+    <div className="flex flex-col gap-1 rounded-xl bg-creme p-3 text-xs text-tinta-2">
+      <span className="flex flex-wrap items-center gap-2">
+        <RadioTower className="size-4 text-tinta" aria-hidden />
+        <span className="text-[13px] font-semibold text-tinta">Cell broadcast</span>
+        <Pilula tom={DIFUSAO[x.estado].tom}>{DIFUSAO[x.estado].rotulo}</Pilula>
+        {x.simulado && <Simulado />}
+      </span>
+      <span>
+        {x.referencia_externa ? `Pedido ${x.referencia_externa}` : "Sem referência"}
+        {x.pessoas_estimadas !== null ? ` · cerca de ${numero(x.pessoas_estimadas)} telemóveis na zona` : ""}
+        {x.pedida_em ? ` · pedido ${quando(x.pedida_em)}` : ""}
+        {x.iniciada_em ? ` · em difusão desde ${quando(x.iniciada_em)}` : ""}
+        {x.concluida_em ? ` · concluído ${quando(x.concluida_em)}` : ""}
+      </span>
+      {x.erro && <span className="text-terracota">{x.erro}</span>}
+      {x.simulado && <span className="text-tinta-3">Difusão de demonstração: nada saiu para os operadores.</span>}
     </div>
   );
 }
@@ -777,17 +1050,9 @@ function VerEmergencia({ id, onMudou }: { id: string; onMudou: () => void }) {
             </div>
           )}
 
-          <Cobertura texto={d.aviso_cobertura} />
-          {d.estado !== "rascunho" && (
-            <p className="text-xs text-tinta-2">
-              De onde vieram os números:{" "}
-              {(Object.keys(FONTES) as Fonte[])
-                .filter((f) => f !== "externa")
-                .map((f) => `${FONTES[f].toLowerCase()} ${numero(d.por_fonte[f])}`)
-                .join(" · ")}{" "}
-              · fonte externa {d.fonte_externa === "nao_configurada" ? "não configurada" : numero(d.por_fonte.externa)}
-            </p>
-          )}
+          {d.aviso_simulado ? <AvisoSimulado texto={d.aviso_simulado} /> : <Cobertura texto={d.aviso_cobertura} />}
+          {d.estado !== "rascunho" && <PorFonte d={d} />}
+          {d.cell_broadcast_difusao && <Difusao x={d.cell_broadcast_difusao} />}
 
           <div>
             <Rotulo className="mb-1">SMS</Rotulo>
@@ -876,9 +1141,14 @@ function VerEmergencia({ id, onMudou }: { id: string; onMudou: () => void }) {
               <ul className="mt-2 flex flex-col gap-1">
                 {d.destinatarios.map((x) => (
                   <li key={x.id} className="flex flex-wrap items-center gap-2">
-                    <Pilula tom={RESULTADOS[x.resultado].tom}>{RESULTADOS[x.resultado].rotulo}</Pilula>
+                    <Pilula tom={RESULTADOS[x.resultado].tom}>
+                      {x.simulado && x.resultado === "avisado" ? "enviado (simulado)" : RESULTADOS[x.resultado].rotulo}
+                    </Pilula>
+                    {x.simulado && <Simulado />}
                     {x.nome} · {x.telefone} · {x.fontes.map((f) => FONTES[f]).join(", ")}
+                    {x.zona_aproximada ? ` · ${x.zona_aproximada}` : ""}
                     {x.vulneravel ? " · vulnerável" : ""}
+                    {x.chamada_simulada ? " · chamada simulada" : ""}
                   </li>
                 ))}
               </ul>

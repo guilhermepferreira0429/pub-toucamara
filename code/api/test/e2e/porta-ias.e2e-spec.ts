@@ -310,7 +310,12 @@ describe('Porta para as IAs (e2e)', () => {
       expect(nomes).not.toContain('motivo_da_chamada');
 
       const morada = 'Rua da Porta das IAs 12, Guimarães';
-      ctx.geo.moradas.set(morada, { lat: 41.4425, lng: -8.2918 });
+      // Um ponto só deste teste: perto de outra ocorrência da BD partilhada
+      // (ex.: o buraco da demo) ficava como duplicado dessa.
+      ctx.geo.moradas.set(morada, {
+        lat: 41.47 + Math.random() * 0.01,
+        lng: -8.34 + Math.random() * 0.01,
+      });
       const r = await rpc(l.caminho_mcp, {
         jsonrpc: '2.0',
         id: 2,
@@ -336,8 +341,9 @@ describe('Porta para as IAs (e2e)', () => {
         ctx.db,
         `SELECT o.municipe_id, c.canal::text AS canal
          FROM ocorrencias o JOIN conversas c ON c.id = o.conversa_id
-         WHERE o.numero = $1`,
-        [saida.numero],
+         WHERE o.numero = $1
+           AND o.municipio_id = (SELECT municipio_id FROM ligacoes_ia WHERE id = $2)`,
+        [saida.numero, l.ligacao_id],
       );
       const municipe = await linha(
         ctx.db,

@@ -250,7 +250,7 @@ export class PassagensService {
   ) {
     const linhas = await this.db.query<LinhaPassagem>(
       `${SELECT_PASSAGEM}
-       WHERE c.municipio_id = $1
+       WHERE c.municipio_id = $1 AND c.oculto_em IS NULL
          AND ($2::text[] IS NULL OR p.estado = ANY($2))
          AND ($3::uuid IS NULL OR p.atribuida_a = $3)
          AND (NOT $4 OR p.atribuida_a IS NULL)

@@ -268,7 +268,7 @@ export class OcorrenciasService {
     const [o] = await tx.query<{ id: string; numero: string }>(
       `SELECT o.id, o.numero FROM ocorrencias o
        WHERE o.municipio_id = $1 AND o.categoria_id = $2
-         AND o.duplicada_de IS NULL
+         AND o.duplicada_de IS NULL AND o.oculto_em IS NULL
          AND o.estado IN ('nova', 'com_equipa')
          AND o.criada_em > now() - make_interval(days => $3)
          AND (
@@ -424,7 +424,10 @@ export class OcorrenciasService {
         resolvida_em: resolvida_dia,
       }),
       fotos,
-      pode_juntar_fotos: fotos.length < MAX_FOTOS && aceitaFotos(o.estado),
+      // O limite é das fotografias do munícipe (as "do depois" da equipa não contam).
+      pode_juntar_fotos:
+        fotos.filter((f) => f.origem === 'municipe').length < MAX_FOTOS &&
+        aceitaFotos(o.estado),
       max_fotos: MAX_FOTOS,
     };
   }
@@ -462,7 +465,8 @@ export class OcorrenciasService {
         alvo.id,
       ]);
       const [{ total }] = await tx.query<{ total: number }>(
-        'SELECT count(*)::int AS total FROM ocorrencia_fotos WHERE ocorrencia_id = $1',
+        `SELECT count(*)::int AS total FROM ocorrencia_fotos
+         WHERE ocorrencia_id = $1 AND origem = 'municipe'`,
         [alvo.id],
       );
       if (total >= MAX_FOTOS) {
@@ -496,8 +500,10 @@ export class OcorrenciasService {
       id: string;
       ficheiro_key: string;
       enviada_em: Date;
+      origem: 'municipe' | 'equipa';
+      legenda: string | null;
     }>(
-      `SELECT id, ficheiro_key, enviada_em FROM ocorrencia_fotos
+      `SELECT id, ficheiro_key, enviada_em, origem, legenda FROM ocorrencia_fotos
        WHERE ocorrencia_id = $1 ORDER BY enviada_em`,
       [ocorrenciaId],
     );
@@ -505,6 +511,9 @@ export class OcorrenciasService {
       linhas.map(async (f) => ({
         id: f.id,
         enviada_em: f.enviada_em,
+        // 'equipa': a fotografia "do depois" tirada ao fechar (app de campo).
+        origem: f.origem,
+        legenda: f.legenda,
         url: this.armazenamento.disponivel
           ? await this.armazenamento.urlLeitura(f.ficheiro_key, 15)
           : null,
@@ -521,7 +530,7 @@ export class OcorrenciasService {
    * paginada. Os duplicados não aparecem como pins: contam no original.
    */
   async lista(municipioId: string, f: FiltrosLista) {
-    const filtros = `o.municipio_id = $1
+    const filtros = `o.municipio_id = $1 AND o.oculto_em IS NULL
       AND ($2::estado_ocorr IS NULL OR o.estado = $2)
       AND ($2::estado_ocorr = 'duplicada' OR o.duplicada_de IS NULL)
       AND ($3::uuid IS NULL OR o.categoria_id = $3)
@@ -840,12 +849,12 @@ export class OcorrenciasService {
                 round(avg(extract(epoch FROM resolvida_em - criada_em) / 3600)
                   FILTER (WHERE duplicada_de IS NULL AND estado = 'resolvida'))::int AS horas_media_resolucao
          FROM ocorrencias
-         WHERE municipio_id = $1 AND criada_em > now() - interval '30 days'`,
+         WHERE municipio_id = $1 AND oculto_em IS NULL AND criada_em > now() - interval '30 days'`,
         [municipioId],
       ),
       this.db.query(
         `SELECT estado, count(*)::int AS total FROM ocorrencias
-         WHERE municipio_id = $1 AND criada_em > now() - interval '30 days'
+         WHERE municipio_id = $1 AND oculto_em IS NULL AND criada_em > now() - interval '30 days'
            AND duplicada_de IS NULL
          GROUP BY estado ORDER BY total DESC`,
         [municipioId],
@@ -856,7 +865,7 @@ export class OcorrenciasService {
                 count(o.id) FILTER (WHERE o.duplicada_de IS NULL AND o.estado IN ('nova', 'com_equipa'))::int AS abertas,
                 count(o.id)::int AS reportes
          FROM categorias_ocorrencia c
-         LEFT JOIN ocorrencias o ON o.categoria_id = c.id
+         LEFT JOIN ocorrencias o ON o.categoria_id = c.id AND o.oculto_em IS NULL
            AND o.criada_em > now() - interval '30 days'
          WHERE c.municipio_id = $1
          GROUP BY c.id

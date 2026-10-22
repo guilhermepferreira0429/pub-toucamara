@@ -4,16 +4,25 @@ import { telefoneParaSms } from '../avisos-zona/avisos-zona.regras.js';
 import { telefoneLigavel } from '../chamadas-saida/regras.js';
 import type { Municipio } from '../municipios/municipios.service.js';
 import type { GeocodificacaoService } from '../ocorrencias/geocodificacao.js';
+import { ErroApi } from '../../common/erros.js';
 import {
   Candidato,
   freguesiaNaLista,
   GeometriaEmergencia,
   IdFonte,
   LinhaLista,
+  MAX_DESTINATARIOS,
   NOMES_FONTES,
   pontoNaZonaEmergencia,
   ResultadoFonte,
 } from './emergencias.regras.js';
+import {
+  ErroFonteOperadores,
+  Estimativa,
+  FonteOperadores,
+  PaginaOperadores,
+} from './operadores.js';
+import { TAMANHO_PAGINA, TENTATIVAS_PAGINA } from './operadores.regras.js';
 
 /*
  * De onde vêm os números de um aviso de emergência. Um adaptador por fonte,
@@ -21,9 +30,9 @@ import {
  * modules/integracoes/gestao-documental.ts): o serviço só fala com a
  * interface, pede a todas as fontes escolhidas e junta (juntarFontes).
  *
- * Hoje há três fontes com os números que a câmara já conhece e uma por
- * implementar, a fonte externa, que é onde hão de vir os números de toda a
- * gente da zona.
+ * Há três fontes com os números que a câmara já conhece e a dos operadores,
+ * com os números de toda a gente da zona (simulada até haver acordo com a
+ * ANEPC / operadores).
  */
 
 /** O que se pede a uma fonte. */
@@ -242,35 +251,111 @@ export class FonteLista implements FonteDestinatarios {
 }
 
 /**
- * (d) POR IMPLEMENTAR: a fonte externa, para chegar a toda a gente da zona e
- * não só a quem a câmara conhece. Candidatos:
- *
- * - Cell broadcast / "alerta para telemóveis" pelos operadores (MEO, NOS,
- *   Vodafone, DIGI): a mensagem vai para todos os telemóveis ligados às
- *   antenas da zona, sem precisar de números. Em Portugal é acionado pela
- *   Autoridade Nacional de Emergência e Proteção Civil (ANEPC), não pela
- *   câmara: aqui seria um pedido à ANEPC/SMPC com a zona e o texto, e a
- *   fonte devolveria 0 números e o estado do pedido.
- * - Listas da Proteção Civil municipal (SMPC) ou da ANEPC (p. ex. inscritos
- *   em programas de aviso à população), por API ou ficheiro, com a base
- *   legal e o acordo de tratamento de dados (RGPD) assinados.
- *
- * Para ligar: implementar `procurar` (pedido → números ou estado do envio),
- * pôr a configuração (endereço, credenciais) no `.env` da API e trocar este
- * adaptador no EmergenciasService. Até lá devolve 'nao_configurada', e o
- * painel e a API dizem-no sempre.
+ * (d) Todas as pessoas na zona: a fonte dos operadores (FonteOperadores, em
+ * operadores.ts), simulada por omissão. Pede a estimativa, depois as páginas
+ * (cada página falhada volta a ser pedida até TENTATIVAS_PAGINA vezes) e
+ * marca cada número com `simulado` quando a fonte é a simulada: esses
+ * números nunca saem para um fornecedor (barreira no MensagensService e no
+ * ChamadasSaidaService).
  */
-export class FonteExternaNaoConfigurada implements FonteDestinatarios {
-  readonly id = 'externa' as const;
-  readonly nome = NOMES_FONTES.externa;
+export class FonteOperadoresZona implements FonteDestinatarios {
+  readonly id = 'operadores' as const;
+  readonly nome = NOMES_FONTES.operadores;
 
-  procurar(): Promise<ResultadoFonte> {
-    return Promise.resolve({
+  constructor(
+    private readonly fonte: FonteOperadores,
+    /** Não vale a pena ir além disto: o envio recusa acima do máximo. */
+    private readonly maximo = MAX_DESTINATARIOS + 1,
+    private readonly tamanho = TAMANHO_PAGINA,
+  ) {}
+
+  async procurar(p: PedidoFonte): Promise<ResultadoFonte> {
+    const pedido = { municipioId: p.municipio.id, zona: p.zona };
+    const simulada = this.fonte.simulada;
+    let estimativa: Estimativa;
+    try {
+      estimativa = await this.fonte.estimar(pedido);
+    } catch (e) {
+      return this.recusa(e);
+    }
+    const candidatos: Candidato[] = [];
+    let cursor: string | null = null;
+    let repetidas = 0;
+    let pagina = 0;
+    try {
+      do {
+        let r: PaginaOperadores | null = null;
+        for (let t = 1; !r; t++) {
+          try {
+            r = await this.fonte.pagina(pedido, cursor, this.tamanho);
+          } catch (e) {
+            if (!(e instanceof ErroFonteOperadores) || t >= TENTATIVAS_PAGINA)
+              throw e;
+            repetidas++;
+          }
+        }
+        pagina++;
+        for (const d of r.destinatarios) {
+          candidatos.push({
+            telefone_e164: d.telefone_e164,
+            municipe_id: null,
+            nome: null,
+            vulneravel: false,
+            simulado: simulada,
+            zona_aproximada: d.zona_aproximada,
+          });
+        }
+        cursor = r.seguinte;
+      } while (cursor !== null && candidatos.length < this.maximo);
+    } catch (e) {
+      if (e instanceof ErroApi) return this.recusa(e);
+      return {
+        ...falhou(this.id, e),
+        nota: `${falhou(this.id, e).nota} (página ${pagina + 1}, depois de ${TENTATIVAS_PAGINA} tentativas).`,
+        simulada,
+      };
+    }
+    const notas = [
+      simulada
+        ? 'SIMULADO: números gerados para demonstração (+351 9X 99N NNNN). Ficam registados como enviados (simulado); nenhum SMS nem chamada sai para eles.'
+        : null,
+      estimativa.nota,
+      repetidas
+        ? `${repetidas} ${repetidas === 1 ? 'página falhou e foi pedida' : 'páginas falharam e foram pedidas'} de novo.`
+        : null,
+      cursor !== null
+        ? `Mais de ${MAX_DESTINATARIOS} números: o envio fica bloqueado acima do máximo.`
+        : null,
+    ].filter(Boolean);
+    return {
       fonte: this.id,
       nome: this.nome,
-      estado: 'nao_configurada',
-      candidatos: [],
-      nota: 'Fonte externa não configurada: ainda não estamos ligados aos operadores (cell broadcast) nem à Proteção Civil (ANEPC/SMPC). Os números de toda a gente da zona hão de vir daqui.',
-    });
+      estado: 'ok',
+      candidatos,
+      nota: notas.join(' '),
+      simulada,
+      estimativa: {
+        pessoas: estimativa.pessoas,
+        com_telemovel: estimativa.com_telemovel,
+        gerados: estimativa.a_devolver,
+        demonstracao: estimativa.demonstracao,
+      },
+    };
+  }
+
+  /** Sem configuração (ou por ligar): 'nao_configurada', com a mensagem. */
+  private recusa(e: unknown): ResultadoFonte {
+    if (e instanceof ErroApi) {
+      return {
+        fonte: this.id,
+        nome: this.nome,
+        estado: 'nao_configurada',
+        candidatos: [],
+        nota: e.message,
+        simulada: false,
+        estimativa: null,
+      };
+    }
+    return { ...falhou(this.id, e), simulada: this.fonte.simulada };
   }
 }

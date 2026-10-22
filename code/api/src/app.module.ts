@@ -22,6 +22,7 @@ import { AgentToolsModule } from './modules/agent-tools/agent-tools.module.js';
 import { AgoraModule } from './modules/agora/agora.module.js';
 import { NotificacoesModule } from './modules/notificacoes/notificacoes.module.js';
 import { ArmazenamentoModule } from './modules/armazenamento/armazenamento.module.js';
+import { AoVivoModule } from './modules/ao-vivo/ao-vivo.module.js';
 import { AtendimentoModule } from './modules/atendimento/atendimento.module.js';
 import { AuditoriaModule } from './modules/auditoria/auditoria.service.js';
 import { AvisosZonaModule } from './modules/avisos-zona/avisos-zona.module.js';
@@ -49,9 +50,11 @@ import { PainelModule } from './modules/painel/painel.module.js';
 import { CampanhasModule } from './modules/campanhas/campanhas.module.js';
 import { ConsultasPublicasModule } from './modules/consultas-publicas/consultas-publicas.module.js';
 import { LicencasModule } from './modules/licencas/licencas.module.js';
+import { DemoModule } from './modules/demo/demo.module.js';
 import { LinguagemSimplesModule } from './modules/linguagem-simples/linguagem-simples.module.js';
 import { ApoiosModule } from './modules/apoios/apoios.module.js';
 import { AppMunicipeModule } from './modules/app-municipe/app-municipe.module.js';
+import { EquipaCampoModule } from './modules/equipa-campo/equipa-campo.module.js';
 import { PushModule } from './modules/app-municipe/push.module.js';
 import { ArquivoModule } from './modules/arquivo/arquivo.module.js';
 import { OrdenamentoModule } from './modules/ordenamento/ordenamento.module.js';
@@ -106,6 +109,7 @@ import { EntregasModule } from './modules/entregas/entregas.module.js';
     // Domínios.
     ConhecimentoModule,
     AtendimentoModule,
+    AoVivoModule,
     RequerimentosModule,
     ProcessosModule,
     OcorrenciasModule,
@@ -151,8 +155,11 @@ import { EntregasModule } from './modules/entregas/entregas.module.js';
     ArquivoModule,
     // App dos munícipes (Flutter): entrar com o telemóvel, os seus dados, push
     AppMunicipeModule,
+    EquipaCampoModule,
     // Editais e regulamentos em linguagem simples e glossário administrativo
     LinguagemSimplesModule,
+    // Preparar a câmara de demonstração (botão no painel e npm run demo:preparar)
+    DemoModule,
   ],
   controllers: [AppController],
   providers: [AppService],

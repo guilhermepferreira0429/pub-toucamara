@@ -16,7 +16,13 @@ export const ACOES_DADOS_PESSOAIS = [
 ] as const;
 
 const VERBOS: Record<string, string> = {
+  preparar_demo: 'preparou a demonstração',
+  ocultar_testes: 'escondeu do painel os registos de teste',
+  repor_ocultos: 'voltou a mostrar os registos de teste escondidos',
   ouvir_gravacao: 'ouviu a gravação',
+  assumir_conversa: 'assumiu, em direto,',
+  simular_chamada: 'simulou (demonstração)',
+  retirar_familiar: 'deixou de partilhar com o familiar',
   ver: 'viu',
   ver_resumo: 'viu o resumo',
   atribuir: 'ficou com',
@@ -127,9 +133,15 @@ const VERBOS: Record<string, string> = {
     'alertou as chefias e a proteção civil de um pedido de ajuda em',
   tratar_pedido_ajuda_emergencia: 'tratou um pedido de ajuda de',
   mudar_config_emergencias: 'mudou o ritmo de envio e os contactos de',
+  pedir_cell_broadcast: 'pediu o cell broadcast de',
   entrar_app: 'entrou na app do munícipe',
   sair_app: 'saiu da app do munícipe',
   mudar_preferencias_app: 'mudou as notificações da app de',
+  entrar_app_equipa: 'entrou na app da equipa de campo',
+  sair_app_equipa: 'saiu da app da equipa de campo',
+  revogar_app_equipa: 'terminou uma sessão da app da equipa de',
+  acrescentar_foto_ocorrencia: 'juntou a fotografia do depois a',
+  fechar_ocorrencia_terreno: 'fechou no terreno',
   criar_comunicado: 'escreveu',
   editar_comunicado: 'editou',
   publicar_comunicado: 'publicou',
@@ -168,6 +180,7 @@ const VERBOS: Record<string, string> = {
 };
 
 const OBJETOS: Record<string, string> = {
+  demo: '',
   conversa: 'uma conversa',
   passagem_humano: 'uma passagem a funcionário',
   processo: 'um processo',
@@ -217,6 +230,7 @@ const OBJETOS: Record<string, string> = {
   emergencia: 'um aviso de emergência',
   emergencias_config: 'os avisos de emergência',
   sessao_app: '',
+  sessao_app_equipa: '',
   comunicado: 'um comunicado ou notícia',
   evento: 'um evento',
   agora_subscricao: 'uma zona (o que se passa perto de mim)',

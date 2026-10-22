@@ -266,7 +266,7 @@ export class AgoraService {
            FROM ocorrencias o
            JOIN categorias_ocorrencia c ON c.id = o.categoria_id
            LEFT JOIN agora_locais al ON al.fonte = 'ocorrencia' AND al.fonte_id = o.id
-           WHERE o.municipio_id = $1
+           WHERE o.municipio_id = $1 AND o.oculto_em IS NULL
              AND ((o.estado IN ('nova','com_equipa') AND o.criada_em > now() - interval '180 days')
                OR (o.estado = 'resolvida' AND o.resolvida_em > now() - make_interval(days => $2)))
            ORDER BY o.criada_em DESC LIMIT ${MAX_POR_FONTE}`,
