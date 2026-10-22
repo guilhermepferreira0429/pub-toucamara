@@ -31,36 +31,41 @@ export const entradaRenovar = z.object({
     .trim()
     .max(40)
     .optional()
-    .describe(
-      'O número da licença a renovar (ex.: "ESP 3/2026"), se a pessoa tiver mais de uma a expirar.',
-    ),
+    .describe('O número da licença, se tiver mais de uma.'),
   confirmar: z
     .boolean()
     .optional()
-    .describe(
-      'Sem isto (ou false): só procura as licenças a expirar e mostra os dados. true: cria o pedido de renovação, depois de a pessoa confirmar os dados.',
-    ),
+    .describe('true só depois de a pessoa confirmar os dados.'),
   alteracoes: z
     .object({
-      meses: z.number().int().min(1).max(36).optional(),
-      dias: z.number().int().min(1).max(365).optional(),
-      area_m2: z.number().positive().max(10_000).optional(),
-      mesas: z.number().int().min(1).max(1000).optional(),
-      passeio_livre_m: z.number().min(0).max(20).optional(),
-      largura_m: z.number().positive().max(100).optional(),
-      altura_m: z.number().positive().max(100).optional(),
-      iluminado: z.boolean().optional(),
-      matricula: z.string().trim().min(4).max(12).optional(),
-      nome: z.string().trim().max(120).optional(),
+      meses: z.number().int().min(1).max(36).optional().describe('meses'),
+      dias: z.number().int().min(1).max(365).optional().describe('dias'),
+      area_m2: z.number().positive().max(10_000).optional().describe('m²'),
+      mesas: z.number().int().min(1).max(1000).optional().describe('mesas'),
+      passeio_livre_m: z
+        .number()
+        .min(0)
+        .max(20)
+        .optional()
+        .describe('passeio livre'),
+      largura_m: z.number().positive().max(100).optional().describe('largura'),
+      altura_m: z.number().positive().max(100).optional().describe('altura'),
+      iluminado: z.boolean().optional().describe('iluminado'),
+      matricula: z
+        .string()
+        .trim()
+        .min(4)
+        .max(12)
+        .optional()
+        .describe('matrícula'),
+      nome: z.string().trim().max(120).optional().describe('titular'),
     })
     .optional()
-    .describe(
-      'Só o que mudou desde a licença anterior (ex.: { "meses": 12 } ou { "mesas": 6 }). Vazio = tudo igual.',
-    ),
+    .describe('Só o que mudou (vazio = tudo igual).'),
   metodo: z
     .enum(['mbway', 'multibanco'])
     .optional()
-    .describe('Como quer pagar a taxa; por omissão MB WAY.'),
+    .describe('Por omissão MB WAY.'),
 });
 
 interface Candidata {

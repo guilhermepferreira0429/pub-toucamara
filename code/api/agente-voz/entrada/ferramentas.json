@@ -1,0 +1,2672 @@
+{
+  "_leia_me": "Gerado por `npm run agente-voz -- gerar` a partir das ferramentas registadas na API com `agentes` a incluir 'entrada'. Não editar à mão: muda o zod/descrição da ferramenta e volta a gerar. Ver README.md.",
+  "formato": "tool_config das webhook tools do ElevenLabs Agents (POST /v1/convai/tools, corpo { tool_config }).",
+  "marcadores": {
+    "${API_URL}": "API_URL da API (HTTPS público)",
+    "${MUNICIPIO}": "slug do município (--municipio, por omissão guimaraes)",
+    "${SEGREDO:toucamara_agente_segredo}": "id do segredo \"toucamara_agente_segredo\" no ElevenLabs (valor = AGENTE_SEGREDO da API)"
+  },
+  "ferramentas": [
+    {
+      "type": "webhook",
+      "name": "agendar_recolha",
+      "description": "Recolha gratuita de monos à porta (móveis, colchões, eletrodomésticos): pergunta os itens e quantidades e a morada. Marca a próxima janela livre. sem_entidade_recolha ou sem_janela → passa a um funcionário.",
+      "response_timeout_secs": 20,
+      "tool_error_handling_mode": "passthrough",
+      "api_schema": {
+        "url": "${API_URL}/v1/agent/tools/agendar_recolha",
+        "method": "POST",
+        "content_type": "application/json",
+        "request_headers": {
+          "X-Agente-Segredo": {
+            "secret_id": "${SEGREDO:toucamara_agente_segredo}"
+          },
+          "X-Municipio": "${MUNICIPIO}",
+          "X-Conversa-Id": {
+            "variable_name": "system__conversation_id"
+          },
+          "X-Telefone": {
+            "variable_name": "system__caller_id"
+          },
+          "X-Telefone-Web": {
+            "variable_name": "telefone"
+          }
+        },
+        "request_body_schema": {
+          "type": "object",
+          "properties": {
+            "itens": {
+              "type": "array",
+              "description": "O que recolher.",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "item": {
+                    "type": "string",
+                    "description": "Ex.: \"sofá\"."
+                  },
+                  "qtd": {
+                    "type": "integer",
+                    "description": "Quantos."
+                  }
+                },
+                "description": "Um elemento de itens.",
+                "required": [
+                  "item",
+                  "qtd"
+                ]
+              }
+            },
+            "morada": {
+              "type": "string",
+              "description": "Rua, número e freguesia."
+            },
+            "preferencia": {
+              "type": "string",
+              "description": "Manhã (8h–12h) ou tarde (13h–17h), se preferir.",
+              "enum": [
+                "manha",
+                "tarde"
+              ]
+            },
+            "telefone": {
+              "type": "string",
+              "description": "Telemóvel para o SMS, se não for o de onde liga."
+            }
+          },
+          "required": [
+            "itens",
+            "morada"
+          ],
+          "description": "Parâmetros de agendar_recolha."
+        }
+      }
+    },
+    {
+      "type": "webhook",
+      "name": "avisar_me",
+      "description": "Quando quer ser avisada por SMS do que aparecer na rua ou freguesia (obras, incidentes, eventos, avisos). Confirma o quê e onde (rua sem número de porta, ou freguesia).",
+      "response_timeout_secs": 20,
+      "tool_error_handling_mode": "passthrough",
+      "api_schema": {
+        "url": "${API_URL}/v1/agent/tools/avisar_me",
+        "method": "POST",
+        "content_type": "application/json",
+        "request_headers": {
+          "X-Agente-Segredo": {
+            "secret_id": "${SEGREDO:toucamara_agente_segredo}"
+          },
+          "X-Municipio": "${MUNICIPIO}",
+          "X-Conversa-Id": {
+            "variable_name": "system__conversation_id"
+          },
+          "X-Telefone": {
+            "variable_name": "system__caller_id"
+          },
+          "X-Telefone-Web": {
+            "variable_name": "telefone"
+          }
+        },
+        "request_body_schema": {
+          "type": "object",
+          "properties": {
+            "tipos": {
+              "type": "array",
+              "description": "De que quer ser avisada.",
+              "items": {
+                "type": "string",
+                "description": "Um elemento de tipos.",
+                "enum": [
+                  "obras",
+                  "incidentes",
+                  "eventos",
+                  "avisos"
+                ]
+              }
+            },
+            "morada": {
+              "type": "string",
+              "description": "A rua (e freguesia), sem número; vazio = a conhecida."
+            },
+            "freguesia": {
+              "type": "string",
+              "description": "Para a freguesia toda."
+            },
+            "raio_m": {
+              "type": "integer",
+              "description": "Metros à volta da rua (300)."
+            }
+          },
+          "required": [
+            "tipos"
+          ],
+          "description": "Parâmetros de avisar_me."
+        }
+      }
+    },
+    {
+      "type": "webhook",
+      "name": "campos_da_licenca",
+      "description": "Antes de pedir uma licença: os campos a perguntar para esse tipo (pergunta, obrigatório, formato, valores) e notas do tipo.",
+      "response_timeout_secs": 20,
+      "tool_error_handling_mode": "passthrough",
+      "api_schema": {
+        "url": "${API_URL}/v1/agent/tools/campos_da_licenca",
+        "method": "POST",
+        "content_type": "application/json",
+        "request_headers": {
+          "X-Agente-Segredo": {
+            "secret_id": "${SEGREDO:toucamara_agente_segredo}"
+          },
+          "X-Municipio": "${MUNICIPIO}",
+          "X-Conversa-Id": {
+            "variable_name": "system__conversation_id"
+          },
+          "X-Telefone": {
+            "variable_name": "system__caller_id"
+          },
+          "X-Telefone-Web": {
+            "variable_name": "telefone"
+          }
+        },
+        "request_body_schema": {
+          "type": "object",
+          "properties": {
+            "tipo": {
+              "type": "string",
+              "description": "ruido (festa, evento ou obra com barulho), ocupacao_via (andaime, contentor ou materiais na rua por obras), esplanada (mesas e cadeiras no passeio), distico_residente (cartão de residente para estacionar), publicidade (placa, letras, toldo, lona ou anúncio), recinto_improvisado (arraial, concerto ou festa ao ar livre com palco ou tendas).",
+              "enum": [
+                "ruido",
+                "ocupacao_via",
+                "esplanada",
+                "distico_residente",
+                "publicidade",
+                "recinto_improvisado"
+              ]
+            }
+          },
+          "required": [
+            "tipo"
+          ],
+          "description": "Parâmetros de campos_da_licenca."
+        }
+      }
+    },
+    {
+      "type": "webhook",
+      "name": "cancelar_marcacao",
+      "description": "Quando quer desmarcar um atendimento ou uma recolha (confirma antes). Sem id cancela a única que tiver.",
+      "response_timeout_secs": 20,
+      "tool_error_handling_mode": "passthrough",
+      "api_schema": {
+        "url": "${API_URL}/v1/agent/tools/cancelar_marcacao",
+        "method": "POST",
+        "content_type": "application/json",
+        "request_headers": {
+          "X-Agente-Segredo": {
+            "secret_id": "${SEGREDO:toucamara_agente_segredo}"
+          },
+          "X-Municipio": "${MUNICIPIO}",
+          "X-Conversa-Id": {
+            "variable_name": "system__conversation_id"
+          },
+          "X-Telefone": {
+            "variable_name": "system__caller_id"
+          },
+          "X-Telefone-Web": {
+            "variable_name": "telefone"
+          }
+        },
+        "request_body_schema": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "description": "A marcação ou recolha, se tiver várias."
+            }
+          },
+          "description": "Parâmetros de cancelar_marcacao."
+        }
+      }
+    },
+    {
+      "type": "webhook",
+      "name": "concluir_requerimento",
+      "description": "Quando todos os campos estão confirmados: fecha o requerimento (PDF e SMS para rever, assinar e juntar documentos). Erro campos_em_falta → pergunta e grava com preencher_campo antes.",
+      "response_timeout_secs": 20,
+      "tool_error_handling_mode": "passthrough",
+      "api_schema": {
+        "url": "${API_URL}/v1/agent/tools/concluir_requerimento",
+        "method": "POST",
+        "content_type": "application/json",
+        "request_headers": {
+          "X-Agente-Segredo": {
+            "secret_id": "${SEGREDO:toucamara_agente_segredo}"
+          },
+          "X-Municipio": "${MUNICIPIO}",
+          "X-Conversa-Id": {
+            "variable_name": "system__conversation_id"
+          },
+          "X-Telefone": {
+            "variable_name": "system__caller_id"
+          },
+          "X-Telefone-Web": {
+            "variable_name": "telefone"
+          }
+        },
+        "request_body_schema": {
+          "type": "object",
+          "properties": {
+            "requerimento_id": {
+              "type": "string",
+              "description": "De iniciar_requerimento (sem ele, o desta conversa)."
+            }
+          },
+          "description": "Parâmetros de concluir_requerimento."
+        }
+      }
+    },
+    {
+      "type": "webhook",
+      "name": "consultas_abertas",
+      "description": "Quando pergunta por consultas públicas ou quer dar opinião sobre um projeto da câmara (ou numa chamada nossa sobre uma: vem desta_chamada): o que está em causa, as perguntas e opções, até quando, e se já participou.",
+      "response_timeout_secs": 20,
+      "tool_error_handling_mode": "passthrough",
+      "api_schema": {
+        "url": "${API_URL}/v1/agent/tools/consultas_abertas",
+        "method": "POST",
+        "content_type": "application/json",
+        "request_headers": {
+          "X-Agente-Segredo": {
+            "secret_id": "${SEGREDO:toucamara_agente_segredo}"
+          },
+          "X-Municipio": "${MUNICIPIO}",
+          "X-Conversa-Id": {
+            "variable_name": "system__conversation_id"
+          },
+          "X-Telefone": {
+            "variable_name": "system__caller_id"
+          },
+          "X-Telefone-Web": {
+            "variable_name": "telefone"
+          }
+        }
+      }
+    },
+    {
+      "type": "webhook",
+      "name": "conversa_anterior",
+      "description": "Quando diz que já ligou ou escreveu antes e o contexto do início não chega: resumo, próximos passos e o que ficou registado (30 dias). Continua sem pedir que repita.",
+      "response_timeout_secs": 20,
+      "tool_error_handling_mode": "passthrough",
+      "api_schema": {
+        "url": "${API_URL}/v1/agent/tools/conversa_anterior",
+        "method": "POST",
+        "content_type": "application/json",
+        "request_headers": {
+          "X-Agente-Segredo": {
+            "secret_id": "${SEGREDO:toucamara_agente_segredo}"
+          },
+          "X-Municipio": "${MUNICIPIO}",
+          "X-Conversa-Id": {
+            "variable_name": "system__conversation_id"
+          },
+          "X-Telefone": {
+            "variable_name": "system__caller_id"
+          },
+          "X-Telefone-Web": {
+            "variable_name": "telefone"
+          }
+        },
+        "request_body_schema": {
+          "type": "object",
+          "properties": {
+            "quantas": {
+              "type": "integer",
+              "description": "Quantas, da mais recente (1; até 3 se não disser qual)."
+            }
+          },
+          "description": "Parâmetros de conversa_anterior."
+        }
+      }
+    },
+    {
+      "type": "webhook",
+      "name": "criar_pagamento",
+      "description": "Quando aceita pagar as taxas de um requerimento entregue ou processo: referência Multibanco (ou MB WAY para o telemóvel de onde liga) por SMS. Passa as mesmas quantidades da simulação. Diz o valor_por_extenso e o prazo (pagar_ate_dito). falta_telemovel/telemovel_invalido → pergunta o número do MB WAY; sem_objeto_a_pagar → preenche primeiro o requerimento.",
+      "response_timeout_secs": 20,
+      "tool_error_handling_mode": "passthrough",
+      "api_schema": {
+        "url": "${API_URL}/v1/agent/tools/criar_pagamento",
+        "method": "POST",
+        "content_type": "application/json",
+        "request_headers": {
+          "X-Agente-Segredo": {
+            "secret_id": "${SEGREDO:toucamara_agente_segredo}"
+          },
+          "X-Municipio": "${MUNICIPIO}",
+          "X-Conversa-Id": {
+            "variable_name": "system__conversation_id"
+          },
+          "X-Telefone": {
+            "variable_name": "system__caller_id"
+          },
+          "X-Telefone-Web": {
+            "variable_name": "telefone"
+          }
+        },
+        "request_body_schema": {
+          "type": "object",
+          "properties": {
+            "requerimento_id": {
+              "type": "string",
+              "description": "Id do requerimento."
+            },
+            "processo_id": {
+              "type": "string",
+              "description": "Id do processo."
+            },
+            "tipo_processo": {
+              "type": "string",
+              "description": "Código do tipo de processo (ex.: \"CP\")."
+            },
+            "taxas": {
+              "type": "array",
+              "description": "Taxas soltas, se não for um tipo de processo.",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "codigo": {
+                    "type": "string",
+                    "description": "Código na tabela."
+                  },
+                  "quantidade": {
+                    "type": "number",
+                    "description": "Quantidade."
+                  }
+                },
+                "description": "Um elemento de taxas.",
+                "required": [
+                  "codigo"
+                ]
+              }
+            },
+            "quantidades": {
+              "type": "object",
+              "properties": {
+                "m2": {
+                  "type": "number",
+                  "description": "Metros quadrados."
+                },
+                "dia": {
+                  "type": "integer",
+                  "description": "Número de dias."
+                },
+                "pagina": {
+                  "type": "integer",
+                  "description": "Páginas."
+                },
+                "fogo": {
+                  "type": "integer",
+                  "description": "Fogos (habitações)."
+                },
+                "mesa": {
+                  "type": "integer",
+                  "description": "Mesas."
+                }
+              },
+              "description": "Quantidades ditas, por unidade."
+            },
+            "metodo": {
+              "type": "string",
+              "description": "Por omissão multibanco.",
+              "enum": [
+                "multibanco",
+                "mbway"
+              ]
+            },
+            "telemovel": {
+              "type": "string",
+              "description": "Do MB WAY, se não for o de onde liga."
+            }
+          },
+          "description": "Parâmetros de criar_pagamento."
+        }
+      }
+    },
+    {
+      "type": "webhook",
+      "name": "documento_simples",
+      "description": "Quando pergunta o que diz um edital, regulamento, aviso ou deliberação: o resumo simples revisto pela câmara e o link. Não contradigas o texto oficial (é o que vale).",
+      "response_timeout_secs": 20,
+      "tool_error_handling_mode": "passthrough",
+      "api_schema": {
+        "url": "${API_URL}/v1/agent/tools/documento_simples",
+        "method": "POST",
+        "content_type": "application/json",
+        "request_headers": {
+          "X-Agente-Segredo": {
+            "secret_id": "${SEGREDO:toucamara_agente_segredo}"
+          },
+          "X-Municipio": "${MUNICIPIO}",
+          "X-Conversa-Id": {
+            "variable_name": "system__conversation_id"
+          },
+          "X-Telefone": {
+            "variable_name": "system__caller_id"
+          },
+          "X-Telefone-Web": {
+            "variable_name": "telefone"
+          }
+        },
+        "request_body_schema": {
+          "type": "object",
+          "properties": {
+            "pesquisa": {
+              "type": "string",
+              "description": "O documento ou o assunto."
+            }
+          },
+          "required": [
+            "pesquisa"
+          ],
+          "description": "Parâmetros de documento_simples."
+        }
+      }
+    },
+    {
+      "type": "webhook",
+      "name": "emergencia",
+      "description": "Só DEPOIS de dizer \"desligue e ligue já para o 112\": regista a emergência (não chama ninguém nem avisa o 112). Sem mais perguntas.",
+      "response_timeout_secs": 20,
+      "tool_error_handling_mode": "passthrough",
+      "api_schema": {
+        "url": "${API_URL}/v1/agent/tools/emergencia",
+        "method": "POST",
+        "content_type": "application/json",
+        "request_headers": {
+          "X-Agente-Segredo": {
+            "secret_id": "${SEGREDO:toucamara_agente_segredo}"
+          },
+          "X-Municipio": "${MUNICIPIO}",
+          "X-Conversa-Id": {
+            "variable_name": "system__conversation_id"
+          },
+          "X-Telefone": {
+            "variable_name": "system__caller_id"
+          },
+          "X-Telefone-Web": {
+            "variable_name": "telefone"
+          }
+        },
+        "request_body_schema": {
+          "type": "object",
+          "properties": {
+            "situacao": {
+              "type": "string",
+              "description": "O que se passa, numa frase."
+            }
+          },
+          "description": "Parâmetros de emergencia."
+        }
+      }
+    },
+    {
+      "type": "webhook",
+      "name": "encaminhar",
+      "description": "Quando o assunto pode ser de outra entidade (água, lixo e monos, finanças, segurança social, saúde): quem trata e o contacto, com horário. Outros contactos só se pedir. emergencia: true → segue já a instrucao. Se vier passa_a_pessoa e o caso encaixar, usa passar_a_humano.",
+      "response_timeout_secs": 20,
+      "tool_error_handling_mode": "passthrough",
+      "api_schema": {
+        "url": "${API_URL}/v1/agent/tools/encaminhar",
+        "method": "POST",
+        "content_type": "application/json",
+        "request_headers": {
+          "X-Agente-Segredo": {
+            "secret_id": "${SEGREDO:toucamara_agente_segredo}"
+          },
+          "X-Municipio": "${MUNICIPIO}",
+          "X-Conversa-Id": {
+            "variable_name": "system__conversation_id"
+          },
+          "X-Telefone": {
+            "variable_name": "system__caller_id"
+          },
+          "X-Telefone-Web": {
+            "variable_name": "telefone"
+          }
+        },
+        "request_body_schema": {
+          "type": "object",
+          "properties": {
+            "assunto": {
+              "type": "string",
+              "description": "O problema ou pedido, resumido."
+            }
+          },
+          "required": [
+            "assunto"
+          ],
+          "description": "Parâmetros de encaminhar."
+        }
+      }
+    },
+    {
+      "type": "webhook",
+      "name": "entregar_pedido",
+      "description": "Quando pede para entregarmos o requerimento concluído no balcão online, em nome dela. Na confirmação manda o codigo_resumo e as palavras_do_municipe; depois a pessoa autoriza com a Chave Móvel Digital pelo link do SMS. É simulado, sem validade legal: diz isso. requerimento_por_concluir → conclui primeiro.",
+      "response_timeout_secs": 20,
+      "tool_error_handling_mode": "passthrough",
+      "api_schema": {
+        "url": "${API_URL}/v1/agent/tools/entregar_pedido",
+        "method": "POST",
+        "content_type": "application/json",
+        "request_headers": {
+          "X-Agente-Segredo": {
+            "secret_id": "${SEGREDO:toucamara_agente_segredo}"
+          },
+          "X-Municipio": "${MUNICIPIO}",
+          "X-Conversa-Id": {
+            "variable_name": "system__conversation_id"
+          },
+          "X-Telefone": {
+            "variable_name": "system__caller_id"
+          },
+          "X-Telefone-Web": {
+            "variable_name": "telefone"
+          }
+        },
+        "request_body_schema": {
+          "type": "object",
+          "properties": {
+            "requerimento_id": {
+              "type": "string",
+              "description": "De iniciar_requerimento (sem ele, o desta conversa)."
+            },
+            "confirmado": {
+              "type": "boolean",
+              "description": "true só depois de ler o resumo e de um sim claro."
+            },
+            "codigo_resumo": {
+              "type": "string",
+              "description": "O da primeira chamada."
+            },
+            "palavras_do_municipe": {
+              "type": "string",
+              "description": "Como a pessoa confirmou, tal como disse."
+            }
+          },
+          "description": "Parâmetros de entregar_pedido."
+        }
+      }
+    },
+    {
+      "type": "webhook",
+      "name": "estado_familiar",
+      "description": "Quando voltaste à chamada para juntar um familiar (tipo_chamada juncao_familiar): se já atendeu.",
+      "response_timeout_secs": 20,
+      "tool_error_handling_mode": "passthrough",
+      "api_schema": {
+        "url": "${API_URL}/v1/agent/tools/estado_familiar",
+        "method": "POST",
+        "content_type": "application/json",
+        "request_headers": {
+          "X-Agente-Segredo": {
+            "secret_id": "${SEGREDO:toucamara_agente_segredo}"
+          },
+          "X-Municipio": "${MUNICIPIO}",
+          "X-Conversa-Id": {
+            "variable_name": "system__conversation_id"
+          },
+          "X-Telefone": {
+            "variable_name": "system__caller_id"
+          },
+          "X-Telefone-Web": {
+            "variable_name": "telefone"
+          }
+        }
+      }
+    },
+    {
+      "type": "webhook",
+      "name": "estado_ocorrencia",
+      "description": "Quando pergunta por um problema que já reportou: o estado_explicado e a data prevista. Sem número, as últimas deste telefone; se não encontrar, pede o número do SMS.",
+      "response_timeout_secs": 20,
+      "tool_error_handling_mode": "passthrough",
+      "api_schema": {
+        "url": "${API_URL}/v1/agent/tools/estado_ocorrencia",
+        "method": "POST",
+        "content_type": "application/json",
+        "request_headers": {
+          "X-Agente-Segredo": {
+            "secret_id": "${SEGREDO:toucamara_agente_segredo}"
+          },
+          "X-Municipio": "${MUNICIPIO}",
+          "X-Conversa-Id": {
+            "variable_name": "system__conversation_id"
+          },
+          "X-Telefone": {
+            "variable_name": "system__caller_id"
+          },
+          "X-Telefone-Web": {
+            "variable_name": "telefone"
+          }
+        },
+        "request_body_schema": {
+          "type": "object",
+          "properties": {
+            "numero": {
+              "type": "string",
+              "description": "Como o disser (\"OC-0381\", \"381\")."
+            }
+          },
+          "description": "Parâmetros de estado_ocorrencia."
+        }
+      }
+    },
+    {
+      "type": "webhook",
+      "name": "estado_processo",
+      "description": "Quando pergunta como está o processo dela (só os da própria pessoa): fase, dias úteis que faltam e o que falta, com prazos. Diz o \"resumo\" de cada um; se houver vários, pergunta de qual quer saber.",
+      "response_timeout_secs": 20,
+      "tool_error_handling_mode": "passthrough",
+      "api_schema": {
+        "url": "${API_URL}/v1/agent/tools/estado_processo",
+        "method": "POST",
+        "content_type": "application/json",
+        "request_headers": {
+          "X-Agente-Segredo": {
+            "secret_id": "${SEGREDO:toucamara_agente_segredo}"
+          },
+          "X-Municipio": "${MUNICIPIO}",
+          "X-Conversa-Id": {
+            "variable_name": "system__conversation_id"
+          },
+          "X-Telefone": {
+            "variable_name": "system__caller_id"
+          },
+          "X-Telefone-Web": {
+            "variable_name": "telefone"
+          }
+        },
+        "request_body_schema": {
+          "type": "object",
+          "properties": {
+            "numero": {
+              "type": "string",
+              "description": "O número, se o disser (\"CP 412/2026\" ou \"412\")."
+            }
+          },
+          "description": "Parâmetros de estado_processo."
+        }
+      }
+    },
+    {
+      "type": "webhook",
+      "name": "explicar_termo",
+      "description": "Quando pergunta o que quer dizer uma palavra (alvará, deferimento tácito) ou tens de usar um termo técnico: a explicação simples do glossário da câmara.",
+      "response_timeout_secs": 20,
+      "tool_error_handling_mode": "passthrough",
+      "api_schema": {
+        "url": "${API_URL}/v1/agent/tools/explicar_termo",
+        "method": "POST",
+        "content_type": "application/json",
+        "request_headers": {
+          "X-Agente-Segredo": {
+            "secret_id": "${SEGREDO:toucamara_agente_segredo}"
+          },
+          "X-Municipio": "${MUNICIPIO}",
+          "X-Conversa-Id": {
+            "variable_name": "system__conversation_id"
+          },
+          "X-Telefone": {
+            "variable_name": "system__caller_id"
+          },
+          "X-Telefone-Web": {
+            "variable_name": "telefone"
+          }
+        },
+        "request_body_schema": {
+          "type": "object",
+          "properties": {
+            "termo": {
+              "type": "string",
+              "description": "O termo, ou a pergunta da pessoa."
+            }
+          },
+          "required": [
+            "termo"
+          ],
+          "description": "Parâmetros de explicar_termo."
+        }
+      }
+    },
+    {
+      "type": "webhook",
+      "name": "identificar_municipe",
+      "description": "Só quando é preciso saber quem é (processos, pedidos em nome dela), depois de pedir o NIF. Devolve o nome; nif_invalido → pede para repetir devagar.",
+      "response_timeout_secs": 20,
+      "tool_error_handling_mode": "passthrough",
+      "api_schema": {
+        "url": "${API_URL}/v1/agent/tools/identificar_municipe",
+        "method": "POST",
+        "content_type": "application/json",
+        "request_headers": {
+          "X-Agente-Segredo": {
+            "secret_id": "${SEGREDO:toucamara_agente_segredo}"
+          },
+          "X-Municipio": "${MUNICIPIO}",
+          "X-Conversa-Id": {
+            "variable_name": "system__conversation_id"
+          },
+          "X-Telefone": {
+            "variable_name": "system__caller_id"
+          },
+          "X-Telefone-Web": {
+            "variable_name": "telefone"
+          }
+        },
+        "request_body_schema": {
+          "type": "object",
+          "properties": {
+            "nif": {
+              "type": "string",
+              "description": "O NIF dito (9 algarismos)."
+            },
+            "nome": {
+              "type": "string",
+              "description": "O nome, se o disse."
+            }
+          },
+          "required": [
+            "nif"
+          ],
+          "description": "Parâmetros de identificar_municipe."
+        }
+      }
+    },
+    {
+      "type": "webhook",
+      "name": "iniciar_requerimento",
+      "description": "Quando quer fazer um pedido à câmara e o conhecimento confirmou o procedimento (ex.: comunicação prévia): devolve os campos. Diz a frase_do_agente, faz a proxima_pergunta (uma de cada vez) e grava cada resposta com preencher_campo.",
+      "response_timeout_secs": 20,
+      "tool_error_handling_mode": "passthrough",
+      "api_schema": {
+        "url": "${API_URL}/v1/agent/tools/iniciar_requerimento",
+        "method": "POST",
+        "content_type": "application/json",
+        "request_headers": {
+          "X-Agente-Segredo": {
+            "secret_id": "${SEGREDO:toucamara_agente_segredo}"
+          },
+          "X-Municipio": "${MUNICIPIO}",
+          "X-Conversa-Id": {
+            "variable_name": "system__conversation_id"
+          },
+          "X-Telefone": {
+            "variable_name": "system__caller_id"
+          },
+          "X-Telefone-Web": {
+            "variable_name": "telefone"
+          }
+        },
+        "request_body_schema": {
+          "type": "object",
+          "properties": {
+            "tipo": {
+              "type": "string",
+              "description": "O código do tipo (ex.: \"CP\") ou o pedido por palavras."
+            },
+            "idioma": {
+              "type": "string",
+              "description": "A língua da conversa (BCP 47), se não for português."
+            }
+          },
+          "required": [
+            "tipo"
+          ],
+          "description": "Parâmetros de iniciar_requerimento."
+        }
+      }
+    },
+    {
+      "type": "webhook",
+      "name": "juntar_familiar",
+      "description": "Quando pede para juntar à chamada um familiar ou alguém de confiança (nunca em emergências). Confirma o número em voz alta antes. modo \"conferencia\": depois do \"dizer\" não digas mais nada (voltas logo). precisa_autorizacao: pergunta e, com o sim, chama com autorizou: true. modo \"web\": o que o familiar escrever chega-te como contexto.",
+      "response_timeout_secs": 20,
+      "tool_error_handling_mode": "passthrough",
+      "api_schema": {
+        "url": "${API_URL}/v1/agent/tools/juntar_familiar",
+        "method": "POST",
+        "content_type": "application/json",
+        "request_headers": {
+          "X-Agente-Segredo": {
+            "secret_id": "${SEGREDO:toucamara_agente_segredo}"
+          },
+          "X-Municipio": "${MUNICIPIO}",
+          "X-Conversa-Id": {
+            "variable_name": "system__conversation_id"
+          },
+          "X-Telefone": {
+            "variable_name": "system__caller_id"
+          },
+          "X-Telefone-Web": {
+            "variable_name": "telefone"
+          }
+        },
+        "request_body_schema": {
+          "type": "object",
+          "properties": {
+            "telefone": {
+              "type": "string",
+              "description": "Número do familiar, como o disse."
+            },
+            "nome": {
+              "type": "string",
+              "description": "Nome, se o disse."
+            },
+            "relacao": {
+              "type": "string",
+              "description": "Ex.: \"a minha filha\"."
+            },
+            "resumo": {
+              "type": "string",
+              "description": "O que já falaram e vais explicar aos dois, em 2 a 4 frases (dizes ao voltar)."
+            },
+            "autorizou": {
+              "type": "boolean",
+              "description": "Pelo browser: true só depois do sim à pergunta do \"dizer\"."
+            },
+            "call_sid": {
+              "type": "string",
+              "dynamic_variable": "system__call_sid"
+            }
+          },
+          "required": [
+            "telefone",
+            "resumo"
+          ],
+          "description": "Parâmetros de juntar_familiar."
+        }
+      }
+    },
+    {
+      "type": "webhook",
+      "name": "ler_carta",
+      "description": "Quando recebeu uma carta da câmara e não a percebe: o que é, a data-limite (calculada por nós), o que acontece se não fizer nada e como responder. Sem código: na chamada manda SMS para fotografar (espera e chama com o código do resultado); no chat pede para anexar ([carta CODIGO] na mensagem). Não leias os excertos todos. Nunca inventes o prazo (se pedir data_rececao, pergunta o dia). da_camara: false → diz de quem é e encaminha.",
+      "response_timeout_secs": 20,
+      "tool_error_handling_mode": "passthrough",
+      "api_schema": {
+        "url": "${API_URL}/v1/agent/tools/ler_carta",
+        "method": "POST",
+        "content_type": "application/json",
+        "request_headers": {
+          "X-Agente-Segredo": {
+            "secret_id": "${SEGREDO:toucamara_agente_segredo}"
+          },
+          "X-Municipio": "${MUNICIPIO}",
+          "X-Conversa-Id": {
+            "variable_name": "system__conversation_id"
+          },
+          "X-Telefone": {
+            "variable_name": "system__caller_id"
+          },
+          "X-Telefone-Web": {
+            "variable_name": "telefone"
+          }
+        },
+        "request_body_schema": {
+          "type": "object",
+          "properties": {
+            "codigo": {
+              "type": "string",
+              "description": "Da mensagem [carta …] ou do resultado anterior; vazio para começar."
+            },
+            "data_rececao": {
+              "type": "string",
+              "description": "O dia em que a recebeu, AAAA-MM-DD."
+            }
+          },
+          "description": "Parâmetros de ler_carta."
+        }
+      }
+    },
+    {
+      "type": "webhook",
+      "name": "marcar",
+      "description": "Marca na vaga de ver_vagas escolhida e manda SMS (com link para remarcar). Diz \"quando\", o local e o que levar. vaga_ocupada ou fora_do_horario → oferece as vagas_alternativas; falta_telefone → pede um telemóvel.",
+      "response_timeout_secs": 20,
+      "tool_error_handling_mode": "passthrough",
+      "api_schema": {
+        "url": "${API_URL}/v1/agent/tools/marcar",
+        "method": "POST",
+        "content_type": "application/json",
+        "request_headers": {
+          "X-Agente-Segredo": {
+            "secret_id": "${SEGREDO:toucamara_agente_segredo}"
+          },
+          "X-Municipio": "${MUNICIPIO}",
+          "X-Conversa-Id": {
+            "variable_name": "system__conversation_id"
+          },
+          "X-Telefone": {
+            "variable_name": "system__caller_id"
+          },
+          "X-Telefone-Web": {
+            "variable_name": "telefone"
+          }
+        },
+        "request_body_schema": {
+          "type": "object",
+          "properties": {
+            "agenda_id": {
+              "type": "string",
+              "description": "A agenda de ver_vagas."
+            },
+            "inicio": {
+              "type": "string",
+              "description": "O \"inicio\" exato da vaga (de ver_vagas). Data e hora em ISO 8601 (ex.: 2026-10-26T15:30:00+01:00)."
+            },
+            "assunto": {
+              "type": "string",
+              "description": "Ao que vai, em poucas palavras."
+            },
+            "levar": {
+              "type": "array",
+              "description": "Documentos a levar, se os souberes pela fonte.",
+              "items": {
+                "type": "string",
+                "description": "Um elemento de levar."
+              }
+            },
+            "telefone": {
+              "type": "string",
+              "description": "Telemóvel para o SMS, se não for o de onde liga."
+            }
+          },
+          "required": [
+            "agenda_id",
+            "inicio",
+            "assunto"
+          ],
+          "description": "Parâmetros de marcar."
+        }
+      }
+    },
+    {
+      "type": "webhook",
+      "name": "nao_quero_avisos",
+      "description": "Quando não quer mais os SMS de avisos da zona (obras, água, lixo, trânsito; confirma se não for claro). Os de emergência e os dos pedidos dela continuam.",
+      "response_timeout_secs": 20,
+      "tool_error_handling_mode": "passthrough",
+      "api_schema": {
+        "url": "${API_URL}/v1/agent/tools/nao_quero_avisos",
+        "method": "POST",
+        "content_type": "application/json",
+        "request_headers": {
+          "X-Agente-Segredo": {
+            "secret_id": "${SEGREDO:toucamara_agente_segredo}"
+          },
+          "X-Municipio": "${MUNICIPIO}",
+          "X-Conversa-Id": {
+            "variable_name": "system__conversation_id"
+          },
+          "X-Telefone": {
+            "variable_name": "system__caller_id"
+          },
+          "X-Telefone-Web": {
+            "variable_name": "telefone"
+          }
+        }
+      }
+    },
+    {
+      "type": "webhook",
+      "name": "nao_quero_chamadas",
+      "description": "Quando não quer que a câmara lhe ligue (\"prefiro SMS\"; confirma se não for claro): os avisos passam a ir só por SMS.",
+      "response_timeout_secs": 20,
+      "tool_error_handling_mode": "passthrough",
+      "api_schema": {
+        "url": "${API_URL}/v1/agent/tools/nao_quero_chamadas",
+        "method": "POST",
+        "content_type": "application/json",
+        "request_headers": {
+          "X-Agente-Segredo": {
+            "secret_id": "${SEGREDO:toucamara_agente_segredo}"
+          },
+          "X-Municipio": "${MUNICIPIO}",
+          "X-Conversa-Id": {
+            "variable_name": "system__conversation_id"
+          },
+          "X-Telefone": {
+            "variable_name": "system__caller_id"
+          },
+          "X-Telefone-Web": {
+            "variable_name": "telefone"
+          }
+        }
+      }
+    },
+    {
+      "type": "webhook",
+      "name": "o_que_a_empresa_precisa",
+      "description": "Quando vai abrir ou mudar um negócio, ou pergunta que licenças precisa: o que a empresa precisa e onde se trata. Chama logo com o que sabes e depois só com as respostas novas. A lista completa segue por SMS. Para tratar já de um item, a ferramenta em pedir_com; para obras, o_que_posso_fazer.",
+      "response_timeout_secs": 20,
+      "tool_error_handling_mode": "passthrough",
+      "api_schema": {
+        "url": "${API_URL}/v1/agent/tools/o_que_a_empresa_precisa",
+        "method": "POST",
+        "content_type": "application/json",
+        "request_headers": {
+          "X-Agente-Segredo": {
+            "secret_id": "${SEGREDO:toucamara_agente_segredo}"
+          },
+          "X-Municipio": "${MUNICIPIO}",
+          "X-Conversa-Id": {
+            "variable_name": "system__conversation_id"
+          },
+          "X-Telefone": {
+            "variable_name": "system__caller_id"
+          },
+          "X-Telefone-Web": {
+            "variable_name": "telefone"
+          }
+        },
+        "request_body_schema": {
+          "type": "object",
+          "properties": {
+            "atividade": {
+              "type": "string",
+              "description": "restauracao = restaurante, café, bar; comercio = loja; servicos = escritório.",
+              "enum": [
+                "restauracao",
+                "comercio",
+                "cabeleireiro_estetica",
+                "alojamento_local",
+                "oficina",
+                "servicos",
+                "eventos"
+              ]
+            },
+            "fase": {
+              "type": "string",
+              "description": "aberta = já funciona.",
+              "enum": [
+                "abrir",
+                "aberta"
+              ]
+            },
+            "abertura": {
+              "type": "string",
+              "description": "Quando conta abrir (aproximado). Data no formato AAAA-MM-DD."
+            },
+            "esplanada": {
+              "type": "boolean",
+              "description": "Esplanada no passeio."
+            },
+            "publicidade": {
+              "type": "boolean",
+              "description": "Placa, letreiro ou toldo."
+            },
+            "obras": {
+              "type": "boolean",
+              "description": "Obras no espaço."
+            },
+            "musica": {
+              "type": "boolean",
+              "description": "Música ao vivo ou som alto."
+            },
+            "eventos_rua": {
+              "type": "boolean",
+              "description": "Eventos ao ar livre."
+            },
+            "ocupacao_via": {
+              "type": "boolean",
+              "description": "Ocupa a rua (cargas, contentor, andaime)."
+            },
+            "horario_alargado": {
+              "type": "boolean",
+              "description": "Abre fora do horário normal."
+            },
+            "vende_alimentos": {
+              "type": "boolean",
+              "description": "Vende alimentos (lojas)."
+            },
+            "atendimento_publico": {
+              "type": "boolean",
+              "description": "Recebe clientes (escritórios)."
+            },
+            "centro_historico": {
+              "type": "boolean",
+              "description": "No centro histórico."
+            },
+            "area_esplanada_m2": {
+              "type": "number",
+              "description": "m², se souber."
+            },
+            "area_publicidade_m2": {
+              "type": "number",
+              "description": "m², se souber."
+            },
+            "publicidade_iluminada": {
+              "type": "boolean",
+              "description": "Anúncio iluminado."
+            },
+            "area_obra_m2": {
+              "type": "number",
+              "description": "m², se souber."
+            },
+            "fim": {
+              "type": "boolean",
+              "description": "true se não quer responder a mais perguntas."
+            }
+          },
+          "description": "Parâmetros de o_que_a_empresa_precisa."
+        }
+      }
+    },
+    {
+      "type": "webhook",
+      "name": "o_que_posso_fazer",
+      "description": "Quando diz que obra quer fazer e onde (anexo, muro, piscina): pelo PDM, se é isento, comunicação prévia, licença ou não permitido, com os limites e os passos (a planta segue por SMS). Para avançar com a comunicação prévia: iniciar_requerimento.",
+      "response_timeout_secs": 20,
+      "tool_error_handling_mode": "passthrough",
+      "api_schema": {
+        "url": "${API_URL}/v1/agent/tools/o_que_posso_fazer",
+        "method": "POST",
+        "content_type": "application/json",
+        "request_headers": {
+          "X-Agente-Segredo": {
+            "secret_id": "${SEGREDO:toucamara_agente_segredo}"
+          },
+          "X-Municipio": "${MUNICIPIO}",
+          "X-Conversa-Id": {
+            "variable_name": "system__conversation_id"
+          },
+          "X-Telefone": {
+            "variable_name": "system__caller_id"
+          },
+          "X-Telefone-Web": {
+            "variable_name": "telefone"
+          }
+        },
+        "request_body_schema": {
+          "type": "object",
+          "properties": {
+            "morada": {
+              "type": "string",
+              "description": "Rua, número e freguesia."
+            },
+            "obra": {
+              "type": "string",
+              "description": "anexo = telheiro, arrumos; fachada = porta, janela, cor.",
+              "enum": [
+                "anexo",
+                "muro",
+                "piscina",
+                "ampliacao",
+                "fachada",
+                "interior"
+              ]
+            },
+            "area_m2": {
+              "type": "number",
+              "description": "Área em m², se a disser."
+            },
+            "altura_m": {
+              "type": "number",
+              "description": "Altura em metros, se a disser."
+            }
+          },
+          "required": [
+            "morada",
+            "obra"
+          ],
+          "description": "Parâmetros de o_que_posso_fazer."
+        }
+      }
+    },
+    {
+      "type": "webhook",
+      "name": "o_que_se_passa",
+      "description": "Quando pergunta por obras, ruas cortadas, avisos ou eventos perto dela: os itens mais relevantes. Usa a morada que conhecemos; precisa_morada → pergunta UMA vez a rua ou a freguesia (sem número de porta).",
+      "response_timeout_secs": 20,
+      "tool_error_handling_mode": "passthrough",
+      "api_schema": {
+        "url": "${API_URL}/v1/agent/tools/o_que_se_passa",
+        "method": "POST",
+        "content_type": "application/json",
+        "request_headers": {
+          "X-Agente-Segredo": {
+            "secret_id": "${SEGREDO:toucamara_agente_segredo}"
+          },
+          "X-Municipio": "${MUNICIPIO}",
+          "X-Conversa-Id": {
+            "variable_name": "system__conversation_id"
+          },
+          "X-Telefone": {
+            "variable_name": "system__caller_id"
+          },
+          "X-Telefone-Web": {
+            "variable_name": "telefone"
+          }
+        },
+        "request_body_schema": {
+          "type": "object",
+          "properties": {
+            "tipos": {
+              "type": "array",
+              "description": "O que quer saber; vazio = tudo.",
+              "items": {
+                "type": "string",
+                "description": "Um elemento de tipos.",
+                "enum": [
+                  "obras",
+                  "incidentes",
+                  "avisos",
+                  "eventos",
+                  "consultas"
+                ]
+              }
+            },
+            "morada": {
+              "type": "string",
+              "description": "A rua (e freguesia), sem número; vazio = a conhecida."
+            },
+            "freguesia": {
+              "type": "string",
+              "description": "Se fala da freguesia inteira."
+            },
+            "quando": {
+              "type": "string",
+              "description": "Vazio = a decorrer e o que vem aí.",
+              "enum": [
+                "agora",
+                "hoje",
+                "amanha",
+                "fim_de_semana",
+                "esta_semana",
+                "proximos_dias"
+              ]
+            },
+            "de": {
+              "type": "string",
+              "description": "Desde, AAAA-MM-DD."
+            },
+            "ate": {
+              "type": "string",
+              "description": "Até, AAAA-MM-DD."
+            },
+            "todo_concelho": {
+              "type": "boolean",
+              "description": "Concelho todo (ou não quer dizer onde mora)."
+            },
+            "limite": {
+              "type": "integer",
+              "description": "Quantos itens (5)."
+            }
+          },
+          "description": "Parâmetros de o_que_se_passa."
+        }
+      }
+    },
+    {
+      "type": "webhook",
+      "name": "o_que_visitar",
+      "description": "Quando um turista pergunta o que visitar ou o que ver em X horas (um sítio concreto: procurar_conhecimento): roteiro a pé, eventos dos próximos dias e link do mapa. Os tempos são estimativas; horários e preços confirmam-se no local.",
+      "response_timeout_secs": 20,
+      "tool_error_handling_mode": "passthrough",
+      "api_schema": {
+        "url": "${API_URL}/v1/agent/tools/o_que_visitar",
+        "method": "POST",
+        "content_type": "application/json",
+        "request_headers": {
+          "X-Agente-Segredo": {
+            "secret_id": "${SEGREDO:toucamara_agente_segredo}"
+          },
+          "X-Municipio": "${MUNICIPIO}",
+          "X-Conversa-Id": {
+            "variable_name": "system__conversation_id"
+          },
+          "X-Telefone": {
+            "variable_name": "system__caller_id"
+          },
+          "X-Telefone-Web": {
+            "variable_name": "telefone"
+          }
+        },
+        "request_body_schema": {
+          "type": "object",
+          "properties": {
+            "minutos": {
+              "type": "integer",
+              "description": "Minutos que tem (meio dia = 240); se não disser, 180."
+            },
+            "interesses": {
+              "type": "array",
+              "description": "Vazio = um pouco de tudo.",
+              "items": {
+                "type": "string",
+                "description": "Um elemento de interesses.",
+                "enum": [
+                  "historia",
+                  "museus",
+                  "natureza",
+                  "gastronomia",
+                  "eventos"
+                ]
+              }
+            },
+            "mobilidade_reduzida": {
+              "type": "boolean",
+              "description": "Dificuldade a andar, cadeira de rodas ou carrinho."
+            },
+            "lingua": {
+              "type": "string",
+              "description": "A língua da conversa.",
+              "enum": [
+                "pt",
+                "en",
+                "es",
+                "fr"
+              ]
+            }
+          },
+          "description": "Parâmetros de o_que_visitar."
+        }
+      }
+    },
+    {
+      "type": "webhook",
+      "name": "obrigacoes_da_empresa",
+      "description": "Quando a empresa pergunta que prazos tem ou quando renovar: as renovações e taxas das licenças que já tem (e o calendário por SMS). Para renovar: renovar_licenca.",
+      "response_timeout_secs": 20,
+      "tool_error_handling_mode": "passthrough",
+      "api_schema": {
+        "url": "${API_URL}/v1/agent/tools/obrigacoes_da_empresa",
+        "method": "POST",
+        "content_type": "application/json",
+        "request_headers": {
+          "X-Agente-Segredo": {
+            "secret_id": "${SEGREDO:toucamara_agente_segredo}"
+          },
+          "X-Municipio": "${MUNICIPIO}",
+          "X-Conversa-Id": {
+            "variable_name": "system__conversation_id"
+          },
+          "X-Telefone": {
+            "variable_name": "system__caller_id"
+          },
+          "X-Telefone-Web": {
+            "variable_name": "telefone"
+          }
+        }
+      }
+    },
+    {
+      "type": "webhook",
+      "name": "participar_consulta",
+      "description": "Depois de explicar a consulta e confirmar as respostas: regista a opção de cada pergunta, a opinião (se der) e a freguesia (ou a morada). Chamar outra vez substitui a anterior. Não digas o que os outros responderam.",
+      "response_timeout_secs": 20,
+      "tool_error_handling_mode": "passthrough",
+      "api_schema": {
+        "url": "${API_URL}/v1/agent/tools/participar_consulta",
+        "method": "POST",
+        "content_type": "application/json",
+        "request_headers": {
+          "X-Agente-Segredo": {
+            "secret_id": "${SEGREDO:toucamara_agente_segredo}"
+          },
+          "X-Municipio": "${MUNICIPIO}",
+          "X-Conversa-Id": {
+            "variable_name": "system__conversation_id"
+          },
+          "X-Telefone": {
+            "variable_name": "system__caller_id"
+          },
+          "X-Telefone-Web": {
+            "variable_name": "telefone"
+          }
+        },
+        "request_body_schema": {
+          "type": "object",
+          "properties": {
+            "consulta": {
+              "type": "string",
+              "description": "O código da consulta."
+            },
+            "respostas": {
+              "type": "array",
+              "description": "Uma resposta por pergunta de escolha.",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "pergunta": {
+                    "type": "string",
+                    "description": "O id da pergunta (p1, p2…)."
+                  },
+                  "opcao": {
+                    "type": "string",
+                    "description": "O id ou o texto da opção."
+                  }
+                },
+                "description": "Um elemento de respostas.",
+                "required": [
+                  "opcao"
+                ]
+              }
+            },
+            "opiniao": {
+              "type": "string",
+              "description": "Nas palavras da pessoa, sem nomes nem contactos."
+            },
+            "freguesia": {
+              "type": "string",
+              "description": "Onde mora."
+            },
+            "morada": {
+              "type": "string",
+              "description": "Se não souber a freguesia."
+            }
+          },
+          "required": [
+            "consulta"
+          ],
+          "description": "Parâmetros de participar_consulta."
+        }
+      }
+    },
+    {
+      "type": "webhook",
+      "name": "passar_a_humano",
+      "description": "Passa o caso a um funcionário: quando pede uma pessoa, sem fonte, questões jurídicas ou políticas, queixas informais (a formal é registar_reclamacao) ou quando uma regra o diz. Antes pergunta como prefere a resposta. O \"dizer\" traz até quando respondem.",
+      "response_timeout_secs": 20,
+      "tool_error_handling_mode": "passthrough",
+      "api_schema": {
+        "url": "${API_URL}/v1/agent/tools/passar_a_humano",
+        "method": "POST",
+        "content_type": "application/json",
+        "request_headers": {
+          "X-Agente-Segredo": {
+            "secret_id": "${SEGREDO:toucamara_agente_segredo}"
+          },
+          "X-Municipio": "${MUNICIPIO}",
+          "X-Conversa-Id": {
+            "variable_name": "system__conversation_id"
+          },
+          "X-Telefone": {
+            "variable_name": "system__caller_id"
+          },
+          "X-Telefone-Web": {
+            "variable_name": "telefone"
+          }
+        },
+        "request_body_schema": {
+          "type": "object",
+          "properties": {
+            "motivo": {
+              "type": "string",
+              "description": "pedido = pediu uma pessoa; processo = processo em curso.",
+              "enum": [
+                "pedido",
+                "sem_fonte",
+                "juridico",
+                "politica",
+                "processo",
+                "outro"
+              ]
+            },
+            "resumo": {
+              "type": "string",
+              "description": "O que o funcionário precisa de saber, em 2 a 5 frases (pedido, morada ou processo, o que falta). Sem NIF."
+            },
+            "preferencia_resposta": {
+              "type": "string",
+              "description": "Por omissão SMS (no chat, chat).",
+              "enum": [
+                "sms",
+                "email",
+                "telefone",
+                "chat"
+              ]
+            },
+            "email": {
+              "type": "string",
+              "description": "Se escolheu email. Endereço de email."
+            }
+          },
+          "required": [
+            "motivo",
+            "resumo"
+          ],
+          "description": "Parâmetros de passar_a_humano."
+        }
+      }
+    },
+    {
+      "type": "webhook",
+      "name": "pedir_apoio",
+      "description": "Depois de que_apoios_tenho (ou numa chamada nossa sobre um apoio), quando quer pedir: cria o processo na ação social, com os documentos a entregar, e manda SMS.",
+      "response_timeout_secs": 20,
+      "tool_error_handling_mode": "passthrough",
+      "api_schema": {
+        "url": "${API_URL}/v1/agent/tools/pedir_apoio",
+        "method": "POST",
+        "content_type": "application/json",
+        "request_headers": {
+          "X-Agente-Segredo": {
+            "secret_id": "${SEGREDO:toucamara_agente_segredo}"
+          },
+          "X-Municipio": "${MUNICIPIO}",
+          "X-Conversa-Id": {
+            "variable_name": "system__conversation_id"
+          },
+          "X-Telefone": {
+            "variable_name": "system__caller_id"
+          },
+          "X-Telefone-Web": {
+            "variable_name": "telefone"
+          }
+        },
+        "request_body_schema": {
+          "type": "object",
+          "properties": {
+            "apoio": {
+              "type": "string",
+              "description": "O código do apoio (de que_apoios_tenho)."
+            },
+            "nome": {
+              "type": "string",
+              "description": "Nome de quem pede, se ainda não o disse."
+            }
+          },
+          "required": [
+            "apoio"
+          ],
+          "description": "Parâmetros de pedir_apoio."
+        }
+      }
+    },
+    {
+      "type": "webhook",
+      "name": "pedir_consulta_arquivo",
+      "description": "Para consultar um processo ANTIGO no arquivo (planta da casa do avô); não é para processos em curso. Pergunta a morada, o ano e quem pediu na altura (ou o número antigo): devolve só QUANTOS documentos há (nunca digas nomes, moradas ou conteúdos). Depois segue a instrucao de cada passo. A regra legal é \"a confirmar com o arquivo\": não a dês como certa.",
+      "response_timeout_secs": 20,
+      "tool_error_handling_mode": "passthrough",
+      "api_schema": {
+        "url": "${API_URL}/v1/agent/tools/pedir_consulta_arquivo",
+        "method": "POST",
+        "content_type": "application/json",
+        "request_headers": {
+          "X-Agente-Segredo": {
+            "secret_id": "${SEGREDO:toucamara_agente_segredo}"
+          },
+          "X-Municipio": "${MUNICIPIO}",
+          "X-Conversa-Id": {
+            "variable_name": "system__conversation_id"
+          },
+          "X-Telefone": {
+            "variable_name": "system__caller_id"
+          },
+          "X-Telefone-Web": {
+            "variable_name": "telefone"
+          }
+        },
+        "request_body_schema": {
+          "type": "object",
+          "properties": {
+            "morada": {
+              "type": "string",
+              "description": "A morada do prédio ou da obra."
+            },
+            "ano": {
+              "type": "integer",
+              "description": "O ano, mesmo aproximado."
+            },
+            "requerente": {
+              "type": "string",
+              "description": "Quem pediu na altura."
+            },
+            "numero_antigo": {
+              "type": "string",
+              "description": "O número antigo, se o souber."
+            },
+            "descricao": {
+              "type": "string",
+              "description": "O que procura e para quê."
+            },
+            "qualidade": {
+              "type": "string",
+              "description": "titular = quem pediu, dono ou herdeiro; interesse_legitimo = outra pessoa com interesse direto.",
+              "enum": [
+                "titular",
+                "interesse_legitimo"
+              ]
+            },
+            "interesse": {
+              "type": "string",
+              "description": "Com interesse_legitimo: porque precisa."
+            },
+            "modalidade": {
+              "type": "string",
+              "description": "presencial (com marcação) ou copia_certificada (com taxa).",
+              "enum": [
+                "presencial",
+                "copia_certificada"
+              ]
+            },
+            "confirmado": {
+              "type": "boolean",
+              "description": "true só depois de a pessoa confirmar ler_a_pessoa."
+            }
+          },
+          "description": "Parâmetros de pedir_consulta_arquivo."
+        }
+      }
+    },
+    {
+      "type": "webhook",
+      "name": "pedir_licenca",
+      "description": "Pede a licença com os dados confirmados e verifica as regras da câmara na hora. Se faltar ou estiver mal algum dado, devolve em_falta/invalidos para perguntares. Devolve proposta \"aprovar\" (cumpre: diz a taxa, as condições e o \"dizer\") ou \"tecnico\" (diz que regra falha: um técnico vê e responde por SMS).",
+      "response_timeout_secs": 20,
+      "tool_error_handling_mode": "passthrough",
+      "api_schema": {
+        "url": "${API_URL}/v1/agent/tools/pedir_licenca",
+        "method": "POST",
+        "content_type": "application/json",
+        "request_headers": {
+          "X-Agente-Segredo": {
+            "secret_id": "${SEGREDO:toucamara_agente_segredo}"
+          },
+          "X-Municipio": "${MUNICIPIO}",
+          "X-Conversa-Id": {
+            "variable_name": "system__conversation_id"
+          },
+          "X-Telefone": {
+            "variable_name": "system__caller_id"
+          },
+          "X-Telefone-Web": {
+            "variable_name": "telefone"
+          }
+        },
+        "request_body_schema": {
+          "type": "object",
+          "properties": {
+            "tipo": {
+              "type": "string",
+              "description": "O tipo, como em campos_da_licenca.",
+              "enum": [
+                "ruido",
+                "ocupacao_via",
+                "esplanada",
+                "distico_residente",
+                "publicidade",
+                "recinto_improvisado"
+              ]
+            },
+            "dados": {
+              "type": "object",
+              "properties": {
+                "atividade": {
+                  "type": "string",
+                  "description": "atividade",
+                  "enum": [
+                    "festa_privada",
+                    "evento",
+                    "obra"
+                  ]
+                },
+                "descricao": {
+                  "type": "string",
+                  "description": "descricao"
+                },
+                "morada": {
+                  "type": "string",
+                  "description": "morada"
+                },
+                "data": {
+                  "type": "string",
+                  "description": "data, AAAA-MM-DD"
+                },
+                "hora_inicio": {
+                  "type": "string",
+                  "description": "hora inicio, HH:MM"
+                },
+                "hora_fim": {
+                  "type": "string",
+                  "description": "hora fim, HH:MM"
+                },
+                "pessoas": {
+                  "type": "integer",
+                  "description": "pessoas"
+                },
+                "musica_amplificada": {
+                  "type": "boolean",
+                  "description": "musica amplificada"
+                },
+                "nome": {
+                  "type": "string",
+                  "description": "nome"
+                },
+                "metodo": {
+                  "type": "string",
+                  "description": "metodo",
+                  "enum": [
+                    "mbway",
+                    "multibanco"
+                  ]
+                },
+                "equipamento": {
+                  "type": "string",
+                  "description": "equipamento",
+                  "enum": [
+                    "andaime",
+                    "contentor",
+                    "materiais",
+                    "plataforma"
+                  ]
+                },
+                "data_inicio": {
+                  "type": "string",
+                  "description": "data inicio, AAAA-MM-DD"
+                },
+                "dias": {
+                  "type": "integer",
+                  "description": "dias"
+                },
+                "area_m2": {
+                  "type": "number",
+                  "description": "area m2"
+                },
+                "passeio_livre_m": {
+                  "type": "number",
+                  "description": "passeio livre m"
+                },
+                "ocupa_estrada": {
+                  "type": "boolean",
+                  "description": "ocupa estrada"
+                },
+                "estabelecimento": {
+                  "type": "string",
+                  "description": "estabelecimento"
+                },
+                "meses": {
+                  "type": "integer",
+                  "description": "meses"
+                },
+                "mesas": {
+                  "type": "integer",
+                  "description": "mesas"
+                },
+                "estrado": {
+                  "type": "boolean",
+                  "description": "estrado"
+                },
+                "centro_historico": {
+                  "type": "boolean",
+                  "description": "centro historico"
+                },
+                "matricula": {
+                  "type": "string",
+                  "description": "matricula"
+                },
+                "disticos_ja_tem": {
+                  "type": "integer",
+                  "description": "disticos ja tem"
+                },
+                "morada_comprovada": {
+                  "type": "boolean",
+                  "description": "morada comprovada"
+                },
+                "viatura_em_nome": {
+                  "type": "boolean",
+                  "description": "viatura em nome"
+                },
+                "suporte": {
+                  "type": "string",
+                  "description": "suporte",
+                  "enum": [
+                    "placa",
+                    "letras",
+                    "tabuleta",
+                    "toldo",
+                    "lona",
+                    "bandeirola",
+                    "cavalete"
+                  ]
+                },
+                "mensagem": {
+                  "type": "string",
+                  "description": "mensagem"
+                },
+                "largura_m": {
+                  "type": "number",
+                  "description": "largura m"
+                },
+                "altura_m": {
+                  "type": "number",
+                  "description": "altura m"
+                },
+                "iluminado": {
+                  "type": "boolean",
+                  "description": "iluminado"
+                },
+                "no_proprio_estabelecimento": {
+                  "type": "boolean",
+                  "description": "no proprio estabelecimento"
+                },
+                "lotacao": {
+                  "type": "integer",
+                  "description": "lotacao"
+                },
+                "estruturas": {
+                  "type": "array",
+                  "description": "estruturas",
+                  "items": {
+                    "type": "string",
+                    "description": "Um elemento de estruturas.",
+                    "enum": [
+                      "palco",
+                      "tenda",
+                      "barracas",
+                      "bancadas"
+                    ]
+                  }
+                },
+                "musica": {
+                  "type": "boolean",
+                  "description": "musica"
+                }
+              },
+              "description": "Os campos de campos_da_licenca para este tipo, com esses nomes."
+            }
+          },
+          "required": [
+            "tipo",
+            "dados"
+          ],
+          "description": "Parâmetros de pedir_licenca."
+        }
+      }
+    },
+    {
+      "type": "webhook",
+      "name": "preencher_campo",
+      "description": "A cada resposta do requerimento: grava os campos pelas chaves de iniciar_requerimento (corrigir: manda outra vez; null apaga). Erros → pede de novo esse campo, explicando. Depois a proxima_pergunta; quando vier null, confirma os dados e concluir_requerimento.",
+      "response_timeout_secs": 20,
+      "tool_error_handling_mode": "passthrough",
+      "api_schema": {
+        "url": "${API_URL}/v1/agent/tools/preencher_campo",
+        "method": "POST",
+        "content_type": "application/json",
+        "request_headers": {
+          "X-Agente-Segredo": {
+            "secret_id": "${SEGREDO:toucamara_agente_segredo}"
+          },
+          "X-Municipio": "${MUNICIPIO}",
+          "X-Conversa-Id": {
+            "variable_name": "system__conversation_id"
+          },
+          "X-Telefone": {
+            "variable_name": "system__caller_id"
+          },
+          "X-Telefone-Web": {
+            "variable_name": "telefone"
+          }
+        },
+        "request_body_schema": {
+          "type": "object",
+          "properties": {
+            "requerimento_id": {
+              "type": "string",
+              "description": "De iniciar_requerimento (sem ele, o desta conversa)."
+            },
+            "campos": {
+              "type": "object",
+              "properties": {},
+              "description": "Campos por chave, ex.: { \"area_m2\": \"18,5\" }. Datas como dia/mês/ano."
+            }
+          },
+          "required": [
+            "campos"
+          ],
+          "description": "Parâmetros de preencher_campo."
+        }
+      }
+    },
+    {
+      "type": "webhook",
+      "name": "preparar_resposta_carta",
+      "description": "Depois de ler_carta, quando quer responder: o rascunho vai no link, para a pessoa rever e confirmar (nada é entregue sem isso). Na pronúncia, pergunta porque não concorda e passa as palavras dela (sem acrescentar factos).",
+      "response_timeout_secs": 20,
+      "tool_error_handling_mode": "passthrough",
+      "api_schema": {
+        "url": "${API_URL}/v1/agent/tools/preparar_resposta_carta",
+        "method": "POST",
+        "content_type": "application/json",
+        "request_headers": {
+          "X-Agente-Segredo": {
+            "secret_id": "${SEGREDO:toucamara_agente_segredo}"
+          },
+          "X-Municipio": "${MUNICIPIO}",
+          "X-Conversa-Id": {
+            "variable_name": "system__conversation_id"
+          },
+          "X-Telefone": {
+            "variable_name": "system__caller_id"
+          },
+          "X-Telefone-Web": {
+            "variable_name": "telefone"
+          }
+        },
+        "request_body_schema": {
+          "type": "object",
+          "properties": {
+            "codigo": {
+              "type": "string",
+              "description": "O código da carta."
+            },
+            "tipo": {
+              "type": "string",
+              "description": "pronuncia = não concorda; prorrogacao = mais tempo; elementos = documentos pedidos; pagamento = referência.",
+              "enum": [
+                "pronuncia",
+                "prorrogacao",
+                "elementos",
+                "pagamento"
+              ]
+            },
+            "argumentos": {
+              "type": "string",
+              "description": "Pronúncia: as palavras da pessoa. Prorrogação: porquê."
+            },
+            "dias": {
+              "type": "integer",
+              "description": "Prorrogação: dias úteis a mais (10)."
+            }
+          },
+          "required": [
+            "codigo",
+            "tipo"
+          ],
+          "description": "Parâmetros de preparar_resposta_carta."
+        }
+      }
+    },
+    {
+      "type": "webhook",
+      "name": "procurar_conhecimento",
+      "description": "Antes de responder sobre regras, prazos, taxas, documentos, horários ou contactos: procura nas fontes oficiais (câmara, empresas municipais, juntas, leis). Se vier documentos_simples, explica com base nesse resumo revisto (sem contradizer os trechos) e manda o link.",
+      "response_timeout_secs": 20,
+      "tool_error_handling_mode": "passthrough",
+      "api_schema": {
+        "url": "${API_URL}/v1/agent/tools/procurar_conhecimento",
+        "method": "POST",
+        "content_type": "application/json",
+        "request_headers": {
+          "X-Agente-Segredo": {
+            "secret_id": "${SEGREDO:toucamara_agente_segredo}"
+          },
+          "X-Municipio": "${MUNICIPIO}",
+          "X-Conversa-Id": {
+            "variable_name": "system__conversation_id"
+          },
+          "X-Telefone": {
+            "variable_name": "system__caller_id"
+          },
+          "X-Telefone-Web": {
+            "variable_name": "telefone"
+          }
+        },
+        "request_body_schema": {
+          "type": "object",
+          "properties": {
+            "pergunta": {
+              "type": "string",
+              "description": "A pergunta, por palavras da pessoa ou resumida."
+            },
+            "limite": {
+              "type": "integer",
+              "description": "Máximo de resultados (5)."
+            },
+            "em_data": {
+              "type": "string",
+              "description": "Só para a regra numa data passada (AAAA-MM-DD). mudou_desde: true → diz que entretanto mudou."
+            }
+          },
+          "required": [
+            "pergunta"
+          ],
+          "description": "Parâmetros de procurar_conhecimento."
+        }
+      }
+    },
+    {
+      "type": "webhook",
+      "name": "procurar_deliberacoes",
+      "description": "Quando pergunta se a câmara ou a assembleia já decidiu algo: as deliberações das atas publicadas, com a data, o órgão e o resultado (o PDF da ata em ata_pdf, se quiser ler).",
+      "response_timeout_secs": 20,
+      "tool_error_handling_mode": "passthrough",
+      "api_schema": {
+        "url": "${API_URL}/v1/agent/tools/procurar_deliberacoes",
+        "method": "POST",
+        "content_type": "application/json",
+        "request_headers": {
+          "X-Agente-Segredo": {
+            "secret_id": "${SEGREDO:toucamara_agente_segredo}"
+          },
+          "X-Municipio": "${MUNICIPIO}",
+          "X-Conversa-Id": {
+            "variable_name": "system__conversation_id"
+          },
+          "X-Telefone": {
+            "variable_name": "system__caller_id"
+          },
+          "X-Telefone-Web": {
+            "variable_name": "telefone"
+          }
+        },
+        "request_body_schema": {
+          "type": "object",
+          "properties": {
+            "assunto": {
+              "type": "string",
+              "description": "O assunto, como a pessoa o disse."
+            },
+            "orgao": {
+              "type": "string",
+              "description": "Só se a pessoa disser.",
+              "enum": [
+                "camara",
+                "assembleia"
+              ]
+            }
+          },
+          "required": [
+            "assunto"
+          ],
+          "description": "Parâmetros de procurar_deliberacoes."
+        }
+      }
+    },
+    {
+      "type": "webhook",
+      "name": "que_apoios_tenho",
+      "description": "Quando pergunta por apoios ou conta uma dificuldade (renda, contas, filhos, idade): a que apoios da câmara pode ter direito. Chama logo com o que sabes e depois sempre com TUDO o que já sabes (o rendimento não fica guardado). Pergunta se aceita que a câmara lhe volte a ligar (aceita_contacto). É uma indicação: decide a câmara, com os documentos; a lista segue por SMS.",
+      "response_timeout_secs": 20,
+      "tool_error_handling_mode": "passthrough",
+      "api_schema": {
+        "url": "${API_URL}/v1/agent/tools/que_apoios_tenho",
+        "method": "POST",
+        "content_type": "application/json",
+        "request_headers": {
+          "X-Agente-Segredo": {
+            "secret_id": "${SEGREDO:toucamara_agente_segredo}"
+          },
+          "X-Municipio": "${MUNICIPIO}",
+          "X-Conversa-Id": {
+            "variable_name": "system__conversation_id"
+          },
+          "X-Telefone": {
+            "variable_name": "system__caller_id"
+          },
+          "X-Telefone-Web": {
+            "variable_name": "telefone"
+          }
+        },
+        "request_body_schema": {
+          "type": "object",
+          "properties": {
+            "residente_concelho": {
+              "type": "boolean",
+              "description": "true se a pessoa mora no concelho."
+            },
+            "idade": {
+              "type": "integer",
+              "description": "A idade de quem pede, em anos."
+            },
+            "pessoas_agregado": {
+              "type": "integer",
+              "description": "Quantas pessoas vivem em casa, contando com a própria."
+            },
+            "rendimento_mensal_agregado": {
+              "type": "number",
+              "description": "Euros por mês em casa, todos somados (aproximado)."
+            },
+            "filhos_idades": {
+              "type": "array",
+              "description": "Idades dos filhos a cargo (bebé = 0); [] se nenhum.",
+              "items": {
+                "type": "integer",
+                "description": "Um elemento de filhos idades."
+              }
+            },
+            "inquilino": {
+              "type": "boolean",
+              "description": "true se a casa onde vive é arrendada."
+            },
+            "aceita_contacto": {
+              "type": "boolean",
+              "description": "Aceita que a câmara lhe volte a ligar sobre isto."
+            },
+            "fim": {
+              "type": "boolean",
+              "description": "true se não quer responder a mais perguntas."
+            }
+          },
+          "description": "Parâmetros de que_apoios_tenho."
+        }
+      }
+    },
+    {
+      "type": "webhook",
+      "name": "redigir",
+      "description": "Quando quer escrever à câmara ou a outra entidade (reclamação, email, pedido): com os factos (o quê, onde, quando, o que pede) devolve o texto em português, para ler e confirmar. Não envia nada.",
+      "response_timeout_secs": 45,
+      "tool_error_handling_mode": "passthrough",
+      "api_schema": {
+        "url": "${API_URL}/v1/agent/tools/redigir",
+        "method": "POST",
+        "content_type": "application/json",
+        "request_headers": {
+          "X-Agente-Segredo": {
+            "secret_id": "${SEGREDO:toucamara_agente_segredo}"
+          },
+          "X-Municipio": "${MUNICIPIO}",
+          "X-Conversa-Id": {
+            "variable_name": "system__conversation_id"
+          },
+          "X-Telefone": {
+            "variable_name": "system__caller_id"
+          },
+          "X-Telefone-Web": {
+            "variable_name": "telefone"
+          }
+        },
+        "request_body_schema": {
+          "type": "object",
+          "properties": {
+            "tipo": {
+              "type": "string",
+              "description": "Que texto redigir.",
+              "enum": [
+                "reclamacao",
+                "email",
+                "pedido"
+              ]
+            },
+            "destinatario": {
+              "type": "string",
+              "description": "A quem se dirige (ex.: \"Câmara Municipal\", \"Vimágua\", \"Presidente da Junta\")."
+            },
+            "assunto": {
+              "type": "string",
+              "description": "O assunto, numa frase."
+            },
+            "factos": {
+              "type": "string",
+              "description": "Os factos tal como a pessoa os contou: o quê, onde, quando, o que já fez e o que pede."
+            }
+          },
+          "required": [
+            "tipo",
+            "assunto",
+            "factos"
+          ],
+          "description": "Parâmetros de redigir."
+        }
+      }
+    },
+    {
+      "type": "webhook",
+      "name": "registar_ocorrencia",
+      "description": "Problema na via pública (buraco, candeeiro apagado, lixo, árvore caída), depois de confirmar a morada e o que se passa. duplicada: true → já estava reportado: juntámos o aviso e a pessoa é avisada quando estiver resolvido. Se der erro, pede desculpa e passa a um funcionário.",
+      "response_timeout_secs": 20,
+      "tool_error_handling_mode": "passthrough",
+      "api_schema": {
+        "url": "${API_URL}/v1/agent/tools/registar_ocorrencia",
+        "method": "POST",
+        "content_type": "application/json",
+        "request_headers": {
+          "X-Agente-Segredo": {
+            "secret_id": "${SEGREDO:toucamara_agente_segredo}"
+          },
+          "X-Municipio": "${MUNICIPIO}",
+          "X-Conversa-Id": {
+            "variable_name": "system__conversation_id"
+          },
+          "X-Telefone": {
+            "variable_name": "system__caller_id"
+          },
+          "X-Telefone-Web": {
+            "variable_name": "telefone"
+          }
+        },
+        "request_body_schema": {
+          "type": "object",
+          "properties": {
+            "categoria": {
+              "type": "string",
+              "description": "O tipo de problema, ou o nome da categoria."
+            },
+            "descricao": {
+              "type": "string",
+              "description": "O que se passa, em poucas frases."
+            },
+            "morada": {
+              "type": "string",
+              "description": "Rua e número ou cruzamento, e freguesia."
+            },
+            "ponto_referencia": {
+              "type": "string",
+              "description": "Ex.: \"em frente à farmácia\"."
+            }
+          },
+          "required": [
+            "categoria",
+            "descricao",
+            "morada"
+          ],
+          "description": "Parâmetros de registar_ocorrencia."
+        }
+      }
+    },
+    {
+      "type": "webhook",
+      "name": "registar_reclamacao",
+      "description": "Só para uma reclamação FORMAL (Livro de Reclamações) sobre um serviço, funcionário ou atendimento da câmara; não para problemas na rua (registar_ocorrencia), pedidos ou dúvidas. Se não for claro, pergunta. Pergunta o nome, o serviço, o que aconteceu e o que pede. Fica com número e prazo legal de resposta.",
+      "response_timeout_secs": 20,
+      "tool_error_handling_mode": "passthrough",
+      "api_schema": {
+        "url": "${API_URL}/v1/agent/tools/registar_reclamacao",
+        "method": "POST",
+        "content_type": "application/json",
+        "request_headers": {
+          "X-Agente-Segredo": {
+            "secret_id": "${SEGREDO:toucamara_agente_segredo}"
+          },
+          "X-Municipio": "${MUNICIPIO}",
+          "X-Conversa-Id": {
+            "variable_name": "system__conversation_id"
+          },
+          "X-Telefone": {
+            "variable_name": "system__caller_id"
+          },
+          "X-Telefone-Web": {
+            "variable_name": "telefone"
+          }
+        },
+        "request_body_schema": {
+          "type": "object",
+          "properties": {
+            "nome": {
+              "type": "string",
+              "description": "Nome completo (obrigatório na formal)."
+            },
+            "servico_visado": {
+              "type": "string",
+              "description": "O serviço, balcão ou funcionário."
+            },
+            "descricao": {
+              "type": "string",
+              "description": "O quê, quando e onde, com as palavras da pessoa."
+            },
+            "pedido": {
+              "type": "string",
+              "description": "O que pede à câmara."
+            },
+            "resposta_por": {
+              "type": "string",
+              "description": "Por omissão SMS.",
+              "enum": [
+                "sms",
+                "email"
+              ]
+            },
+            "email": {
+              "type": "string",
+              "description": "Se quer a resposta por email. Endereço de email."
+            },
+            "confirmado": {
+              "type": "boolean",
+              "description": "true só depois de a pessoa confirmar ler_a_pessoa."
+            }
+          },
+          "required": [
+            "nome",
+            "descricao"
+          ],
+          "description": "Parâmetros de registar_reclamacao."
+        }
+      }
+    },
+    {
+      "type": "webhook",
+      "name": "renovar_licenca",
+      "description": "Renova uma licença a expirar (esplanada, dístico, publicidade, ocupação da via) com os dados da anterior. 1.ª chamada sem confirmar: devolve os dados (ou escolher: true, e perguntas qual); lê-os, pergunta só o que mudou e chama com confirmar: true e as alteracoes. Devolve proposta \"aprovar\" (cumpre: diz a taxa, as condições e o \"dizer\") ou \"tecnico\" (diz que regra falha: um técnico vê e responde por SMS).",
+      "response_timeout_secs": 20,
+      "tool_error_handling_mode": "passthrough",
+      "api_schema": {
+        "url": "${API_URL}/v1/agent/tools/renovar_licenca",
+        "method": "POST",
+        "content_type": "application/json",
+        "request_headers": {
+          "X-Agente-Segredo": {
+            "secret_id": "${SEGREDO:toucamara_agente_segredo}"
+          },
+          "X-Municipio": "${MUNICIPIO}",
+          "X-Conversa-Id": {
+            "variable_name": "system__conversation_id"
+          },
+          "X-Telefone": {
+            "variable_name": "system__caller_id"
+          },
+          "X-Telefone-Web": {
+            "variable_name": "telefone"
+          }
+        },
+        "request_body_schema": {
+          "type": "object",
+          "properties": {
+            "numero": {
+              "type": "string",
+              "description": "O número da licença, se tiver mais de uma."
+            },
+            "confirmar": {
+              "type": "boolean",
+              "description": "true só depois de a pessoa confirmar os dados."
+            },
+            "alteracoes": {
+              "type": "object",
+              "properties": {
+                "meses": {
+                  "type": "integer",
+                  "description": "meses"
+                },
+                "dias": {
+                  "type": "integer",
+                  "description": "dias"
+                },
+                "area_m2": {
+                  "type": "number",
+                  "description": "m²"
+                },
+                "mesas": {
+                  "type": "integer",
+                  "description": "mesas"
+                },
+                "passeio_livre_m": {
+                  "type": "number",
+                  "description": "passeio livre"
+                },
+                "largura_m": {
+                  "type": "number",
+                  "description": "largura"
+                },
+                "altura_m": {
+                  "type": "number",
+                  "description": "altura"
+                },
+                "iluminado": {
+                  "type": "boolean",
+                  "description": "iluminado"
+                },
+                "matricula": {
+                  "type": "string",
+                  "description": "matrícula"
+                },
+                "nome": {
+                  "type": "string",
+                  "description": "titular"
+                }
+              },
+              "description": "Só o que mudou (vazio = tudo igual)."
+            },
+            "metodo": {
+              "type": "string",
+              "description": "Por omissão MB WAY.",
+              "enum": [
+                "mbway",
+                "multibanco"
+              ]
+            }
+          },
+          "description": "Parâmetros de renovar_licenca."
+        }
+      }
+    },
+    {
+      "type": "webhook",
+      "name": "resposta_emergencia",
+      "description": "Num aviso de emergência da câmara (cheia, incêndio, corte de água, calor), na nossa chamada (em vez de resposta_campanha) ou se a pessoa liga ou escreve por causa dele: grava se está em segurança. precisa_ajuda (ou se ficaste preocupado) alerta logo a câmara e a proteção civil.",
+      "response_timeout_secs": 20,
+      "tool_error_handling_mode": "passthrough",
+      "api_schema": {
+        "url": "${API_URL}/v1/agent/tools/resposta_emergencia",
+        "method": "POST",
+        "content_type": "application/json",
+        "request_headers": {
+          "X-Agente-Segredo": {
+            "secret_id": "${SEGREDO:toucamara_agente_segredo}"
+          },
+          "X-Municipio": "${MUNICIPIO}",
+          "X-Conversa-Id": {
+            "variable_name": "system__conversation_id"
+          },
+          "X-Telefone": {
+            "variable_name": "system__caller_id"
+          },
+          "X-Telefone-Web": {
+            "variable_name": "telefone"
+          }
+        },
+        "request_body_schema": {
+          "type": "object",
+          "properties": {
+            "estado": {
+              "type": "string",
+              "description": "precisa_ajuda também se ficaste preocupado.",
+              "enum": [
+                "em_seguranca",
+                "precisa_ajuda"
+              ]
+            },
+            "ajuda": {
+              "type": "array",
+              "description": "Que ajuda precisa.",
+              "items": {
+                "type": "string",
+                "description": "Um elemento de ajuda.",
+                "enum": [
+                  "sair_de_casa",
+                  "transporte",
+                  "saude",
+                  "agua",
+                  "abrigo",
+                  "medicamentos",
+                  "outro"
+                ]
+              }
+            },
+            "nota": {
+              "type": "string",
+              "description": "O que a pessoa disse, em poucas palavras."
+            }
+          },
+          "required": [
+            "estado"
+          ],
+          "description": "Parâmetros de resposta_emergencia."
+        }
+      }
+    },
+    {
+      "type": "webhook",
+      "name": "retirar_familiar",
+      "description": "Quando já não quer o familiar a acompanhar: o link dele deixa de funcionar.",
+      "response_timeout_secs": 20,
+      "tool_error_handling_mode": "passthrough",
+      "api_schema": {
+        "url": "${API_URL}/v1/agent/tools/retirar_familiar",
+        "method": "POST",
+        "content_type": "application/json",
+        "request_headers": {
+          "X-Agente-Segredo": {
+            "secret_id": "${SEGREDO:toucamara_agente_segredo}"
+          },
+          "X-Municipio": "${MUNICIPIO}",
+          "X-Conversa-Id": {
+            "variable_name": "system__conversation_id"
+          },
+          "X-Telefone": {
+            "variable_name": "system__caller_id"
+          },
+          "X-Telefone-Web": {
+            "variable_name": "telefone"
+          }
+        }
+      }
+    },
+    {
+      "type": "webhook",
+      "name": "simular_taxa",
+      "description": "Quando pergunta quanto custa um pedido ou licença: as taxas pela tabela em vigor. Diz o total_por_extenso e a fonte (tabela e ano); é uma estimativa (vale a guia). sem_tabela_taxas → passa a um funcionário.",
+      "response_timeout_secs": 20,
+      "tool_error_handling_mode": "passthrough",
+      "api_schema": {
+        "url": "${API_URL}/v1/agent/tools/simular_taxa",
+        "method": "POST",
+        "content_type": "application/json",
+        "request_headers": {
+          "X-Agente-Segredo": {
+            "secret_id": "${SEGREDO:toucamara_agente_segredo}"
+          },
+          "X-Municipio": "${MUNICIPIO}",
+          "X-Conversa-Id": {
+            "variable_name": "system__conversation_id"
+          },
+          "X-Telefone": {
+            "variable_name": "system__caller_id"
+          },
+          "X-Telefone-Web": {
+            "variable_name": "telefone"
+          }
+        },
+        "request_body_schema": {
+          "type": "object",
+          "properties": {
+            "tipo_processo": {
+              "type": "string",
+              "description": "Código do tipo de processo (ex.: \"CP\")."
+            },
+            "taxas": {
+              "type": "array",
+              "description": "Taxas soltas, se não for um tipo de processo.",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "codigo": {
+                    "type": "string",
+                    "description": "Código na tabela."
+                  },
+                  "quantidade": {
+                    "type": "number",
+                    "description": "Quantidade."
+                  }
+                },
+                "description": "Um elemento de taxas.",
+                "required": [
+                  "codigo"
+                ]
+              }
+            },
+            "quantidades": {
+              "type": "object",
+              "properties": {
+                "m2": {
+                  "type": "number",
+                  "description": "Metros quadrados."
+                },
+                "dia": {
+                  "type": "integer",
+                  "description": "Número de dias."
+                },
+                "pagina": {
+                  "type": "integer",
+                  "description": "Páginas."
+                },
+                "fogo": {
+                  "type": "integer",
+                  "description": "Fogos (habitações)."
+                },
+                "mesa": {
+                  "type": "integer",
+                  "description": "Mesas."
+                }
+              },
+              "description": "Quantidades ditas, por unidade."
+            }
+          },
+          "description": "Parâmetros de simular_taxa."
+        }
+      }
+    },
+    {
+      "type": "webhook",
+      "name": "ver_vagas",
+      "description": "Quando quer marcar atendimento presencial: vagas reais. Lê 2 ou 3 pelo \"dito\" e, escolhida, chama marcar com o \"inicio\". sem_vagas → propõe outro dia.",
+      "response_timeout_secs": 20,
+      "tool_error_handling_mode": "passthrough",
+      "api_schema": {
+        "url": "${API_URL}/v1/agent/tools/ver_vagas",
+        "method": "POST",
+        "content_type": "application/json",
+        "request_headers": {
+          "X-Agente-Segredo": {
+            "secret_id": "${SEGREDO:toucamara_agente_segredo}"
+          },
+          "X-Municipio": "${MUNICIPIO}",
+          "X-Conversa-Id": {
+            "variable_name": "system__conversation_id"
+          },
+          "X-Telefone": {
+            "variable_name": "system__caller_id"
+          },
+          "X-Telefone-Web": {
+            "variable_name": "telefone"
+          }
+        },
+        "request_body_schema": {
+          "type": "object",
+          "properties": {
+            "agenda_id": {
+              "type": "string",
+              "description": "Id da agenda, se já o tiveres."
+            },
+            "servico": {
+              "type": "string",
+              "description": "O serviço ou assunto, sem agenda_id."
+            },
+            "dia": {
+              "type": "string",
+              "description": "Dia pedido, AAAA-MM-DD."
+            },
+            "limite": {
+              "type": "integer",
+              "description": "Máximo de vagas."
+            }
+          },
+          "description": "Parâmetros de ver_vagas."
+        }
+      }
+    }
+  ],
+  "avisos": [
+    {
+      "ferramenta": "preencher_campo",
+      "caminho": "campos",
+      "nivel": "perda",
+      "mensagem": "objeto de chaves livres (z.record): vai como objeto sem propriedades; confirmar numa chamada que o modelo manda as chaves"
+    }
+  ]
+}

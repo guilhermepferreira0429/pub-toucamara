@@ -164,47 +164,45 @@ export const esquemaPerfil = z.object({
     .enum(CHAVES_ATIVIDADE)
     .optional()
     .describe(
-      'restauracao (restaurante, café, bar), comercio (loja), cabeleireiro_estetica, alojamento_local, oficina, servicos (escritório) ou eventos (espetáculos e eventos).',
+      'restauracao = restaurante, café, bar; comercio = loja; servicos = escritório.',
     ),
   fase: z
     .enum(['abrir', 'aberta'])
     .optional()
-    .describe('abrir: vai abrir agora; aberta: já está a funcionar.'),
+    .describe('aberta = já funciona.'),
   abertura: z.iso
     .date()
     .optional()
-    .describe('Quando conta abrir, AAAA-MM-DD (aproximado serve).'),
-  esplanada: boolOpc('Se vai ter esplanada no passeio.'),
-  publicidade: boolOpc('Se vai ter placa, letreiro, reclamo ou toldo.'),
-  obras: boolOpc('Se vai fazer obras no espaço.'),
-  musica: boolOpc('Se vai ter música ao vivo, DJ ou som alto.'),
-  eventos_rua: boolOpc('Se vai organizar eventos ao ar livre.'),
-  ocupacao_via: boolOpc(
-    'Se vai ocupar a rua (cargas e descargas, estaleiro, contentor, andaime).',
-  ),
-  horario_alargado: boolOpc('Se quer abrir fora do horário normal.'),
-  vende_alimentos: boolOpc('Se vende alimentos ou bebidas (lojas).'),
-  atendimento_publico: boolOpc('Se recebe clientes no espaço (escritórios).'),
-  centro_historico: boolOpc('Se o espaço fica no centro histórico.'),
+    .describe('Quando conta abrir (aproximado).'),
+  esplanada: boolOpc('Esplanada no passeio.'),
+  publicidade: boolOpc('Placa, letreiro ou toldo.'),
+  obras: boolOpc('Obras no espaço.'),
+  musica: boolOpc('Música ao vivo ou som alto.'),
+  eventos_rua: boolOpc('Eventos ao ar livre.'),
+  ocupacao_via: boolOpc('Ocupa a rua (cargas, contentor, andaime).'),
+  horario_alargado: boolOpc('Abre fora do horário normal.'),
+  vende_alimentos: boolOpc('Vende alimentos (lojas).'),
+  atendimento_publico: boolOpc('Recebe clientes (escritórios).'),
+  centro_historico: boolOpc('No centro histórico.'),
   area_esplanada_m2: z
     .number()
     .positive()
     .max(1000)
     .optional()
-    .describe('Área da esplanada em m², se souber (para a taxa).'),
+    .describe('m², se souber.'),
   area_publicidade_m2: z
     .number()
     .positive()
     .max(200)
     .optional()
-    .describe('Área do anúncio em m², se souber (para a taxa).'),
-  publicidade_iluminada: boolOpc('Se o anúncio é iluminado.'),
+    .describe('m², se souber.'),
+  publicidade_iluminada: boolOpc('Anúncio iluminado.'),
   area_obra_m2: z
     .number()
     .positive()
     .max(100_000)
     .optional()
-    .describe('Área da obra em m², se souber (para a taxa).'),
+    .describe('m², se souber.'),
 });
 export type Perfil = z.output<typeof esquemaPerfil>;
 
@@ -576,7 +574,12 @@ export function estimarTaxa(
 // ---------------------------------------------------------------------
 
 export type Como =
-  | { tipo: 'agente'; ferramenta: string; frase: string }
+  | {
+      tipo: 'agente';
+      ferramenta: string;
+      tipo_licenca: TipoLicenca;
+      frase: string;
+    }
   | { tipo: 'link'; url: string }
   | { tipo: 'camara' }
   | { tipo: 'fora' };
@@ -652,6 +655,7 @@ function comoDe(r: Requisito): Como {
     return {
       tipo: 'agente',
       ferramenta: d.ferramenta,
+      tipo_licenca: r.tipo_licenca,
       frase: `Quero pedir a ${d.curto}`,
     };
   }

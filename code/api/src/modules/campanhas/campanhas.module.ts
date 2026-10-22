@@ -24,9 +24,8 @@ export class CampanhasModule implements OnModuleInit {
       ferramenta({
         nome: 'resposta_campanha',
         descricao:
-          'Numa chamada de campanha (a câmara ligou para saber se a pessoa está bem): grava a resposta no fim. ' +
-          'Usa "precisa_ajuda" se a pessoa pediu alguma coisa ou se ficaste preocupado; a ação social vê logo no painel. ' +
-          'Diz o texto de "dizer". Se vier gravado: false, não é uma chamada de campanha.',
+          'No fim de uma chamada de campanha (saber se a pessoa está bem): grava a resposta; precisa_ajuda aparece logo à ação social. gravado: false → não é campanha.',
+        agentes: ['saida'],
         entrada: entradaResposta,
         executar: (ctx, e) => this.campanhas.resposta(ctx, e),
       }),

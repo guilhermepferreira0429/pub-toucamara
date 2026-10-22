@@ -31,11 +31,9 @@ export class ArquivoModule implements OnModuleInit {
       ferramenta({
         nome: 'pedir_consulta_arquivo',
         descricao:
-          'Pedido para consultar um processo ANTIGO no arquivo municipal (obras, licenças, plantas de casas antigas: "quero ver o processo da casa do meu avô", "preciso da planta antiga", "como consulto um processo no arquivo?"). ' +
-          'NÃO é para o estado de um processo em curso (usa estado_processo). ' +
-          'Pergunta o que a pessoa sabe: a morada do prédio, o ano (mesmo aproximado) e o nome de quem fez o pedido na altura (ou o número antigo). Chama com isso: a ferramenta procura nas digitalizações e diz só QUANTOS documentos prováveis há. Nunca digas nomes, moradas ou conteúdos de documentos: não os recebes. ' +
-          'Depois segue o "motivo": precisa_identificacao (pede o NIF e usa identificar_municipe), falta_qualidade (explica a regra de acesso e pergunta se é o titular ou qual é o interesse), falta_modalidade (explica presencial ou cópia certificada com os valores tal como vêm e diz que são de demonstração se vier valores_de_demonstracao), falta_confirmar (lê "ler_a_pessoa" e chama com confirmado: true). ' +
-          'No fim diz o "dizer" tal como vem (número do pedido e prazo). A regra legal é "a confirmar com o arquivo": não a apresentes como certa.',
+          'Para consultar um processo ANTIGO no arquivo (planta da casa do avô); não é para processos em curso. ' +
+          'Pergunta a morada, o ano e quem pediu na altura (ou o número antigo): devolve só QUANTOS documentos há (nunca digas nomes, moradas ou conteúdos). ' +
+          'Depois segue a instrucao de cada passo. A regra legal é "a confirmar com o arquivo": não a dês como certa.',
         entrada: entradaPedir,
         executar: (ctx, e) => this.pedidos.pedirPeloAgente(ctx, e),
       }),

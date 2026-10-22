@@ -7,10 +7,7 @@ export function ferramentasRetomar(retomar: RetomarService) {
     ferramenta({
       nome: 'conversa_anterior',
       descricao:
-        'O que se tratou nas conversas anteriores desta pessoa (últimos 30 dias): resumo, próximos passos e o que ficou registado ' +
-        '(requerimentos, processos, ocorrências, marcações, com estado). ' +
-        'Usa quando a pessoa diz que já ligou ou escreveu antes ("liguei ontem por causa de…") e o contexto do início não chega. ' +
-        'Continua o assunto sem lhe pedir que repita. Se vier precisa_identificacao: true, segue a instrução.',
+        'Quando diz que já ligou ou escreveu antes e o contexto do início não chega: resumo, próximos passos e o que ficou registado (30 dias). Continua sem pedir que repita.',
       entrada: z.object({
         quantas: z
           .number()
@@ -18,9 +15,7 @@ export function ferramentasRetomar(retomar: RetomarService) {
           .min(1)
           .max(3)
           .optional()
-          .describe(
-            'Quantas conversas, da mais recente para trás (por defeito 1; até 3 se a pessoa não disser qual).',
-          ),
+          .describe('Quantas, da mais recente (1; até 3 se não disser qual).'),
       }),
       async executar(ctx, { quantas }) {
         return retomar.paraFerramenta(ctx, quantas ?? 1);

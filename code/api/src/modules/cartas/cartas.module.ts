@@ -59,20 +59,17 @@ export class CartasModule implements OnModuleInit {
       ferramenta({
         nome: 'ler_carta',
         descricao:
-          'Explica uma carta da câmara que a pessoa recebeu e não percebe (ofício, notificação, audiência prévia, pedido de documentos, taxa, coima, edital): o que é, o prazo e a data-limite (calculada por nós), o que acontece se não fizer nada e como responder. ' +
-          'No chat, a mensagem da pessoa traz "[carta CODIGO]" quando envia a fotografia: chama com esse código. Sem código: na chamada manda um SMS com o link para fotografar a carta (diz o "dizer" e espera; quando a pessoa disser que enviou, chama outra vez com o código do resultado); no chat pede para anexar. ' +
-          'Diz o "dizer" por palavras simples, sem ler os excertos todos. Nunca inventes um prazo: se vier pergunta data_rececao, pergunta em que dia recebeu a carta e chama outra vez com data_rececao. ' +
-          'Se vier da_camara: false, a carta é de outra entidade: diz de quem é e encaminha (não prepares resposta). Se vier precisa_identificacao, segue a instrução. ' +
-          'Se a pessoa quiser responder, usa preparar_resposta_carta.',
+          'Quando recebeu uma carta da câmara e não a percebe: o que é, a data-limite (calculada por nós), o que acontece se não fizer nada e como responder. ' +
+          'Sem código: na chamada manda SMS para fotografar (espera e chama com o código do resultado); no chat pede para anexar ([carta CODIGO] na mensagem). ' +
+          'Não leias os excertos todos. Nunca inventes o prazo (se pedir data_rececao, pergunta o dia). da_camara: false → diz de quem é e encaminha.',
         entrada: entradaLerCarta,
         executar: (ctx, e) => this.cartas.lerCartaAgente(ctx, e),
       }),
       ferramenta({
         nome: 'preparar_resposta_carta',
         descricao:
-          'Prepara o rascunho da resposta a uma carta já lida com ler_carta: pronuncia (responder por escrito em audiência prévia ou defesa, com os argumentos que a pessoa disse), prorrogacao (pedir mais tempo), elementos (lista dos documentos pedidos) ou pagamento (referência de teste). ' +
-          'Antes da pronúncia, pergunta à pessoa porque não concorda e passa as palavras dela em argumentos (não acrescentes factos). ' +
-          'O rascunho fica no link para a pessoa rever, mudar e confirmar: NADA é entregue sem a confirmação dela na página. Diz o "dizer".',
+          'Depois de ler_carta, quando quer responder: o rascunho vai no link, para a pessoa rever e confirmar (nada é entregue sem isso). ' +
+          'Na pronúncia, pergunta porque não concorda e passa as palavras dela (sem acrescentar factos).',
         entrada: entradaPrepararResposta,
         executar: (ctx, e) => this.cartas.prepararRespostaAgente(ctx, e),
       }),

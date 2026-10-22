@@ -69,46 +69,38 @@ export const entradaOQueSePassa = z.object({
     .array(z.enum(TIPOS_ITEM))
     .max(5)
     .optional()
-    .describe(
-      'O que a pessoa quer saber: obras (obras, ruas cortadas ou condicionadas, andaimes, contentores), incidentes (buracos, avarias, problemas reportados), avisos (avisos da câmara, cortes de água, emergências, comunicados e notícias), eventos (festas, arraiais, feiras, concertos), consultas (consultas públicas abertas). Vazio = tudo.',
-    ),
+    .describe('O que quer saber; vazio = tudo.'),
   morada: z
     .string()
     .trim()
     .min(3)
     .max(200)
     .optional()
-    .describe(
-      'A rua (e a freguesia, se a disser) de que a pessoa fala, ex.: "Rua Direita, Azurém". Sem número de porta. Vazio = a morada que já conhecemos.',
-    ),
+    .describe('A rua (e freguesia), sem número; vazio = a conhecida.'),
   freguesia: z
     .string()
     .trim()
     .min(2)
     .max(120)
     .optional()
-    .describe('A freguesia, se a pessoa falar de uma freguesia inteira.'),
+    .describe('Se fala da freguesia inteira.'),
   quando: z
     .enum(QUANDO)
     .optional()
-    .describe(
-      'agora, hoje, amanha, fim_de_semana, esta_semana ou proximos_dias. Vazio = o que está a decorrer e o que vem aí.',
-    ),
-  de: z.iso.date().optional().describe('Desde que dia, AAAA-MM-DD.'),
-  ate: z.iso.date().optional().describe('Até que dia, AAAA-MM-DD.'),
+    .describe('Vazio = a decorrer e o que vem aí.'),
+  de: z.iso.date().optional().describe('Desde, AAAA-MM-DD.'),
+  ate: z.iso.date().optional().describe('Até, AAAA-MM-DD.'),
   todo_concelho: z
     .boolean()
     .optional()
-    .describe(
-      'true se a pessoa quer saber do concelho todo (ou não quer dizer onde mora).',
-    ),
+    .describe('Concelho todo (ou não quer dizer onde mora).'),
   limite: z
     .number()
     .int()
     .min(1)
     .max(5)
     .optional()
-    .describe('Quantos itens, 3 a 5 (por omissão 5).'),
+    .describe('Quantos itens (5).'),
 });
 
 export const entradaAvisarMe = z.object({
@@ -116,32 +108,28 @@ export const entradaAvisarMe = z.object({
     .array(z.enum(TIPOS_SUBSCRICAO))
     .min(1)
     .max(4)
-    .describe(
-      'De que quer ser avisada: obras (obras, ruas cortadas), incidentes, eventos, avisos (avisos da câmara e emergências).',
-    ),
+    .describe('De que quer ser avisada.'),
   morada: z
     .string()
     .trim()
     .min(3)
     .max(200)
     .optional()
-    .describe(
-      'A rua (e a freguesia), sem número de porta. Vazio = a morada que já conhecemos.',
-    ),
+    .describe('A rua (e freguesia), sem número; vazio = a conhecida.'),
   freguesia: z
     .string()
     .trim()
     .min(2)
     .max(120)
     .optional()
-    .describe('A freguesia, se quiser ser avisada da freguesia toda.'),
+    .describe('Para a freguesia toda.'),
   raio_m: z
     .number()
     .int()
     .min(100)
     .max(2_000)
     .optional()
-    .describe('Quantos metros à volta da rua (por omissão 300).'),
+    .describe('Metros à volta da rua (300).'),
 });
 
 /** Freguesias conhecidas em cache (mudam pouco). */

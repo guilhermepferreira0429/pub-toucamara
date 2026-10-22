@@ -42,10 +42,7 @@ export class ReunioesModule implements OnModuleInit {
       ferramenta({
         nome: 'procurar_deliberacoes',
         descricao:
-          'Procura nas deliberações das reuniões de câmara e da assembleia municipal (só atas publicadas). ' +
-          'Usa quando a pessoa pergunta se a câmara ou a assembleia já decidiu alguma coisa sobre um assunto ("a câmara já aprovou o parque?", "o que se decidiu sobre a taxa de resíduos?"). ' +
-          'Diz o "dizer", com a data, o órgão e o resultado; se a pessoa quiser ler, dá o link do PDF da ata (ata_pdf). ' +
-          'Se vier sem_resultados: true, diz que não encontraste deliberações publicadas sobre isso e não inventes decisões.',
+          'Quando pergunta se a câmara ou a assembleia já decidiu algo: as deliberações das atas publicadas, com a data, o órgão e o resultado (o PDF da ata em ata_pdf, se quiser ler).',
         entrada: entradaProcurarDeliberacoes,
         executar: (ctx, e) => this.deliberacoes.ferramenta(ctx, e),
       }),

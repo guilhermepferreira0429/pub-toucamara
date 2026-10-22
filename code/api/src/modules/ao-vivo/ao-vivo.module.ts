@@ -46,8 +46,7 @@ export class AoVivoModule implements OnModuleInit {
       ferramenta({
         nome: 'retirar_familiar',
         descricao:
-          'Quando a pessoa diz que já não precisa do familiar que está a acompanhar a chamada, ou que não quer que ele veja mais ("já não preciso"). ' +
-          'O link do familiar deixa de funcionar. Diz o texto de "dizer".',
+          'Quando já não quer o familiar a acompanhar: o link dele deixa de funcionar.',
         entrada: z.object({}),
         executar: (ctx) => this.acompanhamento.retirarPeloAgente(ctx),
       }),

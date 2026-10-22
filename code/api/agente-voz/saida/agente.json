@@ -1,8 +1,8 @@
 {
   "_leia_me": "Gerado por `npm run agente-voz -- gerar`. O `sincronizar --confirmar` envia conversation_config e platform_settings sem os valores null (o prompt e a lista de ferramentas vêm de prompt.md e ferramentas.json). Ver README.md.",
   "_notas": {
-    "elevenlabs_agent_id": "agente_config.elevenlabs_agent_id do município (ou --agente no comando).",
-    "conversation_config.agent.first_message": "agente_config.saudacao + aviso de gravação (na linha telefónica é este o aviso). null se a BD não estava acessível ao gerar.",
+    "elevenlabs_agent_id": "agente_config.elevenlabs_agent_id_saida do município (ou --agente-saida no comando). Sem ele, as chamadas da câmara usam o agente de entrada.",
+    "conversation_config.agent.first_message": "Quem fala, da câmara, + aviso de gravação (a câmara é que ligou; o motivo vem do prompt). null se a BD não estava acessível ao gerar.",
     "conversation_config.agent.language": "\"pt\". A variante de Portugal (PT-PT) vem da voz e do prompt; confirmar no ElevenLabs se há um código pt-PT próprio.",
     "conversation_config.agent.prompt.timezone": "municipios.fuso. Campo do SDK 2.74; confirmar que o agente o aceita.",
     "conversation_config.agent.dynamic_variables.dynamic_variable_placeholders": "Todas as variáveis que o prompt e os headers das ferramentas usam, com o valor por omissão (numa chamada pelo browser o webhook de início não corre). Confirmar que o ElevenLabs as usa quando a variável não chega.",
@@ -18,10 +18,11 @@
     "platform_settings.call_limits": "Não está no código (concorrência e limite diário por decidir)."
   },
   "municipio": "guimaraes",
-  "elevenlabs_agent_id": "agente-e2e",
+  "agente": "saida",
+  "elevenlabs_agent_id": null,
   "conversation_config": {
     "agent": {
-      "first_message": "Olá, fala com o Tou, Câmara? Esta chamada é gravada para a câmara poder confirmar o que lhe foi dito; se não quiser, diga-me. Em que posso ajudar?",
+      "first_message": "Olá, daqui fala o assistente Tou, Câmara? da Câmara Municipal de Guimarães. Esta chamada é gravada para a câmara poder confirmar o que lhe foi dito; se não quiser, diga-me.",
       "language": "pt",
       "prompt": {
         "timezone": "Europe/Lisbon"

@@ -372,7 +372,9 @@ export class ChamadasSaidaService {
         `SELECT ${COLUNAS}, m.aceita_chamadas,
                 (SELECT pe.respondido_em IS NOT NULL FROM processo_pedidos_estado pe
                  WHERE pe.id = c.pedido_id) AS respondido,
-                a.elevenlabs_agent_id AS agent_id, a.chamadas_saida AS config
+                -- O agente das chamadas da câmara; sem ele, o de entrada.
+                coalesce(a.elevenlabs_agent_id_saida, a.elevenlabs_agent_id) AS agent_id,
+                a.chamadas_saida AS config
          FROM chamadas_saida c
          JOIN municipes m ON m.id = c.municipe_id
          LEFT JOIN agente_config a ON a.municipio_id = c.municipio_id
@@ -425,7 +427,7 @@ export class ChamadasSaidaService {
       const falta = !this.apiKey
         ? 'ELEVENLABS_API_KEY'
         : !c.agent_id
-          ? 'agente_config.elevenlabs_agent_id'
+          ? 'agente_config.elevenlabs_agent_id_saida ou elevenlabs_agent_id'
           : !config.numero_id
             ? 'número de saída (chamadas_saida.numero_id)'
             : null;
@@ -904,14 +906,19 @@ export class ChamadasSaidaService {
     const [a] = await this.db.query<{
       chamadas_saida: unknown;
       agent_id: string | null;
+      agent_id_saida: string | null;
     }>(
-      `SELECT chamadas_saida, elevenlabs_agent_id AS agent_id
+      `SELECT chamadas_saida, elevenlabs_agent_id AS agent_id,
+              elevenlabs_agent_id_saida AS agent_id_saida
        FROM agente_config WHERE municipio_id = $1`,
       [m.id],
     );
     return {
       ...lerConfig(a?.chamadas_saida),
-      agente_configurado: !!a?.agent_id,
+      agente_configurado: !!(a?.agent_id_saida ?? a?.agent_id),
+      // false: as chamadas da câmara usam o agente de entrada (sem as
+      // ferramentas das campanhas, emergências e antecipações).
+      agente_saida_configurado: !!a?.agent_id_saida,
       elevenlabs_disponivel: !!this.apiKey,
     };
   }

@@ -190,13 +190,14 @@ describe('Ao vivo (e2e)', () => {
     await escrever(s, [
       ...fala,
       { tipo: 'fala', quem: 'agente', texto: 'Vou ver as regras.' },
-      { tipo: 'ferramenta', ferramenta: 'pedir_licenca_ruido', fase: 'pedido' },
+      { tipo: 'ferramenta', ferramenta: 'pedir_licenca', fase: 'pedido' },
       {
         tipo: 'ferramenta',
-        ferramenta: 'pedir_licenca_ruido',
+        ferramenta: 'pedir_licenca',
         fase: 'resposta',
         resultado: JSON.stringify({
           pedida: true,
+          tipo: 'ruido',
           emitida: true,
           numero: 'LR-9',
         }),
@@ -216,13 +217,13 @@ describe('Ao vivo (e2e)', () => {
       { quem: 'agente', texto: 'Vou ver as regras.', ferramenta: null },
       {
         quem: 'ferramenta',
-        texto: 'A chamar: Licença de ruído…',
-        ferramenta: 'pedir_licenca_ruido',
+        texto: 'A chamar: Pedido de licença…',
+        ferramenta: 'pedir_licenca',
       },
       {
         quem: 'ferramenta',
         texto: 'Licença de ruído emitida (LR-9)',
-        ferramenta: 'pedir_licenca_ruido',
+        ferramenta: 'pedir_licenca',
       },
     ]);
     // O munícipe não escreve como funcionário nem como familiar.

@@ -7,10 +7,9 @@ export function ferramentasProcessos(processos: ProcessosService) {
     ferramenta({
       nome: 'estado_processo',
       descricao:
-        'Diz em que ponto está um processo do munícipe (licenças, comunicações prévias, pedidos já entregues): fase, dias úteis que faltam e o que falta da parte dele, com o prazo de cada pedido. ' +
-        'Usa quando a pessoa pergunta "como está o meu processo?". Só mostra processos da própria pessoa. ' +
-        'Se vier precisa_identificacao: true, peça o NIF, use identificar_municipe e volte a chamar. ' +
-        'Diga o "resumo" de cada processo por palavras simples (inclui até quando tem de entregar cada documento pedido); se houver vários, pergunte de qual quer saber.',
+        'Quando pergunta como está o processo dela (só os da própria pessoa): fase, dias úteis que faltam e o que falta, com prazos. ' +
+        'Diz o "resumo" de cada um; se houver vários, pergunta de qual quer saber.',
+      agentes: ['entrada', 'saida', 'chat'],
       entrada: z.object({
         numero: z
           .string()
@@ -18,9 +17,7 @@ export function ferramentasProcessos(processos: ProcessosService) {
           .min(1)
           .max(40)
           .optional()
-          .describe(
-            'O número do processo, se a pessoa o disser (ex.: "CP 412/2026" ou só "412"). Sem número devolve os processos em curso.',
-          ),
+          .describe('O número, se o disser ("CP 412/2026" ou "412").'),
       }),
       executar: (ctx, { numero }) => processos.estadoParaAgente(ctx, numero),
     }),

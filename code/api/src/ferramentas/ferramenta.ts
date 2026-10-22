@@ -22,10 +22,35 @@ export interface ContextoFerramenta {
  * O resultado volta ao modelo tal como está: curto, em português, sem ids
  * que ele não precise de repetir.
  */
+/**
+ * Os agentes que mostram as ferramentas ao modelo:
+ * - `entrada`: o agente de voz que atende quem liga (linha e `/ligar`);
+ * - `saida`: o agente de voz das chamadas que a câmara faz (campanhas,
+ *   emergências, antecipações, renovações, processos);
+ * - `chat`: o chat do site e da app.
+ * A porta para as IAs (MCP) tem a sua lista (porta-ias/ferramentas-ia.ts).
+ */
+export const AGENTES = ['entrada', 'saida', 'chat'] as const;
+export type Agente = (typeof AGENTES)[number];
+
+/** Por omissão uma ferramenta é do atendimento: voz de entrada e chat. */
+export const AGENTES_OMISSAO: readonly Agente[] = ['entrada', 'chat'];
+
 export interface Ferramenta<E extends z.ZodObject = z.ZodObject> {
   nome: string;
+  /**
+   * Quando usar e o que devolve, em 1–2 frases (mais só o que é próprio
+   * desta ferramenta). As regras gerais (ler os dados de volta, "dizer",
+   * precisa_identificacao, não inventar…) estão uma vez nos prompts:
+   * ferramentas/regras-gerais.ts.
+   */
   descricao: string;
   entrada: E;
+  /**
+   * Que agentes mostram esta ferramenta ao modelo (AGENTES_OMISSAO se
+   * faltar). Está sempre registada: /v1/agent/tools corre-a pelo nome.
+   */
+  agentes?: readonly Agente[];
   executar(ctx: ContextoFerramenta, entrada: z.output<E>): Promise<unknown>;
 }
 

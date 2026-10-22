@@ -15,7 +15,7 @@ describe('OpenAPI (e2e)', () => {
     const d = r.body;
     expect(d.openapi).toBe('3.1.0');
 
-    const licenca = d.paths['/v1/agent/tools/pedir_licenca_ruido'].post;
+    const licenca = d.paths['/v1/agent/tools/pedir_licenca'].post;
     expect(licenca.security).toEqual([{ agente: [] }]);
     expect(licenca.description).toEqual(expect.any(String));
     const esquema = licenca.requestBody.content['application/json'].schema;

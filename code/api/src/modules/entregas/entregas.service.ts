@@ -58,29 +58,23 @@ export const entradaEntregar = z.object({
   requerimento_id: z
     .uuid()
     .optional()
-    .describe(
-      'O requerimento_id do requerimento (de iniciar_requerimento). Sem ele usa o requerimento desta conversa.',
-    ),
+    .describe('De iniciar_requerimento (sem ele, o desta conversa).'),
   confirmado: z
     .boolean()
     .optional()
-    .describe(
-      'true só depois de ler o resumo à pessoa e ela dizer claramente que sim. Na primeira chamada omitir.',
-    ),
+    .describe('true só depois de ler o resumo e de um sim claro.'),
   codigo_resumo: z
     .string()
     .trim()
     .max(20)
     .optional()
-    .describe('O codigo_resumo devolvido na primeira chamada.'),
+    .describe('O da primeira chamada.'),
   palavras_do_municipe: z
     .string()
     .trim()
     .max(500)
     .optional()
-    .describe(
-      'As palavras com que a pessoa confirmou, tal como as disse (ex.: "sim, pode entregar").',
-    ),
+    .describe('Como a pessoa confirmou, tal como disse.'),
 });
 export type EntradaEntregar = z.output<typeof entradaEntregar>;
 

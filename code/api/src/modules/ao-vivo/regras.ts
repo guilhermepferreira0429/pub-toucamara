@@ -120,14 +120,20 @@ export interface ResumoFerramenta {
   ocorrencia: string | null;
 }
 
+/** As ferramentas das licenças (o tipo vem no resultado de pedir_licenca). */
 const NOMES_LICENCA: Record<string, string> = {
-  pedir_licenca_ruido: 'Licença de ruído',
-  pedir_licenca_ocupacao_via: 'Licença de ocupação da via pública',
-  pedir_licenca_esplanada: 'Licença de esplanada',
-  pedir_licenca_publicidade: 'Licença de publicidade',
-  pedir_licenca_recinto_improvisado: 'Licença de recinto improvisado',
-  pedir_distico_residente: 'Dístico de residente',
+  pedir_licenca: 'Pedido de licença',
   renovar_licenca: 'Renovação de licença',
+};
+
+/** O nome de cada tipo de licença, como o painel o diz. */
+const LICENCA_DO_TIPO: Record<string, string> = {
+  ruido: 'Licença de ruído',
+  ocupacao_via: 'Licença de ocupação da via pública',
+  esplanada: 'Licença de esplanada',
+  publicidade: 'Licença de publicidade',
+  recinto_improvisado: 'Licença de recinto improvisado',
+  distico_residente: 'Dístico de residente',
 };
 
 const A_FAZER: Record<string, string> = {
@@ -172,7 +178,8 @@ export function resumirFerramenta(
   const sms = r?.sms_enviado === true;
 
   if (NOMES_LICENCA[nome]) {
-    const tipo = NOMES_LICENCA[nome];
+    const tipo =
+      (r && LICENCA_DO_TIPO[str(r.tipo) ?? '']) ?? NOMES_LICENCA[nome];
     if (!r || r.pedida === false)
       return { texto: `${tipo}: pedido`, publico: null, ocorrencia: null };
     const numero = str(r.numero);

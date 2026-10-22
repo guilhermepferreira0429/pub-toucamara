@@ -38,21 +38,18 @@ export class ConsultasPublicasModule implements OnModuleInit {
       ferramenta({
         nome: 'consultas_abertas',
         descricao:
-          'As consultas públicas abertas da câmara (a câmara quer saber o que as pessoas acham de uma obra, de um horário…): ' +
-          'o que está em causa, as perguntas com as opções, a pergunta aberta, até quando e quando sai o relatório. ' +
-          'Usa quando a pessoa pergunta por consultas, quer dar opinião sobre um projeto da câmara, ou numa chamada de campanha sobre uma consulta (vem desta_chamada). ' +
-          'Diz se a pessoa já participou (pode mudar a resposta).',
+          'Quando pergunta por consultas públicas ou quer dar opinião sobre um projeto da câmara (ou numa chamada nossa sobre uma: vem desta_chamada): o que está em causa, as perguntas e opções, até quando, e se já participou.',
+        // Também nas campanhas das consultas (a câmara liga a perguntar).
+        agentes: ['entrada', 'saida', 'chat'],
         entrada: entradaConsultasAbertas,
         executar: (ctx) => this.consultas.consultasAbertas(ctx),
       }),
       ferramenta({
         nome: 'participar_consulta',
         descricao:
-          'Regista a participação da pessoa numa consulta pública: a opção escolhida em cada pergunta, a opinião livre (se der) e a freguesia onde mora ' +
-          '(pergunta-a; se não souber, manda a morada). Antes, explica a consulta (consultas_abertas) e confirma as respostas com a pessoa. ' +
-          'Uma participação por pessoa: se chamar outra vez, substitui a anterior. ' +
-          'Se vier registada: true, diz o texto de "dizer". Se vier faltam_respostas ou falta_freguesia, pergunta o que falta e chama outra vez. ' +
-          'Se vier precisa_identificacao, segue a instrução. Não digas o que as outras pessoas responderam.',
+          'Depois de explicar a consulta e confirmar as respostas: regista a opção de cada pergunta, a opinião (se der) e a freguesia (ou a morada). Chamar outra vez substitui a anterior. ' +
+          'Não digas o que os outros responderam.',
+        agentes: ['entrada', 'saida', 'chat'],
         entrada: entradaParticipar,
         executar: (ctx, e) => this.consultas.participar(ctx, e),
       }),

@@ -69,6 +69,9 @@ const A_FAZER: Record<string, string> = {
   avisar_me: "A combinar os avisos…",
   entregar_pedido: "A preparar a entrega do pedido…",
   o_que_visitar: "A preparar o roteiro…",
+  campos_da_licenca: "A ver o que é preciso para a licença…",
+  pedir_licenca: "A verificar as regras da licença…",
+  renovar_licenca: "A tratar da renovação…",
 };
 
 const SUGESTOES = [

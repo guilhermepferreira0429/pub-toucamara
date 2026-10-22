@@ -43,15 +43,8 @@ export const entradaProcurarDeliberacoes = z.object({
     .trim()
     .min(2)
     .max(300)
-    .describe(
-      'O assunto, como a pessoa o disse (ex.: "parque de estacionamento do centro", "taxa de resíduos").',
-    ),
-  orgao: z
-    .enum(ORGAOS)
-    .optional()
-    .describe(
-      'Só se a pessoa disser: "camara" (reunião de câmara) ou "assembleia" (assembleia municipal).',
-    ),
+    .describe('O assunto, como a pessoa o disse.'),
+  orgao: z.enum(ORGAOS).optional().describe('Só se a pessoa disser.'),
 });
 
 /** Um resultado de texto abaixo disto não conta (como no conhecimento). */

@@ -36,11 +36,10 @@ export class EmergenciasModule implements OnModuleInit {
       ferramenta({
         nome: 'resposta_emergencia',
         descricao:
-          'Num aviso de emergência da câmara (cheia, incêndio, corte de água, calor extremo): grava se a pessoa está em segurança ou precisa de ajuda. ' +
-          'Nas chamadas de emergência (motivo_da_chamada com mensagem de emergência) usa esta em vez de resposta_campanha. ' +
-          'Também serve se a pessoa ligar ou escrever ela própria por causa do aviso. ' +
-          'Usa "precisa_ajuda" se pedir ajuda (para sair de casa, saúde, água...) ou se ficaste preocupado: a câmara e a proteção civil recebem logo um alerta. ' +
-          'Se houver perigo imediato para a vida, diz para ligar já 112. Diz o texto de "dizer".',
+          'Num aviso de emergência da câmara (cheia, incêndio, corte de água, calor), na nossa chamada (em vez de resposta_campanha) ou se a pessoa liga ou escreve por causa dele: grava se está em segurança. ' +
+          'precisa_ajuda (ou se ficaste preocupado) alerta logo a câmara e a proteção civil.',
+        // Quem recebeu o aviso também pode ligar ou escrever por causa dele.
+        agentes: ['entrada', 'saida', 'chat'],
         entrada: entradaResposta,
         executar: (ctx, e) => this.emergencias.resposta(ctx, e),
       }),
