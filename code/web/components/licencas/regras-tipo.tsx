@@ -133,9 +133,9 @@ export function RegrasTipo({ info, onMudou }: { info: InfoTipo; onMudou: () => v
           </div>
         ))}
         <div className="flex justify-between gap-3 py-2">
-          <dt className="text-tinta-2">Depois de pago</dt>
+          <dt className="text-tinta-2">Dentro das regras</dt>
           <dd className="font-mono font-semibold text-tinta">
-            {c.aprovacao === "automatica" ? "emite sozinha" : "um funcionário aprova"}
+            {c.aprovacao === "automatica" ? "decide sozinha" : "um funcionário confirma"}
           </dd>
         </div>
       </dl>
@@ -145,6 +145,14 @@ export function RegrasTipo({ info, onMudou }: { info: InfoTipo; onMudou: () => v
         Fora destas regras o pedido não é recusado: vai para um técnico, com o que falhou à vista. O agente usa a
         ferramenta <span className="font-mono">{info.ferramenta}</span>.
       </p>
+      <a
+        href={`/regras/licencas/${info.tipo}`}
+        target="_blank"
+        rel="noreferrer"
+        className="text-xs font-semibold text-terracota underline underline-offset-2"
+      >
+        Ver como o público vê estas regras (com o histórico e o verificador)
+      </a>
       {pode("agente") && (
         <p className="text-xs text-tinta-3">
           Em &laquo;Mudar&raquo; pode testar a regra nova contra os pedidos antigos antes de a gravar.
@@ -220,11 +228,11 @@ function EditarRegras({
           <CampoEditavel key={campo.chave} campo={campo} valor={c[campo.chave]} onMudar={(v) => muda({ [campo.chave]: v })} />
         ))}
         <label className="flex items-center justify-between rounded-[12px] bg-creme px-4 py-3 sm:col-span-2">
-          <span className="text-sm font-semibold text-tinta">Emitir sozinha depois de pago</span>
+          <span className="text-sm font-semibold text-tinta">Decidir sozinha o que cumpre as regras</span>
           <Interruptor
             ligado={c.aprovacao === "automatica"}
             onMudar={(v) => muda({ aprovacao: v ? "automatica" : "funcionario" })}
-            rotulo="Emitir sozinha"
+            rotulo="Decidir sozinha"
           />
         </label>
         <label className="flex items-center justify-between rounded-[12px] bg-creme px-4 py-3 sm:col-span-2">

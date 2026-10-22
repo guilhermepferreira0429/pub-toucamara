@@ -2,6 +2,7 @@
 
 import { FileText, MapPin, MessageCircle } from "lucide-react";
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import { BotaoLink } from "@/components/ui/botao";
 import { COR_CATEGORIA, type Ponto } from "@/components/ordenamento/tipos";
 import {
@@ -154,6 +155,15 @@ export function PaginaZona({ codigo }: { codigo: string }) {
         <BotaoLink href={ROTA_CHAT} tamanho="grande" icone={MessageCircle} className="w-full">
           Preencher o pedido com o agente
         </BotaoLink>
+      )}
+
+      {d.zona && (
+        <Link
+          href={`/regras/zonas/${encodeURIComponent(d.zona.codigo)}`}
+          className="inline-flex min-h-12 items-center text-[16px] font-semibold text-terracota underline underline-offset-2"
+        >
+          Ver todas as regras desta zona (e verificar outras obras)
+        </Link>
       )}
 
       <div className="flex flex-wrap gap-2">
