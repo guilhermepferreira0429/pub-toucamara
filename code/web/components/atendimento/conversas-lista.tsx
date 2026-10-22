@@ -213,7 +213,7 @@ export function ConversasLista() {
           {!lista.aCarregar &&
             !lista.erro &&
             (lista.itens.length ? (
-              <TabelaConversas itens={lista.itens} mostrarMunicipe />
+              <TabelaConversas itens={lista.itens} mostrarMunicipe consulta={params.toString()} />
             ) : (
               <Vazio
                 icone={MessagesSquare}

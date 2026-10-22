@@ -66,6 +66,14 @@ export const embeddingsConfig = registerAs('embeddings', () => ({
 export const authConfig = registerAs('auth', () => ({
   jwtSecret: process.env.JWT_SECRET || '',
   validadeHoras: parseInt(process.env.JWT_VALIDADE_HORAS || '12', 10),
+  // Acesso do júri ao painel, só de leitura: um link (/entrar?juri=CHAVE) e
+  // um email que entra sem o link por email. Desligado sem os três valores.
+  juri: {
+    email: (process.env.JURI_EMAIL || '').trim().toLowerCase(),
+    chave: (process.env.JURI_CHAVE || '').trim(),
+    ate: process.env.JURI_ATE || '',
+    municipio: process.env.JURI_MUNICIPIO || 'guimaraes',
+  },
 }));
 
 export const jobsConfig = registerAs('jobs', () => ({

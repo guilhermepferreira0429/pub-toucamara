@@ -67,34 +67,43 @@ export function PaginaCampanhas() {
         descricao="Em ondas de calor, frio ou cortes de água, o agente liga a todas as pessoas inscritas e pergunta se estão bem. Quem precisa de ajuda ou não atende aparece logo aqui."
       />
 
+      {contactos.dados && inscritas === 0 && (
+        <div className="mx-4 mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-ambar-suave px-4 py-3 sm:mx-10">
+          <p className="text-[13px] leading-[1.5] text-tinta">
+            Ainda não há pessoas inscritas. O agente só liga a quem deu autorização para ser contactado.
+          </p>
+          <Botao tamanho="pequeno" variante="secundario" icone={UserPlus} onClick={() => setSeparador("pessoas")}>
+            Inscrever pessoas
+          </Botao>
+        </div>
+      )}
+
+      {/* Os quatro tipos com o mesmo peso: nenhum parece já escolhido. Sem
+          pessoas inscritas ficam inativos, mas legíveis (sem opacidade). */}
       <div className="grid grid-cols-1 gap-4 px-4 sm:px-10 md:grid-cols-2 xl:grid-cols-4">
         {presets.map((p) => {
           const t = TIPOS[p.tipo];
           const Icone = t.icone;
-          const destaque = p.tipo === "onda_calor";
+          const sem = inscritas === 0;
           return (
             <button
               key={p.tipo}
               type="button"
               onClick={() => setPreset(p)}
-              disabled={inscritas === 0}
-              className={`group flex flex-col items-start gap-3 rounded-2xl border p-5 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
-                destaque
-                  ? "border-terracota bg-terracota text-white hover:bg-terracota-escuro"
-                  : "border-linha bg-papel text-tinta hover:border-terracota"
-              }`}
+              disabled={sem}
+              className="group flex flex-col items-start gap-3 rounded-2xl border border-linha bg-papel p-5 text-left text-tinta transition-colors hover:border-terracota disabled:cursor-not-allowed disabled:border-dashed disabled:bg-creme disabled:hover:border-linha"
             >
               <span
                 className={`flex size-10 items-center justify-center rounded-[12px] ${
-                  destaque ? "bg-white/15" : "bg-terracota-suave text-terracota-escuro"
+                  sem ? "bg-creme-2 text-tinta-2" : "bg-terracota-suave text-terracota-escuro"
                 }`}
               >
                 <Icone className="size-5" aria-hidden />
               </span>
               <span className="font-display text-lg leading-tight font-bold">{t.acao}</span>
-              <span className={`text-[13px] ${destaque ? "text-white/90" : "text-tinta-3"}`}>
+              <span className="text-[13px] text-tinta-2">
                 <Phone className="mr-1 inline size-3.5" aria-hidden />
-                {numero(inscritas)} pessoas inscritas
+                {sem ? "Inscreva primeiro as pessoas" : `Ligar a ${numero(inscritas)} pessoas inscritas`}
               </span>
             </button>
           );

@@ -6,7 +6,7 @@ import { Aviso, CabecalhoPagina } from "@/components/painel/cabecalho";
 import { useSessao } from "@/lib/sessao";
 import { BarraEmpilhada, CartaoNumero } from "./cartoes";
 import { useDados, useFuso } from "./dados";
-import { decimal, duracao, hojeNoFuso, mesAno, numero, pct, variacaoPct } from "./formatos";
+import { basePequena, decimal, duracao, hojeNoFuso, mesAno, numero, pct, variacaoPct } from "./formatos";
 import { balcaoAberto, horaDePico, ListaTemas, MapaCalor, porHora } from "./graficos";
 import { IndicadoresProcessos } from "./gestao";
 import { ChavePeriodo, chaveValida, periodoDe, ROTULOS_PERIODO, SeletorPeriodo } from "./periodo";
@@ -136,8 +136,10 @@ function Atendimento({
   const t = ind.dados?.totais;
   const i = v?.indicadores;
 
-  const detalheConversas = i?.conversas.variacao != null
-    ? `${variacaoPct(i.conversas.variacao)} face ao período anterior`
+  const detalheConversas = i?.conversas.variacao != null && i.conversas.anterior != null
+    ? basePequena(i.conversas.valor, i.conversas.anterior)
+      ? `${numero(i.conversas.anterior)} no período anterior`
+      : `${variacaoPct(i.conversas.variacao)} face ao período anterior`
     : "sem período anterior para comparar";
   const pontos = i?.resolvidas_sem_humano_pct.variacao;
   const segundos = i?.duracao_media_s.variacao;
@@ -292,7 +294,9 @@ function OQueMudou({ visao }: { visao?: VisaoGeral }) {
         icone: TrendingUp,
         titulo: subida.novo
           ? `${subida.tema}: tema novo`
-          : `${subida.tema} subiu ${variacaoPct(subida.variacao)?.replace("+", "")}`,
+          : basePequena(subida.total, subida.anterior)
+            ? `${subida.tema}: mais ${numero(subida.total - subida.anterior)} conversas`
+            : `${subida.tema} subiu ${variacaoPct(subida.variacao)?.replace("+", "")}`,
         detalhe: `${numero(subida.total)} conversas neste período, ${numero(subida.anterior)} no anterior.`,
       });
     }

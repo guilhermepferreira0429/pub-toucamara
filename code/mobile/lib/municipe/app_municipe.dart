@@ -118,7 +118,7 @@ class _AppMunicipeState extends State<AppMunicipe> with WidgetsBindingObserver {
         builder: (context, _) => MaterialApp(
           navigatorKey: s.navegacao.chave,
           scaffoldMessengerKey: _mensageiro,
-          title: 'Tou, Câmara',
+          title: 'Tou, Câmara?',
           debugShowCheckedModeBanner: false,
           theme: temaToucamara(),
           locale: const Locale('pt', 'PT'),

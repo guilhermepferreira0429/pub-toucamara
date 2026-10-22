@@ -22,9 +22,24 @@ const jetbrains = JetBrains_Mono({
   subsets: ["latin"],
 });
 
+const DESCRICAO =
+  "O atendimento municipal que nunca está ocupado: telefone, chat, SMS e app, só com informação oficial, e um painel para a câmara.";
+
 export const metadata: Metadata = {
+  // Os links absolutos (imagem de partilha) usam o endereço público do site.
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://toucamara.descortina.pt"),
   title: { default: "Tou, Câmara?", template: "%s · Tou, Câmara?" },
-  description: "O atendimento municipal que nunca está ocupado.",
+  description: DESCRICAO,
+  applicationName: "Tou, Câmara?",
+  appleWebApp: { title: "Tou, Câmara?", statusBarStyle: "default" },
+  openGraph: {
+    type: "website",
+    locale: "pt_PT",
+    siteName: "Tou, Câmara?",
+    title: "Tou, Câmara? · A câmara que atende",
+    description: DESCRICAO,
+  },
+  twitter: { card: "summary_large_image" },
 };
 
 export const viewport: Viewport = {

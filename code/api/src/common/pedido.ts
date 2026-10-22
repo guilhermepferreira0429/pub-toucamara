@@ -19,6 +19,10 @@ export interface UtilizadorPainel {
   servicoId: string | null;
   /** Só na app da equipa de campo: a sessão do dispositivo (para sair). */
   sessaoAppId?: string;
+  /** Acesso do júri: vê tudo e não altera nada (ver auth.service, entrarJuri). */
+  soLeitura?: boolean;
+  /** Até quando vale o acesso do júri (ISO). */
+  acessoAte?: string;
 }
 
 /** Pedido depois dos guards: o município e o utilizador já resolvidos. */

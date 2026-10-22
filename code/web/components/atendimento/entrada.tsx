@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useParams, usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Aviso } from "@/components/painel/cabecalho";
 import { useSessao } from "@/lib/sessao";
 import { CriarProcesso, MudarEncaminhamento } from "./acoes-entrada";
@@ -81,6 +81,17 @@ export function Entrada() {
         })}`
       : null,
   );
+
+  // No computador (lista e prévia lado a lado), abre logo o primeiro item em
+  // vez de meio ecrã vazio. No telemóvel fica a lista.
+  const primeiro = lista.itens[0];
+  const chavePrimeiro = primeiro ? `${primeiro.tipo}:${primeiro.id}` : null;
+  useEffect(() => {
+    if (item || !chavePrimeiro || !window.matchMedia("(min-width: 1024px)").matches) return;
+    const q = new URLSearchParams(params.toString());
+    q.set("item", chavePrimeiro);
+    router.replace(`${pedidoId ? "/painel/entrada" : caminho}?${q.toString()}`, { scroll: false });
+  }, [item, chavePrimeiro, params, pedidoId, caminho, router]);
 
   if (!permitido) {
     return (

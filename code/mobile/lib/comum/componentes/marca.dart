@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../tema.dart';
 
-/// "Tou, Câmara?" com o sufixo da app ("Equipa").
+/// O logótipo, como na web: "Tou, Câmara" com o "?" num balão de fala.
+/// Com `sufixo`, o nome da app ("Equipa").
 class Marca extends StatelessWidget {
   const Marca({super.key, this.sufixo, this.grande = false});
   final String? sufixo;
@@ -11,44 +12,42 @@ class Marca extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = grande ? 34.0 : 22.0;
-    return Row(
+    final nome = Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Container(
-          width: t * 1.5,
-          height: t * 1.5,
-          decoration: BoxDecoration(
-            color: Cores.terracota,
-            borderRadius: BorderRadius.circular(t * 0.45),
-          ),
-          alignment: Alignment.center,
+        Flexible(
           child: Text(
-            'T?',
+            'Tou, Câmara',
+            overflow: TextOverflow.ellipsis,
             style: TextStyle(
-              color: Colors.white,
+              fontSize: t,
               fontWeight: FontWeight.w700,
-              fontSize: t * 0.75,
+              color: Cores.tinta,
+              height: 1.1,
+              letterSpacing: t * -0.028,
             ),
           ),
         ),
-        SizedBox(width: t * 0.45),
-        Flexible(
-          child: grande && sufixo != null
+        SizedBox(width: t * 0.12),
+        Balao(lado: t * 1.07),
+      ],
+    );
+    final sufixo = this.sufixo;
+    return Semantics(
+      label: sufixo == null ? 'Tou, Câmara?' : 'Tou, Câmara? $sufixo',
+      excludeSemantics: true,
+      child: sufixo == null
+          ? nome
+          : grande
               // Grande (ecrã de entrar): o nome da app por baixo.
               ? Column(
+                  mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    nome,
+                    SizedBox(height: t * 0.12),
                     Text(
-                      'Tou, Câmara?',
-                      style: TextStyle(
-                        fontSize: t,
-                        fontWeight: FontWeight.w700,
-                        color: Cores.tinta,
-                        height: 1.1,
-                      ),
-                    ),
-                    Text(
-                      sufixo!,
+                      sufixo,
                       style: TextStyle(
                         fontSize: t * 0.62,
                         fontWeight: FontWeight.w700,
@@ -58,31 +57,55 @@ class Marca extends StatelessWidget {
                     ),
                   ],
                 )
-              : Text.rich(
-                  TextSpan(
-                    children: [
-                      TextSpan(
-                        text: 'Tou, Câmara?',
-                        style: TextStyle(
-                          fontSize: t,
-                          fontWeight: FontWeight.w700,
-                          color: Cores.tinta,
-                        ),
+              : Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Flexible(child: nome),
+                    Text(
+                      ' · $sufixo',
+                      style: TextStyle(
+                        fontSize: t,
+                        fontWeight: FontWeight.w600,
+                        color: Cores.terracotaEscuro,
                       ),
-                      if (sufixo != null)
-                        TextSpan(
-                          text: ' · $sufixo',
-                          style: TextStyle(
-                            fontSize: t,
-                            fontWeight: FontWeight.w600,
-                            color: Cores.terracotaEscuro,
-                          ),
-                        ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
+    );
+  }
+}
+
+/// O balão terracota com o "?": redondo em três cantos, bico em baixo à
+/// esquerda. É também o ícone da app e o favicon da web.
+class Balao extends StatelessWidget {
+  const Balao({super.key, required this.lado});
+  final double lado;
+
+  @override
+  Widget build(BuildContext context) {
+    final r = Radius.circular(lado / 2);
+    return Container(
+      width: lado,
+      height: lado,
+      decoration: BoxDecoration(
+        color: Cores.terracota,
+        borderRadius: BorderRadius.only(
+          topLeft: r,
+          topRight: r,
+          bottomRight: r,
+          bottomLeft: Radius.circular(lado * 0.1),
         ),
-      ],
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        '?',
+        style: TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.w700,
+          fontSize: lado * 0.7,
+          height: 1,
+        ),
+      ),
     );
   }
 }

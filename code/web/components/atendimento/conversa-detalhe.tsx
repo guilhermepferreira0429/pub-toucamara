@@ -4,14 +4,18 @@ import {
   ArrowLeft,
   Check,
   ChevronRight,
+  Hand,
   History,
+  MessageSquareReply,
+  Phone,
   ShieldCheck,
   TriangleAlert,
   UserRound,
   X,
 } from "lucide-react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
+import { Botao, BotaoLink } from "@/components/ui/botao";
 import { useRef, useState } from "react";
 import { Aviso } from "@/components/painel/cabecalho";
 import { FonteOficial } from "@/components/ui/marca";
@@ -23,6 +27,7 @@ import {
   canal,
   diaCurto,
   duracao,
+  ESTADOS_PASSAGEM,
   euros,
   FASES,
   iniciais,
@@ -30,6 +35,7 @@ import {
   MOTIVOS_PASSAGEM,
   quando,
   tempoAudio,
+  tituloConversa,
 } from "./formatos";
 import { LeitorGravacao, MOMENTOS, type Leitor } from "./leitor-gravacao";
 import type { Citacao, ConversaDetalhe as Dados, Turno } from "./tipos";
@@ -113,7 +119,8 @@ function ConversaDetalhe({ id }: { id: string }) {
   const semFontePorTurno = new Map(
     (d.numeros_sem_fonte ?? []).map((n) => [n.turno_id, n.numeros.map((x) => x.texto)]),
   );
-  const titulo = d.tema?.nome ?? `Conversa por ${ca.rotulo.toLowerCase()}`;
+  // O mesmo título da lista: a pessoa e o assunto ("Helena S. · Muro de vedação").
+  const titulo = tituloConversa(d);
   const meta = [
     ca.rotulo,
     d.municipe?.telefone ?? d.municipe?.nome,
@@ -126,6 +133,8 @@ function ConversaDetalhe({ id }: { id: string }) {
       <div className="xl:hidden">
         <VoltarLista />
       </div>
+
+      <AcoesPassagem d={d} onMudou={c.recarregar} />
 
       <header className="flex flex-col gap-2">
         <div className="flex flex-wrap items-center gap-3">
@@ -221,10 +230,77 @@ function ConversaDetalhe({ id }: { id: string }) {
   );
 }
 
+/**
+ * Conversa passada a um funcionário e ainda por tratar: no topo, o que fazer
+ * (ficar com o pedido, ligar à pessoa, responder), sem ter de procurar a
+ * passagem na ficha.
+ */
+function AcoesPassagem({ d, onMudou }: { d: Dados; onMudou: () => void }) {
+  const { pedido } = useSessao();
+  const fuso = useFuso();
+  const [aPegar, setAPegar] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
+  const p = d.criado.passagens.find((x) => x.estado === "aberta" || x.estado === "em_curso");
+  if (!p) return null;
+  const telefone = d.municipe?.telefone;
+  return (
+    <section
+      aria-label="Passada a funcionário"
+      className="flex flex-col gap-3 rounded-2xl border border-terracota/30 bg-terracota-suave/40 p-4 lg:flex-row lg:items-center"
+    >
+      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <p className="text-sm font-semibold text-tinta">
+          Passada a funcionário · {ESTADOS_PASSAGEM[p.estado]?.rotulo ?? p.estado}
+        </p>
+        <p className="text-[13px] text-tinta-2">
+          {MOTIVOS_PASSAGEM[p.motivo] ?? p.motivo}
+          {p.responder_ate ? ` · responder até ${quando(p.responder_ate, fuso)}` : ""}
+        </p>
+        {erro && <p className="text-[13px] text-terracota-escuro">{erro}</p>}
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {p.estado === "aberta" && (
+          <Botao
+            icone={Hand}
+            disabled={aPegar}
+            onClick={async () => {
+              setAPegar(true);
+              setErro(null);
+              try {
+                await pedido(`/v1/painel/passagens/${p.id}/atribuir`, { metodo: "POST" });
+                onMudou();
+              } catch (e) {
+                setErro(mensagemErro(e));
+              } finally {
+                setAPegar(false);
+              }
+            }}
+          >
+            {aPegar ? "A atribuir…" : "Ficar com o pedido"}
+          </Botao>
+        )}
+        {telefone && (
+          <a
+            href={`tel:${telefone}`}
+            className="inline-flex h-10 items-center justify-center gap-2 rounded-full border-[1.5px] border-tinta px-4 text-sm font-semibold text-tinta transition-colors hover:bg-tinta/5"
+          >
+            <Phone className="size-[1.15em]" aria-hidden />
+            Ligar
+          </a>
+        )}
+        <BotaoLink variante="secundario" icone={MessageSquareReply} href={`/painel/passagens/${p.id}`}>
+          Responder
+        </BotaoLink>
+      </div>
+    </section>
+  );
+}
+
 function VoltarLista() {
+  const consulta = useSearchParams().toString();
   return (
     <Link
-      href="/painel/conversas"
+      href={`/painel/conversas${consulta ? `?${consulta}` : ""}`}
       className="flex w-fit items-center gap-1.5 text-[13px] font-semibold text-tinta-2 hover:text-tinta"
     >
       <ArrowLeft className="size-4" aria-hidden />

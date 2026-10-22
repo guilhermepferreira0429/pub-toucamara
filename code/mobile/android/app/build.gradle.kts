@@ -47,11 +47,14 @@ android {
             dimension = "app"
             applicationId = "pt.toucamara.equipa"
             resValue("string", "app_name", "Tou, Câmara · Equipa")
+            // O nome por baixo do ícone: curto, para não ficar cortado.
+            resValue("string", "nome_curto", "Equipa Câmara")
         }
         create("municipe") {
             dimension = "app"
             applicationId = "pt.toucamara.municipe"
-            resValue("string", "app_name", "Tou, Câmara")
+            resValue("string", "app_name", "Tou, Câmara?")
+            resValue("string", "nome_curto", "Tou, Câmara?")
         }
     }
 

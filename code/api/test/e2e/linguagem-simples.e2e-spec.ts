@@ -515,10 +515,15 @@ describe('Linguagem simples e glossário (e2e)', () => {
         pesquisa: `regulamento dos ${palavra}`,
       }).expect(200);
       expect(d.body.encontrado).toBe(true);
-      expect(d.body.documentos[0]).toMatchObject({
-        link: `${WEB_URL}/documento/${codigo}`,
-        url_oficial: `https://exemplo.pt/${palavra}.pdf`,
-      });
+      // Os documentos da demo (BD partilhada) podem vir também.
+      expect(d.body.documentos).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            link: `${WEB_URL}/documento/${codigo}`,
+            url_oficial: `https://exemplo.pt/${palavra}.pdf`,
+          }),
+        ]),
+      );
       expect(d.body.dizer).toContain('o que vale legalmente é o texto oficial');
 
       const k = await ferramenta(ctx, novaChamada(), 'procurar_conhecimento', {

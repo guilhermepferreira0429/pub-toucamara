@@ -48,6 +48,35 @@ export function variacaoPct(v: number | null | undefined): string | null {
   return `${r > 0 ? "+" : "−"}${Math.abs(r)}%`;
 }
 
+/** Abaixo disto, uma percentagem engana ("+888%" com 9 contra 1): mostram-se os números. */
+export const BASE_MINIMA = 20;
+
+/**
+ * A base da comparação (o período anterior) tem poucos casos: a percentagem
+ * não quer dizer nada ("+213%" com 16 contra 50). `atual` fica para ler bem.
+ */
+export function basePequena(_atual: number | null | undefined, anterior: number | null | undefined): boolean {
+  return (anterior ?? 0) < BASE_MINIMA;
+}
+
+/**
+ * A variação curta (para uma pílula ou uma coluna): "+12%"; com bases
+ * pequenas, a diferença em número ("+7", "−2", "="); de 0 para algo, "novo".
+ */
+export function variacaoCurta(
+  atual: number,
+  anterior: number | null | undefined,
+  v: number | null | undefined,
+): string | null {
+  if (anterior === null || anterior === undefined) return null;
+  if (anterior === 0) return atual > 0 ? "novo" : null;
+  if (basePequena(atual, anterior)) {
+    const d = atual - anterior;
+    return d === 0 ? "=" : `${d > 0 ? "+" : "−"}${Math.abs(d)}`;
+  }
+  return variacaoPct(v);
+}
+
 export function euros(cent: number): string {
   return (cent / 100).toLocaleString("pt-PT", {
     style: "currency",
@@ -221,6 +250,28 @@ export function resultado(r: string) {
       ponto: "bg-tinta-3",
     }
   );
+}
+
+/** "Helena Sicrana" → "Helena S." (primeiro nome e a inicial do último). */
+export function nomeCurto(nome: string | null | undefined): string | null {
+  const partes = (nome ?? "").trim().split(/\s+/).filter(Boolean);
+  if (!partes.length) return null;
+  if (partes.length === 1) return partes[0];
+  return `${partes[0]} ${partes[partes.length - 1][0].toUpperCase()}.`;
+}
+
+/**
+ * O título de uma conversa, o mesmo na lista e no detalhe: a pessoa e o
+ * assunto ("Helena S. · Muro de vedação"); sem nome, só o assunto.
+ */
+export function tituloConversa(c: {
+  canal: string;
+  municipe?: { nome: string | null } | null;
+  tema?: { nome: string | null } | null;
+}): string {
+  const assunto = c.tema?.nome ?? `Conversa por ${canal(c.canal).rotulo.toLowerCase()}`;
+  const quem = nomeCurto(c.municipe?.nome);
+  return quem ? `${quem} · ${assunto}` : assunto;
 }
 
 export const MOTIVOS_PASSAGEM: Record<string, string> = {

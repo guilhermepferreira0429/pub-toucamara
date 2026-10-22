@@ -4,8 +4,8 @@ Uma só codebase com dois *flavors* Android:
 
 | Flavor     | App                    | `applicationId`         | Ponto de entrada          | Estado            |
 |------------|------------------------|-------------------------|---------------------------|-------------------|
-| `equipa`   | Tou, Câmara · Equipa   | `pt.toucamara.equipa`   | `lib/main_equipa.dart`    | feita             |
-| `municipe` | Tou, Câmara            | `pt.toucamara.municipe` | `lib/main_municipe.dart`  | feita             |
+| `equipa`   | Tou, Câmara · Equipa (no ecrã inicial: Equipa Câmara) | `pt.toucamara.equipa`   | `lib/main_equipa.dart`    | feita             |
+| `municipe` | Tou, Câmara?           | `pt.toucamara.municipe` | `lib/main_municipe.dart`  | feita             |
 
 Só Android (as pastas `ios/`, `linux/`, `macos/` e `windows/` são as do modelo do Flutter e não se usam). A versão web serve para desenvolver e fazer capturas.
 
@@ -29,7 +29,7 @@ lib/
   main.dart         = main_equipa (para `flutter run` sem -t)
 ```
 
-## App do munícipe ("Tou, Câmara")
+## App do munícipe ("Tou, Câmara?")
 
 Para pessoas de todas as idades: letra grande (e ajustável em Definições, por cima da do telemóvel), alto contraste (tinta sobre creme, ≥ 7:1 no texto principal), alvos de toque ≥ 48 dp (os principais 56 dp), nomes para leitores de ecrã (`Semantics`) e frases sem jargão.
 
@@ -104,7 +104,7 @@ cd build/web && python3 -m http.server 3212
 
 # Android (emulador: a máquina é 10.0.2.2, o valor por omissão)
 flutter run --flavor equipa -t lib/main_equipa.dart
-flutter run --flavor equipa -t lib/main_equipa.dart --dart-define=API_URL=https://api.toucamara.pt
+flutter run --flavor equipa -t lib/main_equipa.dart --dart-define=API_URL=https://api.toucamara.descortina.pt
 flutter run --flavor municipe -t lib/main_municipe.dart --dart-define=MUNICIPIO=guimaraes
 ```
 
@@ -140,9 +140,9 @@ O plugin v3 descarrega o SDK do repositório Maven público do Mapbox (não prec
 ### Gerar o APK (numa máquina com o Android SDK)
 
 ```bash
-flutter build apk --flavor equipa -t lib/main_equipa.dart --dart-define=API_URL=https://api.toucamara.pt
+flutter build apk --flavor equipa -t lib/main_equipa.dart --dart-define=API_URL=https://api.toucamara.descortina.pt
 # → build/app/outputs/flutter-apk/app-equipa-release.apk
-flutter build apk --flavor municipe -t lib/main_municipe.dart --dart-define=API_URL=https://api.toucamara.pt --dart-define=WEB_URL=https://toucamara.pt --dart-define=MUNICIPIO=guimaraes
+flutter build apk --flavor municipe -t lib/main_municipe.dart --dart-define=API_URL=https://api.toucamara.descortina.pt --dart-define=WEB_URL=https://toucamara.descortina.pt --dart-define=MUNICIPIO=guimaraes
 # → build/app/outputs/flutter-apk/app-municipe-release.apk (com push: + --dart-define=FCM=true e o google-services.json)
 ```
 

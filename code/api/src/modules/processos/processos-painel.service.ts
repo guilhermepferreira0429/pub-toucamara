@@ -60,7 +60,36 @@ export const esquemaListaProcessos = esquemaPaginacao.extend({
     .enum(['true', 'false'])
     .transform((v) => v === 'true')
     .optional(),
+  /** A coluna pela qual se ordena (os fechados ficam sempre no fim). */
+  ordem: z.enum(['prazo', 'numero', 'fase']).default('prazo'),
+  sentido: z.enum(['asc', 'desc']).default('asc'),
 });
+
+const ATE_SEMPRE = `'9999-12-31'::date`;
+
+/**
+ * A chave de ordenação, em texto (vai no cursor): o prazo; o N.º pela ordem
+ * em que os processos entraram (os números têm prefixos por tipo); a fase
+ * pela ordem do processo e, dentro dela, o prazo.
+ */
+const CHAVE_ORDEM: Record<'prazo' | 'numero' | 'fase', string> = {
+  prazo: `to_char(coalesce(p.prazo_fim, ${ATE_SEMPRE}), 'YYYY-MM-DD')`,
+  numero: `to_char(p.criado_em AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US')`,
+  fase: `lpad(array_position(ARRAY[${FASES.map((f) => `'${f}'`).join(',')}]::text[], p.fase::text)::text, 2, '0')
+         || to_char(coalesce(p.prazo_fim, ${ATE_SEMPRE}), 'YYYY-MM-DD')`,
+};
+
+/** O cursor da lista: "fechado|chave" em `em` (um cursor antigo recomeça do início). */
+function cursorDaLista(
+  c: { em: string; id: string } | null,
+): { fechado: number; chave: string; id: string } | null {
+  const i = c?.em.indexOf('|') ?? -1;
+  if (!c || i < 1) return null;
+  const fechado = Number(c.em.slice(0, i));
+  return fechado === 0 || fechado === 1
+    ? { fechado, chave: c.em.slice(i + 1), id: c.id }
+    : null;
+}
 
 export const esquemaAtualizarProcesso = z
   .object({
@@ -202,8 +231,9 @@ export class ProcessosPainelService {
   ) {}
 
   /**
-   * Ordenada por prazo (o mais urgente primeiro; sem prazo no fim). O cursor
-   * leva o prazo ('infinity' sem prazo) e o id.
+   * Os abertos primeiro e os fechados (notificados e arquivados) no fim;
+   * dentro de cada grupo, pela coluna pedida (por omissão o prazo, o mais
+   * urgente primeiro; sem prazo no fim). O cursor leva o grupo, a chave e o id.
    */
   async listar(
     municipio: Municipio,
@@ -211,7 +241,11 @@ export class ProcessosPainelService {
     f: z.output<typeof esquemaListaProcessos>,
   ) {
     const tecnico = f.tecnico_id === 'eu' ? u.id : (f.tecnico_id ?? null);
-    const ordem = `coalesce(p.prazo_fim, 'infinity'::date)`;
+    const chave = CHAVE_ORDEM[f.ordem];
+    const fechado = `(NOT ${ABERTO})::int`;
+    const dir = f.sentido === 'desc' ? 'DESC' : 'ASC';
+    const depois = f.sentido === 'desc' ? '<' : '>';
+    const cursor = cursorDaLista(f.cursor);
     const hoje = hojeLisboa();
     const limite = f.a_terminar
       ? limiteATerminar(hoje, await this.municipios.feriados(municipio.id))
@@ -220,19 +254,23 @@ export class ProcessosPainelService {
       LinhaProcesso & {
         prazo_municipe: string | null;
         documentos: { entregues: number; exigidos: number };
+        fechado_ordem: number;
+        chave_ordem: string;
       }
     >(
       `SELECT ${COLUNAS_PROCESSO}, ${PRAZO_MUNICIPE} AS prazo_municipe,
-              ${DOCUMENTOS_CONTAGEM} AS documentos
+              ${DOCUMENTOS_CONTAGEM} AS documentos,
+              ${fechado} AS fechado_ordem, ${chave} AS chave_ordem
        ${DE_PROCESSO}
        WHERE ${filtrosSql(1)}
          AND ($7::uuid IS NULL OR p.tecnico_id = $7)
          AND (NOT $8::boolean OR (p.prazo_fim < $9::date AND ${ABERTO}))
          AND (NOT $10::boolean OR ${AGUARDA_MUNICIPE})
          AND ($11::date IS NULL OR (${ABERTO} AND p.prazo_fim BETWEEN $9::date AND $11::date))
-         AND ($12::date IS NULL OR (${ordem}, p.id) > ($12::date, $13::uuid))
-       ORDER BY ${ordem}, p.id
-       LIMIT $14`,
+         AND ($12::int IS NULL OR ${fechado} > $12::int
+              OR (${fechado} = $12::int AND (${chave}, p.id) ${depois} ($13::text, $14::uuid)))
+       ORDER BY ${fechado}, ${chave} ${dir}, p.id ${dir}
+       LIMIT $15`,
       [
         ...paramsFiltros(municipio, f),
         tecnico,
@@ -240,13 +278,14 @@ export class ProcessosPainelService {
         hoje,
         f.aguarda_municipe ?? false,
         limite,
-        f.cursor?.em ?? null,
-        f.cursor?.id ?? null,
+        cursor?.fechado ?? null,
+        cursor?.chave ?? null,
+        cursor?.id ?? null,
         f.limite + 1,
       ],
     );
     const r = pagina(linhas, f.limite, (l) => ({
-      em: l.prazo_fim ?? 'infinity',
+      em: `${l.fechado_ordem}|${l.chave_ordem}`,
       id: l.id,
     }));
     return {

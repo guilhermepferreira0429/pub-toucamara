@@ -58,11 +58,16 @@ describe('Ajuda ao funcionário (e2e)', () => {
       ocorrencias: [],
     });
     expect(r.body.regras.length).toBeGreaterThan(0);
-    expect(r.body.regras[0]).toMatchObject({
-      titulo: expect.any(String),
-      referencia: expect.stringMatching(/art\./),
-      texto: expect.any(String),
-    });
+    // A do RJUE (com artigo); as fontes da demo, na mesma BD, podem vir também.
+    expect(r.body.regras).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          titulo: expect.any(String),
+          referencia: expect.stringMatching(/art\./),
+          texto: expect.any(String),
+        }),
+      ]),
+    );
   });
 
   it('ensinar ao agente: fica em Sem resposta, com a equipa, com a resposta do funcionário', async () => {

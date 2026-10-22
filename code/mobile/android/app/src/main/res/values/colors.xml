@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Creme da marca: fundo do ícone e do ecrã de arranque. A equipa sobrepõe o do ícone. -->
+    <color name="ic_launcher_background">#F7F0E4</color>
+    <color name="arranque">#F7F0E4</color>
+</resources>

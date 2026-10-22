@@ -11,7 +11,7 @@ import {
 import { MunicipioAtual, UtilizadorAtual } from '../../common/pedido.js';
 import type { UtilizadorPainel } from '../../common/pedido.js';
 import { validar } from '../../common/validacao.js';
-import { Painel } from '../auth/painel.guard.js';
+import { Painel, SoConsulta } from '../auth/painel.guard.js';
 import type { Municipio } from '../municipios/municipios.service.js';
 import { GUIOES, PRECOS_DEMONSTRACAO } from './emergencias.regras.js';
 import {
@@ -83,6 +83,7 @@ export class EmergenciasController {
 
   /** Simular de novo um rascunho (nada sai). O envio exige 'agente'. */
   @Post(':id/simular')
+  @SoConsulta()
   @HttpCode(200)
   simular(
     @MunicipioAtual() m: Municipio,

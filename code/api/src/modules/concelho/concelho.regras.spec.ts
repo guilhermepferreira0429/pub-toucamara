@@ -300,8 +300,9 @@ describe('números', () => {
       ],
       HOJE,
     );
+    // Base pequena (2 antes): o número, não "+350%".
     expect(s[0].texto).toBe(
-      'Azurém: +350% conversas sobre vias e passeios nos últimos 7 dias (9 contra 2)',
+      'Azurém: 9 conversas sobre vias e passeios nos últimos 7 dias (2 nos 7 antes)',
     );
     expect(s[0].filtros).toEqual({
       de: '2026-10-16',
@@ -310,6 +311,24 @@ describe('números', () => {
       tema_ids: [TEMAS[0].id],
     });
     expect(s).toHaveLength(1);
+  });
+
+  it('sinais da semana: com base suficiente, a percentagem', () => {
+    const [s] = sinaisDaSemana(
+      [
+        {
+          freguesia: 'Azurém',
+          tema_id: TEMAS[0].id,
+          tema: 'Vias e passeios',
+          n: 45,
+          anterior: 20,
+        },
+      ],
+      HOJE,
+    );
+    expect(s.texto).toBe(
+      'Azurém: +125% conversas sobre vias e passeios nos últimos 7 dias (45 contra 20)',
+    );
   });
 });
 

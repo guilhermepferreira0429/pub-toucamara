@@ -9,6 +9,7 @@ import {
   ParseUUIDPipe,
   Post,
   Put,
+  Query,
 } from '@nestjs/common';
 import { z } from 'zod';
 import { validar } from '../../common/validacao.js';
@@ -17,7 +18,7 @@ import { MunicipioAtual, UtilizadorAtual } from '../../common/pedido.js';
 import type { UtilizadorPainel } from '../../common/pedido.js';
 import { ferramenta } from '../../ferramentas/ferramenta.js';
 import { RegistoFerramentas } from '../../ferramentas/registo-ferramentas.service.js';
-import { Painel } from '../auth/painel.guard.js';
+import { Painel, SoConsulta } from '../auth/painel.guard.js';
 import type { Municipio } from '../municipios/municipios.service.js';
 import { OcorrenciasModule } from '../ocorrencias/ocorrencias.module.js';
 import {
@@ -37,6 +38,16 @@ export class OrdenamentoPainelController {
     return this.ordenamento.painel(m);
   }
 
+  /** ?morada=… → a zona e o que cada obra precisa (só consulta: não grava nem manda SMS). */
+  @Get('morada')
+  porMorada(@MunicipioAtual() m: Municipio, @Query() q: unknown) {
+    const { morada } = validar(
+      z.object({ morada: z.string().trim().min(3).max(200) }),
+      q,
+    );
+    return this.ordenamento.porMorada(m, morada);
+  }
+
   @Post('demonstracao')
   @HttpCode(201)
   @Painel('conhecimento')
@@ -49,6 +60,7 @@ export class OrdenamentoPainelController {
 
   /** { regras } propostas para a zona → o que mudava nas perguntas antigas (não grava). */
   @Post('zonas/:id/simular')
+  @SoConsulta()
   @HttpCode(200)
   @Painel('conhecimento')
   simular(

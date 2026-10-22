@@ -56,9 +56,52 @@ const COLUNAS_RESULTADO = `r.total, r.certas, r.passadas_bem, r.erradas, r.sem_r
   r.por_responder, r.por_avaliar, r.taxa::float8 AS taxa`;
 
 /**
+ * A página pública só mostra o que foi medido: os sistemas da preparação da
+ * demo (`config.demonstracao`) têm resultados inventados para o painel.
+ */
+const SO_MEDIDOS = `NOT coalesce((s.config->>'demonstracao')::boolean, false)`;
+
+/** Como a página pública chama o assistente atual do município (nunca pelo nome). */
+export const NOME_OUTRO_PUBLICO = 'A assistente do site';
+
+/** Totais de uma execução para a página pública (sem ids nem nomes de sistemas). */
+export interface ResumoPublico {
+  terminada_em: Date | null;
+  total: number;
+  certas: number;
+  passadas_bem: number;
+  erradas: number;
+  sem_resposta: number;
+  por_avaliar: number;
+  taxa: number | null;
+}
+
+/** Uma pergunta da página pública: a nossa resposta, a certa e, se houver, a do outro assistente. */
+export interface PerguntaPublica {
+  ordem: number;
+  categoria: string;
+  pergunta: string;
+  comportamento: string;
+  resposta: string | null;
+  veredicto: string | null;
+  justificacao: string | null;
+  factos_em_falta: string[];
+  factos_errados: string[];
+  resposta_certa: string | null;
+  fontes: { titulo?: string; url?: string }[];
+  outro: {
+    resposta: string | null;
+    veredicto: string | null;
+    justificacao: string | null;
+  } | null;
+}
+
+/**
  * Resultados do avaliador (`code/avaliador`, esquema `avaliacao`) vistos pela
- * API: só lê, nunca chama o avaliador. Aqui só entra o NOSSO agente do
- * município; sistemas de outras câmaras são do relatório de vendas.
+ * API: só lê, nunca chama o avaliador. No painel só entra o NOSSO agente do
+ * município. A página pública (`publica`) junta-lhe o assistente atual do
+ * mesmo município, sempre como "a assistente do site" e com o nome tapado
+ * nas respostas.
  */
 @Injectable()
 export class AvaliacaoService {
@@ -249,6 +292,155 @@ export class AvaliacaoService {
   }
 
   /**
+   * Página pública da avaliação: a última execução do nosso chat (a mesma da
+   * página Qualidade) e a última do assistente atual do município, com as
+   * perguntas uma a uma. A comparação conta só as perguntas avaliadas nas
+   * duas. Nada de ids, nomes de sistemas, capturas nem respostas em bruto.
+   */
+  async publica(municipio: { id: string; slug: string; nome: string }) {
+    const [nosso] = await this.db.query<
+      ResumoPublico & { execucao_id: string; conjunto_id: string }
+    >(
+      `SELECT e.id AS execucao_id, e.conjunto_id, e.terminada_em, ${COLUNAS_RESULTADO}
+       FROM avaliacao.execucoes e
+       JOIN avaliacao.sistemas s ON s.id = e.sistema_id
+       LEFT JOIN avaliacao.resultados r ON r.execucao_id = e.id AND r.categoria IS NULL
+       WHERE s.nosso AND s.adaptador = 'tou-chat' AND s.municipio_id = $1
+         AND e.estado = 'terminada' AND NOT e.amostra AND ${SO_MEDIDOS}
+       ORDER BY e.terminada_em DESC NULLS LAST, e.id DESC
+       LIMIT 1`,
+      [municipio.id],
+    );
+    const base = {
+      municipio: { slug: municipio.slug, nome: municipio.nome },
+      limiar: LIMIAR_PUBLICACAO,
+      outro_nome: NOME_OUTRO_PUBLICO,
+    };
+    if (!nosso) {
+      return {
+        ...base,
+        nosso: null,
+        outro: null,
+        comparacao: null,
+        categorias: [],
+        perguntas: [] as PerguntaPublica[],
+      };
+    }
+
+    // O assistente atual: de preferência sobre as mesmas perguntas.
+    const [outro] = await this.db.query<
+      ResumoPublico & { execucao_id: string; sistema: string }
+    >(
+      `SELECT e.id AS execucao_id, s.nome AS sistema, e.terminada_em, ${COLUNAS_RESULTADO}
+       FROM avaliacao.execucoes e
+       JOIN avaliacao.sistemas s ON s.id = e.sistema_id
+       LEFT JOIN avaliacao.resultados r ON r.execucao_id = e.id AND r.categoria IS NULL
+       WHERE NOT s.nosso AND s.municipio_id = $1
+         AND e.estado = 'terminada' AND NOT e.amostra AND ${SO_MEDIDOS}
+       ORDER BY (e.conjunto_id = $2) DESC, e.terminada_em DESC NULLS LAST, e.id DESC
+       LIMIT 1`,
+      [municipio.id, nosso.conjunto_id],
+    );
+
+    const [categorias, linhas] = await Promise.all([
+      this.db.query<{
+        categoria: string;
+        total: number;
+        taxa: number | null;
+      }>(
+        `SELECT r.categoria, r.total, r.taxa::float8 AS taxa
+         FROM avaliacao.resultados r
+         WHERE r.execucao_id = $1 AND r.categoria IS NOT NULL
+         ORDER BY r.categoria`,
+        [nosso.execucao_id],
+      ),
+      this.db.query<
+        Omit<PerguntaPublica, 'outro'> & {
+          outro_resposta: string | null;
+          outro_veredicto: string | null;
+          outro_justificacao: string | null;
+        }
+      >(
+        `SELECT p.ordem, p.categoria, p.texto AS pergunta, p.comportamento,
+                r.texto AS resposta, f.veredicto, f.justificacao,
+                coalesce(f.factos_em_falta, '{}') AS factos_em_falta,
+                coalesce(f.factos_errados, '{}') AS factos_errados,
+                coalesce(g.resposta, ga.resposta) AS resposta_certa,
+                coalesce(g.fontes, ga.fontes, '[]'::jsonb) AS fontes,
+                ro.texto AS outro_resposta, fo.veredicto AS outro_veredicto,
+                fo.justificacao AS outro_justificacao
+         FROM avaliacao.respostas r
+         JOIN avaliacao.perguntas p ON p.id = r.pergunta_id
+         LEFT JOIN avaliacao.avaliacao_final f ON f.resposta_id = r.id
+         LEFT JOIN avaliacao.gabarito g ON g.id = f.gabarito_id
+         LEFT JOIN avaliacao.gabarito ga ON f.gabarito_id IS NULL AND ga.pergunta_id = p.id
+              AND ga.municipio_id = $3 AND ga.estado = 'aprovado'
+         LEFT JOIN avaliacao.respostas ro ON ro.execucao_id = $2
+              AND ro.pergunta_id = p.id AND ro.erro IS NULL
+         LEFT JOIN avaliacao.avaliacao_final fo ON fo.resposta_id = ro.id
+         WHERE r.execucao_id = $1 AND r.erro IS NULL
+         ORDER BY p.ordem`,
+        [nosso.execucao_id, outro?.execucao_id ?? null, municipio.id],
+      ),
+    ]);
+
+    const tapar = outro ? nomesATapar(outro.sistema) : [];
+    const perguntas: PerguntaPublica[] = linhas.map(
+      ({ outro_resposta, outro_veredicto, outro_justificacao, ...p }) => ({
+        ...p,
+        outro:
+          outro_resposta !== null || outro_veredicto !== null
+            ? {
+                resposta: anonimizar(outro_resposta, tapar),
+                veredicto: outro_veredicto,
+                justificacao: anonimizar(outro_justificacao, tapar),
+              }
+            : null,
+      }),
+    );
+
+    // Só as perguntas que o juiz avaliou nos dois: a mesma base para ambos.
+    const comuns = perguntas.filter((p) => p.veredicto && p.outro?.veredicto);
+    const comparacao =
+      outro && comuns.length
+        ? {
+            perguntas: comuns.length,
+            nosso: contarAcertos(comuns.map((p) => p.veredicto)),
+            outro: contarAcertos(comuns.map((p) => p.outro!.veredicto)),
+          }
+        : null;
+
+    const resumo = ({
+      terminada_em,
+      total,
+      certas,
+      passadas_bem,
+      erradas,
+      sem_resposta,
+      por_avaliar,
+      taxa,
+    }: ResumoPublico): ResumoPublico => ({
+      terminada_em,
+      total: total ?? 0,
+      certas: certas ?? 0,
+      passadas_bem: passadas_bem ?? 0,
+      erradas: erradas ?? 0,
+      sem_resposta: sem_resposta ?? 0,
+      por_avaliar: por_avaliar ?? 0,
+      taxa,
+    });
+
+    return {
+      ...base,
+      nosso: { ...resumo(nosso), passou: passou(nosso.taxa) },
+      outro: outro ? resumo(outro) : null,
+      comparacao,
+      categorias,
+      perguntas,
+    };
+  }
+
+  /**
    * "Números inventados" na última execução: valores (€, prazos, horas,
    * telefones, %) que o agente disse e que não estão na pergunta nem no
    * gabarito aprovado (escrito a partir das fontes oficiais). Calcula-se ao
@@ -336,4 +528,45 @@ export class AvaliacaoService {
 
 function passou(taxa: number | null): boolean {
   return taxa !== null && taxa >= LIMIAR_PUBLICACAO;
+}
+
+/** Certas e bem passadas a um funcionário contam como acerto (como na taxa). */
+function contarAcertos(veredictos: (string | null)[]) {
+  const acertos = veredictos.filter(
+    (v) => v === 'certa' || v === 'passada_bem',
+  ).length;
+  return {
+    acertos,
+    taxa: veredictos.length
+      ? Math.round((10_000 * acertos) / veredictos.length) / 100
+      : null,
+  };
+}
+
+/**
+ * Os nomes a tapar nas respostas do outro assistente: a parte do nome do
+ * sistema antes de " · " (ex.: o nome da assistente, sem o município).
+ */
+export function nomesATapar(sistema: string): string[] {
+  const nome = sistema.split('·')[0].trim();
+  return nome.length >= 3 ? [nome] : [];
+}
+
+/** Troca os nomes por "[nome]", palavra inteira e sem olhar a maiúsculas. */
+export function anonimizar(
+  texto: string | null,
+  nomes: string[],
+): string | null {
+  if (texto === null) return null;
+  return nomes.reduce(
+    (t, nome) =>
+      t.replace(
+        new RegExp(
+          `(?<![\\p{L}\\p{N}])${nome.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\p{L}\\p{N}])`,
+          'giu',
+        ),
+        '[nome]',
+      ),
+    texto,
+  );
 }

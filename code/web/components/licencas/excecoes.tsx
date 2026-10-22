@@ -11,6 +11,7 @@ import {
   useAcao,
   useDados,
 } from "@/components/conhecimento/comum";
+import { BASE_MINIMA } from "@/components/atendimento/formatos";
 import { useSessao } from "@/lib/sessao";
 
 /*
@@ -38,6 +39,12 @@ interface Indicador extends Bloco {
     aprovacao: "automatica" | "funcionario";
     motivos: { tipo: "regra" | "dado_em_falta"; id: string; rotulo: string; n: number }[];
   })[];
+}
+
+/** "33%" só com pedidos suficientes; com poucos, "1 de 3" (a percentagem engana). */
+function parte(n: number, total: number, pct: number | null): string {
+  if (!total || pct === null) return "—";
+  return total < BASE_MINIMA ? `${numero(n)} de ${numero(total)}` : `${pct}%`;
 }
 
 /** A barra: verde = sozinho, âmbar = exceções, cinzento = funcionário por escolha. */
@@ -95,13 +102,13 @@ export function IndicadorExcecoes({ onMudou }: { onMudou?: () => void }) {
           <div className="flex flex-wrap items-end gap-6">
             <div>
               <p className="font-display text-3xl font-bold text-tinta">
-                {i.pct_automatica === null ? "—" : `${i.pct_automatica}%`}
+                {parte(i.automatica, i.total, i.pct_automatica)}
               </p>
               <p className="text-xs text-tinta-3">decidido automaticamente</p>
             </div>
             <div>
               <p className="font-display text-3xl font-bold text-ambar">
-                {i.pct_excecao === null ? "—" : `${i.pct_excecao}%`}
+                {parte(i.excecao, i.total, i.pct_excecao)}
               </p>
               <p className="text-xs text-tinta-3">exceções (foram a uma pessoa)</p>
             </div>
@@ -129,7 +136,11 @@ export function IndicadorExcecoes({ onMudou }: { onMudou?: () => void }) {
                 <div className="flex items-center gap-3">
                   <Barra b={t} />
                   <span className="w-28 shrink-0 text-right text-xs text-tinta-3">
-                    {t.total ? `${t.pct_automatica}% sozinho · ${numero(t.total)}` : "sem pedidos"}
+                    {!t.total
+                      ? "sem pedidos"
+                      : t.total < BASE_MINIMA
+                        ? `${numero(t.automatica)} de ${numero(t.total)} sozinhos`
+                        : `${t.pct_automatica}% sozinho · ${numero(t.total)}`}
                   </span>
                 </div>
                 {t.motivos.length > 0 && (

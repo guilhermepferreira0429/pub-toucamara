@@ -350,7 +350,7 @@ function CartaoApoio({
 }) {
   const n = a.numeros;
   return (
-    <Cartao className={`flex flex-col gap-3 p-5 ${a.ativo ? "" : "opacity-70"}`}>
+    <Cartao className={`flex flex-col gap-3 p-5 ${a.ativo ? "" : "border-dashed"}`}>
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0">
           <p className="font-display text-lg font-bold text-tinta">{a.nome}</p>

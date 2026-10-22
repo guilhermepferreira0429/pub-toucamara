@@ -1077,9 +1077,14 @@ export interface Sinal {
 
 /**
  * O que mudou nos últimos 7 dias face aos 7 antes, por freguesia e tema:
- * "Azurém: +200% conversas sobre Vias e passeios (9 contra 3)". Só subidas
- * com pelo menos 3 conversas e mais 2 do que antes. Até `max`.
+ * "Azurém: 9 conversas sobre vias e passeios nos últimos 7 dias (3 nos 7
+ * antes)". A percentagem só com uma base que a justifique (BASE_PERCENTAGEM
+ * conversas antes): "+350%" com 9 contra 2 engana. Só subidas com pelo menos
+ * 3 conversas e mais 2 do que antes. Até `max`.
  */
+/** Abaixo disto (casos no período anterior), uma percentagem engana: diz-se o número. */
+export const BASE_PERCENTAGEM = 20;
+
 export function sinaisDaSemana(
   linhas: readonly LinhaSinal[],
   hoje: string,
@@ -1138,7 +1143,9 @@ export function sinaisDaSemana(
       texto:
         v === null
           ? `${onde}${g.n} conversas${sobre} nos últimos 7 dias (nenhuma nos 7 antes)`
-          : `${onde}+${Math.round(v).toLocaleString('pt-PT')}% conversas${sobre} nos últimos 7 dias (${g.n} contra ${g.anterior})`,
+          : g.anterior < BASE_PERCENTAGEM
+            ? `${onde}${g.n} conversas${sobre} nos últimos 7 dias (${g.anterior} nos 7 antes)`
+            : `${onde}+${Math.round(v).toLocaleString('pt-PT')}% conversas${sobre} nos últimos 7 dias (${g.n} contra ${g.anterior})`,
       pergunta: g.freguesia
         ? `O que preocupa as pessoas de ${g.freguesia}${sobre} esta semana?`
         : `Porque estão as pessoas a falar mais${sobre} esta semana?`,
