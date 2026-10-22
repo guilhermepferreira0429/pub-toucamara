@@ -410,6 +410,14 @@ export class ProcessosService {
       codigo,
       'processo',
     );
+    return this.publicoPorId(municipioId, destinoId);
+  }
+
+  /**
+   * A mesma informação da página "O seu processo", pelo id (a app do
+   * munícipe, depois de confirmar que o processo é da pessoa).
+   */
+  async publicoPorId(municipioId: string, destinoId: string) {
     const [p] = await this.db.query<{
       id: string;
       numero: string;

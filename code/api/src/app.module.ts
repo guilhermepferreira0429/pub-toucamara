@@ -47,6 +47,8 @@ import { CampanhasModule } from './modules/campanhas/campanhas.module.js';
 import { ConsultasPublicasModule } from './modules/consultas-publicas/consultas-publicas.module.js';
 import { LicencasModule } from './modules/licencas/licencas.module.js';
 import { ApoiosModule } from './modules/apoios/apoios.module.js';
+import { AppMunicipeModule } from './modules/app-municipe/app-municipe.module.js';
+import { PushModule } from './modules/app-municipe/push.module.js';
 import { ArquivoModule } from './modules/arquivo/arquivo.module.js';
 import { OrdenamentoModule } from './modules/ordenamento/ordenamento.module.js';
 import { FiscalizacaoModule } from './modules/fiscalizacao/fiscalizacao.module.js';
@@ -91,6 +93,8 @@ import { TransparenciaModule } from './modules/transparencia/transparencia.modul
     ArmazenamentoModule,
     AuthModule,
     AgentToolsModule,
+    // Push para a app do munícipe (global: avisos, emergências, processos).
+    PushModule,
     // Domínios.
     ConhecimentoModule,
     AtendimentoModule,
@@ -131,6 +135,8 @@ import { TransparenciaModule } from './modules/transparencia/transparencia.modul
     FiscalizacaoModule,
     // Arquivo antigo digitalizado e pedidos de consulta
     ArquivoModule,
+    // App dos munícipes (Flutter): entrar com o telemóvel, os seus dados, push
+    AppMunicipeModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -107,6 +107,14 @@ export class OcorrenciasService {
       morada: string;
       ponto_referencia?: string;
     },
+    /**
+     * A app do munícipe: as coordenadas do GPS (sem geocodificar a morada)
+     * e sem o SMS com o link da fotografia (a app envia-a logo).
+     */
+    opcoes: {
+      coords?: { lat: number; lng: number; encontrada?: string };
+      semSms?: boolean;
+    } = {},
   ) {
     const m = ctx.municipio;
     const categorias = await this.categorias(m.id);
@@ -122,7 +130,8 @@ export class OcorrenciasService {
     }
 
     // Fora da transação: é a parte lenta e não pode prender ligações.
-    const coords = await this.geo.geocodificar(entrada.morada, m.nome);
+    const coords =
+      opcoes.coords ?? (await this.geo.geocodificar(entrada.morada, m.nome));
     const morada = entrada.ponto_referencia?.trim()
       ? `${entrada.morada.trim()} (${entrada.ponto_referencia.trim()})`
       : entrada.morada.trim();
@@ -188,7 +197,7 @@ export class OcorrenciasService {
       const numeroVisivel = original?.numero ?? numero;
       const link = await this.links.criar(m.id, 'ocorrencia', alvoId, { tx });
       let smsEnviado = false;
-      if (telefone) {
+      if (telefone && !opcoes.semSms) {
         await this.mensagens.sms(
           {
             municipioId: m.id,

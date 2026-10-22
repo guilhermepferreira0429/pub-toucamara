@@ -124,6 +124,9 @@ const VERBOS: Record<string, string> = {
     'alertou as chefias e a proteção civil de um pedido de ajuda em',
   tratar_pedido_ajuda_emergencia: 'tratou um pedido de ajuda de',
   mudar_config_emergencias: 'mudou o ritmo de envio e os contactos de',
+  entrar_app: 'entrou na app do munícipe',
+  sair_app: 'saiu da app do munícipe',
+  mudar_preferencias_app: 'mudou as notificações da app de',
 };
 
 const OBJETOS: Record<string, string> = {
@@ -175,6 +178,7 @@ const OBJETOS: Record<string, string> = {
   pedido_arquivo: 'um pedido de consulta ao arquivo',
   emergencia: 'um aviso de emergência',
   emergencias_config: 'os avisos de emergência',
+  sessao_app: '',
 };
 
 export function frase(acao: string, objetoTipo: string): string {
