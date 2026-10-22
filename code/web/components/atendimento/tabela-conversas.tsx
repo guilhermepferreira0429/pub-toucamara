@@ -14,10 +14,14 @@ import { EstadoResultado } from "./ui";
 export function TabelaConversas({
   itens,
   mostrarMunicipe,
+  consulta,
 }: {
   itens: ConversaLista[];
   mostrarMunicipe?: boolean;
+  /** Os filtros da lista (query string), para o detalhe abrir com os mesmos. */
+  consulta?: string;
 }) {
+  const sufixo = consulta ? `?${consulta}` : "";
   const fuso = useFuso();
   const th =
     "h-9 px-2 text-left text-[11px] font-bold uppercase tracking-[0.8px] text-tinta-3";
@@ -39,7 +43,7 @@ export function TabelaConversas({
           return (
             <li key={c.id} className="border-b border-linha last:border-b-0">
               <Link
-                href={`/painel/conversas/${c.id}`}
+                href={`/painel/conversas/${c.id}${sufixo}`}
                 className="flex gap-3 py-3.5 hover:bg-creme/60 focus-visible:bg-creme"
               >
                 <span
@@ -132,7 +136,7 @@ export function TabelaConversas({
                   </td>
                   <td className="px-2 py-2">
                     <Link
-                      href={`/painel/conversas/${c.id}`}
+                      href={`/painel/conversas/${c.id}${sufixo}`}
                       className="line-clamp-2 text-[13px] leading-[1.4] text-tinta after:absolute after:inset-0 after:content-['']"
                     >
                       {c.resumo || (

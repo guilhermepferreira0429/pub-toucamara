@@ -252,6 +252,28 @@ export function resultado(r: string) {
   );
 }
 
+/** "Helena Sicrana" → "Helena S." (primeiro nome e a inicial do último). */
+export function nomeCurto(nome: string | null | undefined): string | null {
+  const partes = (nome ?? "").trim().split(/\s+/).filter(Boolean);
+  if (!partes.length) return null;
+  if (partes.length === 1) return partes[0];
+  return `${partes[0]} ${partes[partes.length - 1][0].toUpperCase()}.`;
+}
+
+/**
+ * O título de uma conversa, o mesmo na lista e no detalhe: a pessoa e o
+ * assunto ("Helena S. · Muro de vedação"); sem nome, só o assunto.
+ */
+export function tituloConversa(c: {
+  canal: string;
+  municipe?: { nome: string | null } | null;
+  tema?: { nome: string | null } | null;
+}): string {
+  const assunto = c.tema?.nome ?? `Conversa por ${canal(c.canal).rotulo.toLowerCase()}`;
+  const quem = nomeCurto(c.municipe?.nome);
+  return quem ? `${quem} · ${assunto}` : assunto;
+}
+
 export const MOTIVOS_PASSAGEM: Record<string, string> = {
   pedido: "Pediu para falar com uma pessoa",
   sem_fonte: "Sem fonte oficial para responder",

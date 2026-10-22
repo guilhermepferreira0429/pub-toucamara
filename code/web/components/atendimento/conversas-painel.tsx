@@ -2,19 +2,32 @@
 
 import { Search } from "lucide-react";
 import Link from "next/link";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { query, useFuso, useLista } from "./dados";
-import { canal, duracaoCurta, hojeNoFuso, hora, quando, resultado, somarDias } from "./formatos";
+import {
+  canal,
+  duracaoCurta,
+  hojeNoFuso,
+  hora,
+  quando,
+  resultado,
+  somarDias,
+  tituloConversa,
+} from "./formatos";
 import type { ConversaLista } from "./tipos";
 import { CarregarMais, ErroBloco, Esqueleto } from "./ui";
 
-type Filtro = "todas" | "sem_resposta" | "passada_funcionario";
-
-const FILTROS: { valor: Filtro; rotulo: string }[] = [
-  { valor: "todas", rotulo: "Todas" },
-  { valor: "sem_resposta", rotulo: "Sem resposta" },
-  { valor: "passada_funcionario", rotulo: "Funcionário" },
+// Os mesmos nomes da lista de Conversas (os do resultado), e os filtros no URL
+// (?resultado=…&texto=…): a lista e o detalhe mostram as mesmas conversas.
+const FILTROS: { valor: string; rotulo: string }[] = [
+  { valor: "", rotulo: "Todas" },
+  { valor: "sem_resposta", rotulo: resultado("sem_resposta").rotulo },
+  { valor: "passada_funcionario", rotulo: resultado("passada_funcionario").rotulo },
 ];
+
+/** Os filtros da lista de Conversas que também valem aqui. */
+const DO_URL = ["texto", "canal", "resultado", "revisao", "fora_de_horas", "de", "ate"] as const;
 
 function grupo(iso: string, fuso: string): string {
   const dia = new Date(iso).toLocaleDateString("sv-SE", { timeZone: fuso });
@@ -30,25 +43,39 @@ function grupo(iso: string, fuso: string): string {
  */
 export function ConversasPainel({ ativa }: { ativa: string }) {
   const fuso = useFuso();
-  const [filtro, setFiltro] = useState<Filtro>("todas");
-  const [texto, setTexto] = useState("");
-  const [pesquisa, setPesquisa] = useState("");
+  const router = useRouter();
+  const caminho = usePathname();
+  const params = useSearchParams();
+  const filtros = Object.fromEntries(DO_URL.map((k) => [k, params.get(k) ?? ""])) as Record<
+    (typeof DO_URL)[number],
+    string
+  >;
+  const consulta = params.toString();
+  const sufixo = consulta ? `?${consulta}` : "";
+  const [texto, setTexto] = useState(filtros.texto);
 
+  function mudar(novos: Partial<typeof filtros>) {
+    const q = new URLSearchParams(params.toString());
+    for (const [k, v] of Object.entries(novos)) {
+      if (v) q.set(k, v);
+      else q.delete(k);
+    }
+    const s = q.toString();
+    router.replace(s ? `${caminho}?${s}` : caminho, { scroll: false });
+  }
+
+  // A pesquisa só segue para o URL depois de parar de escrever.
   useEffect(() => {
     const t = setTimeout(() => {
       const v = texto.trim();
-      if (v.length !== 1) setPesquisa(v);
+      if (v === filtros.texto || v.length === 1) return;
+      mudar({ texto: v });
     }, 350);
     return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [texto]);
 
-  const lista = useLista<ConversaLista>(
-    `/v1/painel/conversas${query({
-      limite: 30,
-      resultado: filtro === "todas" ? null : filtro,
-      texto: pesquisa,
-    })}`,
-  );
+  const lista = useLista<ConversaLista>(`/v1/painel/conversas${query({ limite: 30, ...filtros })}`);
 
   const grupos: { nome: string; itens: ConversaLista[] }[] = [];
   for (const c of lista.itens) {
@@ -65,7 +92,7 @@ export function ConversasPainel({ ativa }: { ativa: string }) {
     >
       <div className="flex flex-col gap-3.5 border-b border-linha px-5 pb-4 pt-7">
         <Link
-          href="/painel/conversas"
+          href={`/painel/conversas${sufixo}`}
           className="w-fit font-display text-2xl font-bold tracking-[-0.5px] text-tinta hover:text-terracota-escuro"
         >
           Conversas
@@ -86,10 +113,10 @@ export function ConversasPainel({ ativa }: { ativa: string }) {
             <button
               key={f.valor}
               type="button"
-              aria-pressed={filtro === f.valor}
-              onClick={() => setFiltro(f.valor)}
+              aria-pressed={filtros.resultado === f.valor}
+              onClick={() => mudar({ resultado: f.valor })}
               className={`rounded-[14px] border px-2.5 py-[5px] text-xs font-semibold ${
-                filtro === f.valor
+                filtros.resultado === f.valor
                   ? "border-tinta bg-tinta text-white"
                   : "border-linha bg-creme text-tinta-2 hover:text-tinta"
               }`}
@@ -124,7 +151,7 @@ export function ConversasPainel({ ativa }: { ativa: string }) {
               return (
                 <li key={c.id}>
                   <Link
-                    href={`/painel/conversas/${c.id}`}
+                    href={`/painel/conversas/${c.id}${sufixo}`}
                     aria-current={sel ? "page" : undefined}
                     className={`flex flex-col gap-1 border-b px-5 py-3.5 ${
                       sel
@@ -135,7 +162,7 @@ export function ConversasPainel({ ativa }: { ativa: string }) {
                     <span className="flex items-center gap-1.5">
                       <span className={`size-[7px] shrink-0 rounded-full ${r.ponto}`} aria-hidden />
                       <span className="min-w-0 flex-1 truncate text-sm font-semibold text-tinta">
-                        {c.tema?.nome ?? canal(c.canal).rotulo}
+                        {tituloConversa(c)}
                       </span>
                       <Canal className="size-[13px] shrink-0 text-tinta-3" aria-hidden />
                       <span className="text-xs text-tinta-3">{hora(c.iniciada_em, fuso)}</span>
