@@ -221,6 +221,11 @@ const VERBOS: Record<string, string> = {
   editar_equipamento: 'editou',
   carregar_reservas_demonstracao:
     'carregou os equipamentos e eventos de demonstração',
+  tratar_pedido_cemiterio: 'tratou',
+  mudar_animal_adocao: 'mudou o estado de',
+  tratar_visita_adocao: 'tratou',
+  tratar_animal_reportado: 'tratou',
+  reenviar_pedido_agua: 'reenviou à entidade gestora',
 };
 
 const OBJETOS: Record<string, string> = {
@@ -303,6 +308,11 @@ const OBJETOS: Record<string, string> = {
   reserva: 'uma reserva',
   equipamento: 'um equipamento municipal (reservas)',
   reservas: 'das reservas',
+  pedido_cemiterio: 'um pedido de concessão no cemitério',
+  animal_adocao: 'um animal para adoção',
+  visita_adocao: 'um pedido de visita para adotar',
+  animal_reportado: 'um animal perdido, encontrado ou na via',
+  pedido_agua: 'um pedido de água e saneamento',
 };
 
 export function frase(acao: string, objetoTipo: string): string {

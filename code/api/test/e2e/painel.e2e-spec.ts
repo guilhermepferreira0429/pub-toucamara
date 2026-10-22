@@ -257,6 +257,7 @@ describe('Painel (e2e)', () => {
         atestados: true,
         estacionamento: true,
         reservas: true,
+        servicos_municipais: true,
       });
 
       const a = await ctx

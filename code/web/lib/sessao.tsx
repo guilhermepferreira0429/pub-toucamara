@@ -45,7 +45,8 @@ export type Recurso =
   | "habitacao"
   | "atestados"
   | "estacionamento"
-  | "reservas";
+  | "reservas"
+  | "servicos_municipais";
 
 export type Perfil =
   | "atendimento"
