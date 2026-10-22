@@ -15,6 +15,10 @@ import { AuthService } from './auth.service.js';
 import { pode, Recurso } from './permissoes.js';
 
 const RECURSO = 'painel:recurso';
+const CONSULTA = 'painel:consulta';
+
+/** Métodos que não alteram nada: os únicos abertos a uma sessão só de leitura. */
+const SO_LER = new Set(['GET', 'HEAD', 'OPTIONS']);
 
 /**
  * Valida o `Authorization: Bearer <jwt>`, põe `req.utilizador` e
@@ -56,6 +60,22 @@ export class PainelGuard implements CanActivate {
       req.municipio = await this.municipios.porSlug(slug);
     }
 
+    // Acesso do júri: vê tudo, não altera nada (exceto as consultas por POST).
+    if (
+      u.soLeitura &&
+      !SO_LER.has(req.method) &&
+      !this.reflector.getAllAndOverride<boolean | undefined>(CONSULTA, [
+        ctx.getHandler(),
+        ctx.getClass(),
+      ])
+    ) {
+      throw new ErroApi(
+        HttpStatus.FORBIDDEN,
+        'so_leitura',
+        'Acesso de demonstração só de leitura: pode ver tudo, mas não pode alterar nada.',
+      );
+    }
+
     const recurso = this.reflector.getAllAndOverride<Recurso | undefined>(
       RECURSO,
       [ctx.getHandler(), ctx.getClass()],
@@ -79,3 +99,9 @@ export class PainelGuard implements CanActivate {
 export function Painel(recurso?: Recurso) {
   return applyDecorators(SetMetadata(RECURSO, recurso), UseGuards(PainelGuard));
 }
+
+/**
+ * Um POST que só consulta (perguntar, simular, pré-visualizar): aberto
+ * também às sessões só de leitura. Nada do que grava pode levar isto.
+ */
+export const SoConsulta = () => SetMetadata(CONSULTA, true);

@@ -16,7 +16,7 @@ import {
   type UtilizadorPainel,
 } from '../../common/pedido.js';
 import { validar } from '../../common/validacao.js';
-import { Painel } from '../auth/painel.guard.js';
+import { Painel, SoConsulta } from '../auth/painel.guard.js';
 import type { Municipio } from '../municipios/municipios.service.js';
 import type { EventoPergunta } from './loop.js';
 import {
@@ -38,6 +38,7 @@ export class PerguntasChefiaController {
   constructor(private readonly perguntas: PerguntasChefiaService) {}
 
   @Post()
+  @SoConsulta()
   @HttpCode(200)
   perguntar(
     @MunicipioAtual() m: Municipio,
@@ -57,6 +58,7 @@ export class PerguntasChefiaController {
    * antes de começar (IA desligada, limite, pergunta inválida) saem em JSON.
    */
   @Post('stream')
+  @SoConsulta()
   async stream(
     @MunicipioAtual() m: Municipio,
     @UtilizadorAtual() u: UtilizadorPainel,

@@ -1,6 +1,6 @@
 import { HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { ConfigService, ConfigType } from '@nestjs/config';
-import { createHash, randomBytes } from 'crypto';
+import { createHash, randomBytes, timingSafeEqual } from 'crypto';
 import { ErroApi } from '../../common/erros.js';
 import type { UtilizadorPainel } from '../../common/pedido.js';
 import { authConfig } from '../../config/configuration.js';
@@ -35,6 +35,20 @@ function hashToken(token: string): Buffer {
   return createHash('sha256').update(token).digest();
 }
 
+/** Comparação em tempo constante (pelo hash, para os tamanhos serem iguais). */
+function iguais(a: string, b: string): boolean {
+  return timingSafeEqual(hashToken(a), hashToken(b));
+}
+
+/** O que `entrar` e `entrarJuri` devolvem: o JWT e quem entrou. */
+export interface SessaoPainel {
+  token: string;
+  expira_em: string;
+  utilizador: UtilizadorPainel;
+}
+
+const NOME_JURI = 'Júri do Hack4Guimarães';
+
 /**
  * Login do painel na semana: link mágico por email (uso único, 15 min) →
  * JWT curto. Na V2, OIDC da câmara.
@@ -67,6 +81,87 @@ export class AuthService {
       s = 'dev-jwt-secret';
     }
     return new TextEncoder().encode(s);
+  }
+
+  /**
+   * Acesso do júri ligado e dentro do prazo: o email, a chave do link, até
+   * quando vale e o município. Sem os três valores, ou depois do prazo, null.
+   */
+  private juri(): {
+    email: string;
+    chave: string;
+    ate: Date;
+    municipio: string;
+  } | null {
+    const j = this.cfg().juri;
+    const ate = new Date(j.ate);
+    if (!j.email || !j.chave || Number.isNaN(ate.getTime())) return null;
+    if (ate.getTime() <= Date.now()) return null;
+    return { ...j, ate };
+  }
+
+  /** O email do júri (escrito no /entrar) entra sem link por email. */
+  eEmailDoJuri(email: string): boolean {
+    const j = this.juri();
+    return !!j && iguais(email.trim().toLowerCase(), j.email);
+  }
+
+  /**
+   * Entrar como júri, com a chave do link ou o email: uma sessão só de
+   * leitura (o PainelGuard recusa o que altera dados) que nunca passa do
+   * prazo. O utilizador do júri cria-se na primeira entrada, com o perfil
+   * que vê todas as áreas; desativá-lo na Equipa corta o acesso.
+   */
+  async entrarJuri(chave: string, ip?: string): Promise<SessaoPainel> {
+    const j = this.juri();
+    const c = chave.trim();
+    if (!j || !(iguais(c, j.chave) || iguais(c.toLowerCase(), j.email))) {
+      throw new ErroApi(
+        HttpStatus.UNAUTHORIZED,
+        'juri_invalido',
+        'Este acesso não é válido ou já terminou.',
+      );
+    }
+    const [u] = await this.db.query<LinhaUtilizador & { ativo: boolean }>(
+      `INSERT INTO utilizadores (municipio_id, email, nome, perfil)
+       SELECT id, $2, $3, 'chefe_divisao' FROM municipios WHERE slug = $1
+       ON CONFLICT (email) DO UPDATE SET email = EXCLUDED.email
+       RETURNING id, nome, email, perfil, municipio_id, servico_id, ativo`,
+      [j.municipio, j.email, NOME_JURI],
+    );
+    if (!u?.ativo) {
+      throw new ErroApi(
+        HttpStatus.UNAUTHORIZED,
+        'juri_invalido',
+        'Este acesso não é válido ou já terminou.',
+      );
+    }
+    await this.db.query(
+      'UPDATE utilizadores SET ultimo_acesso_em = now() WHERE id = $1',
+      [u.id],
+    );
+    await this.auditoria.registar({
+      municipioId: u.municipio_id,
+      atorTipo: 'utilizador',
+      atorId: u.id,
+      acao: 'entrar_juri',
+      objetoTipo: 'utilizador',
+      objetoId: u.id,
+      ip,
+    });
+    const horas = this.cfg().validadeHoras;
+    const expira = new Date(
+      Math.min(Date.now() + horas * 3_600_000, j.ate.getTime()),
+    );
+    return {
+      token: await this.emitir(u.id, expira, undefined, { leitura: true }),
+      expira_em: expira.toISOString(),
+      utilizador: {
+        ...paraUtilizador(u),
+        soLeitura: true,
+        acessoAte: j.ate.toISOString(),
+      },
+    };
   }
 
   /** Manda o link se o email existir. Responde sempre igual (não revela contas). */
@@ -115,14 +210,7 @@ export class AuthService {
   }
 
   /** Troca o token do link por um JWT. */
-  async entrar(
-    token: string,
-    ip?: string,
-  ): Promise<{
-    token: string;
-    expira_em: string;
-    utilizador: UtilizadorPainel;
-  }> {
+  async entrar(token: string, ip?: string): Promise<SessaoPainel> {
     const [u] = await this.db.query<LinhaUtilizador>(
       `UPDATE links_magicos l SET usado_em = now()
        FROM utilizadores u
@@ -168,9 +256,10 @@ export class AuthService {
     utilizadorId: string,
     expira: Date,
     sessaoApp?: string,
+    extra: { leitura?: true } = {},
   ): Promise<string> {
     const { SignJWT } = await import('jose');
-    return new SignJWT(sessaoApp ? { sid: sessaoApp } : {})
+    return new SignJWT({ ...(sessaoApp ? { sid: sessaoApp } : {}), ...extra })
       .setProtectedHeader({ alg: 'HS256' })
       .setSubject(utilizadorId)
       .setIssuedAt()
@@ -182,6 +271,7 @@ export class AuthService {
   async verificar(jwt: string): Promise<UtilizadorPainel> {
     let id: string | undefined;
     let sid: string | null = null;
+    let leitura = false;
     try {
       const { jwtVerify } = await import('jose');
       const { payload } = await jwtVerify(jwt, this.segredo(), {
@@ -189,9 +279,13 @@ export class AuthService {
       });
       id = payload.sub;
       sid = typeof payload['sid'] === 'string' ? payload['sid'] : null;
+      leitura = payload['leitura'] === true;
     } catch {
       id = undefined;
     }
+    // O júri: o acesso acaba no prazo (ou quando se desliga), mesmo com o JWT válido.
+    const juri = leitura ? this.juri() : null;
+    if (leitura && !juri) id = undefined;
     // Sessão da app da equipa: tem de estar ativa (sair/revogar corta-a).
     const [u] = id
       ? await this.db.query<LinhaUtilizador>(
@@ -218,6 +312,13 @@ export class AuthService {
         'nao_autenticado',
         'Sessão inválida ou expirada.',
       );
+    }
+    if (juri) {
+      return {
+        ...paraUtilizador(u),
+        soLeitura: true,
+        acessoAte: juri.ate.toISOString(),
+      };
     }
     return sid ? { ...paraUtilizador(u), sessaoAppId: sid } : paraUtilizador(u);
   }

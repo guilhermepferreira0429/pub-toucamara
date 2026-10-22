@@ -17,7 +17,7 @@ import { MunicipioAtual, UtilizadorAtual } from '../../common/pedido.js';
 import type { UtilizadorPainel } from '../../common/pedido.js';
 import { ferramenta } from '../../ferramentas/ferramenta.js';
 import { RegistoFerramentas } from '../../ferramentas/registo-ferramentas.service.js';
-import { Painel } from '../auth/painel.guard.js';
+import { Painel, SoConsulta } from '../auth/painel.guard.js';
 import type { Municipio } from '../municipios/municipios.service.js';
 import { OcorrenciasModule } from '../ocorrencias/ocorrencias.module.js';
 import {
@@ -49,6 +49,7 @@ export class OrdenamentoPainelController {
 
   /** { regras } propostas para a zona → o que mudava nas perguntas antigas (não grava). */
   @Post('zonas/:id/simular')
+  @SoConsulta()
   @HttpCode(200)
   @Painel('conhecimento')
   simular(

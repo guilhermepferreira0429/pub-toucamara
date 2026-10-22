@@ -57,11 +57,13 @@ function Formulario() {
   const router = useRouter();
   const params = useSearchParams();
   const token = params.get("token");
+  // O link do júri (/entrar?juri=CHAVE): entra logo, só de leitura.
+  const chaveJuri = params.get("juri");
   const erroOidc = params.get("erro");
   const { entrar } = useSessao();
   const [email, setEmail] = useState("");
   const [estado, setEstado] = useState<"inicio" | "a_enviar" | "enviado" | "a_entrar">(
-    token ? "a_entrar" : "inicio",
+    token || chaveJuri ? "a_entrar" : "inicio",
   );
   const [erro, setErro] = useState<string | null>(
     erroOidc ? (ERROS_OIDC[erroOidc] ?? "Não foi possível entrar com a conta da câmara.") : null,
@@ -69,23 +71,33 @@ function Formulario() {
   const usado = useRef(false);
 
   useEffect(() => {
-    if (!token || usado.current) return;
+    if ((!token && !chaveJuri) || usado.current) return;
     usado.current = true;
-    api<{ token: string }>("/v1/painel/auth/entrar", { corpo: { token } })
+    (token
+      ? api<{ token: string }>("/v1/painel/auth/entrar", { corpo: { token } })
+      : api<{ token: string }>("/v1/painel/auth/juri", { corpo: { chave: chaveJuri } })
+    )
       .then((r) => entrar(r.token))
       .then(() => router.replace("/painel"))
       .catch((e) => {
         setErro(e instanceof ErroApi ? e.message : "Não foi possível entrar.");
         setEstado("inicio");
       });
-  }, [token, entrar, router]);
+  }, [token, chaveJuri, entrar, router]);
 
   async function pedirLink(ev: React.FormEvent) {
     ev.preventDefault();
     setErro(null);
     setEstado("a_enviar");
     try {
-      await api("/v1/painel/auth/link", { corpo: { email } });
+      // O email do júri não recebe link: a API devolve logo a sessão.
+      const r = await api<{ token: string } | undefined>("/v1/painel/auth/link", { corpo: { email } });
+      if (r?.token) {
+        setEstado("a_entrar");
+        await entrar(r.token);
+        router.replace("/painel");
+        return;
+      }
       setEstado("enviado");
     } catch (e) {
       setErro(e instanceof ErroApi ? e.message : "Não foi possível enviar.");

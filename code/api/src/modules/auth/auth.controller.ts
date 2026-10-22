@@ -8,7 +8,9 @@ import {
   Post,
   Query,
   Redirect,
+  Res,
 } from '@nestjs/common';
+import type { Response } from 'express';
 import { z } from 'zod';
 import { MunicipioAtual, UtilizadorAtual } from '../../common/pedido.js';
 import type { UtilizadorPainel } from '../../common/pedido.js';
@@ -57,15 +59,37 @@ export class AuthController {
     };
   }
 
-  /** Manda o link mágico. Responde 204 exista ou não o email. */
+  /**
+   * Manda o link mágico. Responde 204 exista ou não o email. O email do
+   * júri entra logo: 200 com a sessão (só de leitura), sem email.
+   */
   @Post('link')
   @HttpCode(204)
-  async link(@Body() body: unknown) {
+  async link(
+    @Body() body: unknown,
+    @Ip() ip: string,
+    @Res({ passthrough: true }) res: Response,
+  ) {
     const { email } = validar(
       z.object({ email: z.email().toLowerCase() }),
       body,
     );
+    if (this.auth.eEmailDoJuri(email)) {
+      res.status(200);
+      return this.auth.entrarJuri(email, ip);
+    }
     await this.auth.pedirLink(email);
+  }
+
+  /** O link do júri (/entrar?juri=CHAVE): uma sessão só de leitura, até ao prazo. */
+  @Post('juri')
+  @HttpCode(200)
+  juri(@Body() body: unknown, @Ip() ip: string) {
+    const { chave } = validar(
+      z.object({ chave: z.string().min(10).max(200) }),
+      body,
+    );
+    return this.auth.entrarJuri(chave, ip);
   }
 
   @Post('entrar')

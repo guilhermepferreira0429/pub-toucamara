@@ -14,7 +14,7 @@ import { z } from 'zod';
 import { MunicipioAtual, UtilizadorAtual } from '../../common/pedido.js';
 import type { UtilizadorPainel } from '../../common/pedido.js';
 import { validar } from '../../common/validacao.js';
-import { Painel } from '../auth/painel.guard.js';
+import { Painel, SoConsulta } from '../auth/painel.guard.js';
 import type { Municipio } from '../municipios/municipios.service.js';
 import {
   esquemaConfigRuido,
@@ -152,6 +152,7 @@ export class LicencasPainelController {
    * corpo, as mesmas do PUT) contra os pedidos antigos, sem gravar nada.
    */
   @Post('regras/:tipo/simular')
+  @SoConsulta()
   @HttpCode(200)
   @Painel('agente')
   simular(

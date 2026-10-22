@@ -11,6 +11,8 @@ export const SEGREDO_AGENTE = 'segredo-e2e';
 export const SEGREDO_ELEVENLABS = 'segredo-elevenlabs-e2e';
 export const SEGREDO_PAGAMENTOS = 'segredo-pagamentos-e2e';
 export const WEB_URL = 'http://web.e2e.local';
+export const JURI_EMAIL = 'juri.e2e@toucamara.test';
+export const JURI_CHAVE = 'chave-do-juri-e2e-0123456789';
 
 const nomeBd = process.env.E2E_BD;
 if (!nomeBd) {
@@ -51,6 +53,11 @@ Object.assign(process.env, {
 
   JWT_SECRET: 'jwt-secret-e2e-0123456789abcdef',
   JWT_VALIDADE_HORAS: '12',
+  // Acesso do júri (só de leitura): ligado em todos os testes, só o usa o seu.
+  JURI_EMAIL: JURI_EMAIL,
+  JURI_CHAVE: JURI_CHAVE,
+  JURI_ATE: '2099-12-31T23:59:59Z',
+  JURI_MUNICIPIO: 'teste',
   JOBS_WORKERS: 'true',
   // Recolha das fontes: sem a pausa de 2 s entre pedidos ao mesmo site.
   RECOLHA_INTERVALO_MS: '0',

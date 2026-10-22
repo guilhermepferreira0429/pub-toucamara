@@ -1,6 +1,6 @@
 "use client";
 
-import { Menu, X } from "lucide-react";
+import { Eye, Menu, X } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { SaltarParaConteudo } from "@/components/acessibilidade/saltar";
@@ -78,6 +78,28 @@ function MenuEstreito({
   );
 }
 
+/** O acesso do júri: diz que é só de leitura e até quando vale. */
+function FaixaJuri({ ate }: { ate?: string }) {
+  const quando = ate
+    ? new Date(ate).toLocaleString("pt-PT", {
+        day: "numeric",
+        month: "long",
+        hour: "2-digit",
+        minute: "2-digit",
+        timeZone: "Europe/Lisbon",
+      })
+    : null;
+  return (
+    <div role="note" className="flex items-start gap-2.5 bg-tinta px-4 py-2.5 text-[14px] leading-snug text-papel sm:px-6">
+      <Eye className="mt-0.5 size-4 shrink-0 text-terracota-suave" aria-hidden />
+      <p>
+        <span className="font-semibold">Acesso do júri, só de leitura.</span> Pode ver todo o painel; as alterações
+        estão desligadas.{quando ? ` Válido até ${quando}.` : ""}
+      </p>
+    </div>
+  );
+}
+
 function Moldura({ children }: { children: React.ReactNode }) {
   const { eu, aCarregar } = useSessao();
   const router = useRouter();
@@ -105,6 +127,7 @@ function Moldura({ children }: { children: React.ReactNode }) {
       </div>
       <div className="flex min-w-0 flex-1 flex-col">
         <MenuEstreito contagens={contagens} />
+        {eu.utilizador.soLeitura && <FaixaJuri ate={eu.utilizador.acessoAte} />}
         <main
           id="conteudo"
           tabIndex={-1}

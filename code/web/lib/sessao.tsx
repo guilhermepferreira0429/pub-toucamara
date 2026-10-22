@@ -65,6 +65,10 @@ export interface Eu {
     municipioId: string | null;
     servicoId: string | null;
     foto_url: string | null;
+    /** Acesso do júri: vê tudo, não altera nada (a API recusa com `so_leitura`). */
+    soLeitura?: boolean;
+    /** Até quando vale o acesso do júri (ISO). */
+    acessoAte?: string;
   };
   municipio: {
     id: string;
