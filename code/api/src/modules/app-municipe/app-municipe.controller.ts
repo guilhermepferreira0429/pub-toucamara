@@ -9,7 +9,9 @@ import {
   ParseUUIDPipe,
   Post,
   Put,
+  UseInterceptors,
 } from '@nestjs/common';
+import { IdempotenciaInterceptor } from '../../common/idempotencia.interceptor.js';
 import { MunicipioAtual } from '../../common/pedido.js';
 import { validar } from '../../common/validacao.js';
 import { Painel } from '../auth/painel.guard.js';
@@ -120,6 +122,8 @@ export class AppController {
   /** { categoria, descricao, lat, lng, morada?, ponto_referencia?, foto_mime? } */
   @Post('ocorrencias')
   @HttpCode(201)
+  // A app reenvia da fila sem rede com a mesma Idempotency-Key: não duplica.
+  @UseInterceptors(IdempotenciaInterceptor)
   novaOcorrencia(@SessaoAtual() s: SessaoApp, @Body() body: unknown) {
     return this.app.novaOcorrencia(s, validar(esquemaNovaOcorrencia, body));
   }

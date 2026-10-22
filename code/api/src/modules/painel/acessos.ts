@@ -150,6 +150,7 @@ const VERBOS: Record<string, string> = {
   despublicar_evento: 'tirou do feed',
   apagar_evento: 'apagou',
   subscrever_agora: 'pediu avisos de',
+  cancelar_subscricao_agora: 'deixou de pedir avisos de',
   aceitar_avisos: 'voltou a aceitar avisos em',
   mudar_requisito_empresa: 'mudou um requisito de',
   criar_requisito_empresa: 'acrescentou um requisito a',
