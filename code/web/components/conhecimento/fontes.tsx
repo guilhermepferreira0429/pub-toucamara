@@ -4,6 +4,7 @@ import {
   BookOpen,
   Check,
   ClipboardPaste,
+  Clock,
   ExternalLink,
   FileQuestion,
   FileText,
@@ -58,6 +59,8 @@ const ESTADOS: Record<EstadoFonte, { rotulo: string; tom: "verde" | "ambar" | "t
   mudou: { rotulo: "Mudou", tom: "ambar", icone: TriangleAlert, borda: "border-ambar/60" },
   erro: { rotulo: "Erro ao ler", tom: "terracota", icone: X, borda: "border-terracota/60" },
 };
+
+const POR_LER = { rotulo: "Por ler", tom: "neutro" as const, icone: Clock, borda: "border-linha" };
 
 function anfitriao(url: string): string {
   try {
@@ -232,7 +235,7 @@ export function Fontes() {
         <span className="flex size-9 items-center justify-center rounded-[18px] bg-[#7FBF8A]/20">
           <RefreshCw className="size-4 text-[#9FD3A8]" aria-hidden />
         </span>
-        <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <div className="flex min-w-[240px] flex-1 flex-col gap-0.5">
           <p className="text-[15px] font-bold text-white">Lemos o portal e os regulamentos automaticamente</p>
           <p className="text-[13px] text-white/70">
             {i
@@ -282,7 +285,9 @@ export function Fontes() {
         <ul className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {itens.map((f) => {
             const t = TIPOS[f.tipo] ?? { rotulo: f.tipo, icone: FileText };
-            const e = ESTADOS[f.estado];
+            // Nunca lida (acabada de criar ou descoberta num site): ainda não está "em dia".
+            const porLer = f.estado === "em_dia" && !f.ultima_leitura_em;
+            const e = porLer ? POR_LER : ESTADOS[f.estado];
             const Icone = t.icone;
             return (
               <li key={f.id} className={`flex flex-col gap-3 rounded-2xl border bg-papel p-5 ${e.borda}`}>
@@ -306,7 +311,9 @@ export function Fontes() {
                       ? (f.erro ?? "Não conseguimos ler a página")
                       : f.estado === "mudou"
                         ? `${f.alteracoes_por_rever} ${f.alteracoes_por_rever === 1 ? "alteração" : "alterações"} por rever`
-                        : `${f.entidade} · lida ${quando(f.ultima_leitura_em)}`}
+                        : porLer
+                          ? `${f.entidade} · à espera da primeira leitura`
+                          : `${f.entidade} · lida ${quando(f.ultima_leitura_em)}`}
                   </p>
                   {f.arquivada_em ? (
                     <p className="text-xs text-tinta-3">Arquivada {quando(f.arquivada_em)}: já não é lida</p>

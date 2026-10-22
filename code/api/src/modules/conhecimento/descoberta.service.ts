@@ -60,7 +60,7 @@ export class DescobertaService {
 
   async descobrir(
     siteId: string,
-  ): Promise<{ encontradas: number; novas: number }> {
+  ): Promise<{ encontradas: number; novas: number; municipio_id?: string }> {
     const [site] = await this.db.query<Site>(
       `SELECT id, municipio_id, entidade_id, url_inicial, sitemap_url, incluir, excluir,
               profundidade, max_paginas, tipo_fontes
@@ -82,7 +82,11 @@ export class DescobertaService {
       this.logger.log(
         `Site ${site.url_inicial}: ${lista.length} páginas, ${novas} novas.`,
       );
-      return { encontradas: lista.length, novas };
+      return {
+        encontradas: lista.length,
+        novas,
+        municipio_id: site.municipio_id,
+      };
     } catch (e) {
       const erro = (e as Error).message.slice(0, 500);
       await this.db.query(

@@ -131,8 +131,8 @@ export function HoraRecolha({ escrever, onMudou }: { escrever: boolean; onMudou:
   }
 
   return (
-    <p className="flex flex-wrap items-center gap-x-1.5 text-[13px] text-white/70">
-      <Clock className="size-3.5" aria-hidden />
+    <p className="text-[13px] text-white/70">
+      <Clock className="mr-1.5 inline size-3.5 align-[-2px]" aria-hidden />
       Leitura diária às <strong className="text-white">{d.hora_recolha}</strong>
       {d.proxima_leitura_em && <> · próxima {proximaVez(d.proxima_leitura_em)}</>}
       {escrever && (
@@ -142,7 +142,7 @@ export function HoraRecolha({ escrever, onMudou }: { escrever: boolean; onMudou:
             setHora(d.hora_recolha);
             setEditar(true);
           }}
-          className="font-semibold text-white underline-offset-2 hover:underline"
+          className="ml-1.5 font-semibold text-white underline-offset-2 hover:underline"
         >
           Mudar
         </button>

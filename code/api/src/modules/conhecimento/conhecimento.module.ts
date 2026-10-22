@@ -127,7 +127,15 @@ export class ConhecimentoModule implements OnModuleInit {
     this.jobs.trabalhar<DadosDescobrir>(
       JOB_DESCOBRIR,
       async (d) => {
-        await this.descoberta.descobrir(d.site_id);
+        // Páginas novas: lêem-se já, sem esperar pelo tick.
+        const r = await this.descoberta.descobrir(d.site_id);
+        if (r.novas > 0 && r.municipio_id) {
+          await this.jobs.enviar(
+            JOB_INGESTAO,
+            { municipio_id: r.municipio_id },
+            { singletonKey: `ingestao:${r.municipio_id}` },
+          );
+        }
       },
       { concorrencia: 1 },
     );

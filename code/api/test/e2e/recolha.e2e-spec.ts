@@ -401,10 +401,8 @@ describe('recolha das fontes', () => {
       `${base}/servicos/agua`,
       `${base}/servicos/residuos`,
     ]);
-    expect(fontes[0]).toMatchObject({
-      titulo: 'Agua',
-      titulo_automatico: true,
-    });
+    // (O título do endereço, "Agua", pode já ter sido trocado: a descoberta
+    // pelo worker também põe a leitura na fila.)
 
     await ler(fontes[0].id);
     expect((await fonte(fontes[0].id)).titulo).toBe('Água e saneamento');
