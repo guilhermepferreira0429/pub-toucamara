@@ -53,6 +53,12 @@ export const PERMISSOES = {
   // Preparar a câmara de demonstração e esconder os registos dos testes:
   // só a chefia (e a administração, que pode tudo).
   demo: ['chefe_divisao'],
+  // Estacionamento (multas, defesas, lugares reservados): quem atende e os
+  // técnicos da fiscalização e do trânsito decidem; os vereadores não.
+  estacionamento: ['atendimento', 'tecnico', 'chefe_divisao'],
+  // Reservas de equipamentos e bilhetes: quem atende aprova e recusa; criar e
+  // mudar equipamentos (preços, horário, aprovação) é da chefia ('agente').
+  reservas: ['atendimento', 'tecnico', 'chefe_divisao'],
 } as const satisfies Record<string, readonly Perfil[]>;
 
 export type Recurso = keyof typeof PERMISSOES;

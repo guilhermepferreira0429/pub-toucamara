@@ -252,6 +252,8 @@ describe('Painel (e2e)', () => {
         arquivo: true,
         comunicados: true,
         demo: true,
+        estacionamento: true,
+        reservas: true,
       });
 
       const a = await ctx
