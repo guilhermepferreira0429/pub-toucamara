@@ -1566,7 +1566,7 @@ export class PainelConhecimentoService {
       throw new ErroApi(
         HttpStatus.CONFLICT,
         'embeddings_desligados',
-        'Não há fornecedor de embeddings configurado (EMBEDDINGS_PROVIDER).',
+        'A pesquisa por significado não está ligada nesta instalação.',
       );
     }
     const job = await this.jobs.enviar(

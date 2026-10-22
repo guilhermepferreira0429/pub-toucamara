@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
+import { FaixaDemonstracao } from "@/components/painel/faixa-demonstracao";
 import { Botao } from "@/components/ui/botao";
 import { PainelTurismo } from "@/components/turismo/painel-turismo";
 import { useSessao } from "@/lib/sessao";
@@ -281,6 +282,13 @@ export function Fontes() {
         ))}
       </div>
 
+      {itens.some((f) => f.demonstracao) && (
+        <FaixaDemonstracao>
+          {itens.filter((f) => f.demonstracao).length} destas fontes têm textos de exemplo, escritos para a
+          demonstração; as outras são lidas dos sites oficiais.
+        </FaixaDemonstracao>
+      )}
+
       <Estado aCarregar={fontes.aCarregar} erro={fontes.erro} vazio={!itens.length} textoVazio="Sem fontes neste filtro.">
         <ul className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
           {itens.map((f) => {
@@ -318,7 +326,7 @@ export function Fontes() {
                   {f.arquivada_em ? (
                     <p className="text-xs text-tinta-3">Arquivada {quando(f.arquivada_em)}: já não é lida</p>
                   ) : !f.leitura_automatica ? (
-                    <p className="text-xs text-tinta-3">Leitura manual (texto colado)</p>
+                    <p className="text-xs text-tinta-3">Texto copiado à mão</p>
                   ) : (
                     <p className="text-xs text-tinta-3">
                       {periodicidade(f.ler_a_cada_horas)} · próxima {proximaVez(f.proxima_leitura_em)}
@@ -328,10 +336,9 @@ export function Fontes() {
                     </p>
                   )}
                   {f.site && <p className="text-xs text-tinta-3">Do site «{f.site}»</p>}
-                  {(f.demonstracao || (f.lingua && f.lingua !== "pt")) && (
+                  {f.lingua && f.lingua !== "pt" && (
                     <span className="flex flex-wrap gap-1.5">
-                      {f.lingua && f.lingua !== "pt" && <Pilula tom="neutro">{f.lingua.toUpperCase()}</Pilula>}
-                      {f.demonstracao && <Pilula tom="ambar">valores de demonstração</Pilula>}
+                      <Pilula tom="neutro">{f.lingua.toUpperCase()}</Pilula>
                     </span>
                   )}
                 </div>

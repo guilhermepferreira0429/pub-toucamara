@@ -131,8 +131,8 @@ export function LinhaCaixa({
               {quem}
             </span>
             {urgente && (
-              <span className="rounded-lg bg-terracota px-1.5 py-px text-[10px] font-bold text-white">
-                URGENTE
+              <span className="rounded-lg bg-terracota px-1.5 py-px text-[11px] font-bold text-white">
+                urgente
               </span>
             )}
             <span className="shrink-0 text-xs text-tinta-3">{hora}</span>

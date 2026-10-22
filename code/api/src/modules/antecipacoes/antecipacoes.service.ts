@@ -926,7 +926,7 @@ export class AntecipacoesService {
       throw new ErroApi(
         HttpStatus.NOT_FOUND,
         'demo_desligada',
-        'Correr agora só existe na demonstração (DEMO_ATIVA).',
+        'Correr agora só existe na demonstração.',
       );
     }
     const r = await this.correrMunicipio(m);

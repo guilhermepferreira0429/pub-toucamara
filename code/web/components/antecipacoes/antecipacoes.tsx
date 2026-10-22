@@ -27,6 +27,7 @@ import {
   useAcao,
   useDados,
 } from "@/components/conhecimento/comum";
+import { FaixaDemonstracao } from "@/components/painel/faixa-demonstracao";
 import { CabecalhoPagina } from "@/components/painel/cabecalho";
 import { Filtro } from "@/components/painel/filtro";
 import { Botao } from "@/components/ui/botao";
@@ -222,7 +223,6 @@ export function PaginaAntecipacoes() {
         descricao="A câmara contacta o munícipe antes de um prazo o prejudicar: o agente liga nos casos importantes e a quem não tem a app; os outros recebem uma notificação ou SMS. A chefia é avisada quando o prazo da câmara está a acabar."
         acoes={
           <div className="flex flex-wrap items-center gap-2">
-            {demonstracao && <Pilula tom="ambar">valores de demonstração</Pilula>}
             {d?.demo_ativa && pode("agente") && (
               <Botao tamanho="pequeno" icone={Play} disabled={correr.aCorrer} onClick={correrAgora}>
                 Correr agora
@@ -232,6 +232,12 @@ export function PaginaAntecipacoes() {
         }
       />
       <div className="flex flex-col gap-3 px-10 pb-5">
+        {demonstracao && (
+          <FaixaDemonstracao>
+            Os prazos e as antecedências de cada aviso são de exemplo, a confirmar pelo jurista da câmara. O que
+            precisa mesmo dessa confirmação antes de agir vem marcado em cada momento.
+          </FaixaDemonstracao>
+        )}
         <Filtro
           rotulo="Próximos"
           valor={dias}
@@ -377,7 +383,6 @@ export function LinhaMomento({ m, semProcesso = false }: { m: Momento; semProces
         <Pilula tom="tinta">
           {dia(m.data_alvo)} · {faltam(m.faltam_dias_uteis)}
         </Pilula>
-        {m.demonstracao && <Pilula tom="ambar">valores de demonstração</Pilula>}
         {m.confirmar_jurista && <Pilula tom="ambar">a confirmar pelo jurista</Pilula>}
       </div>
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-tinta-2">
@@ -461,8 +466,8 @@ function ChamadaWeb() {
         <Link href="/ligar" className="font-semibold text-terracota hover:underline">
           a chamada pelo browser
         </Link>
-        , indique o telemóvel do munícipe e diga que recebeu um aviso. O agente usa a ferramenta{" "}
-        <code className="font-mono text-xs">explicar_momento</code> e explica o prazo e o que pode fazer.
+        , indique o telemóvel do munícipe e diga que recebeu um aviso. O agente explica o prazo e o que a
+        pessoa pode fazer.
       </span>
     </p>
   );
@@ -488,7 +493,6 @@ function Contactos({ contactos }: { contactos: ContactoFeito[] }) {
                       {ROTULO_CANAL[c.canal] ?? c.canal}
                     </Pilula>
                     <Pilula tom="tinta">alvo {dia(c.data_alvo)}</Pilula>
-                    {c.demonstracao && <Pilula tom="ambar">valores de demonstração</Pilula>}
                   </div>
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-tinta-2">
                     <span className="font-semibold text-tinta">{c.municipe_nome ?? "Munícipe"}</span>
@@ -579,7 +583,6 @@ function Configuracao({
             <li key={c.tipo} className="grid items-center gap-3 py-3 md:grid-cols-[minmax(0,1fr)_auto_120px_minmax(0,280px)]">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-sm font-semibold text-tinta">{c.rotulo}</span>
-                {c.demonstracao && <Pilula tom="ambar">valores de demonstração</Pilula>}
               </div>
               {c.configuravel ? (
                 <>

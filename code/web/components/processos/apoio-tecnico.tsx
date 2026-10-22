@@ -202,9 +202,14 @@ function TextoDestacado({ t }: { t: TrechoDestacado }) {
   return <>{partes}</>;
 }
 
-function Regras({ processoId }: { processoId: string }) {
+function Regras({
+  processoId,
+  r,
+}: {
+  processoId: string;
+  r: ReturnType<typeof usePedido<Regulamento>>;
+}) {
   const { pedido } = useSessao();
-  const r = usePedido<Regulamento>(`/v1/painel/processos/${processoId}/regulamento`);
   const [aAtualizar, setAAtualizar] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
 
@@ -249,14 +254,14 @@ function Regras({ processoId }: { processoId: string }) {
         <ACarregar texto="A procurar o regulamento…" />
       ) : d.trechos.length === 0 ? (
         <p className="rounded-xl bg-creme-2 p-3 text-[13px] text-tinta-2">
-          Não encontrámos trechos do regulamento para este caso. Confirme a base
-          legal do tipo de processo em Conhecimento.
+          Não há regras aplicáveis a este tipo de processo nas fontes da câmara.
+          Pode indicar a base legal do tipo de processo em Tipos de processo.
         </p>
       ) : (
         <>
           {!d.destacado && (
             <p className="text-xs text-tinta-3">
-              Sem IA: mostramos os trechos encontrados, sem as frases destacadas.
+              Mostramos os trechos encontrados, sem as frases destacadas.
             </p>
           )}
           <ol className="flex flex-col gap-3">
@@ -310,6 +315,11 @@ export function ApoioTecnico() {
   const verif = usePedido<Verificacoes>(
     permitido ? `/v1/painel/processos/${id}/verificacoes` : null,
   );
+  // O regulamento diz se a IA está ligada (sem IA não há resumo nem rascunhos).
+  const reg = usePedido<Regulamento>(
+    permitido ? `/v1/painel/processos/${id}/regulamento` : null,
+  );
+  const semIa = reg.dados?.ia_disponivel === false;
   const [aVerificar, setAVerificar] = useState(false);
   const [erroVerificar, setErroVerificar] = useState<string | null>(null);
   const [tipo, setTipo] = useState<TipoRascunho>("parecer");
@@ -446,20 +456,31 @@ export function ApoioTecnico() {
           {p.demonstracao && <Pilula tom="ambar">processo de demonstração</Pilula>}
           <BotaoPainel
             icone={RefreshCw}
-            onClick={gerarOutraVez}
+            onClick={semIa ? () => verificarOutraVez() : gerarOutraVez}
             disabled={aRegerar || aVerificar}
             title={
-              atual
+              atual && !semIa
                 ? "Refaz as verificações automáticas e o rascunho aberto"
                 : "Refaz as verificações automáticas"
             }
           >
-            {aRegerar ? "A gerar…" : "Gerar outra vez"}
+            {aRegerar || aVerificar
+              ? "A verificar…"
+              : semIa || !atual
+                ? "Verificar outra vez"
+                : "Gerar outra vez"}
           </BotaoPainel>
           <BotaoPainel
             variante="principal"
             icone={PenLine}
             disabled={!atual || atual.estado !== "rascunho"}
+            title={
+              !atual
+                ? "Ainda não há rascunho para aprovar."
+                : atual.estado !== "rascunho"
+                  ? "Este documento já não é um rascunho."
+                  : undefined
+            }
             onClick={() => atual && setAssinar(atual)}
           >
             Aprovar e assinar
@@ -467,13 +488,21 @@ export function ApoioTecnico() {
         </div>
       </header>
 
+      {semIa && (
+        <div className="border-b border-linha bg-ambar-suave px-8 py-3 text-[13px] text-ambar">
+          <span className="font-semibold">O assistente de IA não está ligado.</span> As
+          verificações e as regras aplicáveis funcionam; o resumo do processo e os
+          rascunhos precisam dele e ficam por gerar.
+        </div>
+      )}
+
       <div className="grid flex-1 lg:grid-cols-[400px_minmax(0,1fr)]">
         <aside
           aria-label="Verificações, regulamento e resumo"
           className="flex min-w-0 flex-col gap-6 border-b border-linha px-4 py-6 sm:pl-8 sm:pr-6 lg:border-b-0 lg:border-r"
         >
           <BlocoVerificacoes processoId={p.id} v={estadoVerificacoes} />
-          <Regras processoId={p.id} />
+          <Regras processoId={p.id} r={reg} />
           <Resumo processoId={p.id} />
         </aside>
 
@@ -536,6 +565,7 @@ export function ApoioTecnico() {
               key={tipo}
               tipo={tipo}
               processo={p}
+              semIa={semIa}
               onCancelar={atual ? () => setNovo(false) : undefined}
               onCriado={(r) => {
                 substituir(r);

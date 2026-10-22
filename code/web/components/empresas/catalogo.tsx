@@ -1,6 +1,6 @@
 "use client";
 
-import { Building2, ExternalLink, FlaskConical, Pencil, Plus, RotateCcw, Search, Store } from "lucide-react";
+import { Building2, ExternalLink, Pencil, Plus, RotateCcw, Search, Store } from "lucide-react";
 import { useState } from "react";
 import {
   Campo,
@@ -19,6 +19,7 @@ import {
   Dialogo,
 } from "@/components/conhecimento/comum";
 import { CabecalhoPagina } from "@/components/painel/cabecalho";
+import { FaixaDemonstracao } from "@/components/painel/faixa-demonstracao";
 import { Botao } from "@/components/ui/botao";
 import { useSessao } from "@/lib/sessao";
 import type { Atividade, Calendario, Flag, Lista, Periodicidade } from "./tipos";
@@ -156,6 +157,13 @@ export function PaginaBalcaoEmpresas() {
 
       <div className="grid gap-6 px-10 xl:grid-cols-[minmax(0,1fr)_400px]">
         <div className="flex min-w-0 flex-col gap-4">
+          {p && p.itens.some((i) => i.demonstracao) && (
+            <FaixaDemonstracao>
+              {p.itens.filter((i) => i.demonstracao).length} de {p.itens.length} requisitos têm prazos, condições ou
+              taxas ainda por confirmar pela câmara. O regime legal está indicado em cada um; ao editar um requisito
+              confirmado, desligue «Valores de demonstração».
+            </FaixaDemonstracao>
+          )}
           {p && (
             <Cartao className="flex flex-wrap items-center gap-x-6 gap-y-2 p-4">
               <p className="flex items-center gap-2 text-sm text-tinta">
@@ -245,11 +253,6 @@ export function PaginaBalcaoEmpresas() {
                       )}
                       {i.quando.length > 0 && (
                         <Pilula>Se: {i.quando.map((f) => p?.flags[f].toLowerCase()).join(" ou ")}</Pilula>
-                      )}
-                      {i.demonstracao && (
-                        <Pilula tom="ambar" icone={FlaskConical}>
-                          valores de demonstração
-                        </Pilula>
                       )}
                       {i.novo ? (
                         <Pilula tom="verde">acrescentado pela câmara</Pilula>

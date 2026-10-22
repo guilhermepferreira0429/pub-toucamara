@@ -21,6 +21,7 @@ import {
   useDados,
 } from "@/components/conhecimento/comum";
 import { CabecalhoPagina } from "@/components/painel/cabecalho";
+import { FaixaDemonstracao } from "@/components/painel/faixa-demonstracao";
 import { Botao } from "@/components/ui/botao";
 import { useSessao } from "@/lib/sessao";
 
@@ -68,6 +69,8 @@ interface Apoio {
 
 interface Dados {
   apoios: Apoio[];
+  /** A demonstração está ligada neste servidor (mostra "Carregar apoios de demonstração"). */
+  demo_ativa?: boolean;
   totais: { consultas: number; pessoas: number; com_direito_sem_pedido: number; pedidos: number };
   consultas: {
     id: string;
@@ -149,7 +152,6 @@ export function PaginaApoios() {
         migalhas={["Ação social", "Apoios"]}
         titulo="Tem direito e ainda não pediu"
         descricao="O agente faz duas ou três perguntas, diz a que apoios a pessoa pode ter direito, manda a lista por SMS e faz o pedido logo ali. Aqui vê quem tinha direito e não pediu, e pode pedir ao agente para lhes ligar."
-        acoes={demonstracao ? <Pilula tom="ambar">valores de demonstração</Pilula> : undefined}
       />
       <Estado aCarregar={d.aCarregar} erro={d.erro} vazio={false}>
         {dados && dados.apoios.length === 0 ? (
@@ -158,11 +160,12 @@ export function PaginaApoios() {
             <p className="font-display text-lg font-bold text-tinta">Ainda não há apoios no catálogo.</p>
             <p className="max-w-2xl text-sm text-tinta-2">
               Sem apoios, o agente não diz a ninguém que tem direito a nada: procura nas fontes ou passa à ação
-              social. Para a demonstração há cinco apoios (tarifa social da água, apoio à renda, cheque bebé, cartão
-              do idoso e material escolar), com critérios de exemplo marcados como tal.
+              social.
+              {dados.demo_ativa &&
+                " Para a demonstração há cinco apoios (tarifa social da água, apoio à renda, cheque bebé, cartão do idoso e material escolar), com critérios de exemplo marcados como tal."}
             </p>
             <ErroLinha erro={carregar.erro} />
-            {pode("agente") ? (
+            {!dados.demo_ativa ? null : pode("agente") ? (
               <Botao
                 icone={Upload}
                 disabled={carregar.aCorrer}
@@ -193,7 +196,14 @@ export function PaginaApoios() {
                 <Numero rotulo="Pedidos feitos" valor={dados.totais.pedidos} />
               </div>
 
-              <p className="rounded-xl bg-ambar-suave px-4 py-3 text-[13px] leading-[1.5] text-ambar">
+              {demonstracao && (
+                <FaixaDemonstracao>
+                  Os critérios e os valores dos apoios são de exemplo: confirme-os com a ação social antes de pedir ao
+                  agente para ligar.
+                </FaixaDemonstracao>
+              )}
+
+              <p className="rounded-xl bg-creme-2 px-4 py-3 text-[13px] leading-[1.5] text-tinta-2">
                 {dados.fontes_da_lista.nota}
               </p>
 
@@ -348,7 +358,6 @@ function CartaoApoio({
         </div>
         <div className="flex flex-wrap gap-1.5">
           {!a.ativo && <Pilula tom="tinta">desligado</Pilula>}
-          {a.demonstracao && <Pilula tom="ambar">valores de demonstração</Pilula>}
           <Pilula>{a.fonte.ambito === "nacional" ? "regra nacional" : "regulamento municipal"}</Pilula>
         </div>
       </div>

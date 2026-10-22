@@ -699,6 +699,12 @@ describe('Requerimentos e processos (e2e)', () => {
         perguntas: expect.arrayContaining([expect.any(String)]),
       });
       expect(reg.body.trechos.length).toBeGreaterThan(0);
+      // No máximo 3, e nada de regulamentos de outros assuntos (esplanadas,
+      // ruído…) num processo de obras.
+      expect(reg.body.trechos.length).toBeLessThanOrEqual(3);
+      for (const t of reg.body.trechos as { fonte: string }[]) {
+        expect(t.fonte).not.toMatch(/esplanad|ru[ií]do/i);
+      }
       for (const t of reg.body.trechos) {
         expect(t).toMatchObject({
           texto: expect.any(String),
