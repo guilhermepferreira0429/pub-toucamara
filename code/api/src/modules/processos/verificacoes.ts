@@ -16,6 +16,9 @@
  * ou nomes lá dentro.
  */
 import { z } from 'zod';
+import type { PedidoIa } from '../../ia/claude.service.js';
+import type { MimeVisao } from '../../ia/visao.service.js';
+import type { AnalisePdf } from './analise-pdf.js';
 import {
   CODIGOS_ELEMENTO,
   CODIGOS_GRANDEZA,
@@ -45,7 +48,7 @@ function diaPt(iso: string): string {
 }
 
 /** Sobe quando as regras deste ficheiro mudam (a cache deixa de servir). */
-export const VERSAO_VERIFICACOES = '2';
+export const VERSAO_VERIFICACOES = '3';
 
 export const ESTADOS_VERIFICACAO = [
   'ok',
@@ -655,9 +658,17 @@ export function verificarOrdem(
 export const PROJETO =
   /projeto|arquitetura|arquitectura|planta|al[cç]ado|corte|mem[oó]ria|desenho|pe[cç]as/i;
 
-/** Limites do que se manda à IA (a API aceita 32 MB por pedido). */
+/**
+ * Limites do que se manda à IA num pedido: a API aceita 32 MB e 100 páginas
+ * de PDF nos modelos de 200 mil tokens (600 nos de 1 milhão). Cada página
+ * custa cerca de 1500 a 3000 tokens (texto e imagem): 100 páginas cabem com
+ * folga em qualquer modelo. O que passa fica "por ler", dito ao técnico.
+ */
 export const MAX_FICHEIROS_IA = 5;
 export const MAX_BYTES_IA = 20 * 1024 * 1024;
+export const MAX_PAGINAS_IA = 100;
+/** Tokens da resposta: o pensamento do modelo conta para aqui (8000 cortava). */
+export const MAX_TOKENS_LEITURA = 16000;
 
 const referencia = z
   .object({
@@ -819,12 +830,19 @@ Regras:
 - Em cada referência, indica o documento, a página do PDF e a folha como está escrita no desenho.
 - Em "medicoes", só as medidas que o pedido lista, e só números escritos ou cotados nos desenhos ou nos quadros de áreas. Não meças à escala, não somes nem calcules. Se a memória e o desenho dão números diferentes, usa o do desenho e regista a diferença em "contradicoes".
 - Em "elementos", responde a cada elemento que o pedido lista (e só a esses), com "incerto" se não se vê.
+- Um número só entra em "medicoes" com a referência (documento, página e folha) de onde se lê. Se não se lê com certeza (folha digitalizada, desfocada, cortada ou à mão), deixa-o de fora: um valor em falta confirma-se; um valor errado engana.
+- Usa a unidade escrita no desenho (m2, m, cm, mm, ha). Percentagens e índices não são medidas: não os ponhas em "medicoes".
+- Se a lista diz que um documento ficou de fora, não o tens: não o descrevas nem o uses como referência.
 - As descrições são para o técnico: português de Portugal, frases curtas e concretas.
 - Não dês pareceres nem digas se a obra é legal: só o que os documentos mostram.`;
 
 export interface DocumentoLido {
   id: string;
   nome: string;
+  /** Páginas do PDF (1 numa imagem); null/ausente se não se sabe. */
+  paginas?: number | null;
+  /** Só a imagem das folhas (PDF sem texto ou fotografia): números a confirmar com cuidado. */
+  digitalizado?: boolean;
 }
 
 function evidenciaDe(
@@ -835,7 +853,11 @@ function evidenciaDe(
   const d = docs[r.documento - 1];
   if (!d) return [];
   const folha = r.folha?.trim() || null;
-  const pagina = r.pagina && r.pagina > 0 ? r.pagina : null;
+  // Uma página que o documento não tem não se mostra (abria no sítio errado).
+  const pagina =
+    r.pagina && r.pagina > 0 && (!d.paginas || r.pagina <= d.paginas)
+      ? r.pagina
+      : null;
   return [
     {
       tipo: 'documento',
@@ -852,6 +874,24 @@ function evidenciaDe(
 }
 
 const limpar = (s: string) => s.replace(/\s+/g, ' ').trim();
+
+/**
+ * Porque é que a referência de um número não serve (null se serve): sem
+ * referência, um documento que não está na lista ou uma página que o
+ * documento não tem. Um número sem sítio de onde se lê não se usa.
+ */
+export function problemaReferencia(
+  r: z.output<typeof referencia> | null | undefined,
+  docs: DocumentoLido[],
+): string | null {
+  if (!r) return 'sem indicação da folha onde se lê';
+  const d = docs[r.documento - 1];
+  if (!d) return `indica o documento ${r.documento}, que não existe`;
+  if (r.pagina && d.paginas && r.pagina > d.paginas) {
+    return `indica a página ${r.pagina} de ${d.nome}, que só tem ${d.paginas}`;
+  }
+  return null;
+}
 
 /** Sem leitura (sem IA, sem documento, resposta inválida): uma linha a dizer porquê. */
 export function leituraNaoVerificavel(motivo: string): Verificacao {
@@ -1088,6 +1128,13 @@ export function interpretarLeitura(
       descartadas.push(pl.motivo);
       continue;
     }
+    const semSitio = problemaReferencia(m.referencia, docs);
+    if (semSitio) {
+      descartadas.push(
+        `${GRANDEZAS[m.grandeza].rotulo}: a IA leu ${numeroPt(pl.valor)}, mas ${semSitio}`,
+      );
+      continue;
+    }
     const ja = medicoes.find((x) => x.grandeza === m.grandeza);
     if (ja) {
       if (Math.abs(ja.valor - pl.valor) > 1e-6) {
@@ -1112,6 +1159,23 @@ export function interpretarLeitura(
       descricao: limpar(e.descricao),
       evidencias: evidenciaDe(e.referencia, docs),
     });
+  }
+
+  // Digitalizados: a IA leu a imagem das folhas; o técnico confirma com mais cuidado.
+  const digitalizados = docs.filter((d) => d.digitalizado).map((d) => d.nome);
+  if (digitalizados.length) {
+    depois.push(
+      novaVerificacao({
+        ...ia,
+        codigo: 'ia_digitalizado',
+        estado: 'atencao',
+        titulo: 'Projeto digitalizado: confirmar o que a IA leu',
+        detalhe: `${lista(digitalizados)} ${digitalizados.length === 1 ? 'não tem' : 'não têm'} texto: a IA leu a imagem das folhas.`,
+        notas: [
+          'Os números lidos de folhas digitalizadas confirmam-se nos desenhos; um número que não se leu fica por verificar, nunca se adivinha.',
+        ],
+      }),
+    );
   }
 
   const t = l.tecnico_autor;
@@ -1145,13 +1209,36 @@ export interface PedidoPerfil {
   elementos: Elemento[];
 }
 
+function documentoDito(x: {
+  mime: string;
+  paginas?: number | null;
+  digitalizado?: boolean;
+}): string {
+  if (x.mime !== 'application/pdf') return 'imagem';
+  const partes = ['PDF'];
+  if (x.paginas)
+    partes.push(x.paginas === 1 ? '1 página' : `${x.paginas} páginas`);
+  if (x.digitalizado)
+    partes.push(
+      'digitalizado, sem texto: só os números que se leem com certeza',
+    );
+  return partes.join(', ');
+}
+
 /** O que vai ao Claude com os ficheiros: a lista numerada e o caso. */
 export function conteudoLeitura(d: {
   tipo: string;
   assunto: string;
   descricao: string;
-  documentos: { nome: string; mime: string }[];
+  documentos: {
+    nome: string;
+    mime: string;
+    paginas?: number | null;
+    digitalizado?: boolean;
+  }[];
   perfil?: PedidoPerfil | null;
+  /** Os documentos que não seguem (grandes demais, protegidos...). */
+  por_ler?: string[];
 }): string {
   const p = d.perfil;
   return [
@@ -1160,10 +1247,10 @@ export function conteudoLeitura(d: {
     d.descricao ? `Descrição do requerente: ${d.descricao}` : '',
     '',
     'Documentos (pela ordem em que seguem):',
-    ...d.documentos.map(
-      (x, i) =>
-        `${i + 1}. ${x.nome} (${x.mime === 'application/pdf' ? 'PDF' : 'imagem'})`,
-    ),
+    ...d.documentos.map((x, i) => `${i + 1}. ${x.nome} (${documentoDito(x)})`),
+    ...(d.por_ler?.length
+      ? [`Ficaram de fora (não os tens): ${d.por_ler.join('; ')}.`]
+      : []),
     ...(p
       ? [
           '',
@@ -1189,6 +1276,136 @@ export function conteudoLeitura(d: {
   ]
     .filter((x) => x !== '')
     .join('\n');
+}
+
+/** Um ficheiro candidato a ir à IA, já aberto. */
+export interface FicheiroCandidato<T> {
+  item: T;
+  nome: string;
+  mime: string;
+  tamanho: number;
+  /** De `analisarPdf` (null numa imagem). */
+  analise: AnalisePdf | null;
+}
+
+export interface SelecaoLeitura<T> {
+  usados: { item: T; paginas: number | null; digitalizado: boolean }[];
+  /** 'Projeto de estabilidade (140 páginas: passa o limite de 100 páginas por leitura)'. */
+  por_ler: string[];
+}
+
+/**
+ * Os ficheiros que vão à IA, pela ordem, sem passar os limites de bytes e de
+ * páginas de um pedido. Um PDF que não abre (cifrado, que não é PDF) ou que
+ * não cabe fica "por ler", com o motivo; nunca se corta um documento a meio
+ * sem o dizer.
+ */
+export function selecionarParaLeitura<T>(
+  candidatos: FicheiroCandidato<T>[],
+  limites: { bytes: number; paginas: number } = {
+    bytes: MAX_BYTES_IA,
+    paginas: MAX_PAGINAS_IA,
+  },
+): SelecaoLeitura<T> {
+  const usados: SelecaoLeitura<T>['usados'] = [];
+  const por_ler: string[] = [];
+  let bytes = 0;
+  let paginas = 0;
+  for (const c of candidatos) {
+    const a = c.analise;
+    const pdf = c.mime === 'application/pdf';
+    if (pdf && a && !a.pdf) {
+      por_ler.push(`${c.nome} (não é um PDF que se abra)`);
+      continue;
+    }
+    if (pdf && a?.encriptado) {
+      por_ler.push(`${c.nome} (protegido por palavra-passe)`);
+      continue;
+    }
+    // Sem contagem, um PDF conta pelo tamanho (cerca de 100 kB por página).
+    const p = pdf
+      ? (a?.paginas ?? Math.max(1, Math.ceil(c.tamanho / 100_000)))
+      : 1;
+    if (p > limites.paginas - paginas) {
+      por_ler.push(
+        `${c.nome} (${p} ${p === 1 ? 'página' : 'páginas'}: passa o limite de ${limites.paginas} páginas por leitura)`,
+      );
+      continue;
+    }
+    if (c.tamanho > limites.bytes - bytes) {
+      por_ler.push(`${c.nome} (grande demais)`);
+      continue;
+    }
+    bytes += c.tamanho;
+    paginas += p;
+    usados.push({
+      item: c.item,
+      paginas: pdf ? (a?.paginas ?? null) : 1,
+      digitalizado: pdf ? Boolean(a && !a.tem_texto) : true,
+    });
+  }
+  return { usados, por_ler };
+}
+
+/**
+ * O pedido à IA para ler o projeto (o mesmo no processo e no comando
+ * `verificar-projetos`, para a avaliação medir o que corre a sério).
+ */
+export function pedidoLeituraProjeto(d: {
+  tipo: string;
+  assunto: string;
+  descricao: string;
+  ficheiros: {
+    nome: string;
+    ficheiro: Buffer;
+    mime: MimeVisao;
+    paginas?: number | null;
+    digitalizado?: boolean;
+  }[];
+  perfil: PedidoPerfil | null;
+  por_ler?: string[];
+}): PedidoIa {
+  return {
+    tarefa: 'ler_projeto',
+    sistema: SISTEMA_LEITURA_PROJETO,
+    esforco: 'medium',
+    maxTokens: MAX_TOKENS_LEITURA,
+    ficheiros: d.ficheiros.map((f) => ({
+      nome: f.nome,
+      ficheiro: f.ficheiro,
+      mime: f.mime,
+    })),
+    conteudo: conteudoLeitura({
+      tipo: d.tipo,
+      assunto: d.assunto,
+      descricao: d.descricao,
+      documentos: d.ficheiros.map((f) => ({
+        nome: f.nome,
+        mime: f.mime,
+        paginas: f.paginas,
+        digitalizado: f.digitalizado,
+      })),
+      perfil: d.perfil,
+      por_ler: d.por_ler,
+    }),
+  };
+}
+
+/**
+ * O que a IA leu nunca aprova sozinho: as verificações que vêm da IA (ou de
+ * uma consulta simulada) ficam sempre "a confirmar". Devolve as que, por
+ * engano, não estão (deve ser sempre vazia; os testes garantem-no).
+ */
+export function iaSemConfirmacao(vs: Verificacao[]): Verificacao[] {
+  return vs.filter(
+    (x) =>
+      x.origem !== 'regra' && x.estado !== 'nao_verificavel' && !x.a_confirmar,
+  );
+}
+
+/** Quantas verificações o técnico ainda tem de confirmar (vêm da IA ou são simuladas). */
+export function aConfirmar(vs: Verificacao[]): number {
+  return vs.filter((x) => x.a_confirmar).length;
 }
 
 // ---------------------------------------------------------------------------
