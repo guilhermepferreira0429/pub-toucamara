@@ -33,6 +33,7 @@ import Link from "next/link";
 import { MUNICIPIO } from "@/components/chamada/config";
 import { FonteOficial, Logo } from "@/components/ui/marca";
 import { NumerosAvaliacao } from "./numeros-avaliacao";
+import { TopoApresentacao } from "./topo";
 
 /*
  * Página de apresentação (a raiz do site): o que é o Tou, Câmara?, onde se
@@ -412,35 +413,7 @@ function ConversaExemplo() {
 export function PaginaApresentacao() {
   return (
     <div className="flex min-h-dvh flex-col bg-creme font-body text-tinta">
-      <a
-        href="#conteudo"
-        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-full focus:bg-tinta focus:px-4 focus:py-2 focus:text-papel"
-      >
-        Saltar para o conteúdo
-      </a>
-
-      <header className="sticky top-0 z-40 border-b border-linha/80 bg-creme/90 backdrop-blur">
-        <div className="mx-auto flex h-16 w-full max-w-[1120px] items-center justify-between gap-4 px-5 sm:px-8">
-          <Link href="/" aria-label="Tou, Câmara?, início" className="flex min-h-11 items-center">
-            <Logo tamanho={22} />
-          </Link>
-          <nav aria-label="Secções" className="hidden items-center gap-6 lg:flex">
-            {SECOES.map((s) => (
-              <a key={s.id} href={`#${s.id}`} className="text-[14px] font-medium text-tinta-2 hover:text-tinta">
-                {s.nome}
-              </a>
-            ))}
-          </nav>
-          <Link
-            href="/entrar"
-            className="inline-flex min-h-10 items-center gap-2 rounded-full border border-tinta px-4 text-[14px] font-semibold text-tinta transition-colors hover:bg-tinta hover:text-papel"
-          >
-            <LayoutDashboard className="size-4" aria-hidden />
-            <span className="hidden sm:inline">Painel da câmara</span>
-            <span className="sm:hidden">Painel</span>
-          </Link>
-        </div>
-      </header>
+      <TopoApresentacao links={SECOES.map((s) => ({ href: `#${s.id}`, nome: s.nome }))} />
 
       <main id="conteudo" tabIndex={-1} className="flex flex-col outline-none">
         {/* Topo */}
