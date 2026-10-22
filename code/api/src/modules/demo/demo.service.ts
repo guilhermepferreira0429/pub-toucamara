@@ -53,6 +53,7 @@ import { OrdenamentoService } from '../ordenamento/ordenamento.service.js';
 import { PagamentosService } from '../pagamentos/pagamentos.service.js';
 import { ProcessosDemonstracaoService } from '../processos/processos-demonstracao.service.js';
 import { TurismoService } from '../turismo/turismo.service.js';
+import { JuntasDemoService } from '../juntas/juntas.demo.js';
 import { PROCESSOS_PERFIS } from '../processos/projetos-perfis-pdf.js';
 import {
   CONVERSAS,
@@ -200,6 +201,12 @@ export function passosDemo(): Passo[] {
       passo: 'turismo',
       rotulo: 'Fontes de turismo em PT/EN/ES/FR (página /visitar)',
       chaves: ['turismo'],
+    },
+    {
+      passo: 'junta',
+      rotulo:
+        'Junta de Freguesia de Azurém (demonstração): agente, utilizadores do painel, conhecimento e atestados por emitir',
+      chaves: ['junta'],
     },
     {
       passo: 'balcao',
@@ -545,6 +552,7 @@ export class DemoService {
       ['agora', () => this.agora(ctx)],
       ['linguagem_simples', () => this.linguagemSimples(ctx)],
       ['turismo', () => this.turismo(ctx)],
+      ['junta', () => this.junta(ctx)],
       ['balcao', () => this.balcao(ctx)],
       ['antecipacoes', () => this.antecipacoes(ctx)],
     ];
@@ -1607,6 +1615,14 @@ export class DemoService {
       if (r.criadas) c.contar('turismo');
       return c.m.id;
     });
+  }
+
+  /** A junta de freguesia de demonstração, ligada a esta câmara (modules/juntas). */
+  private async junta(c: Preparacao) {
+    const r = await this.svc(JuntasDemoService).preparar(c.m, c.u);
+    if (!r) return;
+    if (r.criada) c.contar('junta');
+    await this.registar(c.m.id, 'junta', 'junta', r.junta.id);
   }
 
   private async entidadeCamara(m: Municipio): Promise<string> {

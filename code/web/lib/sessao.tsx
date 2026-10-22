@@ -40,7 +40,8 @@ export type Recurso =
   | "fiscalizacao"
   | "arquivo"
   | "comunicados"
-  | "demo";
+  | "demo"
+  | "atestados";
 
 export type Perfil =
   | "atendimento"
@@ -65,6 +66,8 @@ export interface Eu {
     slug: string;
     nome: string;
     fuso: string;
+    /** 'junta' = junta de freguesia: menu reduzido (lib/juntas.ts). */
+    tipo?: "camara" | "junta";
     /** A linha do Tou, Câmara? (E.164), ou null. */
     telefone_linha?: string | null;
     /** O horário do balcão como o agente o conta. */

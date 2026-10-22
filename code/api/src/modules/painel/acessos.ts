@@ -17,6 +17,11 @@ export const ACOES_DADOS_PESSOAIS = [
 
 const VERBOS: Record<string, string> = {
   preparar_demo: 'preparou a demonstração',
+  pedir_atestado: 'registou o pedido de',
+  encaminhar_atestado: 'encaminhou para a junta',
+  emitir_atestado: 'emitiu',
+  recusar_atestado: 'recusou',
+  criar_junta_demonstracao: 'criou a junta de demonstração',
   ocultar_testes: 'escondeu do painel os registos de teste',
   repor_ocultos: 'voltou a mostrar os registos de teste escondidos',
   ouvir_gravacao: 'ouviu a gravação',
@@ -194,6 +199,8 @@ const VERBOS: Record<string, string> = {
 
 const OBJETOS: Record<string, string> = {
   demo: '',
+  atestado: 'um atestado',
+  junta: '',
   conversa: 'uma conversa',
   passagem_humano: 'uma passagem a funcionário',
   processo: 'um processo',

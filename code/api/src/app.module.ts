@@ -61,6 +61,7 @@ import { PushModule } from './modules/app-municipe/push.module.js';
 import { ArquivoModule } from './modules/arquivo/arquivo.module.js';
 import { OrdenamentoModule } from './modules/ordenamento/ordenamento.module.js';
 import { TurismoModule } from './modules/turismo/turismo.module.js';
+import { JuntasModule } from './modules/juntas/juntas.module.js';
 import { RegrasPublicasModule } from './modules/regras-publicas/regras-publicas.module.js';
 import { RegrasVersoesModule } from './modules/regras-publicas/versoes.service.js';
 import { FiscalizacaoModule } from './modules/fiscalizacao/fiscalizacao.module.js';
@@ -135,6 +136,7 @@ import { CartasModule } from './modules/cartas/cartas.module.js';
     ServicosModule,
     OrdenamentoModule,
     TurismoModule,
+    JuntasModule,
     EmpresasModule,
     // Regras públicas e verificáveis (histórico das regras, verificador)
     RegrasVersoesModule,
