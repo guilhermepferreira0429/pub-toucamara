@@ -421,7 +421,7 @@ export function EcraMapaAgora({
         vista="3d"
         cooperativo={false}
         rodaRato
-        controlos={{ zoom: largo, bussola: true, localizacao: true, vista3d: true, posicao: largo ? "direita-baixo" : "direita" }}
+        controlos={{ zoom: largo, bussola: true, localizacao: true, vista3d: true, satelite: true, posicao: largo ? "direita-baixo" : "direita" }}
         aoPronto={(a) => {
           apiMapa.current = a;
         }}

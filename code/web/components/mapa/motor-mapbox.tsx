@@ -7,9 +7,13 @@ import { useCallback, useEffect, useRef, useState, type CSSProperties } from "re
 import { createPortal } from "react-dom";
 import {
   CENTRO_OMISSAO,
-  CONFIG_STANDARD,
+  configDe,
+  eSatelite,
   eStandard,
   estiloMapbox,
+  estilosDoBotao,
+  guardarPreferenciaSatelite,
+  lerPreferenciaSatelite,
   tokenMapbox,
   VISTA_2D,
   VISTA_3D,
@@ -207,6 +211,22 @@ export default function MotorMapbox(props: PropsMapaCidade & { aoFalhar: (motivo
   const [aquiDentro, setAquiDentro] = useState<LatLng | null>(null);
   const aqui = aquiFora === undefined ? aquiDentro : aquiFora;
 
+  // Satélite / Mapa: com o botão, vale a escolha de quem vê (neste browser).
+  const botaoSatelite = !!controlos?.satelite;
+  const estilos = estilosDoBotao(props.estilo);
+  const [satelite, setSatelite] = useState(() =>
+    botaoSatelite
+      ? (lerPreferenciaSatelite() ?? eSatelite(estiloMapbox(props.estilo)))
+      : eSatelite(estiloMapbox(props.estilo)),
+  );
+  const estiloAtual = botaoSatelite
+    ? satelite
+      ? estilos.satelite
+      : estilos.mapa
+    : estiloMapbox(props.estilo);
+  const estiloInicial = useRef(estiloAtual);
+  const eventosLigados = useRef(false);
+
   // As chamadas mais recentes (os eventos do mapa ligam-se uma vez).
   const chamadas = useRef(props);
   useEffect(() => {
@@ -219,7 +239,7 @@ export default function MotorMapbox(props: PropsMapaCidade & { aoFalhar: (motivo
     const token = tokenMapbox();
     if (!el || !token) return;
     const p = chamadas.current;
-    const estilo = estiloMapbox(p.estilo);
+    const estilo = estiloInicial.current;
     const v = vistaDe(p.vista ?? "2d");
     const c = p.centro ?? p.enquadrar?.[0] ?? CENTRO_OMISSAO;
     const cooperativo = p.cooperativo ?? false;
@@ -229,7 +249,7 @@ export default function MotorMapbox(props: PropsMapaCidade & { aoFalhar: (motivo
         container: el,
         accessToken: token,
         style: estilo,
-        config: eStandard(estilo) ? { basemap: CONFIG_STANDARD } : undefined,
+        config: configDe(estilo),
         center: lngLat(c),
         zoom: p.zoom ?? 14,
         pitch: v.pitch,
@@ -296,9 +316,33 @@ export default function MotorMapbox(props: PropsMapaCidade & { aoFalhar: (motivo
     return () => {
       chamadas.current.aoPronto?.(null);
       m.remove();
+      eventosLigados.current = false;
       setMapa(null);
       setEstiloPronto(false);
     };
+  }, []);
+
+  // Trocar de estilo (Satélite / Mapa): as camadas próprias perdem-se com o
+  // estilo antigo e voltam a ser criadas no style.load seguinte.
+  const estiloAplicado = useRef(estiloAtual);
+  useEffect(() => {
+    if (!mapa || estiloAplicado.current === estiloAtual) return;
+    estiloAplicado.current = estiloAtual;
+    setEstiloPronto(false);
+    // (Os tipos do mapbox-gl exigem as fontes locais; undefined = as do estilo.)
+    mapa.setStyle(estiloAtual, {
+      diff: false,
+      config: configDe(estiloAtual),
+      localFontFamily: undefined,
+      localIdeographFontFamily: undefined,
+    });
+  }, [mapa, estiloAtual]);
+
+  const alternarSatelite = useCallback(() => {
+    setSatelite((v) => {
+      guardarPreferenciaSatelite(!v);
+      return !v;
+    });
   }, []);
 
   // As margens (painéis por cima): a câmara centra-se no espaço que se vê.
@@ -311,7 +355,7 @@ export default function MotorMapbox(props: PropsMapaCidade & { aoFalhar: (motivo
   }, [mapa, mTopo, mBaixo, mEsq, mDir]);
 
   // Fontes e camadas próprias (zonas e pontos), depois de o estilo abrir.
-  const standard = eStandard(estiloMapbox(props.estilo));
+  const standard = eStandard(estiloAtual);
   useEffect(() => {
     if (!mapa || !estiloPronto) return;
     const slot = standard ? { slot: "middle" } : {};
@@ -373,6 +417,11 @@ export default function MotorMapbox(props: PropsMapaCidade & { aoFalhar: (motivo
           "circle-pitch-alignment": "viewport",
         },
       });
+    }
+    // Os eventos por camada ficam no mapa e servem para qualquer estilo:
+    // ligam-se uma vez (trocar de estilo não os duplica).
+    if (!eventosLigados.current) {
+      eventosLigados.current = true;
       // Clicar num ponto = selecionar; ao passar o rato, o rótulo.
       const balao = new mapboxgl.Popup({ closeButton: false, closeOnClick: false, offset: 12, className: "mapa-balao" });
       mapa.on("click", CAMADA_PONTOS, (e) => {
@@ -539,6 +588,7 @@ export default function MotorMapbox(props: PropsMapaCidade & { aoFalhar: (motivo
           }
           localizacao={controlos.localizacao ? { pedir: localizar, estado: estadoLoc } : undefined}
           vista3d={controlos.vista3d ? { em3d, alternar: alternar3d } : undefined}
+          satelite={botaoSatelite ? { ativo: satelite, alternar: alternarSatelite } : undefined}
         />
       )}
     </div>

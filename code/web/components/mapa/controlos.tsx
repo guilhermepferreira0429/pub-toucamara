@@ -1,11 +1,12 @@
 "use client";
 
-import { LoaderCircle, LocateFixed, Minus, Navigation2, Plus } from "lucide-react";
+import { LoaderCircle, LocateFixed, Map as IconeMapa, Minus, Navigation2, Plus, Satellite } from "lucide-react";
 import { BotaoVidro } from "./vidro";
 
 /*
  * Os botões redondos em vidro, iguais nos dois motores: zoom, bússola (volta
- * a apontar para norte; a seta mostra a rotação), a minha localização e 2D/3D.
+ * a apontar para norte; a seta mostra a rotação), a minha localização, 2D/3D
+ * e satélite/mapa.
  */
 
 export type EstadoLocalizacao = "inativo" | "a_pedir" | "ok" | "recusado" | "indisponivel";
@@ -19,9 +20,10 @@ export interface PropsControlos {
   bussola?: { graus: number; inclinado: boolean; repor: () => void };
   localizacao?: { pedir: () => void; estado: EstadoLocalizacao };
   vista3d?: { em3d: boolean; alternar: () => void };
+  satelite?: { ativo: boolean; alternar: () => void };
 }
 
-export function Controlos({ posicao = "direita", direita = 12, baixo, zoom, bussola, localizacao, vista3d }: PropsControlos) {
+export function Controlos({ posicao = "direita", direita = 12, baixo, zoom, bussola, localizacao, vista3d, satelite }: PropsControlos) {
   const estilo =
     posicao === "direita-baixo"
       ? { right: direita, bottom: baixo ?? 40 }
@@ -29,6 +31,15 @@ export function Controlos({ posicao = "direita", direita = 12, baixo, zoom, buss
   const erro = localizacao?.estado === "recusado" || localizacao?.estado === "indisponivel";
   return (
     <div className="mapa-controlos" style={estilo}>
+      {satelite && (
+        <BotaoVidro
+          rotulo={satelite.ativo ? "Ver o mapa" : "Ver em satélite"}
+          onClick={satelite.alternar}
+          aria-pressed={satelite.ativo}
+          ativo={satelite.ativo}
+          icone={satelite.ativo ? IconeMapa : Satellite}
+        />
+      )}
       {vista3d && (
         <BotaoVidro
           rotulo="Ver a cidade em 3D"

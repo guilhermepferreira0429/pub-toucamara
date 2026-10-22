@@ -30,13 +30,14 @@ O `mapbox_maps_flutter` 3.x descarrega o SDK Android do repositório Maven públ
 - Web: `NEXT_PUBLIC_MAPBOX_ESTILO` = `standard` (por omissão), `standard-satellite` ou um URL `mapbox://styles/…`.
   - **Standard** (escolhido por omissão): edifícios 3D, luz de dia e cores que se ajustam à marca pela *config* do estilo (`components/mapa/config.ts`, `CONFIG_STANDARD`: verdes, água, estradas em creme, realces em terracota). As propriedades que o estilo não conhecer são ignoradas.
   - **Standard Satellite**: o aspeto fotográfico das referências, mas sem as cores da marca.
+  - **Botão "Satélite / Mapa"** (web, só com Mapbox): nos mapas do `/agora`, `/visitar`, ocorrências e zonas do PDM (`controlos.satelite` do `MapaCidade`). Troca ao vivo entre o estilo acima e o Standard Satellite, sem rebuild; as zonas, pontos e bolhas voltam a ser postos por cima. A escolha fica no browser de quem vê (`localStorage`), por isso vale em todos os mapas e depois de recarregar. Com `NEXT_PUBLIC_MAPBOX_ESTILO=standard-satellite`, o satélite é o ponto de partida e o botão passa para o Standard.
 - Apps: `MAPBOX_ESTILO` (mapa 3D nativo, mesmos nomes) e `MAPBOX_ESTILO_RASTER` (mosaicos 2D do flutter_map, por omissão `streets-v12`; o Standard não existe em mosaicos raster).
 
 ### Vistas
 
 - Munícipe: 3D por omissão (inclinação 58°, rotação −17°), com relevo (DEM do Mapbox) no 3D.
 - Painel (trabalho): 2D por omissão (ou ligeiramente inclinado nos mapas pequenos), com o botão **3D**.
-- Botões redondos em vidro: 3D, bússola (aponta para norte), "onde estou" e zoom.
+- Botões redondos em vidro: satélite/mapa, 3D, bússola (aponta para norte), "onde estou" e zoom.
 - `prefers-reduced-motion` (web) e "remover animações" (Android): a câmara salta em vez de voar e as emergências deixam de pulsar.
 - No telemóvel, um mapa dentro de uma página com scroll usa gestos cooperativos (dois dedos para mexer); o ecrã inteiro do `/agora` não.
 

@@ -58,7 +58,7 @@ export default function MapaOcorrencias({ pins, enquadrar, selecionado, onSeleci
       vista="2d"
       cooperativo={false}
       rodaRato
-      controlos={{ zoom: true, bussola: true, vista3d: true, localizacao: true, posicao: "direita-baixo" }}
+      controlos={{ zoom: true, bussola: true, vista3d: true, satelite: true, localizacao: true, posicao: "direita-baixo" }}
     />
   );
 }

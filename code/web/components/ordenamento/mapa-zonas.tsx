@@ -70,7 +70,7 @@ export default function MapaZonas({
       enquadrarUmaVez
       vista="inclinado"
       rodaRato={false}
-      controlos={{ zoom: true, vista3d: true, posicao: "direita-baixo" }}
+      controlos={{ zoom: true, vista3d: true, satelite: true, posicao: "direita-baixo" }}
     />
   );
 }

@@ -57,7 +57,7 @@ export default function MapaAgora({
       enquadrar={enquadrar}
       zoomMaximo={zona ? 16.5 : 15}
       vista="inclinado"
-      controlos={{ zoom: true, vista3d: true, posicao: "direita-baixo" }}
+      controlos={{ zoom: true, vista3d: true, satelite: true, posicao: "direita-baixo" }}
       // A bolha fica por cima do ponto: espaço em cima para caber.
       margens={{ topo: 70 }}
     />
