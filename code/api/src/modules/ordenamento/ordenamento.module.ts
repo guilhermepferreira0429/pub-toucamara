@@ -9,6 +9,7 @@ import {
   ParseUUIDPipe,
   Post,
   Put,
+  Query,
 } from '@nestjs/common';
 import { z } from 'zod';
 import { validar } from '../../common/validacao.js';
@@ -35,6 +36,16 @@ export class OrdenamentoPainelController {
   @Get()
   ver(@MunicipioAtual() m: Municipio) {
     return this.ordenamento.painel(m);
+  }
+
+  /** ?morada=… → a zona e o que cada obra precisa (só consulta: não grava nem manda SMS). */
+  @Get('morada')
+  porMorada(@MunicipioAtual() m: Municipio, @Query() q: unknown) {
+    const { morada } = validar(
+      z.object({ morada: z.string().trim().min(3).max(200) }),
+      q,
+    );
+    return this.ordenamento.porMorada(m, morada);
   }
 
   @Post('demonstracao')

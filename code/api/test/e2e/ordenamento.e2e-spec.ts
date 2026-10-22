@@ -166,4 +166,54 @@ describe('Ordenamento: o que posso fazer nesta morada (e2e)', () => {
       expect.arrayContaining([expect.objectContaining({ obra: 'anexo' })]),
     );
   });
+
+  it('no painel, a morada: a zona e o que cada obra precisa, sem gravar nem mandar SMS', async () => {
+    const contar = async () =>
+      (
+        await ctx.db.query<{ n: number }>(
+          'SELECT count(*)::int AS n FROM consultas_pdm WHERE municipio_id = $1',
+          [MUNICIPIO_ID],
+        )
+      ).rows[0].n;
+    const antes = await contar();
+    const morada = (m: string) =>
+      ctx
+        .http()
+        .get(`/v1/painel/ordenamento/morada?morada=${encodeURIComponent(m)}`)
+        .set(chefe)
+        .expect(200);
+
+    const centro = await morada(CENTRO);
+    expect(centro.body.motivo).toBeNull();
+    expect(centro.body.zona).toMatchObject({ demonstracao: true });
+    expect(centro.body.encontrada).toMatchObject({
+      lat: 41.4432,
+      lng: -8.2947,
+    });
+    expect(centro.body.obras).toHaveLength(6);
+    expect(centro.body.obras).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ obra: 'anexo', controlo: 'nao_permitido' }),
+      ]),
+    );
+
+    // Sem medidas: diz de que depende, com os limites da regra.
+    const residencial = await morada(RESIDENCIAL);
+    const anexo = residencial.body.obras.find(
+      (o: { obra: string }) => o.obra === 'anexo',
+    );
+    expect(anexo.controlo).toBeNull();
+    expect(anexo.depende_de).toEqual(expect.arrayContaining(['area_m2']));
+    expect(anexo.limites.length).toBeGreaterThan(0);
+
+    expect((await morada(LONGE)).body).toMatchObject({
+      motivo: 'fora_das_zonas',
+      zona: null,
+      obras: [],
+    });
+    expect((await morada('Rua Que Não Existe 0')).body).toMatchObject({
+      motivo: 'morada_nao_encontrada',
+    });
+    expect(await contar()).toBe(antes);
+  });
 });

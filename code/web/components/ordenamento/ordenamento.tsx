@@ -1,11 +1,12 @@
 "use client";
 
-import { Map as IconeMapa, Pencil, Upload } from "lucide-react";
+import { Map as IconeMapa, MapPin, Pencil, Search, Upload } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useState } from "react";
 import {
   Cartao,
   Dialogo,
+  classeEntrada,
   ErroLinha,
   Estado,
   haQuanto,
@@ -51,6 +52,101 @@ interface Dados {
   obras: Record<string, string>;
 }
 
+/** GET /v1/painel/ordenamento/morada: a zona da morada e o que cada obra precisa. */
+interface PorMorada {
+  motivo: "sem_pdm" | "morada_nao_encontrada" | "fora_das_zonas" | null;
+  encontrada: { texto?: string; lat: number; lng: number } | null;
+  zona: { id: string; codigo: string; nome: string; categoria: string; demonstracao: boolean } | null;
+  obras: {
+    obra: string;
+    nome: string;
+    controlo: Controlo | null;
+    depende_de: ("area_m2" | "altura_m")[];
+    limites: string[];
+    notas: string[];
+  }[];
+}
+
+const MEDIDA: Record<string, string> = { area_m2: "da área", altura_m: "da altura" };
+
+/** O campo do topo: escrever a morada e ver a zona e o que cada obra precisa (não grava nada). */
+function ConsultarMorada({ r, onResultado }: { r: PorMorada | null; onResultado: (r: PorMorada | null) => void }) {
+  const { pedido } = useSessao();
+  const [morada, setMorada] = useState("");
+  const acao = useAcao();
+  return (
+    <Cartao className="mx-10 flex flex-col gap-4 p-5">
+      <form
+        className="flex flex-col gap-2 sm:flex-row"
+        onSubmit={async (e) => {
+          e.preventDefault();
+          const x = await acao.executar(() =>
+            pedido<PorMorada>(`/v1/painel/ordenamento/morada?morada=${encodeURIComponent(morada.trim())}`),
+          );
+          onResultado(x ?? null);
+        }}
+      >
+        <label className="flex min-w-0 flex-1 flex-col gap-1.5">
+          <span className="text-[13px] font-semibold text-tinta">Morada</span>
+          <input
+            className={classeEntrada}
+            value={morada}
+            onChange={(e) => setMorada(e.target.value)}
+            minLength={3}
+            maxLength={200}
+            required
+            placeholder="Ex.: Rua de Santa Maria, 12"
+          />
+        </label>
+        <Botao type="submit" icone={Search} className="sm:mt-[26px]" disabled={acao.aCorrer || morada.trim().length < 3}>
+          {acao.aCorrer ? "A procurar…" : "Ver o que se pode fazer"}
+        </Botao>
+      </form>
+      <ErroLinha erro={acao.erro} />
+      {r?.motivo === "morada_nao_encontrada" && (
+        <p className="text-sm text-tinta-2">
+          Não encontrei essa morada no mapa. Experimente a rua e o número, ou uma referência perto (uma igreja, uma escola).
+        </p>
+      )}
+      {r?.motivo === "fora_das_zonas" && (
+        <p className="text-sm text-tinta-2">
+          A morada fica fora das zonas do plano carregadas: um técnico tem de ver o caso.
+        </p>
+      )}
+      {r?.zona && (
+        <div className="flex flex-col gap-3">
+          <p className="flex flex-wrap items-center gap-2 text-sm text-tinta">
+            <MapPin className="size-4 text-terracota" aria-hidden />
+            Fica em <strong>{r.zona.nome}</strong>
+            <span className="text-tinta-3">· {CATEGORIA_ROTULO[r.zona.categoria] ?? r.zona.categoria}</span>
+            {r.zona.demonstracao && <Pilula tom="ambar">regras de demonstração</Pilula>}
+          </p>
+          {r.encontrada?.texto && <p className="text-xs text-tinta-3">Encontrada como: {r.encontrada.texto}</p>}
+          <ul className="grid gap-2 md:grid-cols-2">
+            {r.obras.map((o) => (
+              <li key={o.obra} className="flex flex-col gap-1 rounded-xl bg-creme px-3 py-2.5">
+                <span className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="text-[13px] font-semibold text-tinta">{o.nome}</span>
+                  {o.controlo ? (
+                    <Pilula tom={CONTROLO[o.controlo].tom}>{CONTROLO[o.controlo].rotulo}</Pilula>
+                  ) : o.depende_de.length ? (
+                    <Pilula tom="neutro">depende {o.depende_de.map((m) => MEDIDA[m] ?? m).join(" e ")}</Pilula>
+                  ) : (
+                    <Pilula tom="neutro">sem regra: técnico</Pilula>
+                  )}
+                </span>
+                {!o.controlo && o.limites.length > 0 && (
+                  <span className="text-xs text-tinta-2">{o.limites.join(" ")}</span>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </Cartao>
+  );
+}
+
 function regraCurta(r: { degraus: Degrau[]; acima: Controlo } | undefined): string {
   if (!r) return "—";
   const partes = r.degraus.map((d) => {
@@ -68,6 +164,7 @@ export function PaginaOrdenamento() {
   const d = useDados<Dados>(pode("conhecimento_ver") ? "/v1/painel/ordenamento" : null);
   const carregar = useAcao();
   const [zonaAberta, setZonaAberta] = useState<string | null>(null);
+  const [procurada, setProcurada] = useState<PorMorada | null>(null);
   const [editar, setEditar] = useState<string | null>(null);
 
   if (!pode("conhecimento_ver")) {
@@ -118,21 +215,36 @@ export function PaginaOrdenamento() {
           </Cartao>
         ) : (
           dados && (
+            <div className="flex flex-col gap-6">
+            <ConsultarMorada r={procurada} onResultado={setProcurada} />
             <div className="grid gap-6 px-10 xl:grid-cols-[minmax(0,1fr)_420px]">
               {/* isolate: as camadas do Leaflet (z-index 400+) não passam por cima do diálogo. */}
               <Cartao className="isolate h-fit overflow-hidden xl:sticky xl:top-6">
                 <Mapa
                   zonas={dados.zonas}
-                  destacar={zonaAberta}
-                  pontos={dados.consultas
-                    .filter((q) => q.lat !== null && q.lng !== null)
-                    .map((q) => ({
-                      id: q.id,
-                      lat: q.lat!,
-                      lng: q.lng!,
-                      cor: q.controlo ? CONTROLO[q.controlo].cor : "#888",
-                      rotulo: `${q.obra_texto} · ${q.morada} · ${q.controlo ? CONTROLO[q.controlo].rotulo : "para técnico"}`,
-                    }))}
+                  destacar={zonaAberta ?? procurada?.zona?.codigo ?? null}
+                  pontos={[
+                    ...dados.consultas
+                      .filter((q) => q.lat !== null && q.lng !== null)
+                      .map((q) => ({
+                        id: q.id,
+                        lat: q.lat!,
+                        lng: q.lng!,
+                        cor: q.controlo ? CONTROLO[q.controlo].cor : "#888",
+                        rotulo: `${q.obra_texto} · ${q.morada} · ${q.controlo ? CONTROLO[q.controlo].rotulo : "para técnico"}`,
+                      })),
+                    ...(procurada?.encontrada
+                      ? [
+                          {
+                            id: "morada-procurada",
+                            lat: procurada.encontrada.lat,
+                            lng: procurada.encontrada.lng,
+                            cor: "#15263b",
+                            rotulo: `A morada procurada${procurada.zona ? ` · ${procurada.zona.nome}` : ""}`,
+                          },
+                        ]
+                      : []),
+                  ]}
                   className="h-[560px] w-full"
                 />
                 <div className="flex flex-wrap gap-4 border-t border-linha px-5 py-3 text-xs text-tinta-2">
@@ -235,6 +347,7 @@ export function PaginaOrdenamento() {
                   </Cartao>
                 )}
               </div>
+            </div>
             </div>
           )
         )}

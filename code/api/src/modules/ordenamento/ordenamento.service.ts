@@ -298,6 +298,66 @@ export class OrdenamentoService {
   }
 
   // ------------------------------------------------------------------
+  // Painel: "O que posso fazer nesta morada"
+  // ------------------------------------------------------------------
+
+  /**
+   * A mesma pergunta do agente, feita no painel e para todas as obras de
+   * uma vez: a zona da morada e o que cada obra precisa. Só consulta: não
+   * grava a pergunta nem manda SMS. Sem medidas, diz de que depende e os
+   * limites da regra.
+   */
+  async porMorada(m: Municipio, morada: string) {
+    const zonas = await this.zonas(m.id);
+    if (zonas.length === 0) {
+      return {
+        motivo: 'sem_pdm' as const,
+        encontrada: null,
+        zona: null,
+        obras: [],
+      };
+    }
+    const c = await this.geo.geocodificar(morada, m.nome);
+    if (!c) {
+      return {
+        motivo: 'morada_nao_encontrada' as const,
+        encontrada: null,
+        zona: null,
+        obras: [],
+      };
+    }
+    const zona = zonaDe([c.lat, c.lng], zonas);
+    return {
+      motivo: zona ? null : ('fora_das_zonas' as const),
+      encontrada: { texto: c.encontrada, lat: c.lat, lng: c.lng },
+      zona: zona
+        ? {
+            id: zona.id,
+            codigo: zona.codigo,
+            nome: zona.nome,
+            categoria: zona.categoria,
+            demonstracao: zona.demonstracao,
+            fonte: zona.fonte,
+          }
+        : null,
+      obras: zona
+        ? (Object.keys(OBRAS) as Obra[]).map((obra) => {
+            const a = this.avaliarNaZona(zona, obra, {});
+            return {
+              obra,
+              nome: OBRAS[obra],
+              controlo: a.controlo,
+              controlo_dito: a.controlo ? CONTROLO_DITO[a.controlo] : null,
+              depende_de: a.em_falta,
+              limites: a.limites,
+              notas: a.notas,
+            };
+          })
+        : [],
+    };
+  }
+
+  // ------------------------------------------------------------------
   // Público (o link do SMS)
   // ------------------------------------------------------------------
 
