@@ -6,6 +6,7 @@ import {
   decidirPublicacao,
   DecisaoPublicacao,
   ExecucaoGate,
+  execucoesDoPainel,
   LIMIAR_PUBLICACAO,
 } from './avaliacao.js';
 import { resumirNumeros } from './numeros-na-fonte.js';
@@ -227,7 +228,7 @@ export class AvaliacaoService {
   }
 
   async qualidade(municipioId: string) {
-    const ultimas = await this.db.query<ResumoExecucao>(
+    const todas = await this.db.query<ResumoExecucao>(
       `SELECT e.id AS execucao_id, s.nome AS sistema, e.agente_versao, e.motivo,
               e.iniciada_em, e.terminada_em, ${COLUNAS_RESULTADO},
               coalesce((s.config->>'demonstracao')::boolean, false) AS demonstracao
@@ -237,9 +238,10 @@ export class AvaliacaoService {
        WHERE s.nosso AND s.adaptador = 'tou-chat' AND s.municipio_id = $1
          AND e.estado = 'terminada' AND NOT e.amostra
        ORDER BY e.terminada_em DESC NULLS LAST, e.id DESC
-       LIMIT 20`,
+       LIMIT 40`,
       [municipioId],
     );
+    const ultimas = execucoesDoPainel(todas);
     const [estado, voz, pedidos] = await Promise.all([
       this.estadoPublicacao(municipioId),
       this.ultimaVoz(municipioId),

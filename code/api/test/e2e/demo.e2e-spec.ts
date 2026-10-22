@@ -338,19 +338,36 @@ describe('Preparar demo (e2e)', () => {
     expect(citadas!.resolvidas).toBeGreaterThan(30);
     expect(citadas!.passadas).toBe(0);
 
+    // As execuções de demonstração, lidas na BD: o painel só as mostra quando
+    // não há nenhuma medida, e a BD dos testes é partilhada (outros testes
+    // correm avaliações a sério no mesmo município).
+    const { rows: demoExecucoes } = await ctx.db.query<{
+      taxa: number | null;
+    }>(
+      `SELECT r.taxa::float8 AS taxa
+       FROM avaliacao.execucoes e
+       JOIN avaliacao.sistemas s ON s.id = e.sistema_id
+       LEFT JOIN avaliacao.resultados r ON r.execucao_id = e.id AND r.categoria IS NULL
+       WHERE s.municipio_id = $1 AND s.nosso AND s.adaptador = 'tou-chat'
+         AND coalesce((s.config->>'demonstracao')::boolean, false)
+         AND e.estado = 'terminada' AND NOT e.amostra
+       ORDER BY e.terminada_em, e.id`,
+      [MUNICIPIO_ID],
+    );
+    expect(demoExecucoes.length).toBe(3);
+    expect(demoExecucoes[0].taxa).toBeLessThan(80);
+    expect(demoExecucoes[2].taxa).toBeGreaterThanOrEqual(80);
+
+    // No painel: sem nenhuma medida, as de demonstração (assinaladas); com
+    // alguma medida, só as medidas.
     const q = await ctx
       .http()
       .get('/v1/painel/conhecimento/qualidade')
       .set(chefe)
       .expect(200);
-    // (A BD dos testes é partilhada: outros testes também correm avaliações.)
-    const demoExecucoes = q.body.evolucao.filter(
-      (e: { demonstracao: boolean }) => e.demonstracao,
-    );
-    expect(demoExecucoes.length).toBe(3);
-    expect(demoExecucoes[0].passou).toBe(false);
-    expect(demoExecucoes[2]).toMatchObject({ passou: true });
-    expect(demoExecucoes[2].taxa).toBeGreaterThanOrEqual(80);
+    const evolucao = q.body.evolucao as { demonstracao: boolean }[];
+    const temMedidas = evolucao.some((e) => !e.demonstracao);
+    expect(evolucao.every((e) => e.demonstracao === !temMedidas)).toBe(true);
 
     const alteracao = await linha(
       ctx.db,

@@ -3,6 +3,7 @@ import {
   decidirPublicacao,
   erroPublicacao,
   ExecucaoGate,
+  execucoesDoPainel,
   LIMIAR_PUBLICACAO,
 } from './avaliacao.js';
 
@@ -127,5 +128,31 @@ describe('erroPublicacao', () => {
     expect(e.codigo).toBe('avaliacao_abaixo_do_limiar');
     expect(e.message).toContain('72,5%');
     expect(e.detalhes).toMatchObject({ taxa: 72.5, execucao_id: 'e1' });
+  });
+});
+
+describe('execucoesDoPainel', () => {
+  // Da mais recente para a mais antiga, como vêm da BD.
+  const e = (id: string, demonstracao: boolean) => ({ id, demonstracao });
+
+  it('com uma medida, mostra só as medidas (a demo mais recente não tapa o número real)', () => {
+    const r = execucoesDoPainel([
+      e('demo-92', true),
+      e('demo-78', true),
+      e('medida', false),
+      e('medida-antiga', false),
+    ]);
+    expect(r.map((x) => x.id)).toEqual(['medida', 'medida-antiga']);
+  });
+
+  it('sem nenhuma medida (câmara de demonstração), mostra as de demonstração', () => {
+    const r = execucoesDoPainel([e('demo-92', true), e('demo-78', true)]);
+    expect(r.map((x) => x.id)).toEqual(['demo-92', 'demo-78']);
+  });
+
+  it('corta no limite', () => {
+    const todas = Array.from({ length: 30 }, (_, i) => e(`m${i}`, false));
+    expect(execucoesDoPainel(todas)).toHaveLength(20);
+    expect(execucoesDoPainel(todas, 5)).toHaveLength(5);
   });
 });

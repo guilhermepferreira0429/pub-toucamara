@@ -15,13 +15,13 @@ Cada ferramenta diz em que agentes aparece (`agentes` em `ferramenta({ … })`: 
 
 ### Peso das ferramentas (tokens em cada resposta)
 
-A descrição e o esquema de cada ferramenta vão no contexto de **todas** as respostas do agente: pesam no custo, na latência da voz e na escolha da ferramenta. O `gerar` mostra o peso de cada agente (tokens ≈ caracteres / 4, `src/agente-voz/medir.ts`) e o teste de alinhamento falha acima de `LIMITE_TOKENS` (entrada 8 500, saída 3 000).
+A descrição e o esquema de cada ferramenta vão no contexto de **todas** as respostas do agente: pesam no custo, na latência da voz e na escolha da ferramenta. O `gerar` mostra o peso de cada agente (tokens ≈ caracteres / 4, `src/agente-voz/medir.ts`) e o teste de alinhamento falha acima de `LIMITE_TOKENS` (entrada 8 800, saída 3 000; o limite da entrada subiu de 8 500 para 8 800 em out. para o catálogo de serviços da V4).
 
 | | Ferramentas | Tokens das ferramentas | Prompt |
 |---|---|---|---|
 | Antes (um só agente, out. 2026) | 53 | ≈ 15 400 | ≈ 2 500 |
-| Entrada | 46 | ≈ 8 300 | ≈ 2 700 |
-| Saída | 16 | ≈ 2 300 | ≈ 2 000 |
+| Entrada (22/10) | 48 | ≈ 8 556 | ≈ 2 766 |
+| Saída (22/10) | 16 | ≈ 2 293 | ≈ 1 957 |
 
 Para não voltar a crescer:
 - **Descrição = quando usar + o que devolve**, em 1–2 frases, mais só o que é próprio dessa ferramenta. As regras gerais (diz o "dizer", segue a "instrucao", pergunta o que falta, confirma antes de agir, valores de demonstração, pagamentos de teste, erros) estão **uma vez** em `src/ferramentas/regras-gerais.ts` e entram nos prompts da voz, do chat e da porta para IAs.
@@ -44,7 +44,7 @@ A volta do agente à chamada para juntar um familiar (`juncao_familiar`) entra p
 
 Os ficheiros não têm valores de ambiente nem segredos, só marcadores resolvidos no `diff`/`sincronizar`: `${API_URL}`, `${MUNICIPIO}` (header `X-Municipio`) e `${SEGREDO:toucamara_agente_segredo}` (o id do segredo no ElevenLabs).
 
-## Comandos (em `code/api`)
+## Comandos (em `code/api`; `npm run` ou `bun run`)
 
 ```bash
 npm run agente-voz -- gerar                 # escreve entrada/ e saida/ (precisa da BD para o agente_config) e mostra o peso
@@ -75,9 +75,9 @@ Opções: `--municipio <slug>` (por omissão `guimaraes`), `--agente-entrada <id
 
 ## Checklist para a demo
 
-- [ ] `AGENTE_SEGREDO`, `ELEVENLABS_API_KEY` e `API_URL` (HTTPS público) configurados na API; segredo `toucamara_agente_segredo` criado no ElevenLabs
-- [ ] `npm run agente-voz -- diff` sem conflitos; depois `npm run agente-voz -- sincronizar --confirmar`
-- [ ] `npm run agente-voz -- diff` outra vez: "O ElevenLabs está igual ao repositório"
+- [x] `AGENTE_SEGREDO`, `ELEVENLABS_API_KEY` e `API_URL` (HTTPS público) configurados na API; segredo `toucamara_agente_segredo` criado no ElevenLabs (22/10)
+- [x] `npm run agente-voz -- diff` sem conflitos; depois `npm run agente-voz -- sincronizar --confirmar` (22/10)
+- [ ] `npm run agente-voz -- diff` outra vez, depois de cada mudança nas ferramentas: "O ElevenLabs está igual ao repositório"
 - [ ] No ElevenLabs, confirmar que a voz e o modelo de TTS são multilingues (português) e que o agente responde em português de Portugal
 - [ ] Criar o segundo agente no ElevenLabs (saída), pôr o id em `agente_config.elevenlabs_agent_id_saida` e sincronizar outra vez
 - [ ] Abrir `/ligar` (com `NEXT_PUBLIC_ELEVENLABS_AGENT_ID` = o agente de **entrada**) e testar três ferramentas que não estavam no agente:
@@ -96,9 +96,9 @@ O formato segue o SDK oficial `@elevenlabs/elevenlabs-js` 2.74.0 (out. 2026); a 
 - O código de idioma: vai `pt`; não se confirmou se há um `pt-PT` próprio.
 - Os parâmetros sem descrição no zod (lista em `avisos` de `ferramentas.json`) vão com o nome do campo como descrição: convém descrevê-los no zod.
 
-## Próximo passo (só nota, não implementado): catálogo para as ferramentas raras
+## Próximo passo (só nota, não implementado): catálogo também para as ferramentas raras
 
-Catálogo para as ferramentas raras (arquivo, deliberações, turismo, empresa, cartas) numa só `outros_servicos(servico, dados)`, com uma linha por serviço no prompt: poupa mais ~2–3 mil tokens, mas pode piorar esses fluxos (o agente pode não saber que existem). **Avaliar com o avaliador** (`code/avaliador`, as 180 perguntas) antes e depois: taxa de acerto e ferramenta escolhida; aplicar só se não cair. Precisa da `ANTHROPIC_API_KEY` (o juiz) e da `ELEVENLABS_API_KEY` (o adaptador `tou-voz` simula a conversa com o agente publicado).
+As áreas da V4 (escolas, reservas, estacionamento, habitação, cemitérios, animais, água, junta) já estão num catálogo: `outros_servicos` diz o que há e `pedir_servico` pede, com uma linha por área no prompt. O passo seguinte é pôr no mesmo catálogo as ferramentas raras que ainda estão soltas (arquivo, deliberações, turismo, empresa, cartas): poupa mais ~2–3 mil tokens, mas pode piorar esses fluxos (o agente pode não saber que existem). **Avaliar com o avaliador** (`code/avaliador`, as 180 perguntas) antes e depois: taxa de acerto e ferramenta escolhida; aplicar só se não cair. Precisa da `ANTHROPIC_API_KEY` (o juiz) e da `ELEVENLABS_API_KEY` (o adaptador `tou-voz` simula a conversa com o agente publicado).
 
 Como comparar (em `code/avaliador`):
 

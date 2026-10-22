@@ -76,10 +76,10 @@ Nenhuma: esta operação não compara números. Devia comparar algum? __________
 
 | Zona | Degraus atuais | Fonte | Certo? | Correção |
 |---|---|---|---|---|
-| ERC · Espaço residencial consolidado | sempre: não precisa de pedir nada à câmara | PDM de Guimarães · regulamento · **valor de demonstração** | ☐ certo ☐ errado |  |
-| CH · Centro Histórico | sempre: precisa de uma comunicação prévia | PDM de Guimarães · regulamento · **valor de demonstração** | ☐ certo ☐ errado |  |
-| EA · Espaço agrícola | sempre: não precisa de pedir nada à câmara | PDM de Guimarães · regulamento · **valor de demonstração** | ☐ certo ☐ errado |  |
-| EF · Espaço florestal (Penha) | sempre: não precisa de pedir nada à câmara | PDM de Guimarães · regulamento · **valor de demonstração** | ☐ certo ☐ errado |  |
+| ERC · Espaço residencial consolidado | sempre: não precisa de pedir nada à câmara | PDM (demonstração) · **valor de exemplo** | ☐ certo ☐ errado |  |
+| CH · Centro Histórico | sempre: precisa de uma comunicação prévia | PDM (demonstração) · **valor de exemplo** | ☐ certo ☐ errado |  |
+| EA · Espaço agrícola | sempre: não precisa de pedir nada à câmara | PDM (demonstração) · **valor de exemplo** | ☐ certo ☐ errado |  |
+| EF · Espaço florestal (Penha) | sempre: não precisa de pedir nada à câmara | PDM (demonstração) · **valor de exemplo** | ☐ certo ☐ errado |  |
 
 ### O que a IA procura nos desenhos
 
@@ -124,10 +124,10 @@ Falta algum documento que a câmara exige para esta operação? ________________
 
 | Zona | Degraus atuais | Fonte | Certo? | Correção |
 |---|---|---|---|---|
-| ERC · Espaço residencial consolidado | até 50 m²: precisa de uma comunicação prévia; acima: precisa de licença | PDM de Guimarães · regulamento · **valor de demonstração** | ☐ certo ☐ errado |  |
-| CH · Centro Histórico | sempre: precisa de licença | PDM de Guimarães · regulamento · **valor de demonstração** | ☐ certo ☐ errado |  |
-| EA · Espaço agrícola | sempre: precisa de licença | PDM de Guimarães · regulamento · **valor de demonstração** | ☐ certo ☐ errado |  |
-| EF · Espaço florestal (Penha) | sempre: não é permitido nesta zona | PDM de Guimarães · regulamento · **valor de demonstração** | ☐ certo ☐ errado |  |
+| ERC · Espaço residencial consolidado | até 50 m²: precisa de uma comunicação prévia; acima: precisa de licença | PDM (demonstração) · **valor de exemplo** | ☐ certo ☐ errado |  |
+| CH · Centro Histórico | sempre: precisa de licença | PDM (demonstração) · **valor de exemplo** | ☐ certo ☐ errado |  |
+| EA · Espaço agrícola | sempre: precisa de licença | PDM (demonstração) · **valor de exemplo** | ☐ certo ☐ errado |  |
+| EF · Espaço florestal (Penha) | sempre: não é permitido nesta zona | PDM (demonstração) · **valor de exemplo** | ☐ certo ☐ errado |  |
 
 ### O que a IA procura nos desenhos
 
@@ -225,10 +225,10 @@ Falta algum documento que a câmara exige para esta operação? ________________
 
 | Zona | Degraus atuais | Fonte | Certo? | Correção |
 |---|---|---|---|---|
-| ERC · Espaço residencial consolidado | até 50 m²: precisa de uma comunicação prévia; acima: precisa de licença | PDM de Guimarães · regulamento · **valor de demonstração** | ☐ certo ☐ errado |  |
-| CH · Centro Histórico | sempre: não é permitido nesta zona | PDM de Guimarães · regulamento · **valor de demonstração** | ☐ certo ☐ errado |  |
-| EA · Espaço agrícola | sempre: não é permitido nesta zona | PDM de Guimarães · regulamento · **valor de demonstração** | ☐ certo ☐ errado |  |
-| EF · Espaço florestal (Penha) | sempre: não é permitido nesta zona | PDM de Guimarães · regulamento · **valor de demonstração** | ☐ certo ☐ errado |  |
+| ERC · Espaço residencial consolidado | até 50 m²: precisa de uma comunicação prévia; acima: precisa de licença | PDM (demonstração) · **valor de exemplo** | ☐ certo ☐ errado |  |
+| CH · Centro Histórico | sempre: não é permitido nesta zona | PDM (demonstração) · **valor de exemplo** | ☐ certo ☐ errado |  |
+| EA · Espaço agrícola | sempre: não é permitido nesta zona | PDM (demonstração) · **valor de exemplo** | ☐ certo ☐ errado |  |
+| EF · Espaço florestal (Penha) | sempre: não é permitido nesta zona | PDM (demonstração) · **valor de exemplo** | ☐ certo ☐ errado |  |
 
 ### Perguntas de sim/não à IA
 
@@ -274,10 +274,10 @@ Falta algum documento que a câmara exige para esta operação? ________________
 
 | Zona | Degraus atuais | Fonte | Certo? | Correção |
 |---|---|---|---|---|
-| ERC · Espaço residencial consolidado | até 1,8 m de altura: não precisa de pedir nada à câmara; acima: precisa de uma comunicação prévia | PDM de Guimarães · regulamento · **valor de demonstração** | ☐ certo ☐ errado |  |
-| CH · Centro Histórico | sempre: precisa de licença | PDM de Guimarães · regulamento · **valor de demonstração** | ☐ certo ☐ errado |  |
-| EA · Espaço agrícola | até 1,5 m de altura: não precisa de pedir nada à câmara; acima: precisa de uma comunicação prévia | PDM de Guimarães · regulamento · **valor de demonstração** | ☐ certo ☐ errado |  |
-| EF · Espaço florestal (Penha) | sempre: precisa de uma comunicação prévia | PDM de Guimarães · regulamento · **valor de demonstração** | ☐ certo ☐ errado |  |
+| ERC · Espaço residencial consolidado | até 1,8 m de altura: não precisa de pedir nada à câmara; acima: precisa de uma comunicação prévia | PDM (demonstração) · **valor de exemplo** | ☐ certo ☐ errado |  |
+| CH · Centro Histórico | sempre: precisa de licença | PDM (demonstração) · **valor de exemplo** | ☐ certo ☐ errado |  |
+| EA · Espaço agrícola | até 1,5 m de altura: não precisa de pedir nada à câmara; acima: precisa de uma comunicação prévia | PDM (demonstração) · **valor de exemplo** | ☐ certo ☐ errado |  |
+| EF · Espaço florestal (Penha) | sempre: precisa de uma comunicação prévia | PDM (demonstração) · **valor de exemplo** | ☐ certo ☐ errado |  |
 
 ### Perguntas de sim/não à IA
 
@@ -321,10 +321,10 @@ Falta algum documento que a câmara exige para esta operação? ________________
 
 | Zona | Degraus atuais | Fonte | Certo? | Correção |
 |---|---|---|---|---|
-| ERC · Espaço residencial consolidado | sempre: precisa de uma comunicação prévia | PDM de Guimarães · regulamento · **valor de demonstração** | ☐ certo ☐ errado |  |
-| CH · Centro Histórico | sempre: precisa de licença | PDM de Guimarães · regulamento · **valor de demonstração** | ☐ certo ☐ errado |  |
-| EA · Espaço agrícola | sempre: precisa de uma comunicação prévia | PDM de Guimarães · regulamento · **valor de demonstração** | ☐ certo ☐ errado |  |
-| EF · Espaço florestal (Penha) | sempre: precisa de uma comunicação prévia | PDM de Guimarães · regulamento · **valor de demonstração** | ☐ certo ☐ errado |  |
+| ERC · Espaço residencial consolidado | sempre: precisa de uma comunicação prévia | PDM (demonstração) · **valor de exemplo** | ☐ certo ☐ errado |  |
+| CH · Centro Histórico | sempre: precisa de licença | PDM (demonstração) · **valor de exemplo** | ☐ certo ☐ errado |  |
+| EA · Espaço agrícola | sempre: precisa de uma comunicação prévia | PDM (demonstração) · **valor de exemplo** | ☐ certo ☐ errado |  |
+| EF · Espaço florestal (Penha) | sempre: precisa de uma comunicação prévia | PDM (demonstração) · **valor de exemplo** | ☐ certo ☐ errado |  |
 
 ### Perguntas de sim/não à IA
 

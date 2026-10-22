@@ -1,6 +1,8 @@
 # API Tou, Câmara?
 
-NestJS + Postgres 17 (pgvector) com SQL à mão. Plano completo, modelo de dados e rotas: [`docs/PLANS/api-e-modelo-de-dados.md`](../../docs/PLANS/api-e-modelo-de-dados.md).
+NestJS + Postgres 17 (pgvector) com SQL à mão. O plano original, o modelo de dados e as rotas estão em [`docs/PLANS/api-e-modelo-de-dados.md`](../../docs/PLANS/api-e-modelo-de-dados.md). É um documento histórico: o código já vai muito além. A lista de rotas atual está em `GET /v1/docs` (OpenAPI).
+
+IA: o Claude da Anthropic fora da chamada (resumos, classificação, juiz da qualidade; `ANTHROPIC_MODEL`). A voz é um agente no ElevenLabs que chama as ferramentas desta API (ver [`agente-voz/README.md`](agente-voz/README.md)).
 
 ## Arrancar
 
@@ -10,8 +12,20 @@ cp .env.example .env                                       # e preencher
 bun install
 bun run start:dev                                          # migrações correm no arranque
 bun run db:reset                                           # dev: recomeçar a BD do zero
-bun run test && bun run lint
+bun run test && bun run lint                               # o lint corre com --fix (corrige o que puder)
 ```
+
+## Scripts
+
+| Comando | O que faz |
+|---|---|
+| `bun run db:reset` | Dev: apaga a BD e volta a correr as migrações |
+| `bun run db:seed [-- slug]` | Carrega os `.sql` de `db/seed/<slug>/` (por omissão `guimaraes`). São idempotentes. Em produção: `env/prod/docker/seed.sh` |
+| `bun run demo:preparar` | Prepara a câmara de demonstração (pessoas, processos, ocorrências, áreas V4). O mesmo que o botão "Preparar a demonstração" do painel |
+| `bun run agente-voz -- <gerar\|diff\|sincronizar>` | Gera e sincroniza os agentes de voz no ElevenLabs (ver [`agente-voz/README.md`](agente-voz/README.md)) |
+| `bun run armazenamento -- <verificar\|cors>` | Verifica o armazenamento S3 ou configura o CORS |
+| `bun run verificar-projetos -- --ajuda` | Avalia a leitura de projetos pela IA com o Claude a sério (precisa de `ANTHROPIC_API_KEY`) |
+| `bun run checklist-regras` | Escreve `docs/VALIDAR_REGRAS_PROJETOS.md` a partir do código (o teste `checklist-regras.spec.ts` falha se ficar desatualizado) |
 
 ## Testes
 
@@ -32,25 +46,40 @@ bun run test && bun run lint
 | `/v1/public/*` | Páginas dos links do SMS | Token do objeto (`token_publico`) ou código do link |
 | `/v1/chat/*` | Chat no site e na app | Sessão anónima |
 | `/v1/painel/*` | Painel da câmara | `Authorization: Bearer` (link mágico → JWT) + perfil |
+| `POST /v1/painel/auth/juri` | Acesso do júri, só de leitura (até `JURI_ATE`) | A chave `JURI_CHAVE`, ou o email `JURI_EMAIL` no pedido de link |
+| `/v1/app/*` | App do munícipe (Flutter) | `Authorization: Bearer tca_…` (entrada por código SMS) |
+| `/v1/mcp/{municipio}` | Assistentes de IA (porta MCP): só informação | — |
+| `/v1/mcp/{municipio}/{chave}` | A ligação pessoal de um munícipe ao seu assistente | Chave autorizada por SMS (`/v1/public/ias/*`) |
+| `GET /v1/public/avaliacao/{municipio}` | Página pública `/avaliacao` | — (só execuções medidas; `AVALIACAO_TAPAR` tapa nomes) |
+| `GET /v1/public/ao-vivo/{municipio}` | Slide "Ao vivo" do pitch (SSE, anonimizado) | `?token=` = `AO_VIVO_PUBLICO_TOKEN` |
+| `GET /v1/docs` | OpenAPI (JSON) | Em produção só com `OPENAPI_PUBLICO=true` |
 | `GET /r/{codigo}` | O link que vai no SMS | — |
 
 ## Estrutura
 
 ```
 src/
-  common/        erros, validação (zod), paginação, idempotência, pedido, numeração, dias úteis
+  common/        erros, validação (zod), paginação, idempotência, pedido, numeração, dias úteis, CSV
   config/        toda a configuração (.env) num só ficheiro
   database/      pool pg, transações, migrações no arranque
   ferramentas/   o que é uma ferramenta do agente e o registo de todas
-  ia/            ClaudeService (Sonnet fora da chamada: extrair com zod, escrever)
+  ia/            ClaudeService (fora da chamada: extrair com zod, escrever), texto externo
+                 delimitado (nao-confiavel), dados pessoais tirados (minimizar), custo e uso
+  agente-voz/    gerar, medir e sincronizar os agentes do ElevenLabs a partir do registo
   jobs/          pg-boss: filas e cron no próprio Postgres
-  modules/
+  scripts/       os comandos de `bun run` acima
+  modules/       ~70 módulos, um por área:
     base partilhada (globais): municipios, municipes, conversas, comunicacao (SMS,
-      email, links curtos), armazenamento (S3), auditoria, auth (painel + permissões),
-      agent-tools (controller das ferramentas)
-    domínios: conhecimento, atendimento, requerimentos, processos, ocorrencias,
-      pagamentos, marcacoes, chat, emails, painel, relatorios
+      email, links curtos), armazenamento (S3), auditoria, auth (painel, permissões,
+      acesso do júri), agent-tools (controller das ferramentas)
+    atendimento: conhecimento (fontes, respostas, avaliação), atendimento, chat,
+      chamadas-saida, ao-vivo, emails, reclamacoes, marcacoes, porta-ias, app-municipe
+    processos e território: requerimentos, processos, licencas, ordenamento,
+      ocorrencias, pagamentos, entregas, empresas
+    câmara: painel, relatorios, concelho, emergencias, avisos-zona, campanhas, apoios,
+      juntas, demo, pesquisa…
 db/migrations/   NNNN_nome.sql, aplicadas por ordem; uma aplicada nunca se edita
+db/seed/<slug>/  dados reais de um município (bun run db:seed)
 ```
 
 ## Convenções

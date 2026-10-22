@@ -463,7 +463,7 @@ function seccaoPerfil(perfil: Perfil, n: number): string[] {
         ZONAS.map((z) => [
           `${z} · ${NOME_ZONA[z]}`,
           degrausDitos(regrasDaZona(z)[d.obra!]),
-          'PDM de Guimarães · regulamento · **valor de demonstração**',
+          'PDM (demonstração) · **valor de exemplo**',
           MARCAR,
           '',
         ]),

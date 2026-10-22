@@ -109,3 +109,17 @@ export function erroPublicacao(
     detalhes,
   );
 }
+
+/**
+ * As execuções que o painel mostra (Qualidade e Início): com alguma medida,
+ * só as medidas; as de demonstração ("Preparar demo") são mais recentes e
+ * tapavam o número real. Sem nenhuma medida (câmara de demonstração), as de
+ * demonstração, que o ecrã assinala como tal.
+ */
+export function execucoesDoPainel<T extends { demonstracao: boolean }>(
+  todas: T[],
+  limite = 20,
+): T[] {
+  const medidas = todas.filter((e) => !e.demonstracao);
+  return (medidas.length ? medidas : todas).slice(0, limite);
+}

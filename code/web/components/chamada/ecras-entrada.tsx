@@ -161,6 +161,16 @@ export function EcraEntrada({
           </>
         )}
       </div>
+
+      {/* Discreto, mas dito: quem chega pelo QR do pitch não pode julgar que
+          está a ligar para o serviço oficial da câmara. */}
+      <p className="border-t border-linha pt-4 text-xs leading-[1.5] text-tinta-2">
+        Demonstração do projeto Tou, Câmara? no Hack4Guimarães 2035: não é o serviço oficial da Câmara Municipal de{" "}
+        {MUNICIPIO_NOME}.{" "}
+        <Link href="/" className="font-semibold text-terracota underline underline-offset-2">
+          Sobre o projeto
+        </Link>
+      </p>
     </Ecra>
   );
 }
