@@ -1,0 +1,10 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Notificações push (Android 13+ pede autorização à pessoa). -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <application>
+        <!-- Push sem canal indicado: vai para "Avisos da câmara". -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="toucamara_avisos" />
+    </application>
+</manifest>
