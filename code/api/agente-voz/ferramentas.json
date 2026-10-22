@@ -784,7 +784,7 @@
     {
       "type": "webhook",
       "name": "juntar_familiar",
-      "description": "Quando a pessoa pede para juntar um familiar ou alguém de confiança à chamada (\"fale com o meu filho\"). Pergunta o número e confirma-o em voz alta antes de chamar. Diz o texto de \"dizer\" e, se modo for \"conferencia\", não digas mais nada: a chamada muda e voltas logo a seguir. Nunca para emergências (aí é o 112).",
+      "description": "Quando a pessoa pede para juntar um familiar ou alguém de confiança à chamada (\"fale com o meu filho\"). Pergunta o número e confirma-o em voz alta antes de chamar. Diz o texto de \"dizer\" e, se modo for \"conferencia\", não digas mais nada: a chamada muda e voltas logo a seguir. Se vier precisa_autorizacao, faz a pergunta de \"dizer\" e, se a pessoa disser que sim, chama outra vez com autorizou: true. Se modo for \"web\", o familiar acompanha por um link e o que escrever chega-te como contexto. Nunca para emergências (aí é o 112).",
       "response_timeout_secs": 20,
       "tool_error_handling_mode": "passthrough",
       "api_schema": {
@@ -824,6 +824,10 @@
             "resumo": {
               "type": "string",
               "description": "O que já falaram e o que vais explicar aos dois, em 2 a 4 frases. É o que vais dizer quando voltares à chamada."
+            },
+            "autorizou": {
+              "type": "boolean",
+              "description": "Numa chamada pelo browser: true só depois de a pessoa dizer que sim a \"o seu familiar vai ver o que falamos e pode escrever-me; concorda?\". Sem isto, a ferramenta pede-te para perguntar."
             },
             "call_sid": {
               "type": "string",
@@ -2691,6 +2695,33 @@
             "estado"
           ],
           "description": "Parâmetros de resposta_emergencia."
+        }
+      }
+    },
+    {
+      "type": "webhook",
+      "name": "retirar_familiar",
+      "description": "Quando a pessoa diz que já não precisa do familiar que está a acompanhar a chamada, ou que não quer que ele veja mais (\"já não preciso\"). O link do familiar deixa de funcionar. Diz o texto de \"dizer\".",
+      "response_timeout_secs": 20,
+      "tool_error_handling_mode": "passthrough",
+      "api_schema": {
+        "url": "${API_URL}/v1/agent/tools/retirar_familiar",
+        "method": "POST",
+        "content_type": "application/json",
+        "request_headers": {
+          "X-Agente-Segredo": {
+            "secret_id": "${SEGREDO:toucamara_agente_segredo}"
+          },
+          "X-Municipio": "${MUNICIPIO}",
+          "X-Conversa-Id": {
+            "variable_name": "system__conversation_id"
+          },
+          "X-Telefone": {
+            "variable_name": "system__caller_id"
+          },
+          "X-Telefone-Web": {
+            "variable_name": "telefone"
+          }
         }
       }
     },

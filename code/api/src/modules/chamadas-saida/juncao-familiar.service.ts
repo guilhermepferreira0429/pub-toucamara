@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { DatabaseService } from '../../database/database.service.js';
 import type { ContextoFerramenta } from '../../ferramentas/ferramenta.js';
 import { JobsService } from '../../jobs/jobs.service.js';
+import { AcompanhamentoFamiliarService } from '../ao-vivo/acompanhamento.service.js';
 import { AuditoriaService } from '../auditoria/auditoria.service.js';
 import { MensagensService } from '../comunicacao/mensagens.service.js';
 import { primeiroNome } from '../conversas/retomar.js';
@@ -55,6 +56,12 @@ export const entradaJuntarFamiliar = z.object({
     .describe(
       'O que já falaram e o que vais explicar aos dois, em 2 a 4 frases. É o que vais dizer quando voltares à chamada.',
     ),
+  autorizou: z
+    .boolean()
+    .nullish()
+    .describe(
+      'Numa chamada pelo browser: true só depois de a pessoa dizer que sim a "o seu familiar vai ver o que falamos e pode escrever-me; concorda?". Sem isto, a ferramenta pede-te para perguntar.',
+    ),
   call_sid: z
     .string()
     .trim()
@@ -100,6 +107,7 @@ export class JuncaoFamiliarService {
     private readonly jobs: JobsService,
     private readonly mensagens: MensagensService,
     private readonly auditoria: AuditoriaService,
+    private readonly acompanhamento: AcompanhamentoFamiliarService,
   ) {}
 
   private get twilio() {
@@ -146,6 +154,12 @@ export class JuncaoFamiliarService {
         };
       }
     }
+    // Chamada web (/ligar) com transcrição em direto: o familiar acompanha
+    // por um link e escreve ao agente, em vez da conferência no Twilio.
+    const web = await this.acompanhamento.sessaoAtiva(ctx.conversaId);
+    if (web)
+      return this.acompanhamento.juntarNaChamadaWeb(ctx, e, telefone, web);
+
     const [mun] = await this.db.query<{ telefone_linha: string | null }>(
       `SELECT telefone_linha FROM municipios WHERE id = $1`,
       [ctx.municipio.id],

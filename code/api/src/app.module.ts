@@ -22,6 +22,7 @@ import { AgentToolsModule } from './modules/agent-tools/agent-tools.module.js';
 import { AgoraModule } from './modules/agora/agora.module.js';
 import { NotificacoesModule } from './modules/notificacoes/notificacoes.module.js';
 import { ArmazenamentoModule } from './modules/armazenamento/armazenamento.module.js';
+import { AoVivoModule } from './modules/ao-vivo/ao-vivo.module.js';
 import { AtendimentoModule } from './modules/atendimento/atendimento.module.js';
 import { AuditoriaModule } from './modules/auditoria/auditoria.service.js';
 import { AvisosZonaModule } from './modules/avisos-zona/avisos-zona.module.js';
@@ -108,6 +109,7 @@ import { EntregasModule } from './modules/entregas/entregas.module.js';
     // Domínios.
     ConhecimentoModule,
     AtendimentoModule,
+    AoVivoModule,
     RequerimentosModule,
     ProcessosModule,
     OcorrenciasModule,

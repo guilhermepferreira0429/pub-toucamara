@@ -42,6 +42,8 @@ export interface PropsChamada {
   onPessoa: () => void;
   onDizer: (texto: string) => void;
   onDesligar: () => void;
+  /** Quem acompanha a chamada (familiar, funcionário): faixa no topo. */
+  faixa?: ReactNode;
 }
 
 const QUEM = `Câmara de ${MUNICIPIO_NOME}`;
@@ -489,6 +491,7 @@ export function EcraChamada(p: PropsChamada) {
       {c?.tipo !== "passagem" && (
         <Anuncio falando={p.falando} silenciado={p.silenciado} />
       )}
+      {p.faixa}
       {vista}
     </>
   );

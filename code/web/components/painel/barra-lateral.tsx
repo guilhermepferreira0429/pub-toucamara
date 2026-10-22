@@ -25,6 +25,7 @@ import {
   Newspaper,
   NotebookPen,
   PhoneOutgoing,
+  Radio,
   Receipt,
   Send,
   Search,
@@ -93,6 +94,12 @@ const SECCOES: Seccao[] = [
         icone: MessagesSquare,
         recurso: "conversas",
         contagem: "conversas",
+      },
+      {
+        rotulo: "Ao vivo",
+        href: "/painel/ao-vivo",
+        icone: Radio,
+        recurso: "conversas",
       },
       {
         rotulo: "Entrada",
