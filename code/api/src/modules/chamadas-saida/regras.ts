@@ -29,6 +29,11 @@ export const MOTIVOS_CHAMADA = [
   'pedido_documento',
   'lembrete_prazo',
   'manual',
+  // Campanhas de contacto (ação social): agendadas pelo módulo campanhas,
+  // sem passar por `decidirChamada` (só a quem se inscreveu).
+  'campanha',
+  // Licença a expirar (módulo licencas): só a quem prefere telefone.
+  'renovacao_licenca',
 ] as const;
 export type MotivoChamada = (typeof MOTIVOS_CHAMADA)[number];
 
@@ -272,6 +277,8 @@ export interface ContextoChamada {
   prazo: string;
   link: string;
   nota: string;
+  /** Só nas campanhas: o que perguntar e onde gravar a resposta. */
+  campanha?: { id: string; destinatario_id: string; perguntas: string[] };
 }
 
 /**
@@ -307,6 +314,10 @@ export const MOTIVO_FALADO: Record<MotivoChamada, string> = {
   pedido_documento: 'falta um documento',
   lembrete_prazo: 'o prazo para entregar um documento está a terminar',
   manual: 'o técnico pediu para falar consigo sobre o processo',
+  campanha:
+    'a câmara está a ligar às pessoas inscritas para saber se está tudo bem',
+  renovacao_licenca:
+    'a sua licença está quase a expirar e pode renová-la já nesta chamada',
 };
 
 export function variaveisSaida(

@@ -638,6 +638,7 @@ describe('Requerimentos e processos (e2e)', () => {
         aguarda_municipe: 1,
         a_terminar: expect.any(Number),
         a_terminar_ate: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/),
+        freguesias: expect.any(Array),
       });
       const geral = await ctx
         .http()

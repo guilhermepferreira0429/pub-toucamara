@@ -27,6 +27,8 @@ export interface ConfigAgente {
   trata_por: string;
   idiomas: string[];
   voz_id?: string | null;
+  voz_nome?: string | null;
+  ritmo?: 'calmo' | 'normal' | 'rapido';
 }
 
 export interface Pronuncia {
@@ -58,7 +60,7 @@ export class AgenteService {
   async obter(m: Municipio, u: UtilizadorPainel) {
     const [[config], pronuncias, regras] = await Promise.all([
       this.db.query(
-        `SELECT nome, voz_id, saudacao, trata_por, idiomas, versao
+        `SELECT nome, voz_id, voz_nome, ritmo, saudacao, trata_por, idiomas, versao
          FROM agente_config WHERE municipio_id = $1`,
         [m.id],
       ),
@@ -87,11 +89,13 @@ export class AgenteService {
       );
       const versao = proximaVersao(atual?.versao ?? null, hojeNoFuso(m.fuso));
       await tx.query(
-        `INSERT INTO agente_config (municipio_id, nome, voz_id, saudacao, trata_por, idiomas, versao)
-         VALUES ($1, $2, $3, $4, $5, $6, $7)
+        `INSERT INTO agente_config (municipio_id, nome, voz_id, saudacao, trata_por, idiomas, versao,
+                                    voz_nome, ritmo)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
          ON CONFLICT (municipio_id) DO UPDATE SET
            nome = EXCLUDED.nome, voz_id = EXCLUDED.voz_id, saudacao = EXCLUDED.saudacao,
-           trata_por = EXCLUDED.trata_por, idiomas = EXCLUDED.idiomas, versao = EXCLUDED.versao`,
+           trata_por = EXCLUDED.trata_por, idiomas = EXCLUDED.idiomas, versao = EXCLUDED.versao,
+           voz_nome = EXCLUDED.voz_nome, ritmo = EXCLUDED.ritmo`,
         [
           m.id,
           c.nome,
@@ -100,6 +104,8 @@ export class AgenteService {
           c.trata_por,
           c.idiomas,
           versao,
+          c.voz_nome ?? null,
+          c.ritmo ?? 'normal',
         ],
       );
       await this.auditar(
@@ -115,9 +121,23 @@ export class AgenteService {
         },
         ip,
       );
+      // Versão nova: a publicação só volta a passar depois de uma avaliação
+      // desta versão. Fica pedida ao avaliador.
+      await tx.query(
+        `INSERT INTO avaliacao.pedidos (municipio_id, motivo, pedido_por)
+         VALUES ($1, 'mudanca_agente', $2)
+         ON CONFLICT (municipio_id, conjunto) WHERE estado = 'pendente' DO NOTHING`,
+        [m.id, u.id],
+      );
       return versao;
     });
-    return { ...c, voz_id: c.voz_id ?? null, versao };
+    return {
+      ...c,
+      voz_id: c.voz_id ?? null,
+      voz_nome: c.voz_nome ?? null,
+      ritmo: c.ritmo ?? 'normal',
+      versao,
+    };
   }
 
   pronuncias(m: Municipio) {

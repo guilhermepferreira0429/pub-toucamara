@@ -24,6 +24,8 @@ Object.assign(process.env, {
   PORT: '0',
   ALLOWED_ORIGINS: 'http://localhost:3000',
   WEB_URL,
+  API_URL: 'http://localhost:3001',
+  OPENAPI_PUBLICO: 'false',
   DADOS_CHAVE: 'chave-dados-e2e',
   NIF_PEPPER: 'pepper-e2e',
 
@@ -34,7 +36,8 @@ Object.assign(process.env, {
   DB_PASSWORD: process.env.DB_PASSWORD || 'toucamara',
   DB_NAME: nomeBd,
   DB_SSL: 'false',
-  DB_POOL_MAX: '5',
+  DB_POOL_MAX: process.env.DB_POOL_MAX || '5',
+  DB_RLS_PAINEL: process.env.DB_RLS_PAINEL || 'true',
   MIGRACOES_NO_ARRANQUE: 'true',
 
   AGENTE_SEGREDO: SEGREDO_AGENTE,
@@ -53,6 +56,7 @@ Object.assign(process.env, {
   // Sem fornecedor de SMS: fora de produção o SMS fica 'enviada' (provider 'log').
   SMS_PROVIDER: '',
   SMS_REMETENTE: 'TouCamara',
+  WHATSAPP_REMETENTE: '+351930000999',
   SMS_TRANSLITERAR: 'false',
   SMTP_HOST: '',
   SMTP_PORT: '587',
@@ -70,5 +74,6 @@ Object.assign(process.env, {
 
   ELEVENLABS_WEBHOOK_SECRET: SEGREDO_ELEVENLABS,
   ELEVENLABS_API_KEY: '',
+  ELEVENLABS_SOBREPOR_VOZ: 'false',
   PAGAMENTOS_WEBHOOK_SECRET: SEGREDO_PAGAMENTOS,
 });

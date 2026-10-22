@@ -5,6 +5,8 @@ import {
   CalendarClock,
   Check,
   CircleCheck,
+  CreditCard,
+  Download,
   Hash,
   Info,
   MessageCircle,
@@ -12,9 +14,9 @@ import {
   X,
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
-import { api } from "@/lib/api";
+import { api, API_URL } from "@/lib/api";
 import { BotaoLink } from "@/components/ui/botao";
-import { dataCurta, dataLonga } from "./formatar";
+import { dataCurta, dataLonga, euros } from "./formatar";
 import {
   ACarregar,
   Cabecalho,
@@ -69,6 +71,18 @@ interface ProcessoPublico {
   };
   linha_do_tempo: { em: string; tipo: string; descricao: string }[];
   requerimento_token: string | null;
+  pagamento: {
+    estado: "pendente" | "pago";
+    valor_cent: number;
+    guia_numero: string | null;
+    pagar_ate: string | null;
+    pago_em: string | null;
+    metodo: string | null;
+    modo_teste: boolean;
+    codigo: string | null;
+  } | null;
+  decisao_pdf: boolean;
+  avaliacao: number | null;
 }
 
 /** Em que passo do trilho está cada fase (0 = pedido recebido). */
@@ -150,7 +164,7 @@ function LinhaDoTempo({ eventos }: { eventos: ProcessoPublico["linha_do_tempo"] 
 }
 
 /** V2 · Decisão. */
-function Decisao({ p }: { p: ProcessoPublico }) {
+function Decisao({ p, codigo }: { p: ProcessoPublico; codigo: string }) {
   const admitido = p.decisao === "admitido";
   return (
     <>
@@ -169,6 +183,9 @@ function Decisao({ p }: { p: ProcessoPublico }) {
           {admitido ? "O seu pedido foi aprovado." : "O seu pedido não foi aprovado."}
         </h1>
         <p className="text-[16px] leading-[1.5] text-white/90">
+          {p.pagamento?.estado === "pago" && p.pagamento.pago_em
+            ? `Pagamento recebido a ${dataLonga(p.pagamento.pago_em)}. `
+            : ""}
           {p.decidido_em ? `A câmara decidiu a ${dataLonga(p.decidido_em)}. ` : ""}
           {admitido
             ? `${p.tipo}: ${p.assunto} foi admitido.`
@@ -225,10 +242,78 @@ function Decisao({ p }: { p: ProcessoPublico }) {
           ))}
         </ul>
       </section>
-      <BotaoLink href={ROTA_CHAT} tamanho="grande" icone={MessageCircle} className="w-full">
+      {p.decisao_pdf && (
+        <a
+          href={`${API_URL}/v1/public/processos/${encodeURIComponent(codigo)}/decisao.pdf`}
+          className="inline-flex h-14 w-full items-center justify-center gap-2.5 rounded-full bg-terracota px-6 text-[17px] font-semibold text-white hover:bg-terracota-escuro"
+        >
+          <Download className="size-5" aria-hidden />
+          Descarregar a decisão (PDF)
+        </a>
+      )}
+      <BotaoLink
+        href={ROTA_CHAT}
+        tamanho="grande"
+        variante="secundario"
+        icone={MessageCircle}
+        className="w-full"
+      >
         Falar sobre a decisão
       </BotaoLink>
+      <Avaliacao codigo={codigo} inicial={p.avaliacao} />
     </>
+  );
+}
+
+const NOTAS = [
+  { nota: 1, rotulo: "Difícil", emoji: "🙁" },
+  { nota: 2, rotulo: "Mais ou menos", emoji: "😐" },
+  { nota: 3, rotulo: "Fácil", emoji: "🙂" },
+] as const;
+
+/** "Como foi tratar disto connosco?" (V2 · Decisão). */
+function Avaliacao({ codigo, inicial }: { codigo: string; inicial: number | null }) {
+  const [nota, setNota] = useState<number | null>(inicial);
+  const [erro, setErro] = useState<string | null>(null);
+  return (
+    <section className="flex w-full flex-col gap-3 rounded-2xl bg-creme-2 p-4" aria-labelledby="avaliar">
+      <TituloSecao id="avaliar">Como foi tratar disto connosco?</TituloSecao>
+      <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-labelledby="avaliar">
+        {NOTAS.map((n) => (
+          <button
+            key={n.nota}
+            type="button"
+            role="radio"
+            aria-checked={nota === n.nota}
+            onClick={async () => {
+              setErro(null);
+              try {
+                await api(`/v1/public/processos/${encodeURIComponent(codigo)}/avaliacao`, {
+                  corpo: { nota: n.nota },
+                });
+                setNota(n.nota);
+              } catch (e) {
+                setErro(mensagemDe(e));
+              }
+            }}
+            className={`flex flex-col items-center gap-1 rounded-xl border-[1.5px] py-3 text-[14px] font-semibold ${
+              nota === n.nota ? "border-terracota bg-papel text-terracota-escuro" : "border-transparent bg-papel text-tinta-2"
+            }`}
+          >
+            <span aria-hidden className="text-[26px]">
+              {n.emoji}
+            </span>
+            {n.rotulo}
+          </button>
+        ))}
+      </div>
+      {nota !== null && <p className="text-[14px] text-tinta-2">Obrigado. Isto ajuda a câmara a melhorar.</p>}
+      {erro && (
+        <p role="alert" className="text-[14px] text-terracota-escuro">
+          {erro}
+        </p>
+      )}
+    </section>
   );
 }
 
@@ -372,7 +457,7 @@ export function Processo({ codigo }: { codigo: string }) {
     return (
       <div className="flex w-full flex-col gap-6">
         <Topo direita={p.numero} />
-        <Decisao p={p} />
+        <Decisao p={p} codigo={codigo} />
         <LinhaDoTempo eventos={p.linha_do_tempo} />
       </div>
     );
@@ -386,7 +471,24 @@ export function Processo({ codigo }: { codigo: string }) {
       <Topo direita={p.municipio} />
       <Cabecalho meta={`Processo ${p.numero}`} titulo={p.assunto} sub={p.tipo} grande />
 
-      {falta.length > 0 ? (
+      {falta.length === 0 && p.pagamento?.estado === "pendente" && p.pagamento.codigo ? (
+        <CartaoDestaque rotulo="Falta só pagar a taxa">
+          <p className="font-display text-[34px] leading-none font-bold">{euros(p.pagamento.valor_cent)}</p>
+          <p className="text-[14px] text-white/85">
+            {p.pagamento.guia_numero ? `Guia n.º ${p.pagamento.guia_numero}` : "Taxa do processo"}
+            {p.pagamento.pagar_ate ? ` · pagar até ${dataLonga(p.pagamento.pagar_ate)}` : ""}
+            {p.pagamento.modo_teste ? " · modo de teste, nada é cobrado" : ""}
+          </p>
+          <a
+            href={`/pagamento/${p.pagamento.codigo}`}
+            className="mt-1 inline-flex h-[52px] w-full items-center justify-center gap-2 rounded-full bg-white text-[17px] font-bold text-terracota-escuro hover:bg-creme"
+          >
+            <CreditCard className="size-[18px]" aria-hidden />
+            Pagar por MB WAY ou Multibanco
+          </a>
+          <p className="text-[13px] leading-[1.4] text-white/85">Depois disso, a câmara segue com a decisão.</p>
+        </CartaoDestaque>
+      ) : falta.length > 0 ? (
         <CartaoDestaque
           rotulo={falta.length === 1 ? "Falta 1 documento" : `Faltam ${falta.length} documentos`}
         >

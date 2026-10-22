@@ -241,6 +241,15 @@ describe('Painel (e2e)', () => {
         conhecimento: true,
         equipa: true,
         agente: true,
+        acao_social: true,
+        procedimentos_ver: true,
+        procedimentos: true,
+        reclamacoes: true,
+        reunioes: true,
+        contratacao: true,
+        transparencia: true,
+        fiscalizacao: true,
+        arquivo: true,
       });
 
       const a = await ctx
@@ -256,6 +265,7 @@ describe('Painel (e2e)', () => {
         conhecimento: false,
         equipa: false,
         agente: false,
+        contratacao: false,
       });
     });
 
@@ -718,6 +728,8 @@ describe('Painel (e2e)', () => {
       trata_por: 'você',
       idiomas: ['pt-PT', 'en'],
       voz_id: null,
+      voz_nome: null,
+      ritmo: 'normal',
     };
 
     it('GET: a câmara vê mas não edita; PUT do chefe → 403 so_equipa_interna', async () => {

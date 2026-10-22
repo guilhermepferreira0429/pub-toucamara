@@ -23,7 +23,7 @@ import {
   usePodeEditarRespostas,
 } from "./formulario-resposta";
 import { EditorResposta } from "./resposta";
-import type { Resposta, RespostaResumo, Revisoes } from "./tipos";
+import type { Mapa, Resposta, RespostaResumo, Revisoes } from "./tipos";
 
 const FILTROS = [
   { id: "", rotulo: "Todas" },
@@ -73,6 +73,8 @@ export function Respostas() {
   const [texto, setTexto] = useState("");
   const [q, setQ] = useState("");
   const [filtro, setFiltro] = useState<(typeof FILTROS)[number]["id"]>("");
+  const tema = params.get("tema") ?? "";
+  const temas = useDados<Mapa>("/v1/painel/conhecimento/mapa");
   const [nova, setNova] = useState(false);
   const criar = useAcao();
 
@@ -84,6 +86,7 @@ export function Respostas() {
   const busca = new URLSearchParams({ limite: "50" });
   if (q) busca.set("q", q);
   if (filtro && filtro !== "a_rever") busca.set("estado", filtro);
+  if (tema) busca.set("tema_id", tema);
   const base = `/v1/painel/conhecimento/respostas?${busca}`;
   const lista = useDados<Pagina<RespostaResumo>>(base);
   const mais = useMais(base, lista);
@@ -92,6 +95,13 @@ export function Respostas() {
   );
 
   const itens = (lista.dados?.itens ?? []).filter((r) => filtro !== "a_rever" || r.por_rever);
+
+  const mudarTema = (id: string) => {
+    const p = new URLSearchParams(params);
+    if (id) p.set("tema", id);
+    else p.delete("tema");
+    router.replace(`${caminho}?${p}`, { scroll: false });
+  };
 
   const abrir = (id: string | null) => {
     const p = new URLSearchParams(params);
@@ -143,6 +153,21 @@ export function Respostas() {
               </button>
             ))}
           </div>
+          {!!temas.dados?.temas.length && (
+            <select
+              value={tema}
+              onChange={(e) => mudarTema(e.target.value)}
+              aria-label="Tema"
+              className="h-[34px] rounded-[10px] border border-linha bg-creme px-2.5 text-xs text-tinta"
+            >
+              <option value="">Todos os temas</option>
+              {temas.dados.temas.map((t) => (
+                <option key={t.tema_id} value={t.tema_id}>
+                  {t.nome} · {numero(t.respostas_total)}
+                </option>
+              ))}
+            </select>
+          )}
         </div>
 
         {editar.interno && !!revisoes.dados?.itens.length && (

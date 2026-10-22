@@ -28,8 +28,12 @@ interface Config {
   trata_por: string;
   idiomas: string[];
   voz_id: string | null;
+  voz_nome: string | null;
+  ritmo: Ritmo;
   versao: string;
 }
+type Ritmo = "calmo" | "normal" | "rapido";
+const RITMOS: Record<Ritmo, string> = { calmo: "calmo", normal: "normal", rapido: "rápido" };
 interface Pronuncia {
   termo: string;
   como_se_diz: string;
@@ -52,7 +56,7 @@ interface Agente {
   regras_encaminhamento: Regra[];
   pode_editar: boolean;
 }
-type Motivo = "processo_fase" | "pedido_documento" | "lembrete_prazo" | "manual";
+type Motivo = "processo_fase" | "pedido_documento" | "lembrete_prazo" | "manual" | "renovacao_licenca";
 interface ConfigChamadas {
   ativo: boolean;
   motivos: Motivo[];
@@ -75,6 +79,7 @@ const MOTIVOS: Record<Motivo, string> = {
   pedido_documento: "Pedir um documento em falta",
   lembrete_prazo: "Lembrar um prazo",
   manual: "Chamadas pedidas por um funcionário",
+  renovacao_licenca: "Lembrar uma licença a expirar (a quem prefere telefone)",
 };
 
 function Identidade({
@@ -93,6 +98,8 @@ function Identidade({
     saudacao: config?.saudacao ?? "",
     trata_por: config?.trata_por ?? "você",
     voz_id: config?.voz_id ?? "",
+    voz_nome: config?.voz_nome ?? "",
+    ritmo: config?.ritmo ?? ("normal" as Ritmo),
   });
   const acao = useAcao();
 
@@ -133,9 +140,9 @@ function Identidade({
           <p className="rounded-[14px] bg-white/[0.08] p-3.5 text-sm text-white">“{config.saudacao}”</p>
           <dl className="grid gap-2.5 sm:grid-cols-3">
             {[
-              ["Voz", config.voz_id ?? "a voz por omissão"],
+              ["Voz", config.voz_nome ?? (config.voz_id ? "voz escolhida" : "a voz por omissão")],
               ["Trata as pessoas por", config.trata_por],
-              ["Línguas", `${config.idiomas.length}`],
+              ["Ritmo", RITMOS[config.ritmo] ?? config.ritmo],
             ].map(([r, x]) => (
               <div key={r} className="flex flex-col gap-[3px] rounded-[10px] bg-white/[0.06] px-3 py-2.5">
                 <dt className="text-[11px] text-white/60">{r}</dt>
@@ -159,6 +166,8 @@ function Identidade({
                   trata_por: v.trata_por.trim(),
                   idiomas: config?.idiomas.length ? config.idiomas : ["pt-PT"],
                   voz_id: v.voz_id.trim() || null,
+                  voz_nome: v.voz_nome.trim() || null,
+                  ritmo: v.ritmo,
                 },
               }),
             );
@@ -178,7 +187,19 @@ function Identidade({
             <Campo rotulo="Trata as pessoas por">
               <input className={classeEntrada} required maxLength={40} value={v.trata_por} onChange={(e) => setV({ ...v, trata_por: e.target.value })} />
             </Campo>
-            <Campo rotulo="Voz (identificador)">
+            <Campo rotulo="Ritmo da fala">
+              <select className={classeEntrada} value={v.ritmo} onChange={(e) => setV({ ...v, ritmo: e.target.value as Ritmo })}>
+                {Object.entries(RITMOS).map(([k, r]) => (
+                  <option key={k} value={k}>
+                    {r}
+                  </option>
+                ))}
+              </select>
+            </Campo>
+            <Campo rotulo="Nome da voz" ajuda="O que a câmara vê, ex.: Minho · sotaque do norte.">
+              <input className={classeEntrada} maxLength={80} value={v.voz_nome} onChange={(e) => setV({ ...v, voz_nome: e.target.value })} />
+            </Campo>
+            <Campo rotulo="Voz (identificador ElevenLabs)">
               <input className={classeEntrada} maxLength={100} value={v.voz_id} onChange={(e) => setV({ ...v, voz_id: e.target.value })} />
             </Campo>
           </div>
@@ -520,6 +541,8 @@ function Linguas({
           saudacao: config.saudacao,
           trata_por: config.trata_por,
           voz_id: config.voz_id,
+          voz_nome: config.voz_nome,
+          ritmo: config.ritmo,
           idiomas: novos,
         },
       }),
@@ -550,6 +573,117 @@ function Linguas({
           );
         })}
       </ul>
+      <ErroLinha erro={acao.erro} />
+    </Cartao>
+  );
+}
+
+type Veredicto = "certa" | "passada_bem" | "errada" | "sem_resposta";
+interface PerguntasDaCamara {
+  total: number;
+  avaliadas: number;
+  certas_pct: number | null;
+  a_corrigir: number;
+  itens: { id: string; texto: string; comportamento: string; veredicto: Veredicto | null }[];
+}
+
+const VEREDICTO: Record<Veredicto, { rotulo: string; tom: "verde" | "terracota" | "ambar" }> = {
+  certa: { rotulo: "certa", tom: "verde" },
+  passada_bem: { rotulo: "passou bem", tom: "verde" },
+  errada: { rotulo: "a corrigir", tom: "terracota" },
+  sem_resposta: { rotulo: "sem resposta", tom: "ambar" },
+};
+
+/**
+ * "As perguntas da câmara": além das perguntas base, as que a câmara mais
+ * recebe. O avaliador corre-as antes de cada publicação.
+ */
+function PerguntasCamara() {
+  const { pedido } = useSessao();
+  const p = useDados<PerguntasDaCamara>("/v1/painel/agente/perguntas");
+  const [texto, setTexto] = useState("");
+  const acao = useAcao();
+  const d = p.dados;
+
+  const mudar = async (f: () => Promise<PerguntasDaCamara>) => {
+    const r = await acao.executar(f);
+    if (r) {
+      p.mudar(() => r);
+      return true;
+    }
+    return false;
+  };
+
+  return (
+    <Cartao className="flex flex-col gap-3.5 rounded-[18px] p-[22px]">
+      <div className="flex flex-col gap-[3px]">
+        <h2 className="font-display text-lg font-bold text-tinta">As perguntas da câmara</h2>
+        <p className="text-xs text-tinta-2">
+          Além das perguntas de base, o agente só vai para o ar se passar nas perguntas que vocês mais recebem.
+        </p>
+      </div>
+      {d && (
+        <dl className="grid grid-cols-3 gap-2">
+          {[
+            [String(d.total), "perguntas da câmara"],
+            [d.certas_pct === null ? "—" : `${d.certas_pct}%`, d.avaliadas ? "certas" : "ainda sem teste"],
+            [String(d.a_corrigir), "a corrigir"],
+          ].map(([n, r]) => (
+            <div key={r} className="flex flex-col gap-0.5 rounded-xl bg-creme p-3">
+              <dt className="order-2 text-xs text-tinta-2">{r}</dt>
+              <dd className="font-display text-2xl font-extrabold text-tinta">{n}</dd>
+            </div>
+          ))}
+        </dl>
+      )}
+      <Estado aCarregar={p.aCarregar} erro={p.erro} vazio={false}>
+        <ul className="flex max-h-72 flex-col gap-1.5 overflow-y-auto">
+          {d?.itens.map((x) => (
+            <li key={x.id} className="group flex items-start gap-2 text-[13px] text-tinta">
+              <span className="flex-1">“{x.texto}”</span>
+              {x.veredicto && <Pilula tom={VEREDICTO[x.veredicto].tom}>{VEREDICTO[x.veredicto].rotulo}</Pilula>}
+              <button
+                type="button"
+                aria-label={`Tirar “${x.texto}”`}
+                disabled={acao.aCorrer}
+                onClick={() =>
+                  mudar(() => pedido<PerguntasDaCamara>(`/v1/painel/agente/perguntas/${x.id}`, { metodo: "DELETE" }))
+                }
+                className="text-tinta-3 opacity-0 group-hover:opacity-100 hover:text-terracota focus:opacity-100"
+              >
+                <X className="size-4" aria-hidden />
+              </button>
+            </li>
+          ))}
+        </ul>
+      </Estado>
+      <form
+        className="flex gap-2"
+        onSubmit={async (e) => {
+          e.preventDefault();
+          const ok = await mudar(() =>
+            pedido<PerguntasDaCamara>("/v1/painel/agente/perguntas", {
+              metodo: "POST",
+              corpo: { texto: texto.trim() },
+            }),
+          );
+          if (ok) setTexto("");
+        }}
+      >
+        <input
+          className={`${classeEntrada} flex-1`}
+          minLength={5}
+          maxLength={500}
+          required
+          value={texto}
+          onChange={(e) => setTexto(e.target.value)}
+          placeholder="Uma pergunta que recebem muito"
+          aria-label="Nova pergunta da câmara"
+        />
+        <Botao type="submit" icone={Plus} disabled={acao.aCorrer || texto.trim().length < 5}>
+          Juntar
+        </Botao>
+      </form>
       <ErroLinha erro={acao.erro} />
     </Cartao>
   );
@@ -736,7 +870,7 @@ export function PaginaAgente() {
       <CabecalhoPagina
         migalhas={[`Feito para ${eu?.municipio.nome ?? ""}`]}
         titulo="O seu agente"
-        descricao="Nome, voz, quem trata de quê e as línguas. Nenhuma alteração vai para o ar sem passar no teste."
+        descricao="Nome, voz, quem trata de quê e as perguntas da câmara. Nenhuma alteração vai para o ar sem passar no teste."
         acoes={!d?.pode_editar && d ? <Pilula>Só a equipa Tou, Câmara? altera</Pilula> : undefined}
       />
       {!d ? (
@@ -759,6 +893,7 @@ export function PaginaAgente() {
           <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,692fr)_minmax(0,400fr)]">
             <ChamadasSaida />
             <div className="flex flex-col gap-5">
+              <PerguntasCamara />
               <Linguas config={d.config} podeEditar={d.pode_editar} onGuardado={mudarConfig} />
               <EdicaoPelaCamara />
             </div>

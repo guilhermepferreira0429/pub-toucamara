@@ -23,11 +23,15 @@ import { ArmazenamentoModule } from './modules/armazenamento/armazenamento.modul
 import { AtendimentoModule } from './modules/atendimento/atendimento.module.js';
 import { AuditoriaModule } from './modules/auditoria/auditoria.service.js';
 import { AvisosZonaModule } from './modules/avisos-zona/avisos-zona.module.js';
+import { EmergenciasModule } from './modules/emergencias/emergencias.module.js';
 import { EntradaModule } from './modules/entrada/entrada.module.js';
 import { IntegracoesModule } from './modules/integracoes/integracoes.module.js';
 import { ModelosModule } from './modules/modelos/modelos.module.js';
 import { AuthModule } from './modules/auth/auth.module.js';
 import { ChamadasSaidaModule } from './modules/chamadas-saida/chamadas-saida.module.js';
+import { DocsModule } from './modules/docs/docs.module.js';
+import { SmsEntradaModule } from './modules/sms-entrada/sms-entrada.module.js';
+import { WhatsappModule } from './modules/whatsapp/whatsapp.module.js';
 import { ChatModule } from './modules/chat/chat.module.js';
 import { ComunicacaoModule } from './modules/comunicacao/comunicacao.module.js';
 import { ConhecimentoModule } from './modules/conhecimento/conhecimento.module.js';
@@ -39,10 +43,23 @@ import { MunicipiosModule } from './modules/municipios/municipios.module.js';
 import { OcorrenciasModule } from './modules/ocorrencias/ocorrencias.module.js';
 import { PagamentosModule } from './modules/pagamentos/pagamentos.module.js';
 import { PainelModule } from './modules/painel/painel.module.js';
+import { CampanhasModule } from './modules/campanhas/campanhas.module.js';
+import { ConsultasPublicasModule } from './modules/consultas-publicas/consultas-publicas.module.js';
+import { LicencasModule } from './modules/licencas/licencas.module.js';
+import { ApoiosModule } from './modules/apoios/apoios.module.js';
+import { ArquivoModule } from './modules/arquivo/arquivo.module.js';
+import { OrdenamentoModule } from './modules/ordenamento/ordenamento.module.js';
+import { FiscalizacaoModule } from './modules/fiscalizacao/fiscalizacao.module.js';
+import { ReclamacoesModule } from './modules/reclamacoes/reclamacoes.module.js';
+import { ReunioesModule } from './modules/reunioes/reunioes.module.js';
+import { ContratacaoModule } from './modules/contratacao/contratacao.module.js';
+import { PortaIasModule } from './modules/porta-ias/porta-ias.module.js';
 import { PerguntasChefiaModule } from './modules/perguntas-chefia/perguntas-chefia.module.js';
+import { ProcedimentosModule } from './modules/procedimentos/procedimentos.module.js';
 import { ProcessosModule } from './modules/processos/processos.module.js';
 import { RelatoriosModule } from './modules/relatorios/relatorios.module.js';
 import { RequerimentosModule } from './modules/requerimentos/requerimentos.module.js';
+import { TransparenciaModule } from './modules/transparencia/transparencia.module.js';
 
 @Module({
   imports: [
@@ -88,11 +105,32 @@ import { RequerimentosModule } from './modules/requerimentos/requerimentos.modul
     RelatoriosModule,
     PerguntasChefiaModule,
     ChamadasSaidaModule,
+    DocsModule,
+    SmsEntradaModule,
+    WhatsappModule,
+    CampanhasModule,
+    LicencasModule,
+    OrdenamentoModule,
+    ApoiosModule,
     // V2
     EntradaModule,
     ModelosModule,
     IntegracoesModule,
     AvisosZonaModule,
+    EmergenciasModule,
+    // Memória da câmara: procedimentos internos, entrevistas e assistente
+    ProcedimentosModule,
+    ConsultasPublicasModule,
+    // Porta para as IAs (MCP)
+    PortaIasModule,
+    ReclamacoesModule,
+    ReunioesModule,
+    ContratacaoModule,
+    // Transparência: dados abertos e indicadores no portal
+    TransparenciaModule,
+    FiscalizacaoModule,
+    // Arquivo antigo digitalizado e pedidos de consulta
+    ArquivoModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -30,13 +30,23 @@ export function ferramentasConhecimento(
           .max(10)
           .optional()
           .describe('Quantos resultados no máximo (por defeito 5).'),
+        em_data: z
+          .string()
+          .regex(/^\d{4}-\d{2}-\d{2}$/, 'AAAA-MM-DD')
+          .optional()
+          .describe(
+            'Só quando a pessoa pergunta pela regra numa data passada (ex.: "quando entreguei o pedido, em março de 2025, que regra valia?"). Devolve as versões em vigor nesse dia; se vier mudou_desde: true, diz que a regra entretanto mudou.',
+          ),
       }),
-      async executar(ctx, { pergunta, limite }) {
-        const r = await conhecimento.procurar(
-          ctx.municipio.id,
-          pergunta,
-          limite,
-        );
+      async executar(ctx, { pergunta, limite, em_data }) {
+        const r = em_data
+          ? await conhecimento.procurarEm(
+              ctx.municipio.id,
+              pergunta,
+              em_data,
+              limite,
+            )
+          : await conhecimento.procurar(ctx.municipio.id, pergunta, limite);
         if (!r.sem_fonte) {
           await conversas.momento(ctx.conversaId, 'resposta_com_fonte', {
             pergunta,

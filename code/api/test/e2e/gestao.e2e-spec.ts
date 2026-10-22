@@ -2,7 +2,7 @@
 import { randomUUID } from 'crypto';
 import { diasUteisEntre, somarDiasUteis } from '../../src/common/dias-uteis';
 import { hojeNoFuso, somarDias } from '../../src/modules/painel/periodos';
-import { arrancarApp, Contexto, entrarPainel, linhas } from './app';
+import { arrancarApp, Contexto, entrarPainel, linha, linhas } from './app';
 
 /**
  * Gestão e indicadores (V2): carga, tempos, onde param e atrasados.
@@ -359,6 +359,30 @@ describe('Gestão (e2e)', () => {
       400,
     );
     expect(e.body.erro.codigo).toBe('periodo_invalido');
+  });
+
+  it('completos à primeira: os que entraram com o prazo a contar no próprio dia, pelo agente e pelos outros canais', async () => {
+    const b = (await get('tempos').expect(200)).body;
+    const c = b.completos_a_primeira;
+    expect(c).toMatchObject({
+      total: expect.any(Number),
+      completos: expect.any(Number),
+      pelo_agente: { total: expect.any(Number) },
+      outros_canais: { total: expect.any(Number) },
+    });
+    expect(c.completos).toBeLessThanOrEqual(c.total);
+    expect(c.pelo_agente.total + c.outros_canais.total).toBe(c.total);
+    const contados = await linha<{ total: number; completos: number }>(
+      ctx.db,
+      `SELECT count(*)::int AS total,
+              count(*) FILTER (WHERE prazo_inicio IS NOT NULL
+                AND prazo_inicio <= (criado_em AT TIME ZONE 'Europe/Lisbon')::date)::int AS completos
+       FROM processos p
+       WHERE p.municipio_id = (SELECT municipio_id FROM tipos_processo WHERE id = $1)
+         AND p.criado_em >= (($2::date)::timestamp AT TIME ZONE 'Europe/Lisbon')`,
+      [TIPO, somarDias(hoje, -89)],
+    );
+    expect({ total: c.total, completos: c.completos }).toEqual(contados);
   });
 
   it('onde param: acima do normal ou sem eventos, os mais parados e o gargalo', async () => {

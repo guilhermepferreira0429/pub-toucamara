@@ -240,6 +240,7 @@ export class ChatService {
     texto: string,
     emitir: (s: SaidaChat) => void,
     sinal: AbortSignal,
+    canal: 'chat' | 'whatsapp' = 'chat',
   ): Promise<void> {
     try {
       await this.inserirTurno(sessao.conversaId, 'municipe', texto);
@@ -268,7 +269,7 @@ export class ChatService {
       );
       const ctx: ContextoFerramenta = {
         municipio: sessao.municipio,
-        canal: 'chat',
+        canal,
         conversaId: sessao.conversaId,
         municipeId: sessao.municipeId,
         telefone: sessao.telefone,
@@ -356,6 +357,42 @@ export class ChatService {
     } finally {
       this.ocupadas.delete(sessao.conversaId);
     }
+  }
+
+  get iaDisponivel(): boolean {
+    return !!this.cliente;
+  }
+
+  /**
+   * Um turno sem SSE (WhatsApp): o mesmo agente e as mesmas ferramentas;
+   * devolve o texto final (ou o erro, para dizer à pessoa). Lança se a
+   * conversa já estiver a meio de um turno (quem chama tenta outra vez).
+   */
+  async turno(
+    sessao: Sessao,
+    texto: string,
+    canal: 'whatsapp',
+  ): Promise<{ texto: string | null; erro: string | null }> {
+    if (!this.cliente) return { texto: null, erro: 'ia_indisponivel' };
+    if (this.ocupadas.has(sessao.conversaId)) {
+      throw new Error(`Conversa ${sessao.conversaId} ocupada.`);
+    }
+    this.ocupadas.add(sessao.conversaId);
+    let saida = '';
+    let erro: string | null = null;
+    await this.responder(
+      sessao,
+      texto,
+      (e) => {
+        if (e.evento === 'texto') saida += e.dados.texto;
+        if (e.evento === 'erro') {
+          erro = (e.dados as { mensagem?: string }).mensagem ?? 'erro';
+        }
+      },
+      AbortSignal.timeout(120_000),
+      canal,
+    );
+    return { texto: saida.trim() || null, erro };
   }
 
   // ------------------------------------------------------------------

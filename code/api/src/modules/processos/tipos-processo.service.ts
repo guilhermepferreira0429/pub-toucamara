@@ -1,5 +1,9 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
+import { z } from 'zod';
 import { ErroApi } from '../../common/erros.js';
+import type { UtilizadorPainel } from '../../common/pedido.js';
+import { AuditoriaService } from '../auditoria/auditoria.service.js';
+import { esquemaVerificacao } from '../requerimentos/verificacao-documentos.js';
 import { DatabaseService, Tx } from '../../database/database.service.js';
 import { Formulario, lerFormulario } from './formulario.js';
 import { CandidatoTipo, DocumentoExigido, escolherTipo } from './regras.js';
@@ -21,6 +25,42 @@ export interface TipoDocumento {
   ordem: number;
   gerado_pelo_sistema: boolean;
 }
+
+const camposTipo = {
+  nome: z.string().trim().min(3).max(160),
+  prazo_dias_uteis: z.number().int().min(1).max(365),
+  servico_id: z.uuid().nullable().optional(),
+  frase_do_agente: z.string().trim().max(500).nullable().optional(),
+};
+
+export const esquemaTipoNovo = z.object({
+  codigo: z
+    .string()
+    .trim()
+    .toUpperCase()
+    .regex(/^[A-Z]{2,6}$/, 'Código de 2 a 6 letras (ex.: CP).'),
+  ...camposTipo,
+});
+
+export const esquemaTipoAlterar = z
+  .object({
+    ...camposTipo,
+    nome: camposTipo.nome.optional(),
+    prazo_dias_uteis: camposTipo.prazo_dias_uteis.optional(),
+    ativo: z.boolean().optional(),
+  })
+  .refine((a) => Object.keys(a).length > 0, 'Nada para alterar.');
+
+export const esquemaDocumentoTipo = z.object({
+  nome: z.string().trim().min(3).max(200),
+  obrigatorio: z.boolean().default(true),
+  verificacoes: z.array(esquemaVerificacao).max(5).default([]),
+  gerado_pelo_sistema: z.boolean().default(false),
+});
+
+export const esquemaDocumentoAlterar = esquemaDocumentoTipo
+  .partial()
+  .refine((a) => Object.keys(a).length > 0, 'Nada para alterar.');
 
 /** Onde procurar os documentos já entregues: o requerimento e/ou o processo. */
 export interface AlvoDocumentos {
@@ -53,7 +93,10 @@ const PESQUISA = `
 /** Tipos de processo (formulário + documentos exigidos) de cada município. */
 @Injectable()
 export class TiposProcessoService {
-  constructor(private readonly db: DatabaseService) {}
+  constructor(
+    private readonly db: DatabaseService,
+    private readonly auditoria: AuditoriaService,
+  ) {}
 
   private ler(
     linha: Omit<TipoProcesso, 'formulario'> & { formulario: unknown },
@@ -112,7 +155,9 @@ export class TiposProcessoService {
       TipoProcesso & { formulario: unknown; documentos: TipoDocumento[] }
     >(
       `SELECT t.id, t.codigo, t.nome, t.prazo_dias_uteis, t.frase_do_agente, t.ativo,
-              t.formulario, s.nome AS servico,
+              t.formulario, s.nome AS servico, t.servico_id,
+              (SELECT count(*)::int FROM processos p WHERE p.tipo_processo_id = t.id
+                 AND p.criado_em >= date_trunc('year', now())) AS usado_este_ano,
               coalesce((
                 SELECT jsonb_agg(jsonb_build_object('id', d.id, 'nome', d.nome,
                          'obrigatorio', d.obrigatorio, 'ordem', d.ordem,
@@ -127,6 +172,213 @@ export class TiposProcessoService {
       [municipioId],
     );
     return linhas.map((l) => this.ler(l));
+  }
+
+  // ------------------------------------------------------------------
+  // Edição (V2 · Tipos e documentos)
+  // ------------------------------------------------------------------
+
+  async criar(
+    municipioId: string,
+    u: UtilizadorPainel,
+    d: z.output<typeof esquemaTipoNovo>,
+  ) {
+    await this.servicoValido(municipioId, d.servico_id);
+    const [t] = await this.db.query<{ id: string }>(
+      `INSERT INTO tipos_processo (municipio_id, codigo, nome, prazo_dias_uteis, servico_id, formulario, frase_do_agente)
+       VALUES ($1, $2, $3, $4, $5, '[]', $6)
+       ON CONFLICT (municipio_id, codigo) DO NOTHING RETURNING id`,
+      [
+        municipioId,
+        d.codigo,
+        d.nome,
+        d.prazo_dias_uteis,
+        d.servico_id ?? null,
+        d.frase_do_agente ?? null,
+      ],
+    );
+    if (!t) {
+      throw new ErroApi(
+        HttpStatus.CONFLICT,
+        'codigo_em_uso',
+        `Já existe um tipo com o código ${d.codigo}.`,
+      );
+    }
+    await this.registar(municipioId, u, 'criar', t.id, { codigo: d.codigo });
+    return this.doPainel(municipioId, t.id);
+  }
+
+  async alterar(
+    municipioId: string,
+    u: UtilizadorPainel,
+    id: string,
+    d: z.output<typeof esquemaTipoAlterar>,
+  ) {
+    await this.porId(municipioId, id);
+    if (d.servico_id !== undefined)
+      await this.servicoValido(municipioId, d.servico_id);
+    await this.db.query(
+      `UPDATE tipos_processo SET
+         nome = coalesce($3, nome),
+         prazo_dias_uteis = coalesce($4, prazo_dias_uteis),
+         servico_id = CASE WHEN $5::boolean THEN $6::uuid ELSE servico_id END,
+         frase_do_agente = CASE WHEN $7::boolean THEN $8 ELSE frase_do_agente END,
+         ativo = coalesce($9, ativo)
+       WHERE id = $1 AND municipio_id = $2`,
+      [
+        id,
+        municipioId,
+        d.nome ?? null,
+        d.prazo_dias_uteis ?? null,
+        d.servico_id !== undefined,
+        d.servico_id ?? null,
+        d.frase_do_agente !== undefined,
+        d.frase_do_agente ?? null,
+        d.ativo ?? null,
+      ],
+    );
+    await this.registar(municipioId, u, 'atualizar', id, {
+      campos: Object.keys(d),
+    });
+    return this.doPainel(municipioId, id);
+  }
+
+  async criarDocumento(
+    municipioId: string,
+    u: UtilizadorPainel,
+    tipoId: string,
+    d: z.output<typeof esquemaDocumentoTipo>,
+  ) {
+    await this.porId(municipioId, tipoId);
+    await this.db.query(
+      `INSERT INTO tipo_processo_documentos (tipo_processo_id, nome, obrigatorio, ordem, verificacoes, gerado_pelo_sistema)
+       VALUES ($1, $2, $3,
+         (SELECT coalesce(max(ordem), 0) + 1 FROM tipo_processo_documentos WHERE tipo_processo_id = $1),
+         $4, $5)`,
+      [
+        tipoId,
+        d.nome,
+        d.obrigatorio,
+        JSON.stringify(d.verificacoes),
+        d.gerado_pelo_sistema,
+      ],
+    );
+    await this.registar(municipioId, u, 'acrescentar_documento', tipoId, {
+      nome: d.nome,
+    });
+    return this.doPainel(municipioId, tipoId);
+  }
+
+  async alterarDocumento(
+    municipioId: string,
+    u: UtilizadorPainel,
+    tipoId: string,
+    docId: string,
+    d: z.output<typeof esquemaDocumentoAlterar>,
+  ) {
+    await this.porId(municipioId, tipoId);
+    const [x] = await this.db.query<{ id: string }>(
+      `UPDATE tipo_processo_documentos SET
+         nome = coalesce($3, nome),
+         obrigatorio = coalesce($4, obrigatorio),
+         verificacoes = coalesce($5::jsonb, verificacoes),
+         gerado_pelo_sistema = coalesce($6, gerado_pelo_sistema)
+       WHERE id = $1 AND tipo_processo_id = $2 RETURNING id`,
+      [
+        docId,
+        tipoId,
+        d.nome ?? null,
+        d.obrigatorio ?? null,
+        d.verificacoes ? JSON.stringify(d.verificacoes) : null,
+        d.gerado_pelo_sistema ?? null,
+      ],
+    );
+    if (!x) throw this.documentoDesconhecido();
+    await this.registar(municipioId, u, 'alterar_documento', tipoId, {
+      documento_id: docId,
+    });
+    return this.doPainel(municipioId, tipoId);
+  }
+
+  /** Só se nenhum processo o usou; senão passa a opcional (o histórico fica). */
+  async removerDocumento(
+    municipioId: string,
+    u: UtilizadorPainel,
+    tipoId: string,
+    docId: string,
+  ) {
+    await this.porId(municipioId, tipoId);
+    const [uso] = await this.db.query<{ usado: boolean }>(
+      `SELECT EXISTS (SELECT 1 FROM documentos WHERE tipo_documento_id = $1)
+           OR EXISTS (SELECT 1 FROM processo_pedidos WHERE tipo_documento_id = $1) AS usado`,
+      [docId],
+    );
+    if (uso?.usado) {
+      throw new ErroApi(
+        HttpStatus.CONFLICT,
+        'documento_em_uso',
+        'Este documento já foi entregue ou pedido em processos. Marque-o como opcional em vez de o remover.',
+      );
+    }
+    const [x] = await this.db.query<{ id: string }>(
+      'DELETE FROM tipo_processo_documentos WHERE id = $1 AND tipo_processo_id = $2 RETURNING id',
+      [docId, tipoId],
+    );
+    if (!x) throw this.documentoDesconhecido();
+    await this.registar(municipioId, u, 'remover_documento', tipoId, {
+      documento_id: docId,
+    });
+    return this.doPainel(municipioId, tipoId);
+  }
+
+  private async doPainel(municipioId: string, id: string) {
+    const t = (await this.listar(municipioId)).find((x) => x.id === id);
+    if (!t) throw new Error('Tipo desaparecido.');
+    return t;
+  }
+
+  private async servicoValido(
+    municipioId: string,
+    servicoId: string | null | undefined,
+  ) {
+    if (!servicoId) return;
+    const [s] = await this.db.query(
+      'SELECT 1 FROM servicos WHERE id = $1 AND municipio_id = $2',
+      [servicoId, municipioId],
+    );
+    if (!s) {
+      throw new ErroApi(
+        HttpStatus.BAD_REQUEST,
+        'servico_invalido',
+        'Esse serviço não existe.',
+      );
+    }
+  }
+
+  private documentoDesconhecido() {
+    return new ErroApi(
+      HttpStatus.NOT_FOUND,
+      'documento_desconhecido',
+      'Esse documento não é deste tipo de processo.',
+    );
+  }
+
+  private registar(
+    municipioId: string,
+    u: UtilizadorPainel,
+    acao: string,
+    tipoId: string,
+    dados: Record<string, unknown>,
+  ) {
+    return this.auditoria.registar({
+      municipioId,
+      atorTipo: 'utilizador',
+      atorId: u.id,
+      acao,
+      objetoTipo: 'tipo_processo',
+      objetoId: tipoId,
+      dados,
+    });
   }
 
   /**

@@ -266,6 +266,8 @@ export class PagamentosService {
       metodo?: MetodoPagamento;
       telemovel?: string;
     },
+    /** Valor já calculado por outro módulo (ex.: a taxa de uma licença), em vez da tabela. */
+    valor?: { linhas: LinhaTaxa[]; total_cent: number },
   ) {
     const m = ctx.municipio;
     const objeto = await this.objetoAPagar(ctx, entrada);
@@ -302,11 +304,13 @@ export class PagamentosService {
       );
     }
 
-    const sim = await this.simular(
-      m,
-      entrada,
-      entrada.taxas?.length ? null : objeto.tipo_processo_id,
-    );
+    const sim = valor
+      ? { ...valor, completa: true, em_falta: [], desconhecidas: [] }
+      : await this.simular(
+          m,
+          entrada,
+          entrada.taxas?.length ? null : objeto.tipo_processo_id,
+        );
     if (!sim.completa) {
       throw new ErroApi(
         HttpStatus.UNPROCESSABLE_ENTITY,

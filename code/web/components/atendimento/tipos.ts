@@ -8,7 +8,7 @@ export interface Pagina<T> {
   proximo_cursor: string | null;
 }
 
-export type Canal = "telefone" | "chat" | "sms" | "email" | "balcao" | "whatsapp";
+export type Canal = "telefone" | "chat" | "sms" | "email" | "balcao" | "whatsapp" | "ia";
 
 export type Resultado =
   | "em_curso"
@@ -530,6 +530,13 @@ export interface ContasTempos {
 
 export interface Tempos {
   periodo: Periodo;
+  completos_a_primeira: {
+    total: number;
+    completos: number;
+    pct: number | null;
+    pelo_agente: { total: number; pct: number | null };
+    outros_canais: { total: number; pct: number | null };
+  };
   notas: string[];
   total: ContasTempos;
   tipos: (ContasTempos & {

@@ -12,16 +12,19 @@ import {
   ExternalLink,
   FileText,
   Globe,
+  HandCoins,
   Landmark,
   Mail,
   MapPin,
   MessageSquareText,
+  NotebookPen,
   Package,
   Phone,
   Send,
   Siren,
   TriangleAlert,
   UserRound,
+  Vote,
   type LucideIcon,
 } from "lucide-react";
 import { useState } from "react";
@@ -892,6 +895,133 @@ function CartaoProcesso({ dados }: { dados: Dados }) {
 }
 
 /* ------------------------------------------------------------------ */
+/* Apoios (que_apoios_tenho, pedir_apoio)                               */
+/* ------------------------------------------------------------------ */
+
+function CartaoApoios({ ferramenta, dados }: { ferramenta: string; dados: Dados }) {
+  if (ferramenta === "pedir_apoio") {
+    const numero = txt(dados.numero);
+    if (dados.pedido !== true || !numero) return null;
+    const docs = textos(dados.documentos);
+    return (
+      <div className={`${CAIXA} gap-2 border-linha p-4`}>
+        <p className="flex items-start gap-2">
+          <HandCoins className="mt-0.5 size-4 shrink-0 text-terracota-escuro" aria-hidden />
+          <span className="flex min-w-0 flex-col">
+            <span className="font-mono text-[13px] font-semibold text-tinta">{numero}</span>
+            <span className="text-xs text-tinta-2">Pedido de apoio</span>
+          </span>
+        </p>
+        {dados.ja_existia === true ? (
+          <Etiqueta className="self-start">já tinha pedido</Etiqueta>
+        ) : (
+          <Feito>Pedido feito</Feito>
+        )}
+        {docs.length > 0 && (
+          <ul className="flex flex-col">
+            {docs.map((d) => (
+              <Linha key={d} icone={FileText}>
+                {d}
+              </Linha>
+            ))}
+          </ul>
+        )}
+      </div>
+    );
+  }
+  const tem = lista(dados.tem_direito).filter((x) => txt(x.nome));
+  const talvez = lista(dados.talvez)
+    .map((x) => txt(x.nome))
+    .filter((x): x is string => !!x);
+  // Enquanto pergunta o que falta, sem apoios ainda: nada a mostrar.
+  if (!tem.length && dados.respondido !== true) return null;
+  const link = txt(dados.link);
+  return (
+    <div className={`${CAIXA} gap-2 border-linha p-4`}>
+      <p className="flex items-center gap-2 text-sm font-semibold text-tinta">
+        <HandCoins className="size-4 shrink-0 text-terracota-escuro" aria-hidden />
+        {tem.length ? "Pode ter direito a" : "Apoios"}
+      </p>
+      {tem.length > 0 ? (
+        <ul className="flex flex-col">
+          {tem.map((x) => (
+            <Linha key={txt(x.apoio) ?? txt(x.nome)} icone={Check}>
+              <span className="font-semibold">{txt(x.nome)}</span>
+              {txt(x.valor) && <span className="block text-xs text-tinta-2">{txt(x.valor)}</span>}
+            </Linha>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-sm text-tinta-2">Não encontrámos nenhum apoio a que tenha direito.</p>
+      )}
+      {talvez.length > 0 && <p className="text-xs text-tinta-2">Talvez também: {talvez.join(", ")}</p>}
+      {dados.valores_de_demonstracao === true && (
+        <Etiqueta className="self-start">valores de demonstração</Etiqueta>
+      )}
+      {link && dados.respondido === true && <LinkCartao href={link}>Ver a lista e o que entregar</LinkCartao>}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+
+/* ------------------------------------------------------------------ */
+/* Consulta pública (participar_consulta)                               */
+/* ------------------------------------------------------------------ */
+
+function CartaoConsulta({ dados }: { dados: Dados }) {
+  if (dados.registada !== true) return null;
+  const link = txt(dados.link);
+  return (
+    <div className={`${CAIXA} gap-3 border-linha p-4`}>
+      <p className="flex items-center gap-2.5">
+        <span className="flex size-8 items-center justify-center rounded-full bg-verde" aria-hidden>
+          <Vote className="size-4 text-white" />
+        </span>
+        <span className="flex flex-col">
+          <span className="text-[15px] font-bold text-tinta">A sua opinião foi registada</span>
+          {txt(dados.consulta) && <span className="text-[13px] text-tinta-2">{txt(dados.consulta)}</span>}
+        </span>
+      </p>
+      <ul className="rounded-xl bg-creme px-3">
+        {txt(dados.freguesia) && <Linha icone={MapPin}>Freguesia: {txt(dados.freguesia)}</Linha>}
+        {txt(dados.relatorio) && <Linha icone={Calendar}>Relatório a {txt(dados.relatorio)}</Linha>}
+      </ul>
+      {dados.alterada === true && <Feito>Substitui a resposta anterior</Feito>}
+      {link && <LinkCartao href={link}>Ver a consulta</LinkCartao>}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Reclamação formal (registar_reclamacao)                              */
+/* ------------------------------------------------------------------ */
+
+function CartaoReclamacao({ dados }: { dados: Dados }) {
+  if (dados.registada !== true) return null;
+  const link = txt(dados.link);
+  return (
+    <div className={`${CAIXA} gap-3 border-linha p-4`}>
+      <p className="flex items-center gap-2.5">
+        <span className="flex size-8 items-center justify-center rounded-full bg-verde" aria-hidden>
+          <NotebookPen className="size-4 text-white" />
+        </span>
+        <span className="flex flex-col">
+          <span className="text-[15px] font-bold text-tinta">Reclamação registada</span>
+          {txt(dados.numero) && <span className="font-mono text-[13px] text-tinta-2">{txt(dados.numero)}</span>}
+        </span>
+      </p>
+      <ul className="rounded-xl bg-creme px-3">
+        {txt(dados.responder_ate_dito) && (
+          <Linha icone={Calendar}>A câmara responde até {txt(dados.responder_ate_dito)}</Linha>
+        )}
+        {dados.sms_enviado === true && <Linha icone={Send}>Enviámos o número e o link por SMS</Linha>}
+      </ul>
+      {dados.prazo_de_demonstracao === true && <Etiqueta className="self-start">prazo de demonstração</Etiqueta>}
+      {link && <LinkCartao href={link}>Ver a reclamação</LinkCartao>}
+    </div>
+  );
+}
 
 /** O cartão certo para cada tipo (os desconhecidos não aparecem). */
 export function CartaoChat({ cartao, acoes }: { cartao: Cartao; acoes: AcoesCartao }) {
@@ -920,6 +1050,12 @@ export function CartaoChat({ cartao, acoes }: { cartao: Cartao; acoes: AcoesCart
       return <CartaoVagas dados={cartao.dados} acoes={acoes} />;
     case "processo":
       return <CartaoProcesso dados={cartao.dados} />;
+    case "apoios":
+      return <CartaoApoios ferramenta={cartao.ferramenta} dados={cartao.dados} />;
+    case "consulta":
+      return <CartaoConsulta dados={cartao.dados} />;
+    case "reclamacao":
+      return <CartaoReclamacao dados={cartao.dados} />;
     default:
       return null;
   }

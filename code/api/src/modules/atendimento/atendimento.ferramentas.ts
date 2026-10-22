@@ -119,7 +119,7 @@ export function ferramentasAtendimento(
       descricao:
         'Passa o caso a um funcionário da câmara, com um resumo do que ele já precisa de saber. Usa quando o ' +
         'munícipe pede uma pessoa, quando o conhecimento vem sem fonte, em questões jurídicas ou políticas, ' +
-        'reclamações, ou quando uma regra diz que passa a pessoa. Antes de chamar, pergunta como prefere a ' +
+        'reclamações que não sejam formais (para uma reclamação formal no Livro de Reclamações usa registar_reclamacao), ou quando uma regra diz que passa a pessoa. Antes de chamar, pergunta como prefere a ' +
         'resposta (SMS, email ou telefone) se ainda não sabes. Depois diz o texto de "dizer" tal como vem ' +
         '(inclui até quando respondem) e não prometas outro prazo.',
       entrada: z.object({

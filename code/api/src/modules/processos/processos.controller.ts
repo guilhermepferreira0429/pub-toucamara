@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   Param,
@@ -8,7 +9,9 @@ import {
   Patch,
   Post,
   Query,
+  StreamableFile,
 } from '@nestjs/common';
+import { z } from 'zod';
 import { MunicipioAtual, UtilizadorAtual } from '../../common/pedido.js';
 import type { UtilizadorPainel } from '../../common/pedido.js';
 import { validar } from '../../common/validacao.js';
@@ -29,7 +32,13 @@ import {
   ProcessosPainelService,
 } from './processos-painel.service.js';
 import { ProcessosService } from './processos.service.js';
-import { TiposProcessoService } from './tipos-processo.service.js';
+import {
+  esquemaDocumentoAlterar,
+  esquemaDocumentoTipo,
+  esquemaTipoAlterar,
+  esquemaTipoNovo,
+  TiposProcessoService,
+} from './tipos-processo.service.js';
 
 @Controller('painel/processos')
 @Painel('processos')
@@ -220,6 +229,76 @@ export class TiposProcessoController {
   async listar(@MunicipioAtual() m: Municipio) {
     return { itens: await this.tipos.listar(m.id) };
   }
+
+  /** { codigo, nome, prazo_dias_uteis, servico_id?, frase_do_agente? } */
+  @Post()
+  @HttpCode(201)
+  @Painel('agente')
+  criar(
+    @MunicipioAtual() m: Municipio,
+    @UtilizadorAtual() u: UtilizadorPainel,
+    @Body() body: unknown,
+  ) {
+    return this.tipos.criar(m.id, u, validar(esquemaTipoNovo, body));
+  }
+
+  @Patch(':id')
+  @Painel('agente')
+  alterar(
+    @MunicipioAtual() m: Municipio,
+    @UtilizadorAtual() u: UtilizadorPainel,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: unknown,
+  ) {
+    return this.tipos.alterar(m.id, u, id, validar(esquemaTipoAlterar, body));
+  }
+
+  /** { nome, obrigatorio, verificacoes[], gerado_pelo_sistema } */
+  @Post(':id/documentos')
+  @HttpCode(201)
+  @Painel('agente')
+  criarDocumento(
+    @MunicipioAtual() m: Municipio,
+    @UtilizadorAtual() u: UtilizadorPainel,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: unknown,
+  ) {
+    return this.tipos.criarDocumento(
+      m.id,
+      u,
+      id,
+      validar(esquemaDocumentoTipo, body),
+    );
+  }
+
+  @Patch(':id/documentos/:doc')
+  @Painel('agente')
+  alterarDocumento(
+    @MunicipioAtual() m: Municipio,
+    @UtilizadorAtual() u: UtilizadorPainel,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('doc', ParseUUIDPipe) doc: string,
+    @Body() body: unknown,
+  ) {
+    return this.tipos.alterarDocumento(
+      m.id,
+      u,
+      id,
+      doc,
+      validar(esquemaDocumentoAlterar, body),
+    );
+  }
+
+  @Delete(':id/documentos/:doc')
+  @Painel('agente')
+  removerDocumento(
+    @MunicipioAtual() m: Municipio,
+    @UtilizadorAtual() u: UtilizadorPainel,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('doc', ParseUUIDPipe) doc: string,
+  ) {
+    return this.tipos.removerDocumento(m.id, u, id, doc);
+  }
 }
 
 /** Página "O seu processo", aberta pelo código do link do SMS. */
@@ -230,5 +309,27 @@ export class ProcessosPublicoController {
   @Get(':codigo')
   ver(@Param('codigo') codigo: string) {
     return this.processos.publico(codigo);
+  }
+
+  /** V2 · Decisão: "Guarde a decisão". */
+  @Get(':codigo/decisao.pdf')
+  async decisaoPdf(@Param('codigo') codigo: string) {
+    const { nome, pdf } = await this.processos.pdfDecisao(codigo);
+    return new StreamableFile(pdf, {
+      type: 'application/pdf',
+      disposition: `inline; filename="${nome}"`,
+      length: pdf.length,
+    });
+  }
+
+  /** { nota: 1 (difícil) a 3 (fácil) } */
+  @Post(':codigo/avaliacao')
+  @HttpCode(200)
+  avaliar(@Param('codigo') codigo: string, @Body() body: unknown) {
+    const { nota } = validar(
+      z.object({ nota: z.number().int().min(1).max(3) }),
+      body,
+    );
+    return this.processos.avaliarPublico(codigo, nota);
   }
 }

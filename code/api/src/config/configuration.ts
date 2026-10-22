@@ -10,6 +10,10 @@ export const appConfig = registerAs('app', () => ({
     .filter(Boolean),
   // Endereço público da web (links curtos dos SMS, páginas sem login).
   webUrl: (process.env.WEB_URL || 'http://localhost:3000').replace(/\/$/, ''),
+  // Endereço público da API (callbacks do Twilio na junção do familiar).
+  apiUrl: (process.env.API_URL || 'http://localhost:3001').replace(/\/$/, ''),
+  // GET /v1/docs em produção (fora de produção está sempre ligado).
+  openapiPublico: process.env.OPENAPI_PUBLICO === 'true',
   // Chave da cifra do NIF (pgp_sym_encrypt) e pepper do hash para procurar.
   // Obrigatórias em produção. Perder a chave = perder os NIF guardados.
   dadosChave: process.env.DADOS_CHAVE || '',
@@ -25,6 +29,8 @@ export const databaseConfig = registerAs('database', () => ({
   database: process.env.DB_NAME || 'toucamara',
   ssl: process.env.DB_SSL === 'true',
   max: parseInt(process.env.DB_POOL_MAX || '10', 10),
+  // RLS por município nos pedidos do painel (migração 0046). false desliga.
+  rlsPainel: process.env.DB_RLS_PAINEL !== 'false',
 }));
 
 export const agenteConfig = registerAs('agente', () => ({
@@ -60,6 +66,8 @@ export const jobsConfig = registerAs('jobs', () => ({
 export const comunicacaoConfig = registerAs('comunicacao', () => ({
   smsProvider: process.env.SMS_PROVIDER || '',
   smsRemetente: process.env.SMS_REMETENTE || 'TouCamara',
+  // Número do remetente WhatsApp no Twilio (E.164, sem o prefixo whatsapp:).
+  whatsappRemetente: process.env.WHATSAPP_REMETENTE || '',
   twilio: {
     accountSid: process.env.TWILIO_ACCOUNT_SID || '',
     authToken: process.env.TWILIO_AUTH_TOKEN || '',
@@ -87,5 +95,8 @@ export const armazenamentoConfig = registerAs('armazenamento', () => ({
 export const webhooksConfig = registerAs('webhooks', () => ({
   elevenlabsSegredo: process.env.ELEVENLABS_WEBHOOK_SECRET || '',
   elevenlabsApiKey: process.env.ELEVENLABS_API_KEY || '',
+  // Voz e ritmo do painel na chamada (conversation_config_override). Só com
+  // os overrides de TTS autorizados no agente do ElevenLabs.
+  elevenlabsSobreporVoz: process.env.ELEVENLABS_SOBREPOR_VOZ === 'true',
   pagamentosSegredo: process.env.PAGAMENTOS_WEBHOOK_SECRET || '',
 }));

@@ -18,6 +18,22 @@ export const VERSAO_ATUAL = `fv.id = (
   WHERE v.fonte_id = fo.id AND ${EM_VIGOR('v')}
   ORDER BY v.lida_em DESC LIMIT 1)`;
 
+/** Desde quando vale a versão `v`: a data legal, senão a primeira leitura. */
+export const INICIO_VIGOR = (v: string) =>
+  `coalesce(${v}.vigor_desde, (${v}.criada_em AT TIME ZONE 'UTC')::date)`;
+
+/**
+ * `fv` é a versão da fonte `fo` que valia no dia `$n` (date): a que começou
+ * mais tarde até esse dia e ainda não tinha acabado. Sem nenhuma (a fonte só
+ * foi lida depois), não há versão: a fonte não conta para essa data.
+ */
+export const VERSAO_EM = (n: number) => `fv.id = (
+  SELECT v.id FROM fonte_versoes v
+  WHERE v.fonte_id = fo.id
+    AND ${INICIO_VIGOR('v')} <= $${n}::date
+    AND (v.vigor_ate IS NULL OR v.vigor_ate >= $${n}::date)
+  ORDER BY ${INICIO_VIGOR('v')} DESC, v.lida_em DESC LIMIT 1)`;
+
 /**
  * A pergunta vem falada ("preciso de licença para obras na cozinha?"): exigir
  * todas as palavras (websearch_to_tsquery) quase nunca acerta. Parte-se em

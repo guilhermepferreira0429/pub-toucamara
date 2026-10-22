@@ -29,7 +29,16 @@ export type Recurso =
   | "conhecimento_ver"
   | "conhecimento"
   | "equipa"
-  | "agente";
+  | "agente"
+  | "acao_social"
+  | "procedimentos_ver"
+  | "procedimentos"
+  | "reclamacoes"
+  | "reunioes"
+  | "contratacao"
+  | "transparencia"
+  | "fiscalizacao"
+  | "arquivo";
 
 export type Perfil =
   | "atendimento"
@@ -37,7 +46,7 @@ export type Perfil =
   | "chefe_divisao"
   | "vereador"
   | "equipa_toucamara"
-  | "admin";
+  | "admin"
 
 export interface Eu {
   utilizador: {

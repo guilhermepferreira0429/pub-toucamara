@@ -20,6 +20,32 @@ export const PERMISSOES = {
   conhecimento: ['chefe_divisao'],
   equipa: ['chefe_divisao'],
   agente: ['chefe_divisao'],
+  // Campanhas de contacto e a lista de pessoas inscritas (dados sensíveis).
+  acao_social: ['atendimento', 'chefe_divisao'],
+  // Procedimentos internos e assistente (só funcionários): todos leem,
+  // escrevem rascunhos e dão entrevistas; a chefia publica e arquiva.
+  procedimentos_ver: ['atendimento', 'tecnico', 'chefe_divisao', 'vereador'],
+  procedimentos: ['chefe_divisao'],
+  // Livro de reclamações: quem atende regista e responde; a chefia muda o
+  // prazo (recurso 'agente').
+  reclamacoes: ['atendimento', 'tecnico', 'chefe_divisao'],
+  // Reuniões de câmara e assembleia (atas e deliberações): a chefia, os
+  // vereadores e quem secretaria (os serviços administrativos, perfil
+  // 'atendimento': não há um perfil próprio de secretariado).
+  reunioes: ['atendimento', 'chefe_divisao', 'vereador'],
+  // Contratação pública (interno): a chefia e os técnicos que tratam das
+  // compras; mudar os limiares e aprovar é da chefia (recurso 'agente').
+  contratacao: ['tecnico', 'chefe_divisao'],
+  // Dados abertos: quem vê os indicadores vê o que se publica; ligar,
+  // desligar e publicar já é decisão da chefia.
+  transparencia: ['chefe_divisao'],
+  // Fiscalização: os técnicos (fiscais) e a chefia planeiam as visitas e
+  // ditam os relatórios; a configuração do planeamento é da chefia ('agente').
+  fiscalizacao: ['tecnico', 'chefe_divisao'],
+  // Arquivo antigo: quem atende trata os pedidos de consulta; pesquisar,
+  // carregar digitalizações e rever metadados é dos técnicos e da chefia
+  // (arquivo/regras.ts, PERFIS_DOCUMENTOS).
+  arquivo: ['atendimento', 'tecnico', 'chefe_divisao'],
 } as const satisfies Record<string, readonly Perfil[]>;
 
 export type Recurso = keyof typeof PERMISSOES;

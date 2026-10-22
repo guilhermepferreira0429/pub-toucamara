@@ -9,6 +9,7 @@ import { ArmazenamentoService } from '../armazenamento/armazenamento.service.js'
 import { AuditoriaService } from '../auditoria/auditoria.service.js';
 import { MensagensService } from '../comunicacao/mensagens.service.js';
 import { mascararTelefone } from '../municipes/municipes.service.js';
+import { zonaDe } from '../ordenamento/regras.js';
 import type { Municipio } from '../municipios/municipios.service.js';
 import { MunicipiosService } from '../municipios/municipios.service.js';
 import { HASH_PROCESSO, HASH_REGULAMENTO } from './apoio.js';
@@ -161,7 +162,9 @@ function filtrosSql(n: number): string {
   return `p.municipio_id = ${$(0)}
          AND (${$(1)}::fase_processo IS NULL OR p.fase = ${$(1)})
          AND (${$(2)}::text IS NULL OR p.numero ILIKE '%' || ${$(2)} || '%' OR p.assunto ILIKE '%' || ${$(2)} || '%'
-              OR p.morada ILIKE '%' || ${$(2)} || '%')
+              OR p.morada ILIKE '%' || ${$(2)} || '%'
+              OR EXISTS (SELECT 1 FROM municipes mu WHERE mu.id = p.municipe_id
+                         AND mu.nome ILIKE '%' || ${$(2)} || '%'))
          AND (${$(3)}::uuid IS NULL OR p.tipo_processo_id = ${$(3)})
          AND (${$(4)}::uuid IS NULL OR t.servico_id = ${$(4)})
          AND (${$(5)}::text IS NULL OR lower(p.freguesia) = lower(${$(5)}))`;
@@ -316,7 +319,44 @@ export class ProcessosPainelService {
        WHERE ${filtrosSql(1)}`,
       [...paramsFiltros(municipio, f), u.id, hoje, limite],
     );
-    return { ...r, a_terminar_ate: limite };
+    // As freguesias com processos (para o filtro), sem os outros filtros.
+    const freguesias = await this.db.query<{ freguesia: string }>(
+      `SELECT DISTINCT freguesia FROM processos
+       WHERE municipio_id = $1 AND freguesia IS NOT NULL ORDER BY freguesia LIMIT 100`,
+      [municipio.id],
+    );
+    return {
+      ...r,
+      a_terminar_ate: limite,
+      freguesias: freguesias.map((x) => x.freguesia),
+    };
+  }
+
+  private async zonaPdm(
+    municipioId: string,
+    lat: number | null,
+    lng: number | null,
+  ) {
+    if (lat === null || lng === null) return null;
+    const zonas = await this.db.query<{
+      codigo: string;
+      nome: string;
+      categoria: string;
+      demonstracao: boolean;
+      poligono: [number, number][];
+    }>(
+      `SELECT codigo, nome, categoria, demonstracao, poligono FROM zonas_pdm WHERE municipio_id = $1`,
+      [municipioId],
+    );
+    const z = zonaDe([lat, lng], zonas);
+    return z
+      ? {
+          codigo: z.codigo,
+          nome: z.nome,
+          categoria: z.categoria,
+          demonstracao: z.demonstracao,
+        }
+      : null;
   }
 
   async carregar(
@@ -404,8 +444,11 @@ export class ProcessosPainelService {
             telefone_e164: string | null;
             email: string | null;
             tem_nif: boolean;
+            canal_preferido: string | null;
+            conversas: number;
           }>(
-            `SELECT nome, telefone_e164, email, nif_hash IS NOT NULL AS tem_nif
+            `SELECT nome, telefone_e164, email, nif_hash IS NOT NULL AS tem_nif, canal_preferido,
+                    (SELECT count(*)::int FROM conversas c WHERE c.municipe_id = municipes.id) AS conversas
              FROM municipes WHERE id = $1`,
             [p.municipe_id],
           )
@@ -480,8 +523,16 @@ export class ProcessosPainelService {
               : null,
             tem_email: !!m.email,
             tem_nif: m.tem_nif,
+            canal_preferido: m.canal_preferido,
+            conversas: m.conversas,
           }
         : null,
+      // A zona do PDM onde fica a morada (se houver zonas carregadas).
+      zona_pdm: await this.zonaPdm(
+        municipio.id,
+        extra?.lat ?? null,
+        extra?.lng ?? null,
+      ),
       requerimento: req
         ? {
             id: req.id,

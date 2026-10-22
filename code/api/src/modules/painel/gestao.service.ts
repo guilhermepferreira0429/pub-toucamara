@@ -302,9 +302,51 @@ export class GestaoService {
       ]);
     }
 
+    // Pedidos completos à primeira: entraram com todos os documentos (o
+    // prazo começou no próprio dia). Por canal: pelo agente vs os outros.
+    const [primeira] = await this.db.query<{
+      total: number;
+      completos: number;
+      agente_total: number;
+      agente_completos: number;
+    }>(
+      `SELECT count(*)::int AS total,
+              count(*) FILTER (WHERE c)::int AS completos,
+              count(*) FILTER (WHERE agente)::int AS agente_total,
+              count(*) FILTER (WHERE agente AND c)::int AS agente_completos
+       FROM (
+         SELECT p.conversa_origem_id IS NOT NULL AS agente,
+                (p.prazo_inicio IS NOT NULL
+                 AND p.prazo_inicio <= (p.criado_em AT TIME ZONE $2::text)::date) AS c
+         FROM processos p
+         WHERE p.municipio_id = $1
+           AND p.criado_em >= ($3::date)::timestamp AT TIME ZONE $2::text
+           AND p.criado_em < ($4::date + 1)::timestamp AT TIME ZONE $2::text) x`,
+      [m.id, m.fuso, p.de, p.ate],
+    );
+    const pctDe = (a: number, b: number) =>
+      b ? Math.round((a / b) * 1000) / 10 : null;
+
     return {
       periodo: p,
+      completos_a_primeira: {
+        total: primeira.total,
+        completos: primeira.completos,
+        pct: pctDe(primeira.completos, primeira.total),
+        pelo_agente: {
+          total: primeira.agente_total,
+          pct: pctDe(primeira.agente_completos, primeira.agente_total),
+        },
+        outros_canais: {
+          total: primeira.total - primeira.agente_total,
+          pct: pctDe(
+            primeira.completos - primeira.agente_completos,
+            primeira.total - primeira.agente_total,
+          ),
+        },
+      },
       notas: [
+        'Completos à primeira: processos que entraram no período já com todos os documentos (o prazo começou no dia da entrada), pelo agente e pelos outros canais.',
         'Período aplicado à data da decisão. Tempo da entrada à decisão em dias úteis (sem fins de semana nem feriados).',
         'Dentro do prazo: decisão até ao fim do prazo legal do processo, que só começa a contar com o processo completo; os que nunca ficaram completos não entram na percentagem.',
         'Tempo em cada fase: a partir dos eventos de mudança de fase, somando as várias passagens pela mesma fase; média e mediana entre os processos que passaram por ela. Os processos sem nenhum evento de fase (ex.: importados) contam no tempo total mas não no tempo por fase. Se falta um evento pelo meio, o tempo fica na última fase conhecida.',

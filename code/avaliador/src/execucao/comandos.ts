@@ -1,6 +1,9 @@
 import type { Args, Comando } from '../tipos.js';
 import { correrExecucao, MOTIVOS, type Motivo } from './executar.js';
+import { avaliarExecucao } from '../juiz/avaliar.js';
+import { clienteAnthropic } from '../juiz/cliente.js';
 import { importarRespostas } from './importar.js';
+import { pegarPedido, tratarPedido } from './pedidos.js';
 import {
   ADAPTADORES,
   criarSistema,
@@ -141,6 +144,40 @@ export const comandos: Comando[] = [
       for (const n of r.criados) console.log(`criado     ${n}`);
       for (const n of r.existentes) console.log(`já existia ${n}`);
       for (const x of r.avisos) console.log(`Aviso: ${x}`);
+    },
+  },
+  {
+    nome: 'pedidos trabalhar',
+    descricao:
+      'Trata os pedidos de avaliação da API ("Correr teste agora", fontes mudadas, versão nova do agente): executa e avalia. Fica à espera de pedidos novos, ou --uma-vez.',
+    uso: '[--uma-vez] [--intervalo <segundos>]',
+    async correr(a) {
+      // Sem chave do juiz falha já, antes de pegar num pedido.
+      const cliente = clienteAnthropic();
+      const intervalo = Number(texto(a, 'intervalo') ?? 30) * 1000;
+      const umaVez = flag(a, 'uma-vez');
+      for (;;) {
+        const p = await pegarPedido();
+        if (p) {
+          console.log(`Pedido ${p.id} (${p.motivo}${p.amostra ? ', amostra' : ''})`);
+          const r = await tratarPedido(p, {
+            executar: (o) => correrExecucao({ ...o, forcar: true }),
+            avaliar: async (execucaoId) => {
+              await avaliarExecucao({
+                execucaoId,
+                lote: false,
+                reavaliar: false,
+                cliente,
+                log: (m) => console.log(`  ${m}`),
+              });
+            },
+          });
+          console.log(`Pedido ${p.id}: ${r}`);
+          continue;
+        }
+        if (umaVez) return;
+        await new Promise((r) => setTimeout(r, intervalo));
+      }
     },
   },
 ];

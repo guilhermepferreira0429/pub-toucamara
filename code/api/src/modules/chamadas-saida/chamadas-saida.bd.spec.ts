@@ -144,7 +144,7 @@ correr('chamadas de saída (BD)', () => {
     const auditoria = new AuditoriaService(db);
     const mensagens = new MensagensService(db, jobs, config);
     const links = new LinksCurtosService(db, config);
-    const tipos = new TiposProcessoService(db);
+    const tipos = new TiposProcessoService(db, auditoria);
     const processos = new ProcessosService(
       db,
       config,

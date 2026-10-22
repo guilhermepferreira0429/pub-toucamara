@@ -16,6 +16,10 @@ import type { UtilizadorPainel } from '../../common/pedido.js';
 import { validar } from '../../common/validacao.js';
 import { Painel } from '../auth/painel.guard.js';
 import type { Municipio } from '../municipios/municipios.service.js';
+import {
+  ApoioPassagemService,
+  esquemaEnsinar,
+} from './apoio-passagem.service.js';
 import { EstadoPassagem, PassagensService } from './passagens.service.js';
 
 const filtros = esquemaPaginacao.extend({
@@ -31,7 +35,10 @@ const filtros = esquemaPaginacao.extend({
 @Controller('painel/passagens')
 @Painel('conversas')
 export class PassagensController {
-  constructor(private readonly passagens: PassagensService) {}
+  constructor(
+    private readonly passagens: PassagensService,
+    private readonly apoio: ApoioPassagemService,
+  ) {}
 
   @Get()
   listar(
@@ -113,5 +120,27 @@ export class PassagensController {
     @Ip() ip: string,
   ) {
     return this.passagens.fechar(municipio, u, id, ip);
+  }
+
+  /** Ajuda ao funcionário: regras que se aplicam, a ficha da pessoa e uma resposta sugerida. */
+  @Post(':id/sugestao')
+  @HttpCode(200)
+  sugestao(
+    @MunicipioAtual() municipio: Municipio,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.apoio.sugestao(municipio, id);
+  }
+
+  /** { pergunta, resposta }: fica proposta como conhecimento novo, para aprovar. */
+  @Post(':id/ensinar')
+  @HttpCode(201)
+  ensinar(
+    @MunicipioAtual() municipio: Municipio,
+    @UtilizadorAtual() u: UtilizadorPainel,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: unknown,
+  ) {
+    return this.apoio.ensinar(municipio, u, id, validar(esquemaEnsinar, body));
   }
 }

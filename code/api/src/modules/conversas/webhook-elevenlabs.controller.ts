@@ -17,6 +17,7 @@ import { validar } from '../../common/validacao.js';
 import { webhooksConfig } from '../../config/configuration.js';
 import { SegredoAgenteGuard } from '../agent-tools/agente.guard.js';
 import { ChamadasSaidaService } from '../chamadas-saida/chamadas-saida.service.js';
+import { JuncaoFamiliarService } from '../chamadas-saida/juncao-familiar.service.js';
 import { esquemaFalhaInicio } from '../chamadas-saida/elevenlabs-saida.js';
 import { VARIAVEIS_SAIDA_VAZIAS } from '../chamadas-saida/regras.js';
 import {
@@ -25,7 +26,7 @@ import {
   verificarAssinatura,
 } from './elevenlabs.js';
 import { FimChamadaService } from './fim-chamada.service.js';
-import { esquemaInicioChamada } from './retomar.js';
+import { esquemaInicioChamada, VARIAVEIS_VAZIAS } from './retomar.js';
 import { RetomarService } from './retomar.service.js';
 
 /**
@@ -43,6 +44,7 @@ export class WebhookElevenLabsController {
     private readonly retomar: RetomarService,
     private readonly config: ConfigService,
     private readonly chamadasSaida: ChamadasSaidaService,
+    private readonly juncoes: JuncaoFamiliarService,
   ) {}
 
   /**
@@ -56,8 +58,22 @@ export class WebhookElevenLabsController {
   @HttpCode(200)
   @UseGuards(SegredoAgenteGuard)
   async inicioChamada(@Body() body: unknown) {
+    const pedido = validar(esquemaInicioChamada, body ?? {});
+    // A linha a ligar para si própria: é o agente a voltar à sala onde se
+    // está a juntar um familiar.
+    const juncao = await this.juncoes
+      .inicioDoAgente(pedido.caller_id, pedido.called_number)
+      .catch(() => null);
+    if (juncao) {
+      return {
+        type: 'conversation_initiation_client_data',
+        dynamic_variables: { ...VARIAVEIS_VAZIAS, ...juncao },
+      };
+    }
     const r = await this.retomar.inicioChamada(
-      validar(esquemaInicioChamada, body ?? {}),
+      pedido,
+      new Date(),
+      this.config.get<boolean>('webhooks.elevenlabsSobreporVoz') ?? false,
     );
     // O prompt é o mesmo das chamadas de saída: as variáveis delas vão
     // vazias (tipo_chamada = 'entrada'), senão o ElevenLabs recusa a chamada.

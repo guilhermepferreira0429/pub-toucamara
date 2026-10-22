@@ -62,8 +62,11 @@ export class MigrationsService implements OnApplicationBootstrap {
 
   async onApplicationBootstrap(): Promise<void> {
     // Os scripts (db:reset, seed) correm as migrações eles próprios.
-    if (!this.db.enabled || process.env.MIGRACOES_NO_ARRANQUE === 'false')
+    if (!this.db.enabled) return;
+    if (process.env.MIGRACOES_NO_ARRANQUE === 'false') {
+      await this.db.ativarRls();
       return;
+    }
     if (!fs.existsSync(PASTA_MIGRACOES)) {
       this.logger.warn(`Pasta de migrações não encontrada: ${PASTA_MIGRACOES}`);
       return;
@@ -75,6 +78,7 @@ export class MigrationsService implements OnApplicationBootstrap {
       producao,
       this.logger,
     );
+    await this.db.ativarRls();
   }
 }
 
@@ -103,6 +107,7 @@ export async function aplicarMigracoes(
         ).rows.map((r) => [r.ficheiro, r.hash]),
       );
 
+      let novas = 0;
       for (const f of ficheiros) {
         const anterior = aplicadas.get(f.nome);
         if (anterior === f.hash) continue;
@@ -123,11 +128,19 @@ export async function aplicarMigracoes(
           );
           await client.query('COMMIT');
           logger.log(`Migração aplicada: ${f.nome}`);
+          novas++;
         } catch (e) {
           await client.query('ROLLBACK');
           logger.error(`Migração ${f.nome} falhou: ${(e as Error).message}`);
           throw e;
         }
+      }
+      // Tabelas novas com municipio_id ficam também com o RLS do painel.
+      if (novas > 0) {
+        const { rows } = await client.query<{ f: string | null }>(
+          `SELECT to_regproc('aplicar_rls_painel')::text AS f`,
+        );
+        if (rows[0]?.f) await client.query('SELECT aplicar_rls_painel()');
       }
     } finally {
       await client.query('SELECT pg_advisory_unlock($1)', [TRINCO]);

@@ -1,9 +1,10 @@
-import { HttpStatus, Injectable, Logger } from '@nestjs/common';
+import { HttpStatus, Injectable, Logger, Optional } from '@nestjs/common';
 import { ErroApi } from '../../common/erros.js';
 import { DatabaseService, Tx } from '../../database/database.service.js';
 import { ClaudeService } from '../../ia/claude.service.js';
 import { JobsService } from '../../jobs/jobs.service.js';
 import { ArmazenamentoService } from '../armazenamento/armazenamento.service.js';
+import { AvaliacaoService } from './avaliacao.service.js';
 import { IndexacaoService } from './indexacao.service.js';
 import { EM_VIGOR } from './sql.js';
 import {
@@ -85,6 +86,7 @@ export class IngestaoService {
     private readonly claude: ClaudeService,
     private readonly armazenamento: ArmazenamentoService,
     private readonly indexacao: IndexacaoService,
+    @Optional() private readonly avaliacao?: AvaliacaoService,
   ) {}
 
   /** Job `ingestao_fontes` (03:00 e "Ler agora"). */
@@ -152,6 +154,15 @@ export class IngestaoService {
     this.logger.log(
       `Ingestão ${municipioId}: ${fontes.length} lidas, ${mudancas} mudaram, ${erros.length} erros.`,
     );
+    // Fontes mudaram: o agente pode responder diferente. Amostra, para ser
+    // rápido; a avaliação completa fica para antes de publicar.
+    if (mudancas > 0) {
+      await this.avaliacao
+        ?.pedirAvaliacao(municipioId, 'ingestao', { amostra: true })
+        .catch((e: Error) =>
+          this.logger.warn(`Pedido de avaliação por fazer: ${e.message}`),
+        );
+    }
     if (mudancas > 0 && this.claude.disponivel) {
       await this.jobs.enviar(
         JOB_CONTRADICOES,

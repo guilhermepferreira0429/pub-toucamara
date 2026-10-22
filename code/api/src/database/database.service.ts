@@ -6,6 +6,7 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { ConfigService, ConfigType } from '@nestjs/config';
+import { AsyncLocalStorage } from 'node:async_hooks';
 import { Pool, PoolClient, QueryResultRow } from 'pg';
 import { instalarParserDatas } from '../common/datas-pg.js';
 import { databaseConfig } from '../config/configuration.js';
@@ -31,6 +32,21 @@ export function eLeitura(sql: string): boolean {
   return s.startsWith('WITH') && !/\b(INSERT|UPDATE|DELETE|MERGE)\b/.test(s);
 }
 
+/** Role sem privilégios especiais com que corre o painel (migração 0046). */
+export const ROLE_PAINEL = 'toucamara_painel';
+
+/**
+ * O município do pedido do painel em curso (posto pelo
+ * ContextoMunicipioInterceptor). Com ele, cada consulta corre como
+ * ROLE_PAINEL e com app.municipio_id: o RLS só deixa ver esse município.
+ */
+export const contextoMunicipio = new AsyncLocalStorage<{
+  municipioId: string;
+}>();
+
+const SQL_ENTRAR = `SELECT set_config('role', '${ROLE_PAINEL}', $2), set_config('app.municipio_id', $1, $2)`;
+const SQL_SAIR = 'RESET ROLE; RESET app.municipio_id';
+
 /** Cliente de uma transação: o mesmo `query` tipado, numa ligação só. */
 export interface Tx {
   query<T extends QueryResultRow>(
@@ -48,6 +64,8 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(DatabaseService.name);
   private pool: Pool | null = null;
   private connected = false;
+  /** Há a role do painel e esta ligação pode usá-la (ver ativarRls). */
+  private rls = false;
 
   constructor(private readonly config: ConfigService) {}
 
@@ -88,6 +106,40 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
     await this.pool?.end();
   }
 
+  get rlsAtivo(): boolean {
+    return this.rls;
+  }
+
+  /**
+   * Liga o RLS do painel se a role existir e esta ligação a puder usar
+   * (DB_RLS_PAINEL=false desliga-o). Corre depois das migrações.
+   */
+  async ativarRls(): Promise<void> {
+    const cfg =
+      this.config.getOrThrow<ConfigType<typeof databaseConfig>>('database');
+    if (!this.connected || !cfg.rlsPainel) {
+      this.rls = false;
+      return;
+    }
+    const [r] = await this.query<{ pode: boolean }>(
+      `SELECT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = $1)
+              AND pg_has_role(current_user, $1, 'MEMBER') AS pode`,
+      [ROLE_PAINEL],
+    );
+    this.rls = !!r?.pode;
+    if (!this.rls) {
+      this.logger.warn(
+        `RLS do painel desligado: a role ${ROLE_PAINEL} não existe ou não está disponível.`,
+      );
+    }
+  }
+
+  private municipioDoPedido(): string | null {
+    return this.rls
+      ? (contextoMunicipio.getStore()?.municipioId ?? null)
+      : null;
+  }
+
   getPool(): Pool {
     if (!this.pool || !this.connected) {
       throw new ServiceUnavailableException(
@@ -101,6 +153,8 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
     sql: string,
     params?: unknown[],
   ): Promise<T[]> {
+    const municipioId = this.municipioDoPedido();
+    if (municipioId) return this.comoPainel<T>(municipioId, sql, params);
     try {
       return (await this.getPool().query<T>(sql, params)).rows;
     } catch (e) {
@@ -113,11 +167,39 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
+  /**
+   * Uma consulta do painel: numa ligação só, como ROLE_PAINEL e com o
+   * município. Se não for possível voltar ao estado normal, a ligação é
+   * deitada fora (nunca volta ao pool com a role do painel).
+   */
+  private async comoPainel<T extends QueryResultRow>(
+    municipioId: string,
+    sql: string,
+    params?: unknown[],
+  ): Promise<T[]> {
+    const client = await this.getPool().connect();
+    let estragada: Error | undefined;
+    try {
+      await client.query(SQL_ENTRAR, [municipioId, false]);
+      return (await client.query<T>(sql, params)).rows;
+    } finally {
+      try {
+        await client.query(SQL_SAIR);
+      } catch (e) {
+        estragada = e as Error;
+      }
+      client.release(estragada ?? undefined);
+    }
+  }
+
   /** Corre fn numa transação; rollback se lançar. */
   async transaction<T>(fn: (tx: Tx) => Promise<T>): Promise<T> {
     const client: PoolClient = await this.getPool().connect();
     try {
       await client.query('BEGIN');
+      const municipioId = this.municipioDoPedido();
+      // SET LOCAL: acaba com a transação (COMMIT ou ROLLBACK).
+      if (municipioId) await client.query(SQL_ENTRAR, [municipioId, true]);
       const result = await fn({
         query: async <R extends QueryResultRow>(
           sql: string,
