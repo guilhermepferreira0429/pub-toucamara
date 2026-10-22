@@ -8,10 +8,12 @@ import {
   FileQuestion,
   FileText,
   Globe,
+  History,
   Landmark,
   Map as IconeMapa,
   Phone,
   Plus,
+  Pencil,
   RefreshCw,
   Scale,
   Table,
@@ -37,6 +39,7 @@ import {
   useAcao,
   useDados,
 } from "./comum";
+import { EditarFonte, HistoricoLeituras, HoraRecolha, periodicidade, proximaVez, Sites } from "./recolha";
 import type { Entidade, EstadoFonte, Fonte, Fontes as TFontes } from "./tipos";
 
 const TIPOS: Record<string, { rotulo: string; icone: LucideIcon }> = {
@@ -117,15 +120,18 @@ function NovaFonte({ onCriada }: { onCriada: () => void }) {
             ))}
           </select>
         </Campo>
-        <Campo rotulo="Ler a cada (horas)">
-          <input
-            type="number"
-            min={1}
-            max={8760}
+        <Campo rotulo="Ler">
+          <select
             className={classeEntrada}
             value={v.ler_a_cada_horas}
-            onChange={(e) => setV({ ...v, ler_a_cada_horas: Number(e.target.value) || 24 })}
-          />
+            onChange={(e) => setV({ ...v, ler_a_cada_horas: Number(e.target.value) })}
+          >
+            {[6, 12, 24, 168, 720].map((h) => (
+              <option key={h} value={h}>
+                {periodicidade(h)}
+              </option>
+            ))}
+          </select>
         </Campo>
       </div>
       <Campo rotulo="Endereço (https://…)">
@@ -201,11 +207,15 @@ function ColarTexto({ fonte, onFeito }: { fonte: Fonte; onFeito: (msg: string) =
 
 export function Fontes() {
   const { pedido, pode } = useSessao();
-  const [filtro, setFiltro] = useState<"" | EstadoFonte>("");
+  const [filtro, setFiltro] = useState<"" | EstadoFonte | "arquivadas">("");
   const [nova, setNova] = useState(false);
   const [colar, setColar] = useState<Fonte | null>(null);
+  const [editar, setEditar] = useState<Fonte | null>(null);
+  const [historico, setHistorico] = useState<Fonte | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
-  const fontes = useDados<TFontes>(`/v1/painel/conhecimento/fontes${filtro ? `?estado=${filtro}` : ""}`);
+  const fontes = useDados<TFontes>(
+    `/v1/painel/conhecimento/fontes${filtro === "arquivadas" ? "?arquivadas=true" : filtro ? `?estado=${filtro}` : ""}`,
+  );
   const ler = useAcao();
   const escrever = pode("conhecimento");
   const i = fontes.dados?.ultima_ingestao;
@@ -229,6 +239,7 @@ export function Fontes() {
               ? `Última leitura: ${quando(i.iniciada_em)} · ${numero(i.fontes_lidas)} fontes · ${numero(i.mudancas)} ${i.mudancas === 1 ? "mudança" : "mudanças"} · ${numero(i.erros)} com erro de leitura`
               : "Ainda não houve leituras."}
           </p>
+          <HoraRecolha escrever={escrever} onMudou={fontes.recarregar} />
         </div>
         {escrever && (
           <>
@@ -252,7 +263,7 @@ export function Fontes() {
       <PainelTurismo aoCarregar={fontes.recarregar} />
 
       <div className="flex flex-wrap gap-1.5" role="group" aria-label="Filtrar fontes">
-        {(["", "mudou", "erro", "em_dia"] as const).map((e) => (
+        {(["", "mudou", "erro", "em_dia", "arquivadas"] as const).map((e) => (
           <button
             key={e}
             type="button"
@@ -262,7 +273,7 @@ export function Fontes() {
               filtro === e ? "border-tinta bg-tinta text-white" : "border-linha bg-papel text-tinta-2"
             }`}
           >
-            {e ? ESTADOS[e].rotulo : "Todas"}
+            {e === "arquivadas" ? "Arquivadas" : e ? ESTADOS[e].rotulo : "Todas"}
           </button>
         ))}
       </div>
@@ -297,7 +308,19 @@ export function Fontes() {
                         ? `${f.alteracoes_por_rever} ${f.alteracoes_por_rever === 1 ? "alteração" : "alterações"} por rever`
                         : `${f.entidade} · lida ${quando(f.ultima_leitura_em)}`}
                   </p>
-                  {!f.leitura_automatica && <p className="text-xs text-tinta-3">Leitura manual (texto colado)</p>}
+                  {f.arquivada_em ? (
+                    <p className="text-xs text-tinta-3">Arquivada {quando(f.arquivada_em)}: já não é lida</p>
+                  ) : !f.leitura_automatica ? (
+                    <p className="text-xs text-tinta-3">Leitura manual (texto colado)</p>
+                  ) : (
+                    <p className="text-xs text-tinta-3">
+                      {periodicidade(f.ler_a_cada_horas)} · próxima {proximaVez(f.proxima_leitura_em)}
+                      {(f.falhas_seguidas ?? 0) > 1 && (
+                        <span className="text-terracota-escuro"> · {f.falhas_seguidas} erros seguidos</span>
+                      )}
+                    </p>
+                  )}
+                  {f.site && <p className="text-xs text-tinta-3">Do site «{f.site}»</p>}
                   {(f.demonstracao || (f.lingua && f.lingua !== "pt")) && (
                     <span className="flex flex-wrap gap-1.5">
                       {f.lingua && f.lingua !== "pt" && <Pilula tom="neutro">{f.lingua.toUpperCase()}</Pilula>}
@@ -334,6 +357,12 @@ export function Fontes() {
                     <button type="button" className="flex items-center gap-1 text-terracota-escuro hover:underline" onClick={() => setColar(f)}>
                       <ClipboardPaste className="size-3" aria-hidden /> Colar texto
                     </button>
+                    <button type="button" className="flex items-center gap-1 text-terracota-escuro hover:underline" onClick={() => setEditar(f)}>
+                      <Pencil className="size-3" aria-hidden /> Editar
+                    </button>
+                    <button type="button" className="flex items-center gap-1 text-terracota-escuro hover:underline" onClick={() => setHistorico(f)}>
+                      <History className="size-3" aria-hidden /> Histórico
+                    </button>
                     {f.estado === "mudou" && (
                       <Link href="/painel/conhecimento/alteracoes" className="text-ambar hover:underline">
                         Rever alterações
@@ -346,6 +375,8 @@ export function Fontes() {
           })}
         </ul>
       </Estado>
+
+      <Sites escrever={escrever} tipos={TIPOS} onMudou={fontes.recarregar} />
 
       <section className="flex flex-wrap items-center gap-4 rounded-2xl border border-linha bg-creme-2 px-5 py-4">
         <FileQuestion className="size-5 text-tinta-2" aria-hidden />
@@ -370,6 +401,22 @@ export function Fontes() {
             fontes.recarregar();
           }}
         />
+      </Dialogo>
+      <Dialogo titulo={editar ? `Editar · ${editar.titulo}` : ""} aberto={!!editar} onFechar={() => setEditar(null)} largura="max-w-2xl">
+        {editar && (
+          <EditarFonte
+            fonte={editar}
+            tipos={TIPOS}
+            onFeito={(msg) => {
+              setEditar(null);
+              setAviso(msg);
+              fontes.recarregar();
+            }}
+          />
+        )}
+      </Dialogo>
+      <Dialogo titulo={historico ? `Leituras · ${historico.titulo}` : ""} aberto={!!historico} onFechar={() => setHistorico(null)} largura="max-w-xl">
+        {historico && <HistoricoLeituras fonte={historico} />}
       </Dialogo>
       <Dialogo titulo={colar ? `Colar texto · ${colar.titulo}` : ""} aberto={!!colar} onFechar={() => setColar(null)} largura="max-w-2xl">
         {colar && (
