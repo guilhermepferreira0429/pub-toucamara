@@ -2,7 +2,9 @@
 
 import { ConversationProvider, useConversation } from "@elevenlabs/react";
 import { useCallback, useEffect, useReducer, useRef, useState } from "react";
+import { useTranscricaoAoVivo, type Injetar } from "./ao-vivo";
 import { AGENTE_ID, MUNICIPIO } from "./config";
+import { FaixaAoVivo } from "./faixa-ao-vivo";
 import { EcraChamada } from "./ecra-chamada";
 import {
   EcraConsentimento,
@@ -79,8 +81,17 @@ function Fluxo() {
     ir(para);
   };
 
+  // Transcrição em direto (painel ao vivo, familiar a acompanhar). O que o
+  // funcionário ou o familiar escrevem chega aqui e vai para o agente.
+  const injetarNoAgente = useRef<(i: Injetar) => void>(() => {});
+  const aoVivo = useTranscricaoAoVivo({
+    injetar: useCallback((i: Injetar) => injetarNoAgente.current(i), []),
+  });
+  const telefoneRef = useRef<string | null>(null);
+
   const conversa = useConversation({
-    onConnect: () => {
+    onConnect: ({ conversationId }) => {
+      void aoVivo.iniciar(conversationId, telefoneRef.current);
       // O SDK já tem o seu próprio fluxo de áudio: largamos o do pedido.
       libertarMicrofone();
       const t = Date.now();
@@ -92,6 +103,7 @@ function Fluxo() {
       ir("chamada");
     },
     onDisconnect: (d) => {
+      void aoVivo.terminar();
       const p = passoRef.current;
       if (p === "chamada") fechar(d.reason === "error" ? "caiu" : "terminada");
       else if (p === "microfone") fechar("caiu");
@@ -101,19 +113,36 @@ function Fluxo() {
       if (passoRef.current === "microfone") fechar("caiu");
     },
     onMessage: ({ message, role }) => {
-      if (message?.trim())
-        despachar({ tipo: "mensagem", papel: role, texto: message.trim() });
+      if (!message?.trim()) return;
+      // A nota que nós mandámos ao agente não é o munícipe a falar.
+      if (role === "user" && message.trim().startsWith("(nota do sistema:")) return;
+      despachar({ tipo: "mensagem", papel: role, texto: message.trim() });
+      aoVivo.fala(role === "user" ? "municipe" : "agente", message.trim());
     },
-    onAgentToolRequest: (t) =>
-      despachar({ tipo: "pedido", ferramenta: t.tool_name }),
-    onAgentToolResponse: (t) =>
+    onAgentToolRequest: (t) => {
+      despachar({ tipo: "pedido", ferramenta: t.tool_name });
+      aoVivo.ferramenta(t.tool_name, "pedido");
+    },
+    onAgentToolResponse: (t) => {
+      const resultado = "full_tool_result" in t ? t.full_tool_result : undefined;
       despachar({
         tipo: "resposta",
         ferramenta: t.tool_name,
         erro: t.is_error,
-        resultado: "full_tool_result" in t ? t.full_tool_result : undefined,
-      }),
+        resultado,
+      });
+      aoVivo.ferramenta(t.tool_name, "resposta", t.is_error, resultado);
+    },
   });
+
+  const { sendContextualUpdate, sendUserMessage } = conversa;
+  useEffect(() => {
+    injetarNoAgente.current = (i: Injetar) => {
+      // Contexto (não interrompe) e uma nota curta para o agente responder já.
+      sendContextualUpdate(i.contexto);
+      sendUserMessage(i.gatilho);
+    };
+  }, [sendContextualUpdate, sendUserMessage]);
 
   const { endSession } = conversa;
 
@@ -139,6 +168,7 @@ function Fluxo() {
       return;
     }
     setALigar(true);
+    telefoneRef.current = !semSms && digitos ? `+351${digitos}` : null;
     conversa.startSession({
       agentId: AGENTE_ID,
       useWakeLock: true,
@@ -153,6 +183,7 @@ function Fluxo() {
 
   const desligar = () => {
     fechar("terminada");
+    void aoVivo.terminar();
     conversa.endSession();
   };
 
@@ -236,6 +267,13 @@ function Fluxo() {
           onPessoa={() => conversa.sendUserMessage("Quero falar com uma pessoa.")}
           onDizer={(texto) => conversa.sendUserMessage(texto)}
           onDesligar={desligar}
+          faixa={
+            <FaixaAoVivo
+              familiar={aoVivo.estado.familiar}
+              funcionario={aoVivo.estado.funcionario}
+              onRetirar={() => void aoVivo.retirarFamiliar()}
+            />
+          }
         />
       );
     case "terminada":
