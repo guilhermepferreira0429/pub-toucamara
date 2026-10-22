@@ -487,11 +487,14 @@ class _EcraItemAgoraState extends State<EcraItemAgora> {
                   MarcaTipo(e, tamanho: 52),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: Pilula(
-                      i.etiqueta.isEmpty ? e.singular : i.etiqueta,
-                      tom: i.emergencia
-                          ? TomPilula.terracota
-                          : TomPilula.neutro,
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Pilula(
+                        i.etiqueta.isEmpty ? e.singular : i.etiqueta,
+                        tom: i.emergencia
+                            ? TomPilula.terracota
+                            : TomPilula.neutro,
+                      ),
                     ),
                   ),
                 ],
@@ -619,7 +622,7 @@ class _FolhaAvisarMeState extends State<_FolhaAvisarMe> {
           m = await s.repositorio.subscrever(
             tipos: _tipos,
             ponto: Ponto(i!.lat!, i.lng!),
-            descricao: i.rua ?? i.titulo,
+            descricao: i.rua ?? '«${i.titulo}»',
           );
         case _Onde.eu:
           final p = await s.localizador.atual();
@@ -633,7 +636,7 @@ class _FolhaAvisarMeState extends State<_FolhaAvisarMe> {
           m = await s.repositorio.subscrever(
             tipos: _tipos,
             ponto: p,
-            descricao: 'Onde estava ao pedir',
+            descricao: 'onde estava',
           );
         case _Onde.freguesia:
           m = await s.repositorio.subscrever(

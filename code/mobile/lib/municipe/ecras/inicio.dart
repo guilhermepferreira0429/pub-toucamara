@@ -34,7 +34,10 @@ class _EcraInicioState extends State<EcraInicio> {
   void _carregar() {
     final s = FornecedorMunicipe.de(context);
     _nome = s.sessao.sessao?.nome;
-    setState(() => _feed = s.repositorio.feed(limite: 20));
+    final f = s.repositorio.feed(limite: 20);
+    setState(() {
+      _feed = f;
+    });
     s.repositorio.eu().then((e) {
       s.sessao.atualizarNome(e.valor.nome);
       if (mounted) setState(() => _nome = e.valor.nome);

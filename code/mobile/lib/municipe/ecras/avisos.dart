@@ -147,9 +147,12 @@ class _EcraAvisosPedidosState extends State<EcraAvisosPedidos> {
     _f ??= FornecedorMunicipe.de(context).repositorio.subscricoes();
   }
 
-  void _recarregar() => setState(
-    () => _f = FornecedorMunicipe.de(context).repositorio.subscricoes(),
-  );
+  void _recarregar() {
+    final f = FornecedorMunicipe.de(context).repositorio.subscricoes();
+    setState(() {
+      _f = f;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {

@@ -180,11 +180,12 @@ class ControladorSessaoMunicipe extends ChangeNotifier {
   }
 
   Future<void> _terminarLocal({String? motivo}) async {
-    await _armazem.apagar(chave);
+    // Primeiro o ecrã (volta a "Entrar" logo), depois o armazenamento.
     api.token = null;
     sessao = null;
     estado = EstadoSessao.fora;
     aviso = motivo;
     notifyListeners();
+    await _armazem.apagar(chave);
   }
 }

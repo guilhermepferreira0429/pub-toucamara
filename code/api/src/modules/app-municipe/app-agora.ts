@@ -84,8 +84,7 @@ export class AppAgoraService {
     const raio = e.raio_m ?? PARAMETROS.raio_subscricao_m;
     const tipos = [...new Set(e.tipos)] as TipoSubscricao[];
     const descricao =
-      e.descricao ??
-      (ponto ? 'o sítio escolhido' : `freguesia de ${freguesia}`);
+      e.descricao ?? (ponto ? 'onde indicou' : `freguesia de ${freguesia}`);
     const id = await this.agora.subscrever(m, s.municipeId, {
       local: {
         rua: ponto ? (e.descricao ?? null) : null,
@@ -106,7 +105,7 @@ export class AppAgoraService {
       tipos,
       zona,
       mensagem:
-        `Fica combinado: avisamos quando houver ${tipos.map((t) => ROTULOS_TIPO[t]).join(', ')} novos em ${zona}. ` +
+        `Fica combinado: avisamos quando houver ${tipos.map((t) => ROTULOS_TIPO[t]).join(', ')} novos ${ponto ? 'perto de' : 'na'} ${zona}. ` +
         'Os avisos que não são de emergência só saem entre as 9h e as 21h.',
       parametros: {
         raio_subscricao_m: PARAMETROS.raio_subscricao_m,
@@ -138,7 +137,7 @@ export class AppAgoraService {
         ...l,
         zona:
           l.lat !== null
-            ? `${l.rua ?? 'Sítio escolhido'} (${l.raio_m} m à volta)`
+            ? `${l.rua ?? 'Onde indicou'} (${l.raio_m} m à volta)`
             : `Freguesia de ${l.freguesia}`,
         tipos_ditos: l.tipos.map((t) => ROTULOS_TIPO[t]),
       })),

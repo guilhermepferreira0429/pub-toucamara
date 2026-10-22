@@ -156,7 +156,8 @@ class _CartaoProcesso extends StatelessWidget {
                   style: t.labelLarge?.copyWith(color: Cores.terracotaEscuro),
                 ),
               ),
-              Pilula(p.faseRotulo, tom: TomPilula.tinta),
+              const SizedBox(width: 8),
+              Flexible(child: Pilula(p.faseRotulo, tom: TomPilula.tinta)),
             ],
           ),
           const SizedBox(height: 6),
@@ -222,7 +223,8 @@ class _Processo extends StatelessWidget {
                 const SizedBox(height: 8),
                 Text(p.faseEmPalavras!, style: t.bodyLarge),
               ],
-              if (p.prazoFim != null) ...[
+              // Já decidido: o prazo da câmara deixou de interessar.
+              if (p.prazoFim != null && p.decisao == null) ...[
                 const SizedBox(height: 8),
                 LinhaDado(
                   Icons.event_rounded,
@@ -419,13 +421,16 @@ class _CartaoLicenca extends StatelessWidget {
           Row(
             children: [
               Expanded(child: Text(l.tipoNome, style: t.titleMedium)),
-              Pilula(
-                l.estadoDito,
-                tom: l.valida
-                    ? TomPilula.verde
-                    : l.estado == 'recusada'
-                    ? TomPilula.terracota
-                    : TomPilula.ambar,
+              const SizedBox(width: 8),
+              Flexible(
+                child: Pilula(
+                  l.estadoDito,
+                  tom: l.valida
+                      ? TomPilula.verde
+                      : l.estado == 'recusada'
+                      ? TomPilula.terracota
+                      : TomPilula.ambar,
+                ),
               ),
             ],
           ),
@@ -512,13 +517,16 @@ class CartaoPagamento extends StatelessWidget {
                   ),
                 ),
               ),
-              Pilula(
-                p.estadoDito,
-                tom: p.pendente
-                    ? TomPilula.ambar
-                    : p.estado == 'pago'
-                    ? TomPilula.verde
-                    : TomPilula.neutro,
+              const SizedBox(width: 8),
+              Flexible(
+                child: Pilula(
+                  p.estadoDito,
+                  tom: p.pendente
+                      ? TomPilula.ambar
+                      : p.estado == 'pago'
+                      ? TomPilula.verde
+                      : TomPilula.neutro,
+                ),
               ),
             ],
           ),
@@ -590,9 +598,12 @@ class _CartaoMarcacao extends StatelessWidget {
           Row(
             children: [
               Expanded(child: Text(m.servico, style: t.titleMedium)),
-              Pilula(
-                m.estadoDito,
-                tom: m.futura ? TomPilula.verde : TomPilula.neutro,
+              const SizedBox(width: 8),
+              Flexible(
+                child: Pilula(
+                  m.estadoDito,
+                  tom: m.futura ? TomPilula.verde : TomPilula.neutro,
+                ),
               ),
             ],
           ),
@@ -642,9 +653,12 @@ class _CartaoReclamacao extends StatelessWidget {
                   style: t.labelLarge?.copyWith(color: Cores.terracotaEscuro),
                 ),
               ),
-              Pilula(
-                r.estadoRotulo,
-                tom: r.resposta != null ? TomPilula.verde : TomPilula.ambar,
+              const SizedBox(width: 8),
+              Flexible(
+                child: Pilula(
+                  r.estadoRotulo,
+                  tom: r.resposta != null ? TomPilula.verde : TomPilula.ambar,
+                ),
               ),
             ],
           ),
@@ -713,15 +727,18 @@ class _CartaoOcorrencia extends StatelessWidget {
                   style: t.labelLarge?.copyWith(color: Cores.terracotaEscuro),
                 ),
               ),
-              Pilula(
-                o.resolvida
-                    ? 'Resolvida'
-                    : o.estado == 'com_equipa'
-                    ? 'Com a equipa'
-                    : o.estado == 'rejeitada'
-                    ? 'Não seguiu'
-                    : 'Recebida',
-                tom: o.resolvida ? TomPilula.verde : TomPilula.ambar,
+              const SizedBox(width: 8),
+              Flexible(
+                child: Pilula(
+                  o.resolvida
+                      ? 'Resolvida'
+                      : o.estado == 'com_equipa'
+                      ? 'Com a equipa'
+                      : o.estado == 'rejeitada'
+                      ? 'Não seguiu'
+                      : 'Recebida',
+                  tom: o.resolvida ? TomPilula.verde : TomPilula.ambar,
+                ),
               ),
             ],
           ),
@@ -827,7 +844,9 @@ class _EcraOcorrenciaState extends State<EcraOcorrencia> {
                 const SizedBox(height: 16),
                 BotaoLargo(
                   icone: Icons.open_in_new_rounded,
-                  texto: 'Ver no site (juntar fotografias)',
+                  texto: o.resolvida
+                      ? 'Ver no site'
+                      : 'Ver no site (juntar fotografias)',
                   contorno: true,
                   onPressed: () => abrirFora(context, o.link!),
                 ),
@@ -857,10 +876,22 @@ class _Fotos extends StatelessWidget {
             height: 120,
             color: Cores.creme2,
             child: f.url == null
-                ? const Center(
-                    child: Icon(
-                      Icons.image_not_supported_outlined,
-                      color: Cores.tinta3,
+                ? const Padding(
+                    padding: EdgeInsets.all(8),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.image_not_supported_outlined,
+                          color: Cores.tinta3,
+                        ),
+                        SizedBox(height: 4),
+                        Text(
+                          'Fotografia guardada na câmara (sem pré-visualização)',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(fontSize: 13, color: Cores.tinta2),
+                        ),
+                      ],
                     ),
                   )
                 : Image.network(

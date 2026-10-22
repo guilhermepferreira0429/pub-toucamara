@@ -185,36 +185,40 @@ class EcraPrincipal extends StatelessWidget {
             ),
           ],
         ),
-        bottomNavigationBar: NavigationBar(
-          selectedIndex: i,
-          onDestinationSelected: (n) => s.navegacao.separador.value = n,
-          destinations: const [
-            NavigationDestination(
-              icon: Icon(Icons.home_outlined),
-              selectedIcon: Icon(Icons.home_rounded),
-              label: 'Início',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.place_outlined),
-              selectedIcon: Icon(Icons.place_rounded),
-              label: 'Perto',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.folder_outlined),
-              selectedIcon: Icon(Icons.folder_rounded),
-              label: 'Assuntos',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.notifications_outlined),
-              selectedIcon: Icon(Icons.notifications_rounded),
-              label: 'Avisos',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.settings_outlined),
-              selectedIcon: Icon(Icons.settings_rounded),
-              label: 'Definições',
-            ),
-          ],
+        // Os nomes dos separadores não crescem tanto como o resto (não cabiam).
+        bottomNavigationBar: MediaQuery.withClampedTextScaling(
+          maxScaleFactor: 1.15,
+          child: NavigationBar(
+            selectedIndex: i,
+            onDestinationSelected: (n) => s.navegacao.separador.value = n,
+            destinations: const [
+              NavigationDestination(
+                icon: Icon(Icons.home_outlined),
+                selectedIcon: Icon(Icons.home_rounded),
+                label: 'Início',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.place_outlined),
+                selectedIcon: Icon(Icons.place_rounded),
+                label: 'Perto',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.folder_outlined),
+                selectedIcon: Icon(Icons.folder_rounded),
+                label: 'Assuntos',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.notifications_outlined),
+                selectedIcon: Icon(Icons.notifications_rounded),
+                label: 'Avisos',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.settings_outlined),
+                selectedIcon: Icon(Icons.settings_rounded),
+                label: 'Definições',
+              ),
+            ],
+          ),
         ),
       ),
     );

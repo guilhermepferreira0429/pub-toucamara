@@ -316,7 +316,7 @@ class _PassoFoto extends StatelessWidget {
           const SizedBox(height: 12),
           BotaoLargo(
             icone: Icons.delete_outline_rounded,
-            texto: 'Tirar esta fotografia',
+            texto: 'Apagar esta fotografia',
             contorno: true,
             onPressed: () => aoMudar(null),
           ),
@@ -362,9 +362,15 @@ class _PassoLocalState extends State<_PassoLocal> {
   void initState() {
     super.initState();
     _ponto = widget.inicial;
-    if (_ponto == null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) => _ondeEstou());
-    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      // O sítio da fotografia (GPS) já serve; sem ele, pergunta ao GPS.
+      final p = _ponto;
+      if (p != null) {
+        widget.aoMudar(p);
+      } else {
+        _ondeEstou();
+      }
+    });
   }
 
   Future<void> _ondeEstou() async {
@@ -471,7 +477,11 @@ class _PassoLocalState extends State<_PassoLocal> {
                         icone: Icons.layers_clear_rounded,
                       ),
                     if (_ponto != null)
-                      Pilula('Sítio: $_ponto', icone: Icons.place_rounded)
+                      const Pilula(
+                        'Sítio marcado',
+                        tom: TomPilula.verde,
+                        icone: Icons.place_rounded,
+                      )
                     else if (!_aProcurar)
                       const Pilula(
                         'Ainda sem sítio',

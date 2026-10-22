@@ -201,7 +201,9 @@ class _CarregarState<T> extends State<Carregar<T>> {
 
   Future<void> _recarregar() async {
     final f = widget.ler();
-    setState(() => _f = f);
+    setState(() {
+      _f = f;
+    });
     try {
       await f;
     } on Object {
