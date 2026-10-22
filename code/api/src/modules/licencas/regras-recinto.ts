@@ -53,7 +53,7 @@ export const CONFIG_RECINTO_OMISSAO: ConfigRecinto = {
   antecedencia_max_dias: 180,
   taxa_base_cent: 2500,
   taxa_dia_cent: 1000,
-  aprovacao: 'funcionario',
+  aprovacao: 'automatica',
   fonte: {
     titulo:
       'DL 309/2002 e DL 268/2009 (recintos itinerantes e improvisados) e regulamento municipal · licença de recinto improvisado',

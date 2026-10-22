@@ -62,7 +62,7 @@ export const CONFIG_ESPLANADA_OMISSAO: ConfigEsplanada = {
   antecedencia_max_dias: 90,
   taxa_m2_mes_cent: 300,
   taxa_minima_cent: 2000,
-  aprovacao: 'funcionario',
+  aprovacao: 'automatica',
   fonte: {
     titulo:
       'DL 48/2011 (Licenciamento Zero) e regulamento municipal de ocupação do espaço público · esplanada aberta',

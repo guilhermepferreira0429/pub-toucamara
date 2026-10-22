@@ -66,7 +66,7 @@ export const CONFIG_OCUPACAO_OMISSAO: ConfigOcupacao = {
   antecedencia_max_dias: 90,
   taxa_base_cent: 1000,
   taxa_m2_dia_cent: 50,
-  aprovacao: 'funcionario',
+  aprovacao: 'automatica',
   fonte: {
     titulo:
       'Regulamento municipal de ocupação do espaço público e tabela de taxas · ocupação da via pública por motivo de obras',

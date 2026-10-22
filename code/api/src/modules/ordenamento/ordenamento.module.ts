@@ -107,6 +107,8 @@ export class OrdenamentoPublicoController {
   imports: [OcorrenciasModule],
   controllers: [OrdenamentoPainelController, OrdenamentoPublicoController],
   providers: [OrdenamentoService],
+  // As regras públicas e o verificador usam o mesmo motor.
+  exports: [OrdenamentoService],
 })
 export class OrdenamentoModule implements OnModuleInit {
   constructor(
