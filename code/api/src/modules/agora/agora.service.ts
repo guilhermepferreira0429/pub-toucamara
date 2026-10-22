@@ -346,8 +346,19 @@ export class AgoraService {
     });
     const pagina = todos.slice(posicao, posicao + f.limite);
     const seguinte = posicao + f.limite;
+    // O número de SMS da câmara (para "AVISAR OBRAS") é público.
+    const [sms] = await this.db.query<{ telefone_sms: string | null }>(
+      'SELECT telefone_sms FROM municipios WHERE id = $1',
+      [m.id],
+    );
     return {
-      municipio: { slug: m.slug, nome: m.nome },
+      municipio: {
+        slug: m.slug,
+        nome: m.nome,
+        telefone_sms: sms?.telefone_sms ?? null,
+      },
+      /** As freguesias que se podem escolher no filtro. */
+      freguesias: c.freguesias,
       filtro: {
         lat: f.lat ?? null,
         lng: f.lng ?? null,
