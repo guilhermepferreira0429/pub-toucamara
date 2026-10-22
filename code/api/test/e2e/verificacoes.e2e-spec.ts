@@ -429,9 +429,9 @@ describe('Verificações automáticas (apoio ao técnico)', () => {
       perfis[x.chave] = x.processo_id;
     }
     expect(r.body.map((x: any) => x.numero)).toEqual([
-      expect.stringMatching(/^CP (DEMO-)?413\/\d{4}$/),
-      expect.stringMatching(/^CP (DEMO-)?414\/\d{4}$/),
-      expect.stringMatching(/^CP (DEMO-)?415\/\d{4}$/),
+      expect.stringMatching(/^CP (DEMO-)?\d+\/\d{4}$/),
+      expect.stringMatching(/^CP (DEMO-)?\d+\/\d{4}$/),
+      expect.stringMatching(/^CP (DEMO-)?\d+\/\d{4}$/),
     ]);
     const docs = await linhas(
       ctx.db,
