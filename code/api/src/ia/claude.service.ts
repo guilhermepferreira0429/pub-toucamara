@@ -5,6 +5,7 @@ import { ConfigService, ConfigType } from '@nestjs/config';
 import { z } from 'zod';
 import { ErroApi } from '../common/erros.js';
 import { iaConfig } from '../config/configuration.js';
+import { blocoFicheiro, MimeVisao } from './visao.service.js';
 
 export type Esforco = 'low' | 'medium' | 'high';
 
@@ -16,6 +17,11 @@ export interface PedidoIa {
   /** low para classificar, medium para resumir, high para redigir com cuidado. */
   esforco?: Esforco;
   maxTokens?: number;
+  /**
+   * Ficheiros a ler (PDF ou imagens), antes do conteúdo. Cada um vai com o
+   * nome à frente, para o modelo os referir pelo número.
+   */
+  ficheiros?: { nome: string; ficheiro: Buffer; mime: MimeVisao }[];
 }
 
 // Se o modelo recusar por política, a API tenta o modelo de recurso definido
@@ -115,8 +121,21 @@ export class ClaudeService {
           cache_control: { type: 'ephemeral' as const },
         },
       ],
-      messages: [{ role: 'user' as const, content: pedido.conteudo }],
+      messages: [{ role: 'user' as const, content: this.conteudo(pedido) }],
     };
+  }
+
+  private conteudo(
+    pedido: PedidoIa,
+  ): string | Anthropic.Beta.BetaContentBlockParam[] {
+    if (!pedido.ficheiros?.length) return pedido.conteudo;
+    return [
+      ...pedido.ficheiros.flatMap((f, i) => [
+        { type: 'text' as const, text: `Documento ${i + 1}: ${f.nome}` },
+        blocoFicheiro(f.ficheiro, f.mime),
+      ]),
+      { type: 'text' as const, text: pedido.conteudo },
+    ];
   }
 
   private verificarFim(resposta: Anthropic.Beta.BetaMessage): void {

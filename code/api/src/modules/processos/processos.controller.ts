@@ -31,7 +31,9 @@ import {
   esquemaResumoProcessos,
   ProcessosPainelService,
 } from './processos-painel.service.js';
+import { ProcessosDemonstracaoService } from './processos-demonstracao.service.js';
 import { ProcessosService } from './processos.service.js';
+import { ProcessosVerificacoesService } from './processos-verificacoes.service.js';
 import {
   esquemaDocumentoAlterar,
   esquemaDocumentoTipo,
@@ -46,7 +48,22 @@ export class ProcessosPainelController {
   constructor(
     private readonly painel: ProcessosPainelService,
     private readonly apoio: ProcessosApoioService,
+    private readonly verificacoes: ProcessosVerificacoesService,
+    private readonly demonstracao: ProcessosDemonstracaoService,
   ) {}
+
+  /**
+   * Cria (uma vez) o processo de demonstração do design "Porta na cozinha"
+   * (CP 412), com o projeto em PDF para as verificações automáticas.
+   */
+  @Post('demonstracao')
+  @HttpCode(201)
+  carregarDemonstracao(
+    @MunicipioAtual() m: Municipio,
+    @UtilizadorAtual() u: UtilizadorPainel,
+  ) {
+    return this.demonstracao.carregar(m, u);
+  }
 
   /** Totais por separador: ?fase=&texto=&tipo_processo_id=&servico_id=&freguesia= */
   @Get('resumo')
@@ -152,6 +169,43 @@ export class ProcessosPainelController {
     );
   }
 
+  /**
+   * Verificações automáticas (PDM, instrução, termo, Ordem simulada, leitura
+   * do projeto pela IA). Da cache até os documentos ou as regras mudarem;
+   * ?atualizar=true corre tudo outra vez, IA incluída.
+   */
+  @Get(':id/verificacoes')
+  verificar(
+    @MunicipioAtual() m: Municipio,
+    @UtilizadorAtual() u: UtilizadorPainel,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Query() query: unknown,
+  ) {
+    return this.verificacoes.obter(
+      m,
+      u,
+      id,
+      validar(esquemaAtualizarCache, query).atualizar,
+    );
+  }
+
+  /** O ficheiro de um documento do processo (para o abrir na folha da evidência). */
+  @Get(':id/documentos/:documento/ficheiro')
+  async ficheiro(
+    @MunicipioAtual() m: Municipio,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('documento', ParseUUIDPipe) documento: string,
+  ) {
+    const f = await this.verificacoes.ficheiro(m, id, documento);
+    const nome =
+      f.nome.replace(/[^\p{L}\p{N} ._-]/gu, '').trim() || 'documento';
+    return new StreamableFile(f.conteudo, {
+      type: f.mime,
+      disposition: `inline; filename*=UTF-8''${encodeURIComponent(nome)}`,
+      length: f.conteudo.length,
+    });
+  }
+
   @Get(':id/rascunhos')
   rascunhos(
     @MunicipioAtual() m: Municipio,
@@ -160,7 +214,7 @@ export class ProcessosPainelController {
     return this.apoio.listarRascunhos(m, id);
   }
 
-  /** { tipo: oficio|pedido_elementos|notificacao_sms, instrucoes?, modelo_id?, documentos_pedidos?, prazo_dias_uteis? } */
+  /** { tipo: parecer|oficio|pedido_elementos|notificacao_sms, instrucoes?, modelo_id?, documentos_pedidos?, prazo_dias_uteis? } */
   @Post(':id/rascunhos')
   criarRascunho(
     @MunicipioAtual() m: Municipio,

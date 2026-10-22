@@ -12,6 +12,7 @@ import { mascararTelefone } from '../municipes/municipes.service.js';
 import { zonaDe } from '../ordenamento/regras.js';
 import type { Municipio } from '../municipios/municipios.service.js';
 import { MunicipiosService } from '../municipios/municipios.service.js';
+import { PREFIXO_DEMONSTRACAO } from './projeto-demonstracao-pdf.js';
 import { HASH_PROCESSO, HASH_REGULAMENTO } from './apoio.js';
 import { avisoPedido, PRAZO_PEDIDO_DIAS_UTEIS } from './avisos.js';
 import { dadosComRotulos, Dados } from './formulario.js';
@@ -414,7 +415,8 @@ export class ProcessosPainelService {
         emitido_em: string | null;
         recebido_em: Date;
       }>(
-        `SELECT d.id, d.tipo_documento_id, td.nome AS tipo_documento, d.ficheiro_key, d.mime, d.tamanho,
+        `SELECT d.id, d.tipo_documento_id, coalesce(td.nome, d.descricao) AS tipo_documento,
+                d.ficheiro_key, d.mime, d.tamanho,
                 d.origem, d.verificacao_estado, d.verificacao,
                 to_char(d.emitido_em, 'YYYY-MM-DD') AS emitido_em, d.recebido_em
          FROM documentos d
@@ -459,13 +461,14 @@ export class ProcessosPainelService {
       this.db.query<{
         lat: number | null;
         lng: number | null;
+        demonstracao: boolean;
         gd_estado: string;
         gd_tentativas: number;
         gd_id: string | null;
         ultimo_erro: string | null;
         ultimo_erro_em: Date | null;
       }>(
-        `SELECT p.lat, p.lng, p.gd_estado, p.gd_tentativas, p.gd_id, s.ultimo_erro,
+        `SELECT p.lat, p.lng, p.demonstracao, p.gd_estado, p.gd_tentativas, p.gd_id, s.ultimo_erro,
                 s.ultimo_erro_em
          FROM processos p LEFT JOIN gd_sincronizacoes s ON s.processo_id = p.id
          WHERE p.id = $1`,
@@ -494,6 +497,8 @@ export class ProcessosPainelService {
       freguesia: p.freguesia,
       lat: extra?.lat ?? null,
       lng: extra?.lng ?? null,
+      // Processo de demonstração (dados fictícios, POST painel/processos/demonstracao).
+      demonstracao: extra?.demonstracao ?? false,
       fase: p.fase,
       fase_rotulo: FASE_ROTULO[p.fase],
       decisao: p.decisao,
@@ -549,7 +554,10 @@ export class ProcessosPainelService {
       documentos: await Promise.all(
         documentos.map(async ({ ficheiro_key, ...d }) => ({
           ...d,
-          url: await urlLeitura(ficheiro_key),
+          // Os de demonstração não estão no armazenamento: abrem-se pela API.
+          url: ficheiro_key.startsWith(PREFIXO_DEMONSTRACAO)
+            ? null
+            : await urlLeitura(ficheiro_key),
         })),
       ),
       documentos_resumo: docs,

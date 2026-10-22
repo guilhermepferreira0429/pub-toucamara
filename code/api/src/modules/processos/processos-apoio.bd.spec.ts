@@ -16,6 +16,7 @@ import { ProcessosApoioService } from './processos-apoio.service.js';
 import { ProcessosAvisosService } from './processos-avisos.service.js';
 import { ProcessosPainelService } from './processos-painel.service.js';
 import { ProcessosService } from './processos.service.js';
+import type { ProcessosVerificacoesService } from './processos-verificacoes.service.js';
 import { TiposProcessoService } from './tipos-processo.service.js';
 
 /*
@@ -42,6 +43,28 @@ correr('apoio ao técnico (BD)', () => {
   const extrair = jest.fn();
   const escrever = jest.fn();
   const claude = { disponivel: true, extrair, escrever };
+  // As verificações têm testes próprios; aqui só se vê que entram nos rascunhos.
+  const verificacoes = {
+    obter: jest.fn().mockResolvedValue({
+      itens: [
+        {
+          codigo: 'ia_paredes',
+          estado: 'atencao',
+          titulo: 'Parede a abrir: confirmar que não é estrutural',
+          detalhe:
+            'O projeto diz “não estrutural”, mas não há planta de estruturas',
+          evidencias: [],
+          origem: 'ia',
+          a_confirmar: true,
+          demonstracao: false,
+          notas: [],
+        },
+      ],
+      contagem: { ok: 0, atencao: 1, falha: 0, nao_verificavel: 0 },
+      gerado_em: new Date(),
+      versao: { motor: '1', documentos: 'd', regras: 'r' },
+    }),
+  };
   const q = async (sql: string, p?: unknown[]) =>
     (await client.query(sql, p)).rows;
 
@@ -139,6 +162,7 @@ correr('apoio ao técnico (BD)', () => {
       avisos,
       armazenamento,
       auditoria,
+      verificacoes as unknown as ProcessosVerificacoesService,
     );
 
     // Dados falsos.
@@ -350,6 +374,9 @@ correr('apoio ao técnico (BD)', () => {
     expect(r.modelo_id).not.toBeNull();
     expect(escrever.mock.calls[0][0].conteudo).toContain(
       'Destinatário: Maria Fernandes',
+    );
+    expect(escrever.mock.calls[0][0].conteudo).toContain(
+      '[ATENÇÃO] Parede a abrir: confirmar que não é estrutural',
     );
 
     const e = await apoio.editarRascunho(m, u, r.id, {
