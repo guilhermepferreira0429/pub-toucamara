@@ -247,6 +247,7 @@ export function FichaProcesso() {
   }
 
   const titulo = p.morada ? `${p.assunto} · ${p.morada}` : p.assunto;
+  const fechado = p.fase === "notificado" || p.fase === "arquivado";
 
   return (
     <div className="pb-10">
@@ -303,7 +304,7 @@ export function FichaProcesso() {
           <div className="flex flex-wrap gap-2 pt-1.5">
             <Chip tom="tinta">{p.numero}</Chip>
             <Chip tom="neutro">{p.tipo.nome}</Chip>
-            <Chip tom="terracota" icone={Loader}>
+            <Chip tom={fechado ? "papel" : "terracota"} icone={fechado ? Check : Loader}>
               {p.fase === "apreciacao" ? "Em apreciação" : p.fase_rotulo}
             </Chip>
             <ChipPrazo p={p} />
@@ -319,19 +320,24 @@ export function FichaProcesso() {
             >
               Ligar ao munícipe
             </BotaoPainel>
-            <BotaoPainel
-              icone={Send}
-              onClick={() => setPedirAberto(true)}
-              disabled={!p.municipe}
-            >
-              Pedir documento
-            </BotaoPainel>
+            {/* O principal depende da fase: à espera de documentos, pedi-los;
+                em análise, o apoio ao técnico; decidido, nenhum. */}
+            {!fechado && (
+              <BotaoPainel
+                variante={p.fase === "documentos" ? "principal" : "contorno"}
+                icone={Send}
+                onClick={() => setPedirAberto(true)}
+                disabled={!p.municipe}
+              >
+                Pedir documento
+              </BotaoPainel>
+            )}
             <LinkPainel
-              variante="principal"
+              variante={!fechado && p.fase !== "documentos" ? "principal" : "contorno"}
               href={`/painel/processos/${p.id}/apoio`}
               icone={Sparkles}
             >
-              Abrir apoio ao técnico
+              {fechado ? "Ver o apoio ao técnico" : "Abrir apoio ao técnico"}
             </LinkPainel>
           </>
         }

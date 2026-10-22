@@ -1,6 +1,6 @@
 "use client";
 
-import { FileClock, Search, UserRound } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, FileClock, Search, UserRound } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
@@ -11,7 +11,7 @@ import { FiltrosRecolhiveis } from "@/components/painel/telemovel";
 import { Botao } from "@/components/ui/botao";
 import { useSessao } from "@/lib/sessao";
 import { diaCurto, textoDiasUteis } from "./formatos";
-import { BarrasFase, SeparadoresProcessos } from "./navegacao";
+import { BarrasFase, passoDaFase, SeparadoresProcessos } from "./navegacao";
 import {
   FASE_ROTULO,
   FASES,
@@ -42,7 +42,45 @@ const FILTRO = `${CAMPO.replace("w-full", "w-auto")} font-medium`;
  */
 
 type Vista = "meus" | "todos" | "atrasados";
+type Ordem = "prazo" | "numero" | "fase";
 const LIMITE = 25;
+
+const ROTULO_ORDEM: Record<Ordem, string> = { prazo: "pelo prazo", numero: "pelo número", fase: "pela fase" };
+
+function fechado(p: ProcessoResumo): boolean {
+  return p.fase === "notificado" || p.fase === "arquivado";
+}
+
+/** "2 de 4 · Apreciação": em que passo vai (os decididos só com o nome da fase). */
+function faseTexto(p: ProcessoResumo): string {
+  return fechado(p) ? p.fase_rotulo : `${Math.min(passoDaFase(p.fase), 3) + 1} de 4 · ${p.fase_rotulo}`;
+}
+
+/** O que falta fazer a seguir, em palavras de quem trabalha o processo. */
+function proximoPasso(p: ProcessoResumo): string {
+  if (fechado(p)) return "—";
+  const docs = p.documentos;
+  if (p.aguarda_municipe) {
+    return docs && docs.exigidos > docs.entregues
+      ? `Munícipe entrega documentos (${docs.entregues} de ${docs.exigidos})`
+      : "Esperar pela resposta do munícipe";
+  }
+  if (!p.tecnico) return "Atribuir a um técnico";
+  switch (p.fase) {
+    case "entrada":
+      return "Verificar a entrada";
+    case "documentos":
+      return "Verificar os documentos entregues";
+    case "apreciacao":
+      return "Apreciar o projeto";
+    case "pareceres_externos":
+      return "Esperar pelos pareceres externos";
+    case "decisao":
+      return "Decidir e notificar";
+    default:
+      return "—";
+  }
+}
 
 function prazoDe(p: ProcessoResumo): { texto: string; cor: string } {
   if (p.fase === "notificado" || p.fase === "arquivado") {
@@ -93,6 +131,16 @@ export function ListaProcessos() {
   const [aTerminar, setATerminar] = useState(sp.get("a_terminar") === "true");
   const [texto, setTexto] = useState(sp.get("texto") ?? "");
   const [textoAplicado, setTextoAplicado] = useState(texto.trim());
+  // Os decididos vêm sempre no fim; dentro dos abertos, a coluna escolhida.
+  const [ordem, setOrdem] = useState<Ordem>("prazo");
+  const [sentido, setSentido] = useState<"asc" | "desc">("asc");
+  const ordenar = (o: Ordem) => {
+    if (o === ordem) setSentido((s) => (s === "asc" ? "desc" : "asc"));
+    else {
+      setOrdem(o);
+      setSentido("asc");
+    }
+  };
 
   // Pesquisa com um pequeno atraso (não pede a cada tecla).
   useEffect(() => {
@@ -136,8 +184,10 @@ export function ListaProcessos() {
     if (freguesia) p.set("freguesia", freguesia);
     if (aTerminar) p.set("a_terminar", "true");
     if (textoAplicado) p.set("texto", textoAplicado.slice(0, 100));
+    if (ordem !== "prazo") p.set("ordem", ordem);
+    if (sentido !== "asc") p.set("sentido", sentido);
     return p.toString();
-  }, [vista, tecnico, servico, fase, aguarda, tipo, freguesia, aTerminar, textoAplicado]);
+  }, [vista, tecnico, servico, fase, aguarda, tipo, freguesia, aTerminar, textoAplicado, ordem, sentido]);
 
   const primeira = usePedido<Pagina<ProcessoResumo>>(
     `/v1/painel/processos?${qs}`,
@@ -455,7 +505,7 @@ export function ListaProcessos() {
                       <span className="flex flex-wrap items-center gap-x-3 gap-y-1.5 pt-0.5">
                         <span className="flex items-center gap-2">
                           <BarrasFase fase={p.fase} />
-                          <span className="text-xs font-medium text-tinta">{p.fase_rotulo}</span>
+                          <span className="text-xs font-medium text-tinta">{faseTexto(p)}</span>
                         </span>
                         {p.aguarda_municipe ? (
                           <Chip tom="ambar" pequeno icone={FileClock}>
@@ -464,13 +514,11 @@ export function ListaProcessos() {
                         ) : (
                           <span className="inline-flex items-center gap-1 text-xs text-tinta-2">
                             <UserRound className="size-3.5 text-tinta-3" aria-hidden />
-                            {p.tecnico?.nome ?? "sem técnico"}
+                            {p.tecnico?.nome ?? "por atribuir"}
                           </span>
                         )}
-                        {p.documentos && p.documentos.exigidos > 0 && (
-                          <span className="text-xs tabular-nums text-tinta-2">
-                            Documentos {p.documentos.entregues}/{p.documentos.exigidos}
-                          </span>
+                        {!fechado(p) && (
+                          <span className="text-xs font-semibold text-tinta">→ {proximoPasso(p)}</span>
                         )}
                       </span>
                     </Link>
@@ -480,25 +528,45 @@ export function ListaProcessos() {
             </ul>
             <table className="hidden w-full table-fixed border-collapse text-left md:table">
               <caption className="sr-only">
-                Processos, ordenados pelo prazo mais próximo
+                Processos, ordenados {ROTULO_ORDEM[ordem]} ({sentido === "asc" ? "crescente" : "decrescente"}); os
+                decididos no fim
               </caption>
               <thead>
                 <tr className="h-[42px] border-b border-linha bg-creme">
-                  {[
-                    ["N.º", "w-[132px] pl-5"],
-                    ["Assunto", ""],
-                    ["Tipo", "w-[160px]"],
-                    ["Fase", "w-[190px]"],
-                    ["Documentos", "w-[104px]"],
-                    ["Situação", "w-[150px]"],
-                    ["Prazo", "w-[190px] pr-5"],
-                  ].map(([t, c]) => (
+                  {(
+                    [
+                      ["N.º", "w-[132px] pl-5", "numero"],
+                      ["Assunto", "", null],
+                      ["Fase", "w-[180px]", "fase"],
+                      ["Próximo passo", "w-[230px]", null],
+                      ["Situação", "w-[150px]", null],
+                      ["Prazo", "w-[180px] pr-5", "prazo"],
+                    ] as [string, string, Ordem | null][]
+                  ).map(([t, c, o]) => (
                     <th
                       key={t}
                       scope="col"
+                      aria-sort={o && o === ordem ? (sentido === "asc" ? "ascending" : "descending") : undefined}
                       className={`px-2 text-[10px] font-bold uppercase tracking-[0.6px] text-tinta-3 ${c}`}
                     >
-                      {t}
+                      {o ? (
+                        <button
+                          type="button"
+                          onClick={() => ordenar(o)}
+                          className={`inline-flex items-center gap-1 uppercase hover:text-tinta ${o === ordem ? "text-tinta" : ""}`}
+                        >
+                          {t}
+                          {o !== ordem ? (
+                            <ArrowUpDown className="size-3" aria-hidden />
+                          ) : sentido === "asc" ? (
+                            <ArrowUp className="size-3" aria-hidden />
+                          ) : (
+                            <ArrowDown className="size-3" aria-hidden />
+                          )}
+                        </button>
+                      ) : (
+                        t
+                      )}
                     </th>
                   ))}
                 </tr>
@@ -527,38 +595,18 @@ export function ListaProcessos() {
                         <p className="truncate text-sm font-semibold text-tinta">
                           {p.assunto}
                         </p>
-                        {p.morada && (
-                          <p className="truncate text-xs text-tinta-3">
-                            {p.morada}
-                          </p>
-                        )}
-                      </td>
-                      <td className="truncate px-2 text-[13px] text-tinta-2">
-                        {p.tipo.nome}
+                        <p className="truncate text-xs text-tinta-3">
+                          {[p.tipo.nome, p.morada].filter(Boolean).join(" · ")}
+                        </p>
                       </td>
                       <td className="px-2">
                         <span className="flex flex-col gap-[5px]">
                           <BarrasFase fase={p.fase} />
-                          <span className="text-xs font-medium text-tinta">
-                            {p.fase_rotulo}
-                          </span>
+                          <span className="text-xs font-medium text-tinta">{faseTexto(p)}</span>
                         </span>
                       </td>
-                      <td className="px-2 text-[13px] tabular-nums">
-                        {p.documentos && p.documentos.exigidos > 0 ? (
-                          <span
-                            className={
-                              p.documentos.entregues >= p.documentos.exigidos
-                                ? "font-semibold text-verde"
-                                : "font-semibold text-tinta"
-                            }
-                            aria-label={`${p.documentos.entregues} de ${p.documentos.exigidos} documentos entregues`}
-                          >
-                            {p.documentos.entregues}/{p.documentos.exigidos}
-                          </span>
-                        ) : (
-                          <span className="text-tinta-3">—</span>
-                        )}
+                      <td className={`px-2 text-[13px] ${fechado(p) ? "text-tinta-3" : "font-semibold text-tinta"}`}>
+                        {proximoPasso(p)}
                       </td>
                       <td className="px-2">
                         {p.aguarda_municipe ? (
@@ -575,7 +623,7 @@ export function ListaProcessos() {
                           </span>
                         ) : (
                           <span className="text-xs text-tinta-3">
-                            sem técnico
+                            por atribuir
                           </span>
                         )}
                       </td>
