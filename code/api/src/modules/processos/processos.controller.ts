@@ -33,7 +33,10 @@ import {
 } from './processos-painel.service.js';
 import { ProcessosDemonstracaoService } from './processos-demonstracao.service.js';
 import { ProcessosService } from './processos.service.js';
-import { ProcessosVerificacoesService } from './processos-verificacoes.service.js';
+import {
+  esquemaVerificar,
+  ProcessosVerificacoesService,
+} from './processos-verificacoes.service.js';
 import {
   esquemaDocumentoAlterar,
   esquemaDocumentoTipo,
@@ -58,11 +61,27 @@ export class ProcessosPainelController {
    */
   @Post('demonstracao')
   @HttpCode(201)
-  carregarDemonstracao(
+  async carregarDemonstracao(
     @MunicipioAtual() m: Municipio,
     @UtilizadorAtual() u: UtilizadorPainel,
   ) {
-    return this.demonstracao.carregar(m, u);
+    const porta = await this.demonstracao.carregar(m, u);
+    // E os da análise por tipo de operação (ampliação, piscina, muro).
+    const outros = await this.demonstracao.carregarPerfis(m, u);
+    return { ...porta, outros };
+  }
+
+  /**
+   * Só os processos de demonstração da análise por tipo de operação:
+   * ampliação que excede o índice, piscina perto da extrema, muro em ordem.
+   */
+  @Post('demonstracao/perfis')
+  @HttpCode(201)
+  carregarDemonstracaoPerfis(
+    @MunicipioAtual() m: Municipio,
+    @UtilizadorAtual() u: UtilizadorPainel,
+  ) {
+    return this.demonstracao.carregarPerfis(m, u);
   }
 
   /** Totais por separador: ?fase=&texto=&tipo_processo_id=&servico_id=&freguesia= */
@@ -171,8 +190,9 @@ export class ProcessosPainelController {
 
   /**
    * Verificações automáticas (PDM, instrução, termo, Ordem simulada, leitura
-   * do projeto pela IA). Da cache até os documentos ou as regras mudarem;
-   * ?atualizar=true corre tudo outra vez, IA incluída.
+   * do projeto pela IA), pelo tipo de operação do processo. Da cache até
+   * os documentos ou as regras mudarem; ?atualizar=true corre tudo outra
+   * vez, IA incluída; ?perfil=piscina escolhe o tipo de operação (fica).
    */
   @Get(':id/verificacoes')
   verificar(
@@ -181,12 +201,8 @@ export class ProcessosPainelController {
     @Param('id', ParseUUIDPipe) id: string,
     @Query() query: unknown,
   ) {
-    return this.verificacoes.obter(
-      m,
-      u,
-      id,
-      validar(esquemaAtualizarCache, query).atualizar,
-    );
+    const q = validar(esquemaVerificar, query);
+    return this.verificacoes.obter(m, u, id, q.atualizar, q.perfil ?? null);
   }
 
   /** O ficheiro de um documento do processo (para o abrir na folha da evidência). */
