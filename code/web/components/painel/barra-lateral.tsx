@@ -21,6 +21,7 @@ import {
   MapPin,
   Megaphone,
   MonitorPlay,
+  MessageSquareHeart,
   MessagesSquare,
   Newspaper,
   NotebookPen,
@@ -196,6 +197,12 @@ const SECCOES: Seccao[] = [
         rotulo: "Indicadores",
         href: "/painel/indicadores",
         icone: ChartColumn,
+        recurso: "indicadores",
+      },
+      {
+        rotulo: "O que sentem os munícipes",
+        href: "/painel/concelho",
+        icone: MessageSquareHeart,
         recurso: "indicadores",
       },
       {

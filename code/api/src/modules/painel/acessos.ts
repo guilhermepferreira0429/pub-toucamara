@@ -178,6 +178,8 @@ const VERBOS: Record<string, string> = {
   editar_termo_glossario: 'editou',
   apagar_termo_glossario: 'apagou',
   carregar_glossario_demonstracao: 'carregou os termos de demonstração',
+  perguntar_concelho: 'perguntou ao concelho (o que sentem os munícipes)',
+  guardar_analise_concelho: 'guardou e partilhou',
 };
 
 const OBJETOS: Record<string, string> = {
@@ -240,6 +242,7 @@ const OBJETOS: Record<string, string> = {
   documento_simples: 'um documento oficial (linguagem simples)',
   termo_glossario: 'um termo do glossário',
   glossario: 'do glossário',
+  analise_concelho: 'uma análise do que sentem os munícipes',
 };
 
 export function frase(acao: string, objetoTipo: string): string {
@@ -273,6 +276,8 @@ export function ligacao(objetoTipo: string, objetoId: string): string | null {
       return `/painel/procedimentos/entrevistas/${objetoId}`;
     case 'documento_simples':
       return `/painel/conhecimento/linguagem-simples/${objetoId}`;
+    case 'analise_concelho':
+      return `/painel/concelho?analise=${objetoId}`;
     default:
       return null;
   }

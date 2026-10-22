@@ -67,6 +67,7 @@ import {
   telefoneDemo,
 } from './demo.regras.js';
 import { ImagemDemo, pngDemonstracao } from './imagens-demo.js';
+import { CONVERSAS_CONCELHO, criarConversaConcelho } from './concelho-demo.js';
 
 export interface OpcoesPreparar {
   limpar_testes?: boolean;
@@ -94,6 +95,12 @@ export function passosDemo(): Passo[] {
       passo: 'conversas',
       rotulo: 'Conversas por voz, chat, SMS e WhatsApp (últimos 30 dias)',
       chaves: CONVERSAS.map((c) => `conversa:${c.chave}`),
+    },
+    {
+      passo: 'concelho',
+      rotulo:
+        'Conversas por freguesia para o "Pergunte ao concelho" (obra em Azurém)',
+      chaves: CONVERSAS_CONCELHO.map((c) => `conversa:${c.chave}`),
     },
     {
       passo: 'passagens',
@@ -499,6 +506,7 @@ export class DemoService {
       ['base', () => this.base(ctx)],
       ['pessoas', () => this.pessoas(ctx)],
       ['conversas', () => this.conversas(ctx)],
+      ['concelho', () => this.concelho(ctx)],
       ['passagens', () => this.passagens(ctx)],
       ['zonas_pdm', () => this.zonasPdm(ctx)],
       ['processo_apoio', () => this.processoApoio(ctx)],
@@ -729,6 +737,32 @@ export class DemoService {
     }
     c.contar('conversas');
     return id;
+  }
+
+  /** Conversas anónimas com freguesia (Pergunte ao concelho). */
+  private async concelho(c: Preparacao) {
+    let i = 0;
+    for (const conv of CONVERSAS_CONCELHO) {
+      i++;
+      await this.umaVez(c.m, `conversa:${conv.chave}`, 'conversa', async () => {
+        const id = await this.db.transaction((tx) =>
+          criarConversaConcelho(
+            tx,
+            {
+              municipioId: c.m.id,
+              slug: c.m.slug,
+              fuso: c.m.fuso,
+              agora: c.agora,
+              temaId: c.temas.get(conv.tema) ?? null,
+            },
+            conv,
+            i,
+          ),
+        );
+        c.contar('conversas_concelho');
+        return id;
+      });
+    }
   }
 
   private async passagens(c: Preparacao) {
