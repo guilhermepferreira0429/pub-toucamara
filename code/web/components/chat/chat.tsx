@@ -285,7 +285,7 @@ export function Chat({
           <Link
             href={voltarHref}
             aria-label="Voltar"
-            className="flex size-8 items-center justify-center rounded-full text-tinta hover:bg-creme-2"
+            className="flex size-11 items-center justify-center rounded-full text-tinta hover:bg-creme-2"
           >
             <ChevronLeft className="size-6" aria-hidden />
           </Link>
@@ -309,7 +309,7 @@ export function Chat({
           onClick={() => enviar(PEDIR_PESSOA)}
           disabled={chat.ocupado}
           aria-label="Falar com uma pessoa"
-          className={`inline-flex shrink-0 items-center gap-1.5 rounded-full bg-terracota-suave font-semibold text-terracota-escuro transition-colors hover:bg-terracota-suave/70 disabled:opacity-60 ${janela ? "px-[11px] py-[7px] text-xs" : "px-3 py-2 text-[13px]"}`}
+          className={`inline-flex shrink-0 items-center gap-1.5 rounded-full bg-terracota-suave font-semibold text-terracota-escuro transition-colors hover:bg-terracota-suave/70 disabled:opacity-60 ${janela ? "min-h-9 px-[11px] py-[7px] text-xs" : "min-h-11 px-3.5 py-2 text-[14px]"}`}
         >
           <UserRound className={janela ? "size-3.5" : "size-[15px]"} aria-hidden />
           Pessoa
@@ -319,7 +319,7 @@ export function Chat({
             type="button"
             onClick={aoFechar}
             aria-label="Fechar o chat"
-            className="flex size-8 items-center justify-center rounded-full text-tinta-2 hover:bg-creme-2"
+            className="flex size-11 items-center justify-center rounded-full text-tinta-2 hover:bg-creme-2"
           >
             <X className="size-5" aria-hidden />
           </button>

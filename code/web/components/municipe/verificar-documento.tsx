@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 import { api } from "@/lib/api";
+import { useFocoPreso } from "@/lib/foco";
 import { Botao } from "@/components/ui/botao";
 import { MAXIMO_PDF, paraBase64, reduzirImagem } from "./imagem";
 import { Nota } from "./moldura";
@@ -146,6 +147,7 @@ export function VerificarDocumento({
   const camera = useRef<HTMLInputElement>(null);
   const galeria = useRef<HTMLInputElement>(null);
   const fechar = useRef<HTMLButtonElement>(null);
+  const caixa = useRef<HTMLDivElement>(null);
   const [docId, setDocId] = useState<string | null>(
     inicial ?? (documentos.length === 1 ? documentos[0].id : null),
   );
@@ -174,6 +176,8 @@ export function VerificarDocumento({
       document.body.style.overflow = antes;
     };
   }, []);
+  // Tab e Shift+Tab não saem do diálogo; ao fechar o foco volta ao botão.
+  useFocoPreso(caixa, true);
 
   useEffect(() => {
     return () => {
@@ -245,6 +249,7 @@ export function VerificarDocumento({
 
   return (
     <div
+      ref={caixa}
       role="dialog"
       aria-modal="true"
       aria-labelledby={titulo}
@@ -277,9 +282,9 @@ export function VerificarDocumento({
               className="max-h-full max-w-full rounded object-contain"
             />
           ) : eraPdf ? (
-            <FileText className="size-20 text-white/70" aria-hidden />
+            <FileText className="size-20 text-white/90" aria-hidden />
           ) : (
-            <p className="max-w-[260px] text-center text-[16px] leading-[1.5] text-white/85">
+            <p className="max-w-[260px] text-center text-[16px] leading-[1.5] text-white/90">
               Ponha o documento numa mesa, com boa luz, e fotografe-o inteiro, de
               frente.
             </p>

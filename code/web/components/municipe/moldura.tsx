@@ -94,7 +94,7 @@ export function CartaoDestaque({
       className={`flex w-full flex-col gap-3 rounded-[24px_24px_24px_6px] p-5 text-white ${TONS_DESTAQUE[tom]} ${className ?? ""}`}
     >
       {rotulo && (
-        <p className="text-[11px] font-bold tracking-[1px] text-white/80 uppercase">
+        <p className="text-[11px] font-bold tracking-[1px] text-white/90 uppercase">
           {rotulo}
         </p>
       )}

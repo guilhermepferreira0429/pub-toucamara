@@ -89,7 +89,7 @@ export function PaginaReclamacao({ codigo }: { codigo: string }) {
       {respondida ? (
         <CartaoDestaque rotulo="A câmara respondeu" tom="verde">
           <p className="text-[16px] leading-[1.5] whitespace-pre-line">{r.resposta}</p>
-          {r.respondida_em && <p className="text-[13px] text-white/80">{dataLonga(r.respondida_em)}</p>}
+          {r.respondida_em && <p className="text-[13px] text-white/90">{dataLonga(r.respondida_em)}</p>}
         </CartaoDestaque>
       ) : r.estado === "encerrada" ? (
         <Nota icone={MessageSquareText} tom="neutro" papel="status">
@@ -101,7 +101,7 @@ export function PaginaReclamacao({ codigo }: { codigo: string }) {
             <CalendarDays className="size-7" aria-hidden />
             {dataLonga(r.responder_ate)}
           </p>
-          <p className="text-[15px] text-white/85">
+          <p className="text-[15px] text-white/90">
             {r.prazo_dias_uteis} dias úteis a contar do dia em que a recebemos. Mandamos-lhe a resposta por SMS ou email
             e fica também nesta página.
           </p>

@@ -27,7 +27,7 @@ export default function Portal() {
   return (
     <div className="flex min-h-dvh flex-col bg-white font-body">
       <header className="flex h-[72px] shrink-0 items-center justify-between border-b border-[#e5e7eb] px-5 lg:px-16">
-        <a href="#" className="flex items-center gap-2.5" aria-label="Município de Guimarães, início">
+        <a href="#" className="flex min-h-11 items-center gap-2.5" aria-label="Município de Guimarães, início">
           <span className="size-[34px] rounded-md bg-[#d9dce1]" aria-hidden />
           <span className="flex flex-col">
             <span className="text-[10px] font-semibold tracking-[1px] text-[#6b7280]">
@@ -51,7 +51,7 @@ export default function Portal() {
             <Search className="size-[18px]" aria-hidden />
           </button>
         </nav>
-        <button type="button" aria-label="Menu" className="text-[#4b5563] md:hidden">
+        <button type="button" aria-label="Menu" className="flex size-11 items-center justify-center text-[#4b5563] md:hidden">
           <Menu className="size-6" aria-hidden />
         </button>
       </header>

@@ -239,7 +239,7 @@ export function PaginaApoios() {
                   <span className="text-xs text-tinta-3">últimas {dados.consultas.length}</span>
                 </div>
                 <Estado vazio={dados.consultas.length === 0} textoVazio="Ainda ninguém perguntou ao agente pelos apoios.">
-                  <div className="overflow-x-auto">
+                  <div className="overflow-x-auto" tabIndex={0}>
                     <table className="mt-3 w-full min-w-[820px] text-left text-[13px]">
                       <thead className="border-b border-linha text-[11px] tracking-[0.4px] text-tinta-3 uppercase">
                         <tr>

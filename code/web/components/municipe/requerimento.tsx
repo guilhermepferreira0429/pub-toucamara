@@ -119,7 +119,7 @@ export function ListaDocumentos({
               <button
                 type="button"
                 onClick={() => onFotografar(d.id)}
-                className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full bg-tinta px-3.5 text-[14px] font-semibold text-white hover:bg-tinta/90"
+                className="inline-flex h-11 shrink-0 items-center gap-1.5 rounded-full bg-tinta px-3.5 text-[14px] font-semibold text-white hover:bg-tinta/90"
               >
                 <Camera className="size-4" aria-hidden />
                 Fotografar

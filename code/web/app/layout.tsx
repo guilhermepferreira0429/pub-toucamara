@@ -5,6 +5,7 @@ import {
   JetBrains_Mono,
   Source_Serif_4,
 } from "next/font/google";
+import { SCRIPT_PREFERENCIAS } from "@/lib/acessibilidade";
 import "./globals.css";
 
 const bricolage = Bricolage_Grotesque({
@@ -34,8 +35,14 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="pt-PT"
+      // As opções de leitura do munícipe (letra, contraste) mudam data-* no
+      // <html> antes de o React arrancar.
+      suppressHydrationWarning
       className={`${bricolage.variable} ${inter.variable} ${sourceSerif.variable} ${jetbrains.variable} h-full antialiased`}
     >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: SCRIPT_PREFERENCIAS }} />
+      </head>
       <body className="min-h-full flex flex-col">{children}</body>
     </html>
   );

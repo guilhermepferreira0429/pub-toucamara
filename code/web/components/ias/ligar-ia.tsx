@@ -182,7 +182,7 @@ export function LigarIa() {
             <p className="text-[17px] leading-[1.4] font-semibold">
               «O caixote da minha rua não foi recolhido, trata disso.»
             </p>
-            <p className="text-[14px] leading-[1.45] text-white/80">
+            <p className="text-[14px] leading-[1.45] text-white/90">
               O assistente regista a ocorrência na câmara e recebe o número.
               O SMS com o link para a fotografia chega ao seu telemóvel.
             </p>
@@ -216,7 +216,7 @@ export function LigarIa() {
                       role="radio"
                       aria-checked={assistente === a}
                       onClick={() => setAssistente(a)}
-                      className={`rounded-full border-[1.5px] px-3.5 py-2 text-[14px] font-semibold ${
+                      className={`min-h-11 rounded-full border-[1.5px] px-4 py-2 text-[15px] font-semibold ${
                         assistente === a
                           ? "border-terracota bg-terracota-suave text-terracota-escuro"
                           : "border-linha text-tinta-2"
@@ -392,7 +392,7 @@ function CopiarCaixa({
               setTimeout(() => setCopiado(false), 2000);
             }
           }}
-          className="flex h-10 shrink-0 items-center gap-1.5 rounded-full bg-tinta px-3.5 text-[13px] font-semibold text-white"
+          className="flex h-11 shrink-0 items-center gap-1.5 rounded-full bg-tinta px-3.5 text-[14px] font-semibold text-white"
         >
           {copiado ? <Check className="size-4" aria-hidden /> : <Copy className="size-4" aria-hidden />}
           {copiado ? "Copiado" : "Copiar"}
