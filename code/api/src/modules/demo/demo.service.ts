@@ -53,6 +53,8 @@ import { OrdenamentoService } from '../ordenamento/ordenamento.service.js';
 import { PagamentosService } from '../pagamentos/pagamentos.service.js';
 import { ProcessosDemonstracaoService } from '../processos/processos-demonstracao.service.js';
 import { TurismoService } from '../turismo/turismo.service.js';
+import { EscolasService } from '../escolas/escolas.service.js';
+import { HabitacaoService } from '../habitacao/habitacao.service.js';
 import { PROCESSOS_PERFIS } from '../processos/projetos-perfis-pdf.js';
 import {
   CONVERSAS,
@@ -200,6 +202,18 @@ export function passosDemo(): Passo[] {
       passo: 'turismo',
       rotulo: 'Fontes de turismo em PT/EN/ES/FR (página /visitar)',
       chaves: ['turismo'],
+    },
+    {
+      passo: 'escolas',
+      rotulo:
+        'Escolas: alunos com cantina, transporte por decidir, atividades e pré-escolar',
+      chaves: ['escolas'],
+    },
+    {
+      passo: 'habitacao',
+      rotulo:
+        'Habitação municipal: fogos, inquilinos, reparações e candidaturas pontuadas',
+      chaves: ['habitacao'],
     },
     {
       passo: 'balcao',
@@ -545,6 +559,8 @@ export class DemoService {
       ['agora', () => this.agora(ctx)],
       ['linguagem_simples', () => this.linguagemSimples(ctx)],
       ['turismo', () => this.turismo(ctx)],
+      ['escolas', () => this.escolas(ctx)],
+      ['habitacao', () => this.habitacao(ctx)],
       ['balcao', () => this.balcao(ctx)],
       ['antecipacoes', () => this.antecipacoes(ctx)],
     ];
@@ -1605,6 +1621,38 @@ export class DemoService {
     await this.umaVez(c.m, 'turismo', 'turismo', async () => {
       const r = await this.svc(TurismoService).carregarDemonstracao(c.m, c.u);
       if (r.criadas) c.contar('turismo');
+      return c.m.id;
+    });
+  }
+
+  /** Escolas, atividades e alunos de demonstração (encarregados: munícipes com NIF). */
+  private async escolas(c: Preparacao) {
+    await this.umaVez(c.m, 'escolas', 'escolas', async () => {
+      const encarregados = ['sandra', 'maria', 'teresa', 'carlos', 'helena']
+        // Pela ordem: quem faltar fica '' e os seus registos não se criam.
+        .map((k) => c.pessoas.get(k)?.id ?? '');
+      const r = await this.svc(EscolasService).carregarDemonstracao(
+        c.m,
+        c.u,
+        encarregados,
+      );
+      if (r.alunos) c.contar('alunos');
+      return c.m.id;
+    });
+  }
+
+  /** Fogos, inquilinos, reparações e candidaturas de demonstração. */
+  private async habitacao(c: Preparacao) {
+    await this.umaVez(c.m, 'habitacao', 'habitacao', async () => {
+      const pessoas = ['manuel', 'teresa', 'pedro', 'helena', 'carlos', 'maria']
+        // Pela ordem: quem faltar fica '' e os seus registos não se criam.
+        .map((k) => c.pessoas.get(k)?.id ?? '');
+      const r = await this.svc(HabitacaoService).carregarDemonstracao(
+        c.m,
+        c.u,
+        pessoas,
+      );
+      if (r.fogos) c.contar('fogos');
       return c.m.id;
     });
   }
