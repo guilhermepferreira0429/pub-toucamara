@@ -4,6 +4,7 @@ import { JobsService } from '../../jobs/jobs.service.js';
 import { ConversasService } from '../conversas/conversas.service.js';
 import { LinguagemSimplesModule } from '../linguagem-simples/linguagem-simples.module.js';
 import { LinguagemSimplesService } from '../linguagem-simples/linguagem-simples.service.js';
+import { AvaliacaoPublicaController } from './avaliacao-publica.controller.js';
 import { AvaliacaoService } from './avaliacao.service.js';
 import { ferramentasConhecimento } from './conhecimento.ferramentas.js';
 import { EdicaoService } from './edicao.service.js';
@@ -58,7 +59,11 @@ import { DadosPropor, PropostasService } from './propostas.service.js';
   // As versões em linguagem simples publicadas entram no resultado de
   // procurar_conhecimento (link da página com o resumo e o texto oficial).
   imports: [LinguagemSimplesModule],
-  controllers: [PainelConhecimentoController, PainelRecolhaController],
+  controllers: [
+    PainelConhecimentoController,
+    PainelRecolhaController,
+    AvaliacaoPublicaController,
+  ],
   providers: [
     ConhecimentoService,
     EmbeddingsService,
