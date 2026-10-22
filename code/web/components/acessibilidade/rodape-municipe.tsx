@@ -1,4 +1,4 @@
-import { Accessibility } from "lucide-react";
+import { Accessibility, MapPin } from "lucide-react";
 import Link from "next/link";
 import { PedirLgp } from "./lingua-gestual";
 
@@ -10,6 +10,13 @@ export function RodapeMunicipe() {
       className="mt-10 flex w-full flex-col gap-5 border-t border-linha pt-6 text-tinta"
     >
       <PedirLgp />
+      <Link
+        href="/agora"
+        className="inline-flex min-h-11 items-center gap-2 self-start font-semibold text-terracota-escuro underline"
+      >
+        <MapPin className="size-5" aria-hidden />
+        O que se passa perto de mim
+      </Link>
       <Link
         href="/acessibilidade"
         className="inline-flex min-h-11 items-center gap-2 self-start font-semibold text-terracota-escuro underline"

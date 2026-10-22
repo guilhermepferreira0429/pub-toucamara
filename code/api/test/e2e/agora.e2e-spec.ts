@@ -440,6 +440,9 @@ describe('O que se passa perto de mim (e2e)', () => {
     it('tem itens de cada fonte e nenhum dado pessoal', async () => {
       const r = await feed(`${perto}&limite=100`).expect(200);
       expect(r.headers['cache-control']).toMatch(/max-age=60/);
+      // A página web mostra o número de SMS da câmara e as freguesias do filtro.
+      expect(r.body.municipio.telefone_sms).toBe(NUMERO_SMS);
+      expect(r.body.freguesias).toContain(FREGUESIA);
       const itens = r.body.itens as {
         id: string;
         fonte: string;
