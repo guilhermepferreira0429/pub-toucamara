@@ -1,5 +1,6 @@
-import { FileText, Menu, Search } from "lucide-react";
+import { FileText, MapPin, Menu, Search } from "lucide-react";
 import type { Metadata } from "next";
+import Link from "next/link";
 import { ChatNoSite } from "@/components/chat/chat-no-site";
 
 export const metadata: Metadata = {
@@ -81,6 +82,14 @@ export default function Portal() {
           </p>
 
           <ChatNoSite contexto={TITULO} />
+
+          <Link
+            href="/agora"
+            className="flex min-h-11 items-center gap-2.5 rounded-lg border border-[#e5e7eb] px-4 py-3 text-sm font-semibold text-[#1d4ed8] hover:underline"
+          >
+            <MapPin className="size-4 shrink-0 text-[#4b5563]" aria-hidden />
+            O que se passa perto de si: obras, cortes, avisos e eventos
+          </Link>
 
           <section className="flex flex-col pt-2">
             <h2 className="text-lg font-bold text-[#111827]">Documentos relacionados</h2>

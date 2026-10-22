@@ -1,0 +1,31 @@
+/* Marcadores do mapa "o que se passa" (components/agora/mapa-agora.tsx). */
+.agora-marcador {
+  background: transparent;
+  border: 0;
+  border-radius: 9999px;
+}
+.agora-marcador-bola {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2.5px solid #fff;
+  border-radius: 9999px;
+  box-sizing: border-box;
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.35);
+}
+/* Foco visível com teclado (o Leaflet tira o contorno por omissão). */
+.leaflet-container .agora-marcador:focus-visible {
+  outline: 3px solid #15263b;
+  outline-offset: 3px;
+}
+/* O link do balão com a cor e o contraste das páginas do munícipe. */
+.agora-mapa .leaflet-popup-content a {
+  color: var(--color-terracota-escuro);
+}
+/* Botões de zoom com 44 px (alvo de toque). */
+.agora-mapa .leaflet-control-zoom a {
+  width: 44px;
+  height: 44px;
+  line-height: 44px;
+  font-size: 22px;
+}
