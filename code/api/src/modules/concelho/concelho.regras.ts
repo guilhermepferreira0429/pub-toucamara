@@ -1132,12 +1132,13 @@ export function sinaisDaSemana(
     if ((kf && vistas.has(kf)) || (kt && vistas.has(kt))) continue;
     if (kf) vistas.add(kf);
     if (kt) vistas.add(kt);
-    const subida =
-      v === null ? 'novo' : `+${Math.round(v).toLocaleString('pt-PT')}%`;
     const sobre = g.tema ? ` sobre ${g.tema.toLowerCase()}` : '';
     const onde = g.freguesia ? `${g.freguesia}: ` : '';
     r.push({
-      texto: `${onde}${subida} conversas${sobre} nos últimos 7 dias (${g.n} contra ${g.anterior})`,
+      texto:
+        v === null
+          ? `${onde}${g.n} conversas${sobre} nos últimos 7 dias (nenhuma nos 7 antes)`
+          : `${onde}+${Math.round(v).toLocaleString('pt-PT')}% conversas${sobre} nos últimos 7 dias (${g.n} contra ${g.anterior})`,
       pergunta: g.freguesia
         ? `O que preocupa as pessoas de ${g.freguesia}${sobre} esta semana?`
         : `Porque estão as pessoas a falar mais${sobre} esta semana?`,
