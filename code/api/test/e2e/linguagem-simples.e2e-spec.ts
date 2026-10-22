@@ -601,11 +601,15 @@ describe('Linguagem simples e glossário (e2e)', () => {
       const d = await ferramenta(ctx, novaChamada(), 'documento_simples', {
         pesquisa: `regulamento dos ${palavra}`,
       }).expect(200);
-      expect(d.body.encontrado).toBe(false);
+      // (Outro documento da BD partilhada, ex.: o da demo, pode aparecer;
+      // o nosso não.)
+      expect(JSON.stringify(d.body)).not.toContain(`/documento/${codigo}`);
       const k = await ferramenta(ctx, novaChamada(), 'procurar_conhecimento', {
         pergunta: `Quanto custa a taxa dos ${palavra}?`,
       }).expect(200);
-      expect(k.body.documentos_simples).toBeUndefined();
+      expect(JSON.stringify(k.body.documentos_simples ?? [])).not.toContain(
+        `/documento/${codigo}`,
+      );
 
       // Gerar de novo sobre o texto novo e publicar: volta a estar em dia.
       const g = await gerarComIa();
