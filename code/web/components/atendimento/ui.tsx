@@ -1,4 +1,5 @@
 import { RefreshCw, type LucideIcon } from "lucide-react";
+import { ROLO_SEPARADORES } from "@/components/painel/rolo";
 import { resultado, TONS, type Tom } from "./formatos";
 
 /* Peças visuais repetidas nos ecrãs de atendimento (design: cartões em papel). */
@@ -24,12 +25,13 @@ export function Cartao({
   return (
     <section
       aria-labelledby={titulo ? tituloId : undefined}
-      className={`flex min-w-0 flex-col gap-4 rounded-2xl p-6 ${
+      className={`flex min-w-0 flex-col gap-4 rounded-2xl p-4 sm:p-6 ${
         escuro ? "bg-tinta text-white" : "border border-linha bg-papel"
       } ${className ?? ""}`}
     >
+      {/* No telemóvel a ação (legenda, ligação) fica numa linha própria. */}
       {(titulo || acao) && (
-        <div className="flex items-end justify-between gap-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
           <div className="flex min-w-0 flex-col gap-1">
             {titulo && (
               <h2
@@ -208,7 +210,7 @@ export function Separadores<T extends string>({
   rotulo: string;
 }) {
   return (
-    <div role="tablist" aria-label={rotulo} className="flex gap-5 overflow-x-auto">
+    <div role="tablist" aria-label={rotulo} className={`flex gap-5 overflow-x-auto ${ROLO_SEPARADORES}`}>
       {opcoes.map((o) => {
         const ativo = o.valor === valor;
         return (

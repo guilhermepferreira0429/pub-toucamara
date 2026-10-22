@@ -21,7 +21,7 @@ export function Separadores<T extends string>({
   rotulo: string;
 }) {
   return (
-    <div className="flex gap-1 px-10 pb-4" role="tablist" aria-label={rotulo}>
+    <div className="flex gap-1 overflow-x-auto px-4 pb-4 sm:px-10 [&>*]:shrink-0 [&>*]:whitespace-nowrap" role="tablist" aria-label={rotulo}>
       {opcoes.map(([v, texto]) => (
         <button
           key={v}

@@ -94,7 +94,7 @@ export function Indicadores() {
           </>
         }
       />
-      <div className="flex flex-col gap-6 px-10">
+      <div className="flex flex-col gap-6 px-4 sm:px-10">
         <Perguntar />
 
         <div className="border-b border-linha">

@@ -213,7 +213,7 @@ export function FichaProcesso() {
       </div>
     );
   }
-  if (!p) return <ACarregar className="px-10 pt-10" texto="A abrir o processo…" />;
+  if (!p) return <ACarregar className="px-4 pt-10 sm:px-10" texto="A abrir o processo…" />;
 
   const gd = estadoSync(p, sync);
 
@@ -246,7 +246,7 @@ export function FichaProcesso() {
   return (
     <div className="pb-10">
       {gd?.erro && (
-        <div className="px-10 pt-7">
+        <div className="px-4 pt-7 sm:px-10">
           <div
             role="alert"
             className="flex flex-wrap items-center gap-3.5 rounded-[14px] bg-[#F8DCD6] px-[18px] py-3.5"
@@ -332,7 +332,7 @@ export function FichaProcesso() {
         }
       />
 
-      <div className="flex flex-col gap-6 px-10">
+      <div className="flex flex-col gap-6 px-4 sm:px-10">
         <NotaFicha mensagem={mensagem} onFechar={() => setMensagem(null)} />
         <Passos p={p} />
 

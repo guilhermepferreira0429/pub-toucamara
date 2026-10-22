@@ -398,62 +398,64 @@ function Ligacoes({
         vazio={ligacoes?.length === 0}
         textoVazio="Ainda ninguém ligou o seu assistente."
       >
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="text-left text-[11px] font-bold tracking-[0.4px] text-tinta-3 uppercase">
-              <th className="px-5 py-2.5">Assistente</th>
-              <th className="px-3 py-2.5">Munícipe</th>
-              <th className="px-3 py-2.5">Pedidos</th>
-              <th className="px-3 py-2.5">Último uso</th>
-              <th className="px-3 py-2.5">Estado</th>
-              <th className="px-5 py-2.5" />
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-linha">
-            {(ligacoes ?? []).map((l) => (
-              <tr key={l.id} className={l.ativa ? "" : "text-tinta-3"}>
-                <td className="px-5 py-3">
-                  <span className="font-semibold text-tinta">{l.assistente}</span>
-                  <span className="ml-2 font-mono text-xs text-tinta-3">…{l.chave_fim}</span>
-                </td>
-                <td className="px-3 py-3">
-                  {l.municipe.nome ? `${l.municipe.nome} · ` : ""}
-                  {l.municipe.telefone}
-                </td>
-                <td className="px-3 py-3">{numero(l.pedidos)}</td>
-                <td className="px-3 py-3">{quando(l.ultimo_uso_em)}</td>
-                <td className="px-3 py-3">
-                  {l.ativa ? (
-                    <Pilula tom="verde">ligado</Pilula>
-                  ) : (
-                    <Pilula tom="neutro">
-                      desligado {l.revogada_por === "camara" ? "pela câmara" : "pela pessoa"}
-                    </Pilula>
-                  )}
-                </td>
-                <td className="px-5 py-3 text-right">
-                  {l.ativa && pode("agente") && (
-                    <Botao
-                      tamanho="pequeno"
-                      variante="discreto"
-                      icone={Unplug}
-                      disabled={acao.aCorrer}
-                      onClick={async () => {
-                        if (!window.confirm(`Desligar o ${l.assistente} desta pessoa?`)) return;
-                        const ok = await acao.executar(() =>
-                          pedido(`/v1/painel/ias/ligacoes/${l.id}/revogar`, { metodo: "POST" }),
-                        );
-                        if (ok !== undefined) onMudou();
-                      }}
-                    >
-                      Desligar
-                    </Botao>
-                  )}
-                </td>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-left text-[11px] font-bold tracking-[0.4px] text-tinta-3 uppercase">
+                <th className="px-5 py-2.5">Assistente</th>
+                <th className="px-3 py-2.5">Munícipe</th>
+                <th className="px-3 py-2.5">Pedidos</th>
+                <th className="px-3 py-2.5">Último uso</th>
+                <th className="px-3 py-2.5">Estado</th>
+                <th className="px-5 py-2.5" />
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-linha">
+              {(ligacoes ?? []).map((l) => (
+                <tr key={l.id} className={l.ativa ? "" : "text-tinta-3"}>
+                  <td className="px-5 py-3">
+                    <span className="font-semibold text-tinta">{l.assistente}</span>
+                    <span className="ml-2 font-mono text-xs text-tinta-3">…{l.chave_fim}</span>
+                  </td>
+                  <td className="px-3 py-3">
+                    {l.municipe.nome ? `${l.municipe.nome} · ` : ""}
+                    {l.municipe.telefone}
+                  </td>
+                  <td className="px-3 py-3">{numero(l.pedidos)}</td>
+                  <td className="px-3 py-3">{quando(l.ultimo_uso_em)}</td>
+                  <td className="px-3 py-3">
+                    {l.ativa ? (
+                      <Pilula tom="verde">ligado</Pilula>
+                    ) : (
+                      <Pilula tom="neutro">
+                        desligado {l.revogada_por === "camara" ? "pela câmara" : "pela pessoa"}
+                      </Pilula>
+                    )}
+                  </td>
+                  <td className="px-5 py-3 text-right">
+                    {l.ativa && pode("agente") && (
+                      <Botao
+                        tamanho="pequeno"
+                        variante="discreto"
+                        icone={Unplug}
+                        disabled={acao.aCorrer}
+                        onClick={async () => {
+                          if (!window.confirm(`Desligar o ${l.assistente} desta pessoa?`)) return;
+                          const ok = await acao.executar(() =>
+                            pedido(`/v1/painel/ias/ligacoes/${l.id}/revogar`, { metodo: "POST" }),
+                          );
+                          if (ok !== undefined) onMudou();
+                        }}
+                      >
+                        Desligar
+                      </Botao>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </Estado>
     </Cartao>
   );
