@@ -39,6 +39,7 @@ import { ComunicacaoModule } from './modules/comunicacao/comunicacao.module.js';
 import { ConhecimentoModule } from './modules/conhecimento/conhecimento.module.js';
 import { ConversasModule } from './modules/conversas/conversas.module.js';
 import { EmailsModule } from './modules/emails/emails.module.js';
+import { EmpresasModule } from './modules/empresas/empresas.module.js';
 import { MarcacoesModule } from './modules/marcacoes/marcacoes.module.js';
 import { MunicipesModule } from './modules/municipes/municipes.module.js';
 import { MunicipiosModule } from './modules/municipios/municipios.module.js';
@@ -118,6 +119,7 @@ import { TransparenciaModule } from './modules/transparencia/transparencia.modul
     CampanhasModule,
     LicencasModule,
     OrdenamentoModule,
+    EmpresasModule,
     ApoiosModule,
     // V2
     EntradaModule,

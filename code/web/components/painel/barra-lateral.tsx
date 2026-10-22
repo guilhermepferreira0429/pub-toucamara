@@ -27,6 +27,7 @@ import {
   Search,
   Siren,
   Sparkles,
+  Store,
   Users,
   Vote,
   type LucideIcon,
@@ -154,6 +155,12 @@ const SECCOES: Seccao[] = [
         rotulo: "Licenças",
         href: "/painel/licencas",
         icone: BadgeCheck,
+        recurso: "processos",
+      },
+      {
+        rotulo: "Balcão para empresas",
+        href: "/painel/empresas",
+        icone: Store,
         recurso: "processos",
       },
       {

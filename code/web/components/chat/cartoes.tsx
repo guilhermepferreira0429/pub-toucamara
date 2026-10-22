@@ -23,6 +23,7 @@ import {
   Phone,
   Send,
   Siren,
+  Store,
   TriangleAlert,
   UserRound,
   Vote,
@@ -1074,6 +1075,68 @@ function CartaoAgora({ ferramenta, dados }: { ferramenta: string; dados: Dados }
   );
 }
 
+/* ------------------------------------------------------------------ */
+/* Balcão para empresas (o_que_a_empresa_precisa, obrigacoes_da_empresa) */
+/* ------------------------------------------------------------------ */
+
+function CartaoEmpresa({ ferramenta, dados }: { ferramenta: string; dados: Dados }) {
+  const link = txt(dados.link);
+  const datas = lista(dados.proximas_datas);
+  if (ferramenta === "obrigacoes_da_empresa") {
+    if (dados.encontrado !== true) return null;
+    return (
+      <div className={`${CAIXA} gap-3 border-linha p-4`}>
+        <p className="flex items-center gap-2 text-sm font-semibold text-tinta">
+          <Calendar className="size-4 shrink-0 text-terracota-escuro" aria-hidden />
+          As próximas datas
+        </p>
+        {datas.length > 0 ? (
+          <ul className="rounded-xl bg-creme px-3">
+            {datas.map((x, k) => (
+              <Linha key={k} icone={Clock}>
+                <span className="font-semibold">{txt(x.titulo)}</span>
+                {txt(x.dito) && <span className="block text-xs text-tinta-2">{txt(x.dito)}</span>}
+              </Linha>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-sm text-tinta-2">Sem renovações nem prazos nos próximos meses.</p>
+        )}
+        {link && <LinkCartao href={link} icone={Calendar}>Ver o calendário e adicionar ao telemóvel</LinkCartao>}
+      </div>
+    );
+  }
+  // Enquanto pergunta o que falta: nada a mostrar.
+  if (dados.respondido !== true) return null;
+  const itens = lista(dados.itens).filter((x) => txt(x.titulo));
+  const total = num(dados.total) ?? itens.length;
+  return (
+    <div className={`${CAIXA} gap-3 border-linha p-4`}>
+      <p className="flex items-center gap-2 text-sm font-semibold text-tinta">
+        <Store className="size-4 shrink-0 text-terracota-escuro" aria-hidden />
+        {txt(dados.atividade) ? `${txt(dados.atividade)}: o que precisa` : "O que a empresa precisa"}
+      </p>
+      <ul className="rounded-xl bg-creme px-3">
+        {itens.map((x) => (
+          <Linha key={txt(x.chave) ?? txt(x.titulo)} icone={x.onde === "camara" ? Landmark : Globe}>
+            <span className="font-semibold">{txt(x.titulo)}</span>
+            <span className="block text-xs text-tinta-2">
+              {x.onde === "camara" ? "Na câmara" : txt(x.entidade)}
+              {txt(x.taxa) ? ` · ${txt(x.taxa)}` : ""}
+            </span>
+          </Linha>
+        ))}
+      </ul>
+      {total > itens.length && <p className="text-xs text-tinta-2">E mais {total - itens.length} na lista completa.</p>}
+      {dados.sms_enviado === true && <Feito>Enviámos o link por SMS</Feito>}
+      {dados.valores_de_demonstracao === true && (
+        <Etiqueta className="self-start">valores de demonstração</Etiqueta>
+      )}
+      {link && <LinkCartao href={link}>Ver a lista completa e o calendário</LinkCartao>}
+    </div>
+  );
+}
+
 /** O cartão certo para cada tipo (os desconhecidos não aparecem). */
 export function CartaoChat({ cartao, acoes }: { cartao: Cartao; acoes: AcoesCartao }) {
   switch (cartao.tipo) {
@@ -1109,6 +1172,8 @@ export function CartaoChat({ cartao, acoes }: { cartao: Cartao; acoes: AcoesCart
       return <CartaoReclamacao dados={cartao.dados} />;
     case "agora":
       return <CartaoAgora ferramenta={cartao.ferramenta} dados={cartao.dados} />;
+    case "empresa":
+      return <CartaoEmpresa ferramenta={cartao.ferramenta} dados={cartao.dados} />;
     default:
       return null;
   }

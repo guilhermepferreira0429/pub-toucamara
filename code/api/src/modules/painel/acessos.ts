@@ -139,6 +139,10 @@ const VERBOS: Record<string, string> = {
   apagar_evento: 'apagou',
   subscrever_agora: 'pediu avisos de',
   aceitar_avisos: 'voltou a aceitar avisos em',
+  mudar_requisito_empresa: 'mudou um requisito de',
+  criar_requisito_empresa: 'acrescentou um requisito a',
+  repor_requisito_empresa: 'repôs o original de um requisito de',
+  ver_obrigacoes_empresa: 'viu o calendário de obrigações de',
 };
 
 const OBJETOS: Record<string, string> = {
@@ -194,6 +198,7 @@ const OBJETOS: Record<string, string> = {
   comunicado: 'um comunicado ou notícia',
   evento: 'um evento',
   agora_subscricao: 'uma zona (o que se passa perto de mim)',
+  empresa_requisito: 'o balcão para empresas',
 };
 
 export function frase(acao: string, objetoTipo: string): string {

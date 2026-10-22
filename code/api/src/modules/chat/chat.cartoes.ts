@@ -19,7 +19,8 @@ export type TipoCartao =
   | 'apoios'
   | 'consulta'
   | 'reclamacao'
-  | 'agora';
+  | 'agora'
+  | 'empresa';
 
 export interface FonteCartao {
   titulo: string;
@@ -68,6 +69,10 @@ const POR_FERRAMENTA: Record<
   // subscrição "avise-me" (zona, tipos).
   o_que_se_passa: 'agora',
   avisar_me: 'agora',
+  // Balcão para empresas: a lista do que precisa (itens, link) e o
+  // calendário de obrigações (próximas datas, link).
+  o_que_a_empresa_precisa: 'empresa',
+  obrigacoes_da_empresa: 'empresa',
 };
 
 function objeto(v: unknown): Record<string, unknown> {
