@@ -161,7 +161,7 @@ describe('Preparar demo (e2e)', () => {
     expect(r.body.criados).toMatchObject({
       conversas: 45,
       licencas: 3,
-      processos: 4,
+      processos: 7, // 4 + os 3 da análise por tipo de operação
     });
 
     const depois1 = await numeros();

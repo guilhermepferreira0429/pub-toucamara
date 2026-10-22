@@ -434,8 +434,22 @@ export interface Evidencia {
   url?: string | null;
 }
 
+export type GrupoVerificacao = "documentos" | "pdm" | "desenhos";
+
+/** Uma linha da tabela lido (desenhos, IA) × declarado (requerimento) × permitido (PDM). */
+export interface ValorComparado {
+  grandeza: string;
+  rotulo: string;
+  unidade: string;
+  lido: { valor: number; evidencia: Evidencia | null } | null;
+  declarado: number | null;
+  permitido: { valor: number; sentido: "max" | "min"; origem: string } | null;
+}
+
 export interface Verificacao {
   codigo: string;
+  grupo?: GrupoVerificacao;
+  valor?: ValorComparado | null;
   estado: EstadoAutomatico;
   titulo: string;
   detalhe: string;
@@ -446,10 +460,35 @@ export interface Verificacao {
   notas: string[];
 }
 
+export type PerfilVerificacao =
+  | "interior"
+  | "ampliacao"
+  | "construcao_nova"
+  | "piscina"
+  | "muro"
+  | "fachada"
+  | "demolicao"
+  | "mudanca_uso";
+
+/** O tipo de operação com que se verificou (V4 · análise de projetos de obras). */
+export interface InfoPerfil {
+  codigo: PerfilVerificacao | null;
+  nome: string | null;
+  escolhido_por: "tecnico" | "requerimento" | "tipo" | "texto" | null;
+  ambiguo: boolean;
+  candidatos: { codigo: PerfilVerificacao; nome: string }[];
+  opcoes: { codigo: PerfilVerificacao; nome: string }[];
+  sempre_tecnico: string[];
+  procurar: string[];
+}
+
 export interface Verificacoes {
   processo_id: string;
   itens: Verificacao[];
   contagem: Record<EstadoAutomatico, number>;
+  /** Ausente nas respostas antigas. */
+  perfil?: InfoPerfil;
+  pronto_para_decisao?: boolean;
   gerado_em: string;
   gerado_por: { id: string; nome: string | null } | null;
   leitura_ia_em: string | null;

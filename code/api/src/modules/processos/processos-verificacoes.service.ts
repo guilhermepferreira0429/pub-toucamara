@@ -1,4 +1,5 @@
 import { HttpStatus, Inject, Injectable, Logger } from '@nestjs/common';
+import { z } from 'zod';
 import { hojeLisboa } from '../../common/dias-uteis.js';
 import { ErroApi } from '../../common/erros.js';
 import type { UtilizadorPainel } from '../../common/pedido.js';
@@ -12,6 +13,19 @@ import { GeocodificacaoService } from '../ocorrencias/geocodificacao.js';
 import { OrdenamentoService } from '../ordenamento/ordenamento.service.js';
 import type { Ponto } from '../ordenamento/regras.js';
 import { descricaoDoRequerimento } from './apoio.js';
+import {
+  DEFINICOES,
+  declaradosDoRequerimento,
+  EscolhaPerfil,
+  escolherPerfil,
+  infoPerfil,
+  medidasParaPdm,
+  pedidoDoPerfil,
+  Perfil,
+  PERFIS,
+  prontoParaDecisao,
+  verificacoesDoPerfil,
+} from './perfis-verificacao.js';
 import { ProcessosPainelService } from './processos-painel.service.js';
 import { TiposProcessoService } from './tipos-processo.service.js';
 import {
@@ -29,6 +43,7 @@ import {
   MAX_BYTES_IA,
   MAX_FICHEIROS_IA,
   obraDoProcesso,
+  OpcoesLeitura,
   PROJETO,
   ResultadoLeitura,
   SISTEMA_LEITURA_PROJETO,
@@ -57,14 +72,15 @@ const HASH_DOCUMENTOS = `md5(coalesce((
 const HASH_REGRAS = `md5(concat_ws('|',
   p.tipo_processo_id, p.assunto, p.morada, p.lat, p.lng,
   (SELECT string_agg(concat_ws(':', z.id, z.nome, z.categoria, z.regras::text, z.poligono::text,
-                               z.fonte::text, z.demonstracao), ',' ORDER BY z.id)
+                               z.fonte::text, z.demonstracao, z.parametros::text), ',' ORDER BY z.id)
      FROM zonas_pdm z WHERE z.municipio_id = p.municipio_id),
   (SELECT string_agg(concat_ws(':', td.id, td.nome, td.obrigatorio, td.gerado_pelo_sistema,
                                td.verificacoes::text), ',' ORDER BY td.id)
      FROM tipo_processo_documentos td WHERE td.tipo_processo_id = p.tipo_processo_id),
   (SELECT string_agg(concat_ws(':', pp.id, pp.respondido_em), ',' ORDER BY pp.id)
      FROM processo_pedidos_estado pp WHERE pp.processo_id = p.id),
-  (SELECT max(r.atualizado_em) FROM requerimentos r WHERE r.processo_id = p.id)))`;
+  (SELECT max(r.atualizado_em) FROM requerimentos r WHERE r.processo_id = p.id),
+  (SELECT string_agg(md5(r.dados::text), ',' ORDER BY r.id) FROM requerimentos r WHERE r.processo_id = p.id)))`;
 
 interface LinhaVerificacoes {
   id: string;
@@ -74,6 +90,8 @@ interface LinhaVerificacoes {
   resultado: Verificacao[];
   leitura_ia: unknown;
   leitura_ia_em: Date | null;
+  /** O perfil com que correu (null nas verificações antes da V4). */
+  perfil: EscolhaPerfil | null;
   gerado_por: string | null;
   gerado_por_nome: string | null;
   gerado_em: Date;
@@ -83,6 +101,22 @@ interface LinhaVerificacoes {
 interface LeituraGuardada {
   documentos: DocumentoLido[];
   resposta: unknown;
+  /** O perfil com que a IA leu (o pedido muda com ele). */
+  perfil?: Perfil | null;
+}
+
+/** ?atualizar=true corre tudo outra vez; ?perfil=piscina escolhe o tipo de operação. */
+export const esquemaVerificar = z.object({
+  atualizar: z
+    .enum(['true', 'false'])
+    .transform((v) => v === 'true')
+    .default(false),
+  perfil: z.enum(PERFIS).optional(),
+});
+
+/** As opções da leitura para o perfil (sem perfil: como antes da V4). */
+function opcoesLeitura(perfil: Perfil | null): OpcoesLeitura {
+  return perfil ? DEFINICOES[perfil].leitura : {};
 }
 
 interface DocumentoDoProcesso {
@@ -159,7 +193,7 @@ export class ProcessosVerificacoesService {
   private async ultima(processoId: string): Promise<LinhaVerificacoes | null> {
     const [l] = await this.db.query<LinhaVerificacoes>(
       `SELECT v.id, v.versao_motor, v.documentos_hash, v.regras_hash, v.resultado, v.leitura_ia,
-              v.leitura_ia_em, v.gerado_por, u.nome AS gerado_por_nome, v.gerado_em
+              v.leitura_ia_em, v.perfil, v.gerado_por, u.nome AS gerado_por_nome, v.gerado_em
        FROM processo_verificacoes v LEFT JOIN utilizadores u ON u.id = v.gerado_por
        WHERE v.processo_id = $1 ORDER BY v.gerado_em DESC, v.id LIMIT 1`,
       [processoId],
@@ -173,10 +207,20 @@ export class ProcessosVerificacoesService {
     emCache: boolean,
     atual: boolean,
   ) {
+    const escolha: EscolhaPerfil = l.perfil ?? {
+      perfil: null,
+      escolhido_por: null,
+      candidatos: [],
+      ambiguo: true,
+    };
     return {
       processo_id: processoId,
       itens: l.resultado,
       contagem: contagem(l.resultado),
+      /** O tipo de operação com que se verificou e o que fica para o técnico. */
+      perfil: infoPerfil(escolha),
+      /** Tudo verificado sem falhas nem avisos (o que vem da IA confirma-se na mesma). */
+      pronto_para_decisao: prontoParaDecisao(l.resultado),
       gerado_em: l.gerado_em,
       gerado_por: l.gerado_por
         ? { id: l.gerado_por, nome: l.gerado_por_nome }
@@ -217,12 +261,19 @@ export class ProcessosVerificacoesService {
     u: UtilizadorPainel,
     id: string,
     atualizar: boolean,
+    /** O tipo de operação escolhido pelo técnico (fica para as seguintes). */
+    perfilPedido: Perfil | null = null,
   ) {
     await this.painel.carregar(municipio.id, id);
     const h = await this.hashes(id);
     const ultima = await this.ultima(id);
+    const mesmoPerfilPedido =
+      !perfilPedido ||
+      (ultima?.perfil?.perfil === perfilPedido &&
+        ultima.perfil.escolhido_por === 'tecnico');
     if (
       !atualizar &&
+      mesmoPerfilPedido &&
       ultima &&
       ultima.versao_motor === VERSAO_VERIFICACOES &&
       ultima.documentos_hash === h.documentos &&
@@ -242,16 +293,37 @@ export class ProcessosVerificacoesService {
       [id],
     );
     const descricao = descricaoDoRequerimento(d.requerimento?.dados ?? []);
+    const [req] = await this.db.query<{ dados: unknown }>(
+      `SELECT dados FROM requerimentos WHERE processo_id = $1
+       ORDER BY atualizado_em DESC, id LIMIT 1`,
+      [id],
+    );
+    const declarados = declaradosDoRequerimento(req?.dados);
+
+    // O tipo de operação: o do técnico (agora ou antes), o declarado, o do tipo ou o do texto.
+    const escolhidoAntes =
+      ultima?.perfil?.escolhido_por === 'tecnico' ? ultima.perfil.perfil : null;
+    const escolha = escolherPerfil({
+      tipo: { codigo: d.tipo.codigo, nome: d.tipo.nome },
+      assunto: d.assunto,
+      descricao,
+      operacao_declarada: declarados.operacao,
+      escolhido: perfilPedido ?? escolhidoAntes,
+    });
+    const perfil = escolha.perfil;
+    const opcoes = opcoesLeitura(perfil);
 
     // 5. Leitura do projeto (primeiro: o técnico autor serve à Ordem e ao termo).
     let leituraIa: unknown = null;
     let leituraIaEm: Date | null = null;
     let origemLeitura: 'nova' | 'reaproveitada' | 'sem' = 'sem';
     let leitura: ResultadoLeitura;
+    const guardadaAntes = ultima?.leitura_ia as LeituraGuardada | null;
     const anterior =
       !atualizar &&
-      ultima?.leitura_ia &&
-      ultima.documentos_hash === h.documentos
+      guardadaAntes &&
+      ultima?.documentos_hash === h.documentos &&
+      (guardadaAntes.perfil ?? null) === perfil
         ? ultima
         : null;
     const lidos = this.documentosParaLer(docs);
@@ -260,9 +332,13 @@ export class ProcessosVerificacoesService {
       leituraIa = guardada;
       leituraIaEm = anterior.leitura_ia_em;
       origemLeitura = 'reaproveitada';
-      leitura = interpretarLeitura(guardada.resposta, guardada.documentos);
+      leitura = interpretarLeitura(
+        guardada.resposta,
+        guardada.documentos,
+        opcoes,
+      );
     } else {
-      const r = await this.lerProjeto(d, descricao, lidos);
+      const r = await this.lerProjeto(d, descricao, lidos, perfil);
       leitura = r.leitura;
       if (r.bruto) {
         leituraIa = r.bruto;
@@ -324,7 +400,7 @@ export class ProcessosVerificacoesService {
     );
 
     // 1. PDM no local (o mesmo motor do o_que_posso_fazer).
-    const zonas = await this.ordenamento.zonas(municipio.id);
+    const zonas = await this.zonasComParametros(municipio.id);
     let ponto: Ponto | null =
       d.lat !== null && d.lng !== null ? [d.lat, d.lng] : null;
     let semPonto: string | undefined;
@@ -340,13 +416,38 @@ export class ProcessosVerificacoesService {
           semPonto = `O processo não tem coordenadas e a morada "${d.morada}" não foi encontrada no mapa.`;
       }
     }
+    const obra = perfil
+      ? DEFINICOES[perfil].obra
+      : obraDoProcesso(`${d.tipo.nome}. ${d.assunto}. ${descricao}`);
     const pdm = verificarPdm({
       ponto,
       sem_ponto: semPonto,
       zonas,
-      obra: obraDoProcesso(`${d.tipo.nome}. ${d.assunto}. ${descricao}`),
+      obra,
       tipo: { codigo: d.tipo.codigo, nome: d.tipo.nome },
+      medidas: medidasParaPdm(perfil, declarados),
     });
+    if (perfil && !obra) {
+      // O motor de degraus não tem esta operação: dizem-no os parâmetros.
+      pdm.notas = pdm.notas.filter(
+        (n) => !/^Não se percebeu o tipo de obra/.test(n),
+      );
+      pdm.notas.push(
+        `Para ${DEFINICOES[perfil].nome.toLowerCase()} contam os parâmetros da zona (abaixo).`,
+      );
+    }
+
+    // O que o tipo de operação acrescenta (documentos, números, elementos).
+    const extra = perfil
+      ? verificacoesDoPerfil({
+          perfil,
+          ponto,
+          zonas,
+          documentos: docs.map((x) => ({ id: x.id, nome: nomeDoc(x) })),
+          declarados,
+          leitura,
+        })
+      : null;
 
     const resultado = juntarVerificacoes({
       leitura,
@@ -354,12 +455,15 @@ export class ProcessosVerificacoesService {
       termo: vTermo,
       ordem: vOrdem,
       pdm,
+      documentos_perfil: extra?.documentos,
+      pdm_perfil: extra?.pdm,
+      desenhos_perfil: extra?.desenhos,
     });
 
     const [l] = await this.db.query<{ id: string; gerado_em: Date }>(
       `INSERT INTO processo_verificacoes (municipio_id, processo_id, versao_motor, documentos_hash,
-         regras_hash, resultado, leitura_ia, leitura_ia_em, gerado_por)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id, gerado_em`,
+         regras_hash, resultado, leitura_ia, leitura_ia_em, perfil, gerado_por)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id, gerado_em`,
       [
         municipio.id,
         id,
@@ -369,6 +473,7 @@ export class ProcessosVerificacoesService {
         JSON.stringify(resultado),
         leituraIa === null ? null : JSON.stringify(leituraIa),
         leituraIaEm,
+        JSON.stringify(escolha),
         u.id,
       ],
     );
@@ -383,6 +488,8 @@ export class ProcessosVerificacoesService {
         verificacoes_id: l.id,
         contagem: contagem(resultado),
         leitura_ia: origemLeitura,
+        perfil: escolha.perfil,
+        perfil_escolhido_por: escolha.escolhido_por,
         documentos_hash: h.documentos,
         regras_hash: h.regras,
         versao_motor: VERSAO_VERIFICACOES,
@@ -398,6 +505,7 @@ export class ProcessosVerificacoesService {
         resultado,
         leitura_ia: leituraIa,
         leitura_ia_em: leituraIaEm,
+        perfil: escolha,
         gerado_por: u.id,
         gerado_por_nome: u.nome,
         gerado_em: l.gerado_em,
@@ -405,6 +513,19 @@ export class ProcessosVerificacoesService {
       false,
       true,
     );
+  }
+
+  /** As zonas do PDM com os parâmetros urbanísticos (`zonas_pdm.parametros`). */
+  private async zonasComParametros(municipioId: string) {
+    const [zonas, parametros] = await Promise.all([
+      this.ordenamento.zonas(municipioId),
+      this.db.query<{ id: string; parametros: unknown }>(
+        'SELECT id, parametros FROM zonas_pdm WHERE municipio_id = $1',
+        [municipioId],
+      ),
+    ]);
+    const porId = new Map(parametros.map((x) => [x.id, x.parametros]));
+    return zonas.map((z) => ({ ...z, parametros: porId.get(z.id) ?? null }));
   }
 
   /**
@@ -429,6 +550,7 @@ export class ProcessosVerificacoesService {
     d: { tipo: { nome: string }; assunto: string },
     descricao: string,
     lidos: DocumentoDoProcesso[],
+    perfil: Perfil | null,
   ): Promise<{ leitura: ResultadoLeitura; bruto: unknown }> {
     const sem = (motivo: string) => ({
       leitura: {
@@ -499,9 +621,14 @@ export class ProcessosVerificacoesService {
           assunto: d.assunto,
           descricao,
           documentos: usados.map((x) => ({ nome: nomeDoc(x), mime: x.mime })),
+          perfil: perfil ? pedidoDoPerfil(perfil) : null,
         }),
       });
-      const leitura = interpretarLeitura(bruto, usados.map(paraLido));
+      const leitura = interpretarLeitura(
+        bruto,
+        usados.map(paraLido),
+        opcoesLeitura(perfil),
+      );
       if (falhas.length) {
         leitura.depois.push({
           ...leituraNaoVerificavel(`Ficaram por ler: ${falhas.join(', ')}.`),
@@ -515,6 +642,7 @@ export class ProcessosVerificacoesService {
       const guardar: LeituraGuardada = {
         documentos: usados.map(paraLido),
         resposta: bruto,
+        perfil,
       };
       return { leitura, bruto: valida ? guardar : null };
     } catch (e) {
