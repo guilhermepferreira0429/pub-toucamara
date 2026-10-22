@@ -227,7 +227,11 @@ export class ResumoService implements OnModuleInit {
       [conversaId],
     );
     if (!c) throw new Error(`Conversa ${conversaId} não existe.`);
-    if (!c.telefone || ['emergencia', 'caiu'].includes(c.resultado)) return;
+    if (!c.telefone || ['emergencia', 'caiu'].includes(c.resultado)) {
+      // Sem SMS do fim, as confirmações retidas na chamada saem sozinhas.
+      await this.mensagens.fecharRetidas(conversaId, false);
+      return;
+    }
 
     const ultima = !job || job.retryCount >= TENTATIVAS_SMS_FIM;
     if (!c.resumida_em && this.claude.disponivel && !ultima) {
@@ -252,6 +256,7 @@ export class ResumoService implements OnModuleInit {
         },
         tx,
       );
+      await this.mensagens.fecharRetidas(conversaId, true, tx);
       const [ja] = await tx.query(
         `SELECT 1 FROM conversa_momentos WHERE conversa_id = $1 AND tipo = 'sms' AND dados->>'mensagem_id' = $2`,
         [conversaId, mensagemId],

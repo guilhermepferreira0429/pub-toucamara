@@ -11,6 +11,7 @@ import { SEGREDO_AGENTE, WEB_URL } from './ambiente';
 import { AppModule } from '../../src/app.module';
 import { configurarApp } from '../../src/configurar-app';
 import { GeocodificacaoService } from '../../src/modules/ocorrencias/geocodificacao';
+import { MensagensService } from '../../src/modules/comunicacao/mensagens.service';
 
 export const MUNICIPIO = 'teste';
 export const MUNICIPIO_ID = '00000000-0000-0000-0000-000000000001';
@@ -326,3 +327,21 @@ export async function criarUtilizador(
 
 export const PNG_1PX =
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+
+/**
+ * As confirmações retidas numa chamada em curso (recolha, marcação) esperam
+ * pelo SMS do fim. Aqui saem já, como quando a chamada acaba sem esse SMS.
+ */
+export async function soltarRetidas(
+  ctx: Contexto,
+  telefone: string,
+): Promise<void> {
+  const conversas = await linhas<{ id: string }>(
+    ctx.db,
+    `SELECT DISTINCT relacionado->>'conversa_id' AS id FROM mensagens_saida
+     WHERE destino = $1 AND retida_fim_chamada AND estado = 'agendada'`,
+    [telefone],
+  );
+  const mensagens = ctx.app.get(MensagensService);
+  for (const c of conversas) await mensagens.fecharRetidas(c.id, false);
+}
