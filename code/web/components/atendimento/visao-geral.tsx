@@ -33,6 +33,7 @@ import {
 } from "./graficos";
 import { ChavePeriodo, chaveValida, periodoDe, SeletorPeriodo } from "./periodo";
 import { PrimeiroDia } from "./primeiro-dia";
+import { CartaoCustoIa } from "./custo-ia";
 import { CartaoQualidade } from "./qualidade";
 import { BotaoRelatorio } from "./relatorio";
 import { TabelaConversas } from "./tabela-conversas";
@@ -164,6 +165,8 @@ export function VisaoGeral() {
                 total={d.indicadores.sem_resposta.valor ?? 0}
               />
             </div>
+
+            {pode("indicadores") && <CartaoCustoIa de={p.de} ate={p.ate} />}
           </>
         )}
 

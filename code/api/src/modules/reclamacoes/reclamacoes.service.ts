@@ -802,6 +802,8 @@ export class ReclamacoesService {
     if (this.claude.disponivel) {
       try {
         const texto = await this.claude.escrever({
+          tarefa: 'rascunho_reclamacao',
+          minimizar: true,
           sistema: SISTEMA_RESPOSTA,
           conteudo: conteudoResposta({
             ...base,

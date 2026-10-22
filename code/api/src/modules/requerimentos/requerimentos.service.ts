@@ -1076,6 +1076,7 @@ export class RequerimentosService {
     } else if (pedidos.length) {
       try {
         const traducao = await this.claude.extrair(esquemaTraducao, {
+          tarefa: 'traduzir_requerimento',
           sistema: SISTEMA_TRADUCAO,
           conteudo: JSON.stringify({
             idioma_origem: req.idioma_conversa,

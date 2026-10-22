@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import type { BetaMessageStreamParams } from '@anthropic-ai/sdk/resources/beta/messages/messages';
 import { ErroApi } from '../common/erros.js';
+import { dadosExternos, REGRA_DADOS_EXTERNOS } from './nao-confiavel.js';
 
 type Mensagem = Anthropic.Beta.BetaMessage;
 type BlocoResposta = Anthropic.Beta.BetaContentBlock;
@@ -59,6 +60,8 @@ export interface OpcoesTurno {
   maxIteracoes?: number;
   esforco?: 'low' | 'medium' | 'high';
   maxTokens?: number;
+  /** Cada volta terminada (tokens para o registo de uso e o custo). */
+  aoUsar?: (mensagem: Mensagem) => void;
 }
 
 export const MAX_ITERACOES = 8;
@@ -98,7 +101,8 @@ export async function correrTurno(o: OpcoesTurno): Promise<ResultadoTurno> {
         betas: [...RECURSO.betas],
         model: o.modelo,
         max_tokens: o.maxTokens ?? 16000,
-        system: o.sistema,
+        // Os resultados das ferramentas trazem texto das fontes: vão como dados.
+        system: [...o.sistema, { type: 'text', text: REGRA_DADOS_EXTERNOS }],
         tools: o.ferramentas,
         tool_choice: { type: 'auto' },
         output_config: { effort: o.esforco ?? 'low' },
@@ -131,6 +135,7 @@ export async function correrTurno(o: OpcoesTurno): Promise<ResultadoTurno> {
         }
       }
       mensagem = await fluxo.finalMessage();
+      o.aoUsar?.(mensagem);
       falhasJson = 0;
     } catch (e) {
       if (o.sinal.aborted || e instanceof Anthropic.APIUserAbortError) {
@@ -191,7 +196,11 @@ async function correrFerramenta(
     return {
       type: 'tool_result',
       tool_use_id: p.id,
-      content: JSON.stringify(resultado ?? null),
+      content: dadosExternos(
+        'ferramenta',
+        JSON.stringify(resultado ?? null),
+        p.name,
+      ),
     };
   } catch (e) {
     const erro = erroParaModelo(e);

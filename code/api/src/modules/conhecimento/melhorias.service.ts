@@ -217,6 +217,8 @@ export class MelhoriasService {
     if (!perguntas.length) return 0;
 
     const { grupos } = await this.claude.extrair(esquemaGrupos, {
+      tarefa: 'agrupar_perguntas',
+      minimizar: true,
       sistema: SISTEMA_AGRUPAR,
       esforco: 'low',
       maxTokens: 8000,
@@ -337,6 +339,8 @@ export class MelhoriasService {
     ];
 
     const p = await this.claude.extrair(esquemaProposta, {
+      tarefa: 'proposta_melhoria',
+      minimizar: true,
       sistema: SISTEMA_PROPOR,
       esforco: 'medium',
       maxTokens: 8000,

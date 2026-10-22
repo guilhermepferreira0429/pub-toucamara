@@ -181,6 +181,9 @@ export class EmailsService implements OnModuleInit {
       trechos: pesquisa?.trechos ?? [],
     };
     const resposta = await this.claude.extrair(esquemaClassificacao, {
+      tarefa: 'classificar_email',
+      minimizar: true,
+      alvo: { tipo: 'email', id: emailId },
       sistema: SISTEMA_CLASSIFICAR,
       conteudo: conteudoClassificacao(dados),
       esforco: 'low',

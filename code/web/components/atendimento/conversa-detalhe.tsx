@@ -16,6 +16,7 @@ import { Aviso } from "@/components/painel/cabecalho";
 import { FonteOficial } from "@/components/ui/marca";
 import { useSessao } from "@/lib/sessao";
 import { ConversasPainel } from "./conversas-painel";
+import { UsoIaDaConversa } from "./custo-ia";
 import { useDados, useFuso } from "./dados";
 import {
   canal,
@@ -480,6 +481,7 @@ function Lateral({
           </ul>
         </section>
       )}
+      <UsoIaDaConversa conversaId={d.id} />
     </div>
   );
 }
