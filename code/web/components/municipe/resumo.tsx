@@ -34,6 +34,7 @@ import {
   Topo,
   TituloSecao,
 } from "./moldura";
+import { Satisfacao } from "./satisfacao";
 import { usePublico } from "./use-publico";
 
 type Criado =
@@ -340,6 +341,8 @@ export function Resumo({ codigo }: { codigo: string }) {
           </ul>
         </section>
       )}
+
+      <Satisfacao codigo={codigo} />
 
       <MaisDuvidas telefone={r.municipio.telefone} />
     </div>
