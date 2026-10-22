@@ -6,6 +6,7 @@ import {
   Clock,
   FileText,
   Mic,
+  Paperclip,
   RotateCw,
   Siren,
   UserRound,
@@ -32,6 +33,7 @@ import { CartaoChat, type AcoesCartao } from "./cartoes";
 import { IdentificacaoSms } from "./identificacao";
 import type { Mensagem } from "./tipos";
 import { useChat } from "./use-chat";
+import { ACEITA_CARTA } from "@/components/cartas/ficheiro-carta";
 
 /* ------------------------------------------------------------------ */
 
@@ -58,6 +60,8 @@ const A_FAZER: Record<string, string> = {
   passar_a_humano: "A passar a um funcionário…",
   conversa_anterior: "A rever a conversa anterior…",
   emergencia: "A tratar da emergência…",
+  ler_carta: "A ler a sua carta…",
+  preparar_resposta_carta: "A preparar a resposta…",
   consultas_abertas: "A ver as consultas públicas…",
   participar_consulta: "A registar a sua opinião…",
   registar_reclamacao: "A preparar a sua reclamação…",
@@ -212,6 +216,22 @@ export function Chat({
   useImperativeHandle(ref, () => ({ focar }), [focar]);
 
   const ditado = useDitado(lingua, setRascunho);
+  const anexo = useRef<HTMLInputElement>(null);
+  const [erroCarta, setErroCarta] = useState<string | null>(null);
+  const { enviarCarta } = chat;
+  const escolherCarta = useCallback(
+    async (f: File | undefined) => {
+      if (!f) return;
+      setErroCarta(null);
+      colado.current = true;
+      try {
+        await enviarCarta(f);
+      } catch (e) {
+        setErroCarta((e as Error).message);
+      }
+    },
+    [enviarCarta],
+  );
 
   // Desce com a conversa, a não ser que a pessoa tenha subido para ler.
   useEffect(() => {
@@ -485,6 +505,29 @@ export function Chat({
             placeholder="Escreva a sua pergunta…"
             className={`min-w-0 flex-1 resize-none rounded-[23px] border border-linha bg-creme leading-[1.35] text-tinta placeholder:text-tinta-3 ${janela ? "min-h-[42px] px-4 py-[10px] text-sm" : "min-h-[46px] px-[18px] py-[11px] text-[15px]"}`}
           />
+          <input
+            ref={anexo}
+            type="file"
+            accept={ACEITA_CARTA}
+            className="sr-only"
+            tabIndex={-1}
+            aria-hidden
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              e.target.value = "";
+              void escolherCarta(f);
+            }}
+          />
+          <button
+            type="button"
+            onClick={() => anexo.current?.click()}
+            disabled={chat.ocupado || chat.aEnviarCarta}
+            aria-label="Enviar a fotografia ou o PDF de uma carta que não percebe"
+            title="Não percebi uma carta"
+            className={`flex shrink-0 items-center justify-center rounded-full bg-creme-2 text-tinta transition-colors hover:bg-linha disabled:opacity-50 ${janela ? "size-[42px]" : "size-[46px]"}`}
+          >
+            <Paperclip className="size-5" aria-hidden />
+          </button>
           {!janela && ditado.suportado && (
             <button
               type="button"
@@ -508,6 +551,14 @@ export function Chat({
             />
           </button>
         </div>
+        {(chat.aEnviarCarta || erroCarta) && (
+          <p
+            role={erroCarta ? "alert" : "status"}
+            className={`pt-1.5 text-[13px] ${erroCarta ? "text-terracota-escuro" : "text-tinta-2"}`}
+          >
+            {erroCarta ?? "A enviar a carta…"}
+          </p>
+        )}
         {janela && (
           <p className="text-[11px] text-tinta-3">
             Conversa registada para qualidade. Em emergência, ligue 112.

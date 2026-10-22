@@ -15,6 +15,7 @@ import { useState } from "react";
 import { Aviso, CabecalhoPagina } from "@/components/painel/cabecalho";
 import { CartaoAntecipacoes } from "@/components/antecipacoes/cartao-processo";
 import { CartaoEntregaEmNome } from "@/components/entregas/cartao-entrega";
+import { CartaoCartasProcesso } from "@/components/cartas/painel-cartas";
 import { useSessao } from "@/lib/sessao";
 import { DialogoLigar, DialogoPedirDocumento } from "./dialogos-processo";
 import { capitalizar, diaCurto, diaHora, textoDiasUteis } from "./formatos";
@@ -361,6 +362,7 @@ export function FichaProcesso() {
             <CartaoPedidos p={p} />
             <CartaoRequerente p={p} />
             <CartaoEntregaEmNome processoId={p.id} />
+            <CartaoCartasProcesso processoId={p.id} />
             {(sync || p.gestao_documental?.estado !== "nao_aplicavel") && (
               <CartaoSincronizacao
                 estado={gd}

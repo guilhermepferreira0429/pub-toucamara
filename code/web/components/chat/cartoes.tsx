@@ -38,6 +38,7 @@ import {
   linguaValida,
   TEXTOS as TEXTOS_TURISMO,
 } from "@/components/turismo/textos";
+import { CartaoChatCarta } from "@/components/cartas/cartao-chat";
 import type { Cartao } from "./tipos";
 
 /* ------------------------------------------------------------------ */
@@ -1576,6 +1577,15 @@ export function CartaoChat({
       return <CartaoMomento dados={cartao.dados} />;
     case "turismo":
       return <CartaoTurismo dados={cartao.dados} />;
+    case "carta":
+      return (
+        <CartaoChatCarta
+          ferramenta={cartao.ferramenta}
+          dados={cartao.dados}
+          enviar={acoes.enviar}
+          ocupado={acoes.ocupado}
+        />
+      );
     default:
       return null;
   }

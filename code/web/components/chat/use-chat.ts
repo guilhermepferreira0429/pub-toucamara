@@ -2,6 +2,10 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api, ErroApi, sse } from "@/lib/api";
+import {
+  ErroFicheiroCarta,
+  prepararFicheiroCarta,
+} from "@/components/cartas/ficheiro-carta";
 import type { Cartao, EstadoLigacao, Mensagem } from "./tipos";
 
 interface SessaoCriada {
@@ -410,6 +414,47 @@ export function useChat(
     [iniciar],
   );
 
+  /**
+   * "Não percebi esta carta": envia a fotografia ou o PDF (anexo) e pede ao
+   * agente para a explicar ("[carta CODIGO]" leva-o ao ler_carta). Lança o
+   * erro (já escrito para pessoas) para o ecrã mostrar.
+   */
+  const [aEnviarCarta, setAEnviarCarta] = useState(false);
+  const enviarCarta = useCallback(
+    async (ficheiro: File) => {
+      if (ocupadoRef.current) return;
+      setAEnviarCarta(true);
+      try {
+        const corpo = await prepararFicheiroCarta(ficheiro);
+        const sessao = sessaoRef.current ?? (await iniciar());
+        if (!sessao)
+          throw new ErroApi(
+            0,
+            "sem_ligacao",
+            "Sem ligação. Verifique a internet.",
+          );
+        const r = await api<{ codigo: string }>(
+          `/v1/chat/sessoes/${encodeURIComponent(sessao)}/carta`,
+          { corpo },
+        );
+        setAnuncio("Carta enviada. A ler…");
+        await enviar(
+          `Recebi esta carta e não percebo o que quer dizer. [carta ${r.codigo}]`,
+        );
+      } catch (e) {
+        const msg =
+          e instanceof ErroApi || e instanceof ErroFicheiroCarta
+            ? e.message
+            : "Não conseguimos enviar a carta. Tente outra vez.";
+        setAnuncio(msg);
+        throw new Error(msg);
+      } finally {
+        setAEnviarCarta(false);
+      }
+    },
+    [enviar, iniciar],
+  );
+
   const confirmarCodigo = useCallback(async (codigo: string) => {
     const sessao = sessaoRef.current;
     if (!sessao)
@@ -437,6 +482,8 @@ export function useChat(
     repetir,
     pedirCodigo,
     confirmarCodigo,
+    enviarCarta,
+    aEnviarCarta,
   };
 }
 
