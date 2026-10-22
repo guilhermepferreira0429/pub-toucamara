@@ -491,7 +491,7 @@ export class ReunioesService {
       throw new ErroApi(
         HttpStatus.SERVICE_UNAVAILABLE,
         'transcricao_indisponivel',
-        'Transcrição automática por configurar (ELEVENLABS_API_KEY): envie a transcrição em texto.',
+        'A transcrição automática não está ligada: envie a transcrição em texto.',
       );
     }
     const r = await this.reuniao(this.db, m.id, id);
@@ -708,7 +708,9 @@ export class ReunioesService {
     } else {
       conteudo = montarAtaSemIa(dados(r), r.transcricao);
       if (!o.sem_ia && !this.claude.disponivel && r.transcricao) {
-        conteudo.notas.push('IA por configurar (ANTHROPIC_API_KEY).');
+        conteudo.notas.push(
+          'O assistente de IA não está ligado: as notas foram montadas sem ele.',
+        );
       }
     }
     conteudo = esquemaConteudoAta.parse(conteudo);

@@ -101,6 +101,7 @@ function Identidade({
   onGuardado: (c: Config) => void;
 }) {
   const { pedido } = useSessao();
+  const interno = useEquipaInterna();
   const [aberto, setAberto] = useState(false);
   const [v, setV] = useState({
     nome: config?.nome ?? "",
@@ -208,9 +209,11 @@ function Identidade({
             <Campo rotulo="Nome da voz" ajuda="O que a câmara vê, ex.: Minho · sotaque do norte.">
               <input className={classeEntrada} maxLength={80} value={v.voz_nome} onChange={(e) => setV({ ...v, voz_nome: e.target.value })} />
             </Campo>
-            <Campo rotulo="Voz (identificador ElevenLabs)">
-              <input className={classeEntrada} maxLength={100} value={v.voz_id} onChange={(e) => setV({ ...v, voz_id: e.target.value })} />
-            </Campo>
+            {interno && (
+              <Campo rotulo="Voz (identificador ElevenLabs)">
+                <input className={classeEntrada} maxLength={100} value={v.voz_id} onChange={(e) => setV({ ...v, voz_id: e.target.value })} />
+              </Campo>
+            )}
           </div>
           <p className="text-xs text-tinta-3">Gravar cria uma versão nova do agente: as respostas voltam a precisar de avaliação para publicar.</p>
           <ErroLinha erro={acao.erro} />
@@ -700,6 +703,8 @@ function PerguntasCamara() {
 
 function ChamadasSaida() {
   const { pedido, pode } = useSessao();
+  // Fornecedores e identificadores técnicos: só para a equipa Tou, Câmara?.
+  const interno = useEquipaInterna();
   const c = useDados<ConfigChamadas>("/v1/painel/chamadas-saida/config");
   const [rascunho, setRascunho] = useState<ConfigChamadas | null>(null);
   const acao = useAcao();
@@ -736,14 +741,21 @@ function ChamadasSaida() {
               }
             }}
           >
-            {(!v.agente_configurado || !v.elevenlabs_disponivel) && (
-              <p className="rounded-xl bg-ambar-suave px-3 py-2 text-xs text-ambar">
-                {!v.agente_configurado
-                  ? "O agente de voz deste município ainda não está ligado: as chamadas não saem."
-                  : "O serviço de voz não está configurado no servidor: as chamadas não saem."}
-              </p>
-            )}
-            {v.agente_configurado && v.agente_saida_configurado === false && (
+            {(!v.agente_configurado || !v.elevenlabs_disponivel) &&
+              (interno ? (
+                <p className="rounded-xl bg-ambar-suave px-3 py-2 text-xs text-ambar">
+                  {!v.agente_configurado
+                    ? "O agente de voz deste município ainda não está ligado: as chamadas não saem."
+                    : "O serviço de voz não está configurado no servidor: as chamadas não saem."}
+                </p>
+              ) : (
+                <p className="rounded-xl bg-creme-2 px-3 py-2 text-xs text-tinta-2">
+                  <span className="font-semibold text-tinta">Chamadas por ativar.</span> A equipa Tou, Câmara?
+                  ativa a linha de voz da câmara. Até lá, as escolhas abaixo ficam guardadas e os avisos seguem por
+                  SMS.
+                </p>
+              ))}
+            {interno && v.agente_configurado && v.agente_saida_configurado === false && (
               <p className="rounded-xl bg-ambar-suave px-3 py-2 text-xs text-ambar">
                 Falta o agente de voz das chamadas da câmara: por agora as chamadas usam o agente que atende quem liga,
                 sem as perguntas das campanhas, emergências e avisos antecipados.
@@ -777,6 +789,7 @@ function ChamadasSaida() {
                 </label>
               ))}
             </fieldset>
+            {interno && (
             <div className="grid gap-3 sm:grid-cols-2">
               <Campo rotulo="Número de saída (identificador)">
                 <input
@@ -798,6 +811,7 @@ function ChamadasSaida() {
                 </select>
               </Campo>
             </div>
+            )}
             <ErroLinha erro={acao.erro} />
             {escrever && rascunho && (
               <div className="flex justify-end gap-2">

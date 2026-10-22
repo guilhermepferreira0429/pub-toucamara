@@ -37,9 +37,12 @@ export function NovoRascunho({
   processo,
   onCriado,
   onCancelar,
+  semIa = false,
 }: {
   tipo: TipoRascunho;
   processo: ProcessoDetalhe;
+  /** A IA não está ligada: o botão fica desativado, com o motivo. */
+  semIa?: boolean;
   onCriado: (r: Rascunho) => void;
   onCancelar?: () => void;
 }) {
@@ -269,9 +272,20 @@ export function NovoRascunho({
 
       <ErroEmLinha erro={erro} />
       <div className="flex items-center gap-3">
-        <BotaoPainel variante="principal" type="submit" icone={Sparkles} disabled={aGerar}>
+        <BotaoPainel
+          variante="principal"
+          type="submit"
+          icone={Sparkles}
+          disabled={aGerar || semIa}
+          aria-describedby={semIa ? "motivo-sem-ia" : undefined}
+        >
           {aGerar ? "A escrever…" : "Gerar rascunho"}
         </BotaoPainel>
+        {semIa && (
+          <p id="motivo-sem-ia" className="text-[13px] text-tinta-2">
+            Precisa do assistente de IA, que não está ligado nesta instalação.
+          </p>
+        )}
         {aGerar && (
           <ACarregar texto="A IA está a escrever o rascunho. Pode demorar até um minuto." />
         )}

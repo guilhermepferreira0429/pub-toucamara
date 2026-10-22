@@ -43,6 +43,17 @@ body {
   outline-offset: 2px;
 }
 
+/* Botões principais desativados: cinzentos, não terracota clara (que parecia
+   ativa). Sem camada: ganha ao disabled:opacity-50 das classes. O motivo vai
+   no title do botão ou numa frase ao lado. */
+:is(button, [role="button"]):disabled:is(.bg-terracota, .bg-tinta),
+[aria-disabled="true"]:is(.bg-terracota, .bg-tinta) {
+  background-color: var(--color-creme-2);
+  color: var(--color-tinta-3);
+  box-shadow: inset 0 0 0 1px var(--color-linha);
+  opacity: 1;
+}
+
 /* Campos de escrever: o foco é a borda terracota com um halo colado ao campo.
    O contorno afastado, junto com a borda, desenhava dois anéis. */
 :is(

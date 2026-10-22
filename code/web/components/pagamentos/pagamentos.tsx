@@ -164,6 +164,9 @@ function ListaPagamentos() {
   const soma = (e: EstadoPag) => itens.filter((p) => p.estado === e).reduce((s, p) => s + p.valor_cent, 0);
   const n = (e: EstadoPag) => itens.filter((p) => p.estado === e).length;
   const teste = itens.some((p) => p.modo_teste);
+  // Com todas as guias em teste basta o aviso único; a marca por linha só
+  // serve quando há guias reais e de teste misturadas.
+  const misturadas = teste && itens.some((p) => !p.modo_teste);
 
   return (
     <div className="flex flex-col gap-4">
@@ -233,7 +236,7 @@ function ListaPagamentos() {
             </thead>
             <tbody className="divide-y divide-linha">
               {itens.map((p) => (
-                <LinhaPagamento key={p.id} p={p} />
+                <LinhaPagamento key={p.id} p={p} marcarTeste={misturadas} />
               ))}
             </tbody>
           </table>
@@ -250,7 +253,7 @@ function ListaPagamentos() {
   );
 }
 
-function LinhaPagamento({ p }: { p: Pagamento }) {
+function LinhaPagamento({ p, marcarTeste }: { p: Pagamento; marcarTeste: boolean }) {
   const e = ESTADOS[p.estado];
   const descricao = p.detalhe?.map((d) => d.descricao).join(" · ");
   return (
@@ -320,7 +323,7 @@ function LinhaPagamento({ p }: { p: Pagamento }) {
       <td className="px-4 py-3">
         <div className="flex flex-col items-start gap-1">
           <Pilula tom={e.tom}>{e.rotulo}</Pilula>
-          {p.modo_teste && (
+          {marcarTeste && p.modo_teste && (
             <Pilula tom="ambar" icone={FlaskConical}>
               teste
             </Pilula>

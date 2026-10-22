@@ -19,26 +19,26 @@ export function TabelaConversas({
 }) {
   const fuso = useFuso();
   const th =
-    "h-9 px-2 text-left text-[11px] font-bold tracking-[0.8px] text-tinta-3";
+    "h-9 px-2 text-left text-[11px] font-bold uppercase tracking-[0.8px] text-tinta-3";
   return (
     <div className="overflow-x-auto" tabIndex={0}>
       <table className="w-full min-w-[760px] border-collapse">
         <thead>
           <tr className="border-b border-linha">
             <th scope="col" className={`${th} w-[120px]`}>
-              QUANDO
+              Quando
             </th>
             <th scope="col" className={`${th} w-[100px]`}>
-              CANAL
+              Canal
             </th>
             <th scope="col" className={th}>
-              RESUMO
+              Resumo
             </th>
             <th scope="col" className={`${th} w-[200px]`}>
-              {mostrarMunicipe ? "FONTE · MUNÍCIPE" : "FONTE"}
+              {mostrarMunicipe ? "Fonte · munícipe" : "Fonte"}
             </th>
             <th scope="col" className={`${th} w-[180px]`}>
-              RESULTADO
+              Resultado
             </th>
           </tr>
         </thead>

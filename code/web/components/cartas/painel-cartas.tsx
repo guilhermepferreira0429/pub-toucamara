@@ -15,6 +15,7 @@ import {
 import { CabecalhoPagina } from "@/components/painel/cabecalho";
 import { Botao } from "@/components/ui/botao";
 import { useSessao } from "@/lib/sessao";
+import { plural } from "@/lib/plural";
 
 /*
  * Painel · "Cartas que os munícipes não perceberam": as cartas da câmara que
@@ -108,8 +109,12 @@ export function PaginaCartas() {
               </h2>
               {c && (
                 <p className="text-xs text-tinta-3">
-                  {c.total_cartas_camara} cartas da câmara explicadas ·{" "}
-                  {c.total_outras_entidades} eram de outras entidades
+                  {plural(c.total_cartas_camara, "carta da câmara explicada", "cartas da câmara explicadas")} ·{" "}
+                  {c.total_outras_entidades === 0
+                    ? "nenhuma de outras entidades"
+                    : c.total_outras_entidades === 1
+                      ? "1 era de outra entidade"
+                      : `${c.total_outras_entidades} eram de outras entidades`}
                 </p>
               )}
             </div>

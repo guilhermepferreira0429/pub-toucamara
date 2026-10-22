@@ -14,6 +14,7 @@ import { telefoneLigavel } from '../chamadas-saida/regras.js';
 import { LinksCurtosService } from '../comunicacao/links-curtos.service.js';
 import { MensagensService } from '../comunicacao/mensagens.service.js';
 import { ConversasService } from '../conversas/conversas.service.js';
+import { demoAtiva } from '../demo/demo.regras.js';
 import {
   MunicipesService,
   mascararTelefone,
@@ -646,6 +647,11 @@ export class ApoiosService {
     const nomeDe = new Map(apoios.map((a) => [a.codigo, a.nome]));
     const nomeId = new Map(apoios.map((a) => [a.id, a.nome]));
     return {
+      // O botão "Carregar apoios de demonstração" só aparece com a demo ligada.
+      demo_ativa: demoAtiva(
+        this.config.get<string>('app.ambiente') ?? 'development',
+        process.env.DEMO_ATIVA,
+      ),
       apoios: apoios.map((a) => ({
         ...a,
         atualizado_em: a.atualizado_em.toISOString(),

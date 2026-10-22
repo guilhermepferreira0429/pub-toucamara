@@ -720,18 +720,32 @@ function NovaEmergencia({ config, onCriada }: { config: Config | undefined; onCr
       <fieldset className="flex flex-col gap-2 rounded-xl border border-linha p-4">
         <legend className="px-1 text-[13px] font-semibold text-tinta">De onde vêm os números</legend>
         {(Object.keys(FONTES) as Fonte[]).map((x) => (
-          <label key={x} className="flex flex-wrap items-center gap-2 text-[13px] text-tinta">
-            <input type="checkbox" checked={f.fontes.includes(x)} onChange={() => alternarFonte(x)} />
-            {FONTES[x]}
-            {x === "operadores" && <PilulaModo m={config?.fonte_externa.operadores} />}
+          <label key={x} className="flex items-start gap-2 text-[13px] text-tinta">
+            <input type="checkbox" className="mt-1" checked={f.fontes.includes(x)} onChange={() => alternarFonte(x)} />
+            <span className="min-w-0">
+              {FONTES[x]}
+              {x === "operadores" && (
+                <>
+                  {" "}
+                  <PilulaModo m={config?.fonte_externa.operadores} />
+                </>
+              )}
+            </span>
           </label>
         ))}
-        <label className="flex flex-wrap items-center gap-2 text-[13px] text-tinta">
-          <input type="checkbox" checked={f.cell_broadcast} onChange={() => muda({ cell_broadcast: !f.cell_broadcast })} />
-          <RadioTower className="size-3.5 text-tinta-2" aria-hidden />
-          Cell broadcast (mensagem para todos os telemóveis da zona, sem números)
-          <PilulaModo m={config?.fonte_externa.cell_broadcast} />
+        <label className="flex items-start gap-2 text-[13px] text-tinta">
+          <input type="checkbox" className="mt-1" checked={f.cell_broadcast} onChange={() => muda({ cell_broadcast: !f.cell_broadcast })} />
+          <span className="min-w-0">
+            <RadioTower className="mr-1 inline size-3.5 align-[-2px] text-tinta-2" aria-hidden />
+            Cell broadcast (mensagem para todos os telemóveis da zona, sem números){" "}
+            <PilulaModo m={config?.fonte_externa.cell_broadcast} />
+          </span>
         </label>
+        {(config?.fonte_externa.operadores?.simulada || config?.fonte_externa.cell_broadcast?.simulada) && (
+          <p className="text-xs text-tinta-3">
+            Operadores e cell broadcast: demonstração. Os números são gerados e nada sai para os operadores.
+          </p>
+        )}
         {f.fontes.includes("lista") && (
           <div className="flex flex-col gap-2">
             <Campo rotulo="Lista de telefones (CSV: telefone ou telefone;nome, um por linha)">
@@ -1203,7 +1217,7 @@ function Configuracao({ config, onGuardado }: { config: Config; onGuardado: () =
     >
       {config.demonstracao && (
         <p className="flex items-center gap-2 text-xs text-tinta-3">
-          <Demonstracao /> Ritmo por omissão; confirme os limites da conta Twilio da câmara.
+          <Demonstracao /> Ritmo por omissão; confirme com o operador de SMS da câmara quantas mensagens por minuto o contrato permite.
         </p>
       )}
       <div className="grid gap-3 sm:grid-cols-2">
