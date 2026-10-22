@@ -9,7 +9,10 @@ import {
   ChartColumn,
   ChevronsUpDown,
   CircleParking,
+  Droplets,
+  Flower2,
   FolderOpen,
+  PawPrint,
   GraduationCap,
   ClipboardList,
   Inbox,
@@ -214,6 +217,11 @@ export const SECCOES: Seccao[] = [
         icone: FileQuestion,
         recurso: "processos",
       },
+    ],
+  },
+  {
+    titulo: "SERVIÇOS",
+    itens: [
       {
         rotulo: "Escolas",
         href: "/painel/escolas",
@@ -237,6 +245,24 @@ export const SECCOES: Seccao[] = [
         href: "/painel/reservas",
         icone: Ticket,
         recurso: "reservas",
+      },
+      {
+        rotulo: "Cemitérios",
+        href: "/painel/cemiterios",
+        icone: Flower2,
+        recurso: "servicos_municipais",
+      },
+      {
+        rotulo: "Animais",
+        href: "/painel/animais",
+        icone: PawPrint,
+        recurso: "servicos_municipais",
+      },
+      {
+        rotulo: "Água e saneamento",
+        href: "/painel/agua",
+        icone: Droplets,
+        recurso: "servicos_municipais",
       },
     ],
   },

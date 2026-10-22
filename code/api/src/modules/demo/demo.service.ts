@@ -56,6 +56,9 @@ import { OrdenamentoService } from '../ordenamento/ordenamento.service.js';
 import { PagamentosService } from '../pagamentos/pagamentos.service.js';
 import { ProcessosDemonstracaoService } from '../processos/processos-demonstracao.service.js';
 import { TurismoService } from '../turismo/turismo.service.js';
+import { CemiteriosService } from '../cemiterios/cemiterios.service.js';
+import { AnimaisService } from '../animais/animais.service.js';
+import { AguaService } from '../agua/agua.service.js';
 import { EscolasService } from '../escolas/escolas.service.js';
 import { HabitacaoService } from '../habitacao/habitacao.service.js';
 import { JuntasDemoService } from '../juntas/juntas.demo.js';
@@ -206,6 +209,24 @@ export function passosDemo(): Passo[] {
       passo: 'turismo',
       rotulo: 'Fontes de turismo em PT/EN/ES/FR (página /visitar)',
       chaves: ['turismo'],
+    },
+    {
+      passo: 'cemiterios',
+      rotulo:
+        'Cemitérios: sepulturas, concessões (uma a terminar, taxas por pagar) e pedidos',
+      chaves: ['cemiterios'],
+    },
+    {
+      passo: 'animais',
+      rotulo:
+        'Canil: animais para adoção (/adotar), um pedido de visita, um gato perdido e um encontrado',
+      chaves: ['animais'],
+    },
+    {
+      passo: 'agua',
+      rotulo:
+        'Água (Vimágua): leitura, rotura e fatura encaminhadas pelo adaptador simulado',
+      chaves: ['agua'],
     },
     {
       passo: 'escolas',
@@ -585,6 +606,9 @@ export class DemoService {
       ['agora', () => this.agora(ctx)],
       ['linguagem_simples', () => this.linguagemSimples(ctx)],
       ['turismo', () => this.turismo(ctx)],
+      ['cemiterios', () => this.servicoV4(ctx, 'cemiterios')],
+      ['animais', () => this.servicoV4(ctx, 'animais')],
+      ['agua', () => this.servicoV4(ctx, 'agua')],
       ['escolas', () => this.escolas(ctx)],
       ['habitacao', () => this.habitacao(ctx)],
       ['junta', () => this.junta(ctx)],
@@ -1811,6 +1835,23 @@ export class DemoService {
     if (!r) return;
     if (r.criada) c.contar('junta');
     await this.registar(c.m.id, 'junta', 'junta', r.junta.id);
+  }
+
+  /** Catálogo de serviços (V4): os dados de demonstração de cada área. */
+  private async servicoV4(
+    c: Preparacao,
+    area: 'cemiterios' | 'animais' | 'agua',
+  ) {
+    await this.umaVez(c.m, area, area, async () => {
+      const r =
+        area === 'cemiterios'
+          ? await this.svc(CemiteriosService).carregarDemonstracao(c.m)
+          : area === 'animais'
+            ? await this.svc(AnimaisService).carregarDemonstracao(c.m)
+            : await this.svc(AguaService).carregarDemonstracao(c.m);
+      if (Object.values(r).some((n) => n > 0)) c.contar(area);
+      return c.m.id;
+    });
   }
 
   private async entidadeCamara(m: Municipio): Promise<string> {
