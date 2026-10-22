@@ -797,6 +797,7 @@ export class AoVivoService {
     } else {
       try {
         sugerida = await this.claude.extrair(esquemaSugestaoAoVivo, {
+          tarefa: 'sugestao_ao_vivo',
           sistema: SISTEMA_AO_VIVO,
           conteudo: conteudoAoVivo(falas.slice(-16), trechos, pesquisa),
           esforco: 'low',

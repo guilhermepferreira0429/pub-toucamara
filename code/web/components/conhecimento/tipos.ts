@@ -282,6 +282,15 @@ export interface Qualidade {
     factos_errados: unknown;
     justificacao: string | null;
   }[];
+  /** Números ditos pelo agente que não estão na pergunta nem no gabarito (última execução). */
+  numeros?: {
+    respostas: number;
+    com_numeros: number;
+    com_numeros_sem_fonte: number;
+    numeros_sem_fonte: number;
+    percentagem: number | null;
+    exemplos: { resposta_id: string; pergunta: string; resposta: string | null; numeros: string[] }[];
+  } | null;
   voz: (ResultadoExecucao & { amostra: boolean; latencia_media_ms: number | null }) | null;
 }
 
@@ -309,6 +318,62 @@ export interface Fonte {
   lingua?: string;
   /** Texto de demonstração, a confirmar pela câmara. */
   demonstracao?: boolean;
+  /** Seletor CSS: só esta parte da página. */
+  seletor?: string | null;
+  /** A câmara autorizou ler apesar do robots.txt. */
+  ignorar_robots?: boolean;
+  /** Erros de leitura seguidos desde a última leitura boa. */
+  falhas_seguidas?: number;
+  arquivada_em?: string | null;
+  /** Descoberta por um site (fonte_sites). */
+  site_id?: string | null;
+  site?: string | null;
+}
+
+/** Uma leitura de uma fonte (o histórico). */
+export interface LeituraFonte {
+  id: string;
+  iniciada_em: string;
+  duracao_ms: number;
+  http_estado: number | null;
+  bytes: number | null;
+  resultado: "mudou" | "igual" | "nao_modificado" | "erro";
+  codigo_erro: string | null;
+  erro: string | null;
+  aviso: string | null;
+}
+
+/** A hora diária da recolha e o resumo das fontes do município. */
+export interface Recolha {
+  hora_recolha: string;
+  fuso: string;
+  fontes: number;
+  vencidas: number;
+  com_erro: number;
+  proxima_leitura_em: string | null;
+}
+
+/** Um site cujas páginas viram fontes (sitemap ou links). */
+export interface SiteFontes {
+  id: string;
+  titulo: string;
+  url_inicial: string;
+  sitemap_url: string | null;
+  incluir: string[];
+  excluir: string[];
+  profundidade: number;
+  max_paginas: number;
+  tipo_fontes: string;
+  ativo: boolean;
+  entidade_id: string;
+  entidade: string;
+  ler_a_cada_horas: number;
+  descobrir_a_cada_dias: number;
+  ultima_descoberta_em: string | null;
+  proxima_descoberta_em: string | null;
+  paginas_encontradas: number | null;
+  erro: string | null;
+  fontes: number;
 }
 
 export interface Fontes {

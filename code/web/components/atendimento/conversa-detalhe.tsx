@@ -6,6 +6,7 @@ import {
   ChevronRight,
   History,
   ShieldCheck,
+  TriangleAlert,
   UserRound,
   X,
 } from "lucide-react";
@@ -16,6 +17,7 @@ import { Aviso } from "@/components/painel/cabecalho";
 import { FonteOficial } from "@/components/ui/marca";
 import { useSessao } from "@/lib/sessao";
 import { ConversasPainel } from "./conversas-painel";
+import { UsoIaDaConversa } from "./custo-ia";
 import { useDados, useFuso } from "./dados";
 import {
   canal,
@@ -108,6 +110,9 @@ function ConversaDetalhe({ id }: { id: string }) {
   for (const ci of d.citacoes) {
     citacoesPorTurno.set(ci.turno_id, [...(citacoesPorTurno.get(ci.turno_id) ?? []), ci]);
   }
+  const semFontePorTurno = new Map(
+    (d.numeros_sem_fonte ?? []).map((n) => [n.turno_id, n.numeros.map((x) => x.texto)]),
+  );
   const titulo = d.tema?.nome ?? `Conversa por ${ca.rotulo.toLowerCase()}`;
   const meta = [
     ca.rotulo,
@@ -204,6 +209,7 @@ function ConversaDetalhe({ id }: { id: string }) {
               turno={t}
               momentos={momentosPorTurno.get(t.id) ?? []}
               citacoes={citacoesPorTurno.get(t.id) ?? []}
+              semFonte={semFontePorTurno.get(t.id) ?? []}
               irPara={comAudio ? (ms) => leitor.current?.irPara(ms) : undefined}
             />
           ))}
@@ -231,11 +237,13 @@ function Fala({
   turno,
   momentos,
   citacoes,
+  semFonte,
   irPara,
 }: {
   turno: Turno;
   momentos: string[];
   citacoes: Citacao[];
+  semFonte: string[];
   irPara?: (ms: number) => void;
 }) {
   if (turno.papel === "sistema") {
@@ -304,6 +312,15 @@ function Fala({
         >
           {turno.texto}
         </p>
+        {semFonte.length > 0 && (
+          <p className="flex items-start gap-1.5 rounded-lg bg-ambar-suave px-2.5 py-1.5 text-xs text-tinta">
+            <TriangleAlert className="mt-px size-3.5 shrink-0 text-ambar" aria-hidden />
+            <span>
+              {semFonte.length === 1 ? "Número que não está na fonte citada: " : "Números que não estão na fonte citada: "}
+              <b>{semFonte.join(", ")}</b>. Confirme antes de marcar a resposta como certa.
+            </span>
+          </p>
+        )}
         {citacoes.map((ci) => (
           <FonteOficial
             key={ci.trecho_id}
@@ -480,6 +497,7 @@ function Lateral({
           </ul>
         </section>
       )}
+      <UsoIaDaConversa conversaId={d.id} />
     </div>
   );
 }

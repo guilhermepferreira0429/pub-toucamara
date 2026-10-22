@@ -14,6 +14,7 @@ import { AuditoriaService } from '../auditoria/auditoria.service.js';
 import { AvaliacaoService } from './avaliacao.service.js';
 import { ConhecimentoService } from './conhecimento.service.js';
 import { ContradicoesService } from './contradicoes.service.js';
+import { DescarregadorService } from './descarregador.service.js';
 import { EdicaoService } from './edicao.service.js';
 import { DIMENSAO, EmbeddingsService } from './embeddings.service.js';
 import { IndexacaoService } from './indexacao.service.js';
@@ -149,7 +150,19 @@ correr('conhecimento (BD)', () => {
 
     indexacao = new IndexacaoService(db, embeddings);
     pesquisa = new ConhecimentoService(db, embeddings);
-    ingestao = new IngestaoService(db, jobs, claude, armazenamento, indexacao);
+    // Sem a pausa de 2 s entre pedidos ao mesmo site (é tudo o servidor local).
+    const descarregador = Object.assign(new DescarregadorService(), {
+      intervaloMs: 0,
+    });
+    ingestao = new IngestaoService(
+      db,
+      jobs,
+      claude,
+      armazenamento,
+      indexacao,
+      undefined,
+      descarregador,
+    );
     propostas = new PropostasService(db, claude);
     contradicoes = new ContradicoesService(db, claude);
     const avaliacao = new AvaliacaoService(db);

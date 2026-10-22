@@ -131,6 +131,15 @@ export class JobsService implements OnApplicationBootstrap, OnModuleDestroy {
           await this.garantirFila(boss, h.nome);
           await boss.schedule(h.nome, h.cron, h.dados, { tz: FUSO });
         }
+        // O pg-boss guarda os horários na BD: um que saiu do código (ex.: o
+        // ingestao_fontes das 03:00, hoje no recolha_tick) deixa de correr.
+        const nomes = new Set(this.horarios.map((h) => h.nome));
+        for (const s of await boss.getSchedules()) {
+          if (!nomes.has(s.name)) {
+            await boss.unschedule(s.name, s.key);
+            this.logger.log(`Horário retirado: ${s.name}`);
+          }
+        }
       }
       this.logger.log(
         `Filas prontas (${this.trabalhos.size} trabalhos, ${this.horarios.length} horários${workers ? '' : ', sem workers'})`,

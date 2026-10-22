@@ -52,6 +52,8 @@ Object.assign(process.env, {
   JWT_SECRET: 'jwt-secret-e2e-0123456789abcdef',
   JWT_VALIDADE_HORAS: '12',
   JOBS_WORKERS: 'true',
+  // Recolha das fontes: sem a pausa de 2 s entre pedidos ao mesmo site.
+  RECOLHA_INTERVALO_MS: '0',
 
   // Sem fornecedor de SMS: fora de produção o SMS fica 'enviada' (provider 'log').
   SMS_PROVIDER: '',

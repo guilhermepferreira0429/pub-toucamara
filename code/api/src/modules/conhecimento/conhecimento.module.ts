@@ -12,6 +12,12 @@ import {
   ContradicoesService,
   DadosContradicoes,
 } from './contradicoes.service.js';
+import { DescarregadorService } from './descarregador.service.js';
+import {
+  DadosDescobrir,
+  DescobertaService,
+  JOB_DESCOBRIR,
+} from './descoberta.service.js';
 import { EmbeddingsService } from './embeddings.service.js';
 import { DadosReindexar, IndexacaoService } from './indexacao.service.js';
 import {
@@ -20,6 +26,7 @@ import {
   JOB_CONTRADICOES,
   JOB_INGESTAO,
   JOB_PROPOR,
+  JOB_RECOLHA_TICK,
 } from './ingestao.service.js';
 import {
   DadosMelhorias,
@@ -27,6 +34,8 @@ import {
   MelhoriasService,
 } from './melhorias.service.js';
 import { PainelConhecimentoController } from './painel-conhecimento.controller.js';
+import { PainelRecolhaController } from './painel-recolha.controller.js';
+import { PainelRecolhaService } from './painel-recolha.service.js';
 import {
   JOB_REINDEXAR,
   PainelConhecimentoService,
@@ -37,7 +46,9 @@ import { DadosPropor, PropostasService } from './propostas.service.js';
  * Conhecimento: pesquisa do agente (`procurar_conhecimento`), leitura das
  * fontes, alterações, contradições e o painel.
  *
- * Jobs: `ingestao_fontes` (03:00 e "Ler agora"), `propor_respostas` (depois
+ * Jobs: `recolha_tick` (de 5 em 5 minutos: fontes vencidas à hora de recolha
+ * do município e sites a descobrir), `ingestao_fontes` (do tick e "Ler
+ * agora"), `descobrir_site` (páginas novas de um site), `propor_respostas` (depois
  * de uma alteração com respostas afetadas), `detetar_contradicoes` (depois
  * de uma ingestão com mudanças), `reindexar_embeddings` (manual) e
  * `propor_melhorias` (segunda 07:00, antes do relatório semanal das 08:00, e
@@ -47,15 +58,18 @@ import { DadosPropor, PropostasService } from './propostas.service.js';
   // As versões em linguagem simples publicadas entram no resultado de
   // procurar_conhecimento (link da página com o resumo e o texto oficial).
   imports: [LinguagemSimplesModule],
-  controllers: [PainelConhecimentoController],
+  controllers: [PainelConhecimentoController, PainelRecolhaController],
   providers: [
     ConhecimentoService,
     EmbeddingsService,
     IndexacaoService,
     IngestaoService,
+    DescarregadorService,
+    DescobertaService,
     PropostasService,
     ContradicoesService,
     PainelConhecimentoService,
+    PainelRecolhaService,
     AvaliacaoService,
     EdicaoService,
     MelhoriasService,
@@ -69,6 +83,7 @@ export class ConhecimentoModule implements OnModuleInit {
     private readonly conversas: ConversasService,
     private readonly jobs: JobsService,
     private readonly ingestao: IngestaoService,
+    private readonly descoberta: DescobertaService,
     private readonly propostas: PropostasService,
     private readonly contradicoes: ContradicoesService,
     private readonly indexacao: IndexacaoService,
@@ -92,7 +107,38 @@ export class ConhecimentoModule implements OnModuleInit {
       (d) => this.ingestao.correr(d),
       { concorrencia: 1 },
     );
-    this.jobs.agendar(JOB_INGESTAO, '0 3 * * *');
+    // A hora de cada município (municipios.hora_recolha) decide quando as
+    // fontes vencem; o tick só olha de 5 em 5 minutos.
+    this.jobs.trabalhar(
+      JOB_RECOLHA_TICK,
+      async () => {
+        await this.ingestao.tick();
+        for (const site_id of await this.descoberta.vencidos()) {
+          await this.jobs.enviar(
+            JOB_DESCOBRIR,
+            { site_id },
+            { singletonKey: `descobrir:${site_id}` },
+          );
+        }
+      },
+      { concorrencia: 1 },
+    );
+    this.jobs.agendar(JOB_RECOLHA_TICK, '*/5 * * * *');
+    this.jobs.trabalhar<DadosDescobrir>(
+      JOB_DESCOBRIR,
+      async (d) => {
+        // Páginas novas: lêem-se já, sem esperar pelo tick.
+        const r = await this.descoberta.descobrir(d.site_id);
+        if (r.novas > 0 && r.municipio_id) {
+          await this.jobs.enviar(
+            JOB_INGESTAO,
+            { municipio_id: r.municipio_id },
+            { singletonKey: `ingestao:${r.municipio_id}` },
+          );
+        }
+      },
+      { concorrencia: 1 },
+    );
     this.jobs.trabalhar<DadosPropor>(JOB_PROPOR, (d) =>
       this.propostas.correr(d),
     );

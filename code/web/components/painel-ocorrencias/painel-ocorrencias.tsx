@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useMemo, useState } from "react";
+import { BotaoExportar } from "@/components/painel/botao-exportar";
 import { Aviso, CabecalhoPagina } from "@/components/painel/cabecalho";
 import { diaHora } from "@/components/processos/formatos";
 import {
@@ -151,27 +152,34 @@ export function PainelOcorrencias({ inicial }: { inicial?: string } = {}) {
         titulo="Ocorrências"
         descricao="Registadas por telefone e chat, com fotografia e morada confirmada."
         acoes={
-          <Segmentado<Separador>
-            rotulo="Estado das ocorrências na lista"
-            valor={separador}
-            onChange={(v) => {
-              setSeparador(v);
-              setSelecionado(null);
-            }}
-            opcoes={[
-              { valor: "nova", rotulo: "Novas", contagem: contagem("nova") },
-              {
-                valor: "com_equipa",
-                rotulo: "Com a equipa",
-                contagem: contagem("com_equipa"),
-              },
-              {
-                valor: "resolvida",
-                rotulo: "Resolvidas",
-                contagem: contagem("resolvida"),
-              },
-            ]}
-          />
+          <>
+            <Segmentado<Separador>
+              rotulo="Estado das ocorrências na lista"
+              valor={separador}
+              onChange={(v) => {
+                setSeparador(v);
+                setSelecionado(null);
+              }}
+              opcoes={[
+                { valor: "nova", rotulo: "Novas", contagem: contagem("nova") },
+                {
+                  valor: "com_equipa",
+                  rotulo: "Com a equipa",
+                  contagem: contagem("com_equipa"),
+                },
+                {
+                  valor: "resolvida",
+                  rotulo: "Resolvidas",
+                  contagem: contagem("resolvida"),
+                },
+              ]}
+            />
+            {/* A lista ao lado: o separador e a categoria escolhidos. */}
+            <BotaoExportar
+              caminho={`/v1/painel/ocorrencias/exportar.csv?estado=${separador}${filtroCategoria}`}
+              base="ocorrencias"
+            />
+          </>
         }
       />
 

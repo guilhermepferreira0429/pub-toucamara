@@ -292,6 +292,8 @@ export class EncaminhamentoAutomaticoService {
     if (servicos.length === 0) return null;
     try {
       const r = await this.claude.extrair(esquemaServico, {
+        tarefa: 'encaminhar_servico',
+        minimizar: true,
         sistema: SISTEMA_SERVICO,
         conteudo: conteudoServico(item.texto, servicos),
         esforco: 'low',

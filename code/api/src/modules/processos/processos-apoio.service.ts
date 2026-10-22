@@ -350,6 +350,8 @@ export class ProcessosApoioService {
       const d = await this.painel.detalhe(municipio, id);
       const hoje = hojeLisboa();
       const r = await this.claude.extrair(esquemaResumoProcesso, {
+        tarefa: 'resumo_processo',
+        minimizar: true,
         sistema: SISTEMA_RESUMO_PROCESSO,
         esforco: 'medium',
         maxTokens: 6000,
@@ -533,6 +535,7 @@ export class ProcessosApoioService {
             .join('\n');
       try {
         const escolha = await this.claude.extrair(esquemaRegulamentoIa, {
+          tarefa: 'escolher_regulamento',
           sistema: SISTEMA_REGULAMENTO,
           esforco: 'medium',
           maxTokens: 8000,
@@ -659,6 +662,7 @@ export class ProcessosApoioService {
       : [];
 
     const texto = await this.claude.escrever({
+      tarefa: 'rascunho_parecer',
       sistema: SISTEMA_RASCUNHO[b.tipo],
       esforco: 'high',
       maxTokens: 8000,

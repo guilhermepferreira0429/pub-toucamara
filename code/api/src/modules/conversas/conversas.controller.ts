@@ -10,7 +10,8 @@ import {
   Query,
 } from '@nestjs/common';
 import { z } from 'zod';
-import { esquemaPaginacao } from '../../common/paginacao.js';
+import { Coluna, ficheiroCsv, gerarCsv, nomeCsv } from '../../common/csv.js';
+import { esquemaPaginacao, todasAsPaginas } from '../../common/paginacao.js';
 import { MunicipioAtual, UtilizadorAtual } from '../../common/pedido.js';
 import type { UtilizadorPainel } from '../../common/pedido.js';
 import { validar } from '../../common/validacao.js';
@@ -47,6 +48,52 @@ const esquemaFiltros = esquemaPaginacao.extend({
   revisao: z.enum(['certa', 'errada', 'por_rever']).optional(),
 });
 
+type ConversaLista = Awaited<
+  ReturnType<PainelConversasService['listar']>
+>['itens'][number];
+
+const CANAIS: Record<string, string> = {
+  telefone: 'Telefone',
+  chat: 'Chat',
+  sms: 'SMS',
+  email: 'Email',
+  balcao: 'Balcão',
+  whatsapp: 'WhatsApp',
+};
+
+const RESULTADOS: Record<string, string> = {
+  em_curso: 'Em curso',
+  resolvida: 'Resolvida',
+  passada_funcionario: 'Passada a funcionário',
+  sem_resposta: 'Sem resposta',
+  marcacao: 'Marcação feita',
+  emergencia: 'Emergência',
+  caiu: 'Chamada caiu',
+};
+
+const REVISOES: Record<string, string> = { certa: 'Certa', errada: 'Errada' };
+
+/** Colunas do CSV: sem nome nem NIF; o telefone mascarado, como no painel. */
+const COLUNAS_CSV: Coluna<ConversaLista>[] = [
+  { titulo: 'Início', valor: (c) => c.iniciada_em },
+  { titulo: 'Canal', valor: (c) => CANAIS[c.canal] ?? c.canal },
+  {
+    titulo: 'Duração (min)',
+    valor: (c) =>
+      c.duracao_s === null ? null : Math.round(c.duracao_s / 6) / 10,
+  },
+  { titulo: 'Resultado', valor: (c) => RESULTADOS[c.resultado] ?? c.resultado },
+  { titulo: 'Tema', valor: (c) => c.tema?.nome },
+  { titulo: 'Fora de horas', valor: (c) => c.fora_de_horas },
+  { titulo: 'Telefone', valor: (c) => c.municipe?.telefone },
+  { titulo: 'Resumo', valor: (c) => c.resumo },
+  {
+    titulo: 'Revisão',
+    valor: (c) => (c.revisao ? (REVISOES[c.revisao] ?? c.revisao) : null),
+  },
+  { titulo: 'Fonte citada', valor: (c) => c.fonte?.titulo },
+];
+
 const esquemaRevisao = z.object({
   revisao: z.enum(['certa', 'errada']),
   nota: z.string().trim().max(2000).optional(),
@@ -60,6 +107,19 @@ export class PainelConversasController {
   @Get()
   listar(@MunicipioAtual() m: Municipio, @Query() query: unknown) {
     return this.conversas.listar(m.id, validar(esquemaFiltros, query));
+  }
+
+  /** A lista com os mesmos filtros, em CSV para o Excel (sem paginação). */
+  @Get('exportar.csv')
+  async exportar(@MunicipioAtual() m: Municipio, @Query() query: unknown) {
+    const f = validar(esquemaFiltros, query);
+    const itens = await todasAsPaginas((p) =>
+      this.conversas.listar(m.id, { ...f, ...p }),
+    );
+    return ficheiroCsv(
+      gerarCsv(COLUNAS_CSV, itens, m.fuso),
+      nomeCsv('conversas', new Date(), m.fuso),
+    );
   }
 
   @Get(':id')
