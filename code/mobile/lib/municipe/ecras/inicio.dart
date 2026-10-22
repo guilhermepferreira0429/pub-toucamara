@@ -9,6 +9,7 @@ import '../config.dart';
 import '../modelos.dart';
 import '../repositorio.dart';
 import '../servicos.dart';
+import 'carta.dart';
 import 'chat.dart';
 import 'perto.dart';
 import 'reportar.dart';
@@ -139,6 +140,15 @@ class _EcraInicioState extends State<EcraInicio> {
                   onTap: () => irPara(context, Navegacao.assuntos),
                 ),
               ],
+            ),
+            const SizedBox(height: 12),
+            BotaoLargo(
+              icone: Icons.mark_email_unread_rounded,
+              texto: 'Não percebi uma carta',
+              contorno: true,
+              onPressed: () => Navigator.of(
+                context,
+              ).push(MaterialPageRoute(builder: (_) => const EcraCartaNova())),
             ),
             const SizedBox(height: 24),
             Row(

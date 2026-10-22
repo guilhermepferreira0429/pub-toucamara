@@ -823,7 +823,11 @@ export function escolherProcesso(
   if (!referencia) return { tipo: 'solto' };
   const dito = lerNumero(referencia);
   if (!dito) return { tipo: 'solto' };
-  const iguais = candidatos.filter((c) => correspondeNumero(c.numero, dito));
+  // 'CP DEMO-412/2026' (processo de demonstração quando o 412 já existia)
+  // corresponde ao 'CP 412/2026' da carta.
+  const iguais = candidatos.filter((c) =>
+    correspondeNumero(c.numero.replace(/ DEMO-/, ' '), dito),
+  );
   if (!iguais.length) return { tipo: 'solto' };
   if (!municipeId) return { tipo: 'precisa_identificacao' };
   const meu = iguais.find((c) => c.municipe_id === municipeId);

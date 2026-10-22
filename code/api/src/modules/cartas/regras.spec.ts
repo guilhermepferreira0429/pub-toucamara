@@ -308,6 +308,14 @@ describe('cartas · ligar ao processo', () => {
     });
   });
 
+  it('o processo de demonstração (CP DEMO-412) corresponde ao CP 412', () => {
+    expect(
+      escolherProcesso('CP 412/2026', 'ana', [
+        { id: 'd', numero: 'CP DEMO-412/2026', municipe_id: 'ana' },
+      ]),
+    ).toMatchObject({ tipo: 'ligado', processoId: 'd' });
+  });
+
   it('processo de outra pessoa: não liga nem revela', () => {
     expect(escolherProcesso('CP 412/2026', 'rui', candidatos)).toEqual({
       tipo: 'de_outro',
