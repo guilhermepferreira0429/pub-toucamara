@@ -184,6 +184,41 @@ describe('Avaliação pública (e2e)', () => {
     }
   });
 
+  it('os resultados da preparação da demo nunca aparecem, mesmo sendo os mais recentes', async () => {
+    const conjunto = await linha<{ id: string }>(
+      ctx.db,
+      `SELECT id FROM avaliacao.conjuntos WHERE nome = 'E2E pública' AND municipio_id = $1`,
+      [municipioId],
+    );
+    const { rows: perguntas } = await ctx.db.query<{ id: string }>(
+      'SELECT id FROM avaliacao.perguntas WHERE conjunto_id = $1 ORDER BY ordem',
+      [conjunto!.id],
+    );
+    for (const nosso of [true, false]) {
+      const demo = await linha<{ id: string }>(
+        ctx.db,
+        `INSERT INTO avaliacao.sistemas (nome, municipio_id, adaptador, config, nosso)
+         VALUES ($1, $2, $3, '{"demonstracao": true}', $4) RETURNING id`,
+        [
+          `Demo ${nosso ? 'nosso' : 'outro'} · ${slug}`,
+          municipioId,
+          nosso ? 'tou-chat' : 'manual',
+          nosso,
+        ],
+      );
+      await execucao(
+        demo!.id,
+        conjunto!.id,
+        perguntas.map((p) => [p.id, 'Resposta de demonstração.', 'certa']),
+      );
+    }
+
+    const r = await ctx.http().get(`/v1/public/avaliacao/${slug}`).expect(200);
+    expect(r.body.nosso).toMatchObject({ total: 3, taxa: 66.67 });
+    expect(r.body.outro).toMatchObject({ total: 2, taxa: 0 });
+    expect(JSON.stringify(r.body)).not.toContain('Resposta de demonstração.');
+  });
+
   it('município que não existe: 404', async () => {
     await ctx.http().get('/v1/public/avaliacao/nao-existe-aqui').expect(404);
   });

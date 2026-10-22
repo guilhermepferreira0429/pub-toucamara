@@ -55,6 +55,12 @@ const COLUNAS_PEDIDO = `id, motivo, conjunto, amostra, estado, execucao_id, erro
 const COLUNAS_RESULTADO = `r.total, r.certas, r.passadas_bem, r.erradas, r.sem_resposta,
   r.por_responder, r.por_avaliar, r.taxa::float8 AS taxa`;
 
+/**
+ * A página pública só mostra o que foi medido: os sistemas da preparação da
+ * demo (`config.demonstracao`) têm resultados inventados para o painel.
+ */
+const SO_MEDIDOS = `NOT coalesce((s.config->>'demonstracao')::boolean, false)`;
+
 /** Como a página pública chama o assistente atual do município (nunca pelo nome). */
 export const NOME_OUTRO_PUBLICO = 'A assistente do site';
 
@@ -300,7 +306,7 @@ export class AvaliacaoService {
        JOIN avaliacao.sistemas s ON s.id = e.sistema_id
        LEFT JOIN avaliacao.resultados r ON r.execucao_id = e.id AND r.categoria IS NULL
        WHERE s.nosso AND s.adaptador = 'tou-chat' AND s.municipio_id = $1
-         AND e.estado = 'terminada' AND NOT e.amostra
+         AND e.estado = 'terminada' AND NOT e.amostra AND ${SO_MEDIDOS}
        ORDER BY e.terminada_em DESC NULLS LAST, e.id DESC
        LIMIT 1`,
       [municipio.id],
@@ -330,7 +336,7 @@ export class AvaliacaoService {
        JOIN avaliacao.sistemas s ON s.id = e.sistema_id
        LEFT JOIN avaliacao.resultados r ON r.execucao_id = e.id AND r.categoria IS NULL
        WHERE NOT s.nosso AND s.municipio_id = $1
-         AND e.estado = 'terminada' AND NOT e.amostra
+         AND e.estado = 'terminada' AND NOT e.amostra AND ${SO_MEDIDOS}
        ORDER BY (e.conjunto_id = $2) DESC, e.terminada_em DESC NULLS LAST, e.id DESC
        LIMIT 1`,
       [municipio.id, nosso.conjunto_id],
