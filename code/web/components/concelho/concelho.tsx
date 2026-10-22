@@ -32,6 +32,7 @@ import {
   useDados,
   type Pagina,
 } from "@/components/conhecimento/comum";
+import { variacaoCurta } from "@/components/atendimento/formatos";
 import { CabecalhoPagina } from "@/components/painel/cabecalho";
 import { Botao } from "@/components/ui/botao";
 import { useSessao } from "@/lib/sessao";
@@ -176,8 +177,8 @@ const CANAIS: Record<string, string> = {
 
 const fmt = new Intl.NumberFormat("pt-PT", { maximumFractionDigits: 1 });
 const n = (v: number | null | undefined) => (v === null || v === undefined ? "—" : fmt.format(v));
-const variacao = (v: number | null) =>
-  v === null ? "novo" : `${v > 0 ? "+" : v < 0 ? "−" : ""}${fmt.format(Math.abs(v))}%`;
+// Com poucos casos, a diferença em número ("+7") em vez de "+350%" (ver variacaoCurta).
+const variacao = (atual: number, anterior: number, v: number | null) => variacaoCurta(atual, anterior, v) ?? "";
 const diaCurto = (d: string) =>
   new Intl.DateTimeFormat("pt-PT", { day: "numeric", month: "short" }).format(new Date(`${d}T12:00:00`));
 
@@ -499,7 +500,7 @@ function SinaisEExemplos({
     <div className="flex flex-col gap-3">
       {sinais.length > 0 && (
         <div className="flex flex-col gap-2">
-          <p className="text-[11px] font-bold tracking-[1px] text-white/60">O QUE MUDOU ESTA SEMANA</p>
+          <p className="text-[11px] font-bold tracking-[1px] text-white/60">O QUE MUDOU NOS ÚLTIMOS 7 DIAS</p>
           <ul className="flex flex-wrap gap-2">
             {sinais.map((s) => (
               <li key={s.texto}>
@@ -563,7 +564,8 @@ function Resposta({ a, aoGuardar }: { a: Analise; aoGuardar: (a: Analise) => voi
           </Pilula>
           <Pilula tom={(a.conversas.variacao ?? 0) > 0 ? "terracota" : "neutro"}>
             Período anterior: {n(a.conversas.anterior_total)}
-            {a.conversas.anterior_total > 0 && ` (${variacao(a.conversas.variacao)})`}
+            {a.conversas.anterior_total > 0 &&
+              ` (${variacao(a.conversas.total, a.conversas.anterior_total, a.conversas.variacao)})`}
           </Pilula>
           {a.poucos_dados && (
             <Pilula tom="ambar" icone={TriangleAlert}>
@@ -775,7 +777,7 @@ function Barras({ itens, vazio }: { itens: Contagem[]; vazio: string }) {
           <span
             className={`w-12 shrink-0 text-xs font-semibold ${x.diferenca > 0 ? "text-terracota-escuro" : "text-tinta-3"}`}
           >
-            {x.anterior > 0 || x.n > 0 ? variacao(x.variacao) : ""}
+            {x.anterior > 0 || x.n > 0 ? variacao(x.n, x.anterior, x.variacao) : ""}
             <span className="sr-only"> face ao período anterior</span>
           </span>
         </li>
@@ -857,7 +859,7 @@ function MapaFreguesias({ c }: { c: Analise["contagens"] }) {
                 </span>
                 <span className={`flex items-baseline gap-1.5 ${forca > 0.6 ? "text-white" : "text-tinta"}`}>
                   <span className="font-display text-2xl font-bold">{n(f.n)}</span>
-                  <span className="text-xs font-semibold">{variacao(f.variacao)}</span>
+                  <span className="text-xs font-semibold">{variacao(f.n, f.anterior, f.variacao)}</span>
                 </span>
               </li>
             );

@@ -17,6 +17,7 @@ import { Aviso, CabecalhoPagina } from "@/components/painel/cabecalho";
 import { useSessao } from "@/lib/sessao";
 import { useDados, useFuso } from "./dados";
 import {
+  basePequena,
   hojeNoFuso,
   MOTIVOS_PASSAGEM,
   mensagemErro,
@@ -31,7 +32,7 @@ import {
   porHora,
   textoHorarioBalcao,
 } from "./graficos";
-import { ChavePeriodo, chaveValida, periodoDe, SeletorPeriodo } from "./periodo";
+import { ChavePeriodo, chaveValida, periodoDe, ROTULOS_PERIODO, SeletorPeriodo } from "./periodo";
 import { PrimeiroDia } from "./primeiro-dia";
 import { CartaoCustoIa } from "./custo-ia";
 import { CartaoQualidade } from "./qualidade";
@@ -113,7 +114,7 @@ export function VisaoGeral() {
   return (
     <div className="pb-12">
       <CabecalhoPagina
-        migalhas={["Atendimento", chave === "7d" ? "Esta semana" : "Período"]}
+        migalhas={["Atendimento", ROTULOS_PERIODO[chave]]}
         titulo="Visão geral"
         acoes={
           <>
@@ -219,12 +220,16 @@ function Resumo({ dados, chave }: { dados: Dados; chave: ChavePeriodo }) {
   const n = i.conversas.valor ?? 0;
   const fora = i.fora_de_horas_pct.valor;
   const v = i.conversas.variacao;
+  const anterior = i.conversas.anterior;
+  // Com poucos casos, o número diz mais do que a percentagem ("+213%" com 16 contra 50).
   const comparacao =
-    v === null
+    v === null || anterior === null
       ? "Ainda não há dados do período anterior para comparar."
-      : v === 0
+      : n === anterior
         ? "Tantas como no período anterior."
-        : `${v > 0 ? "Mais" : "Menos"} ${Math.abs(Math.round(v))}% do que no período anterior.`;
+        : basePequena(n, anterior)
+          ? `No período anterior foram ${numero(anterior)}.`
+          : `${v > 0 ? "Mais" : "Menos"} ${Math.abs(Math.round(v))}% do que no período anterior.`;
 
   const numeros: { rotulo: string; valor: string; cor: string }[] = [
     {
@@ -413,7 +418,7 @@ function Trabalho({ dados }: { dados: Dados }) {
     >
       <div className="flex flex-col gap-1">
         <h2 id="trabalho-titulo" className="font-display text-xl font-bold text-white">
-          O que o agente tratou esta semana
+          O que o agente tratou nos últimos 7 dias
         </h2>
         <p className="text-[13px] text-white/70">
           Não só respondeu: deixou o trabalho feito.

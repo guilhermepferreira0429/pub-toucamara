@@ -1,5 +1,5 @@
 import type { DiaSemana, HorarioBalcao } from "@/lib/sessao";
-import { numero, variacaoPct } from "./formatos";
+import { numero, variacaoCurta } from "./formatos";
 import type { TemaTop } from "./tipos";
 
 /*
@@ -232,7 +232,7 @@ export function ListaTemas({
   return (
     <ul className="flex flex-col gap-3.5">
       {temas.map((t, i) => {
-        const v = t.novo ? "novo" : variacaoPct(t.variacao);
+        const v = t.novo ? "novo" : variacaoCurta(t.total, t.anterior, t.variacao);
         const sobe = t.novo || (t.variacao ?? 0) > 0;
         return (
           <li key={t.tema_id} className="flex items-center gap-3.5">
