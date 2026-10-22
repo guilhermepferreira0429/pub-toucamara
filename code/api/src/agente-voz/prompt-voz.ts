@@ -170,7 +170,11 @@ export const GRUPOS_FERRAMENTAS: {
       ],
       [
         'juntar_familiar',
-        'quando pede para juntar um familiar à chamada: confirma o número em voz alta antes',
+        'quando pede para juntar um familiar à chamada: confirma o número em voz alta antes e pergunta se autoriza o familiar a acompanhar a conversa (autorizou)',
+      ],
+      [
+        'retirar_familiar',
+        'quando a pessoa diz que já não precisa do familiar a acompanhar: o link dele deixa de funcionar',
       ],
       [
         'estado_familiar',
