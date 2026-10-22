@@ -837,7 +837,52 @@ export class AgoraService {
     const raio = e.raio_m ?? PARAMETROS.raio_subscricao_m;
     const tipos = [...new Set(e.tipos)] as TipoSubscricao[];
     const porRua = l.ponto !== null;
-    const id = await this.db.transaction(async (tx) => {
+    const id = await this.subscrever(m, municipeId, {
+      local: l,
+      tipos,
+      raio_m: raio,
+      canal: ctx.canal,
+      aceitaAvisos: mu.aceita_avisos,
+    });
+    const zona = porRua
+      ? `${l.descricao} (${raio} m à volta)`
+      : l.freguesia
+        ? `freguesia de ${l.freguesia}`
+        : l.descricao;
+    const oque = tipos.map((t) => ROTULOS_TIPO[t]).join(', ');
+    return {
+      subscrito: true,
+      subscricao_id: id,
+      tipos,
+      zona,
+      voltou_a_aceitar_avisos: !mu.aceita_avisos || undefined,
+      dizer:
+        `Fica combinado: avisamos por SMS quando houver ${oque} novos em ${zona}. ` +
+        'Avisos que não sejam de emergência só saem entre as 9h e as 21h. Para deixar de receber, responda PARAR a um desses SMS.',
+    };
+  }
+
+  /**
+   * Grava a subscrição "avise-me" (a mesma zona — a mesma freguesia, ou o
+   * mesmo sítio a ~10 m — junta os tipos) e volta a aceitar avisos se a
+   * pessoa tinha dito PARAR. Usada pela ferramenta avisar_me e pela app.
+   */
+  async subscrever(
+    m: Municipio,
+    municipeId: string,
+    s: {
+      local: LocalAgora;
+      tipos: TipoSubscricao[];
+      raio_m: number;
+      canal: string;
+      aceitaAvisos: boolean;
+    },
+  ): Promise<string> {
+    const l = s.local;
+    const tipos = s.tipos;
+    const raio = s.raio_m;
+    const porRua = l.ponto !== null;
+    return this.db.transaction(async (tx) => {
       // A mesma zona (a mesma freguesia, ou o mesmo sítio a ~10 m) junta os tipos.
       const [existente] = await tx.query<{ id: string; tipos: string[] }>(
         `SELECT id, tipos FROM agora_subscricoes
@@ -875,7 +920,7 @@ export class AgoraService {
             l.ponto?.lng ?? null,
             porRua ? raio : null,
             l.freguesia,
-            ctx.canal,
+            s.canal,
           ],
         );
         subId = n.id;
@@ -888,11 +933,11 @@ export class AgoraService {
           acao: 'subscrever_agora',
           objetoTipo: 'agora_subscricao',
           objetoId: subId,
-          dados: { tipos, por: porRua ? 'rua' : 'freguesia', canal: ctx.canal },
+          dados: { tipos, por: porRua ? 'rua' : 'freguesia', canal: s.canal },
         },
         tx,
       );
-      if (!mu.aceita_avisos) {
+      if (!s.aceitaAvisos) {
         // Pedir avisos é dizer que os quer: volta a aceitar (tinha dito PARAR).
         await tx.query(
           'UPDATE municipes SET aceita_avisos = true WHERE id = $1',
@@ -906,28 +951,12 @@ export class AgoraService {
             acao: 'aceitar_avisos',
             objetoTipo: 'municipe',
             objetoId: municipeId,
-            dados: { via: 'avisar_me', canal: ctx.canal },
+            dados: { via: 'avisar_me', canal: s.canal },
           },
           tx,
         );
       }
       return subId;
     });
-    const zona = porRua
-      ? `${l.descricao} (${raio} m à volta)`
-      : l.freguesia
-        ? `freguesia de ${l.freguesia}`
-        : l.descricao;
-    const oque = tipos.map((t) => ROTULOS_TIPO[t]).join(', ');
-    return {
-      subscrito: true,
-      subscricao_id: id,
-      tipos,
-      zona,
-      voltou_a_aceitar_avisos: !mu.aceita_avisos || undefined,
-      dizer:
-        `Fica combinado: avisamos por SMS quando houver ${oque} novos em ${zona}. ` +
-        'Avisos que não sejam de emergência só saem entre as 9h e as 21h. Para deixar de receber, responda PARAR a um desses SMS.',
-    };
   }
 }
