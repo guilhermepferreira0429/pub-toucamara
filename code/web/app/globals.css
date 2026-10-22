@@ -43,6 +43,29 @@ body {
   outline-offset: 2px;
 }
 
+/* Campos de escrever: o foco é a borda terracota com um halo colado ao campo.
+   O contorno afastado, junto com a borda, desenhava dois anéis. */
+:is(
+    input:not([type="checkbox"], [type="radio"], [type="range"], [type="file"], [type="submit"], [type="button"]),
+    textarea,
+    select
+  ):focus-visible {
+  outline: none;
+  border-color: var(--color-terracota);
+  box-shadow: 0 0 0 3px rgb(184 74 36 / 0.22);
+}
+
+/* Campo dentro de uma caixa (pesquisa, telefone, valor): o campo não desenha
+   nada (tem bg-transparent) e é a caixa que mostra o foco. As caixas que já
+   têm focus-within: próprio ficam com o seu. */
+:is(input, textarea, select).bg-transparent:focus-visible {
+  box-shadow: none;
+}
+:not([class*="focus-within:"]):has(> :is(input, textarea, select).bg-transparent:focus-visible) {
+  border-color: var(--color-terracota);
+  box-shadow: 0 0 0 3px rgb(184 74 36 / 0.22);
+}
+
 /* Barras de scroll finas, sem fundo nem setas, na cor da marca. Chrome, Edge e
    Safari usam os pseudo-elementos; o Firefox só conhece scrollbar-width/color
    (no Chrome estes anulariam os pseudo-elementos, por isso ficam à parte). */
