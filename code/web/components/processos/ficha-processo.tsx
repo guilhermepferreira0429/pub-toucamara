@@ -13,6 +13,7 @@ import {
 import { useParams } from "next/navigation";
 import { useState } from "react";
 import { Aviso, CabecalhoPagina } from "@/components/painel/cabecalho";
+import { CartaoAntecipacoes } from "@/components/antecipacoes/cartao-processo";
 import { CartaoEntregaEmNome } from "@/components/entregas/cartao-entrega";
 import { useSessao } from "@/lib/sessao";
 import { DialogoLigar, DialogoPedirDocumento } from "./dialogos-processo";
@@ -342,6 +343,11 @@ export function FichaProcesso() {
           />
           <div className="flex flex-col gap-4">
             <CartaoPrazo p={p} />
+            <CartaoAntecipacoes
+              processoId={p.id}
+              aberto={!p.decisao && !["notificado", "arquivado"].includes(p.fase)}
+              onMudou={ficha.recarregar}
+            />
             <CartaoGerir
               key={p.atualizado_em}
               p={p}

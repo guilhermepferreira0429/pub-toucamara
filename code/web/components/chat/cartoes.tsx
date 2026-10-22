@@ -1421,6 +1421,37 @@ function CartaoTermo({ dados }: { dados: Dados }) {
   );
 }
 
+/** Antecipações: as datas que estão a chegar e o que a pessoa pode fazer. */
+function CartaoMomento({ dados }: { dados: Dados }) {
+  if (dados.encontrado !== true || !Array.isArray(dados.momentos)) return null;
+  const itens = (dados.momentos as Dados[]).filter((m) => txt(m.o_que_e));
+  if (!itens.length) return null;
+  return (
+    <div className={`${CAIXA} gap-2 border-linha p-4`}>
+      <span className="text-[10px] font-bold uppercase tracking-[1px] text-tinta-3">
+        Datas a não esquecer
+      </span>
+      <ul className="flex flex-col gap-2.5">
+        {itens.map((m, i) => (
+          <li key={i} className="flex flex-col gap-0.5">
+            <p className="text-[15px] font-bold text-tinta">
+              {txt(m.o_que_e)}
+              {txt(m.numero_processo) ? ` · ${txt(m.numero_processo)}` : ""}
+            </p>
+            <p className="text-sm font-semibold text-terracota">Até {txt(m.data)}</p>
+            <p className="text-sm leading-[1.45] text-tinta-2">{txt(m.o_que_pode_fazer)}</p>
+            {m.confirmar_com_a_camara === true && (
+              <p className="text-[11px] font-semibold text-ambar">
+                O efeito legal confirma-se com a câmara para o seu caso.
+              </p>
+            )}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 /** O cartão certo para cada tipo (os desconhecidos não aparecem). */
 export function CartaoChat({
   cartao,
@@ -1482,6 +1513,8 @@ export function CartaoChat({
       return <CartaoDocumento dados={cartao.dados} />;
     case "termo":
       return <CartaoTermo dados={cartao.dados} />;
+    case "momento":
+      return <CartaoMomento dados={cartao.dados} />;
     default:
       return null;
   }

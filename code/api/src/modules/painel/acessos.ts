@@ -180,6 +180,10 @@ const VERBOS: Record<string, string> = {
   carregar_glossario_demonstracao: 'carregou os termos de demonstração',
   perguntar_concelho: 'perguntou ao concelho (o que sentem os munícipes)',
   guardar_analise_concelho: 'guardou e partilhou',
+  configurar_antecipacoes: 'mudou as antecedências',
+  correr_antecipacoes: 'correu agora a verificação',
+  alertar_prazo_camara: 'alertou a chefia do prazo da câmara em',
+  abrir_audiencia_previa: 'abriu a audiência prévia em',
 };
 
 const OBJETOS: Record<string, string> = {
@@ -243,6 +247,7 @@ const OBJETOS: Record<string, string> = {
   termo_glossario: 'um termo do glossário',
   glossario: 'do glossário',
   analise_concelho: 'uma análise do que sentem os munícipes',
+  antecipacao_config: 'das antecipações',
 };
 
 export function frase(acao: string, objetoTipo: string): string {

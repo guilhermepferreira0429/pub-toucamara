@@ -102,5 +102,6 @@
 ### Chamadas feitas pela câmara
 
 - `motivo_da_chamada`: no início de uma chamada nossa se as variáveis vierem vazias, ou se a pessoa perguntar porque lhe ligámos.
+- `explicar_momento`: numa chamada nossa de aviso antecipado (prazo a acabar, audiência prévia, obra a caducar, taxa por pagar), ou quando a pessoa diz que recebeu um aviso sobre uma data.
 - `resposta_campanha`: no fim de uma chamada de campanha (saber se a pessoa está bem).
 - `resposta_emergencia`: num aviso de emergência da câmara: se está em segurança ou precisa de ajuda.
