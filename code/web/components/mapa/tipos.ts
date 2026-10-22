@@ -122,6 +122,8 @@ export interface PropsMapaCidade {
     localizacao?: boolean;
     /** Alternar 2D/3D (só com Mapbox). */
     vista3d?: boolean;
+    /** Alternar "Satélite / Mapa" (só com Mapbox; a escolha fica neste browser). */
+    satelite?: boolean;
     /** Onde ficam (por omissão: direita, ao meio). */
     posicao?: "direita" | "direita-baixo";
   };

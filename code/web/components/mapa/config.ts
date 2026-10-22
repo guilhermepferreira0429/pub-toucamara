@@ -66,3 +66,50 @@ export const CONFIG_STANDARD: Record<string, string | boolean> = {
   colorBuildingSelect: "#b84a24",
   colorPlaceLabelHighlight: "#8e3517",
 };
+
+/** O Standard Satellite: a imagem manda; só a luz, o 3D e menos rótulos. */
+export const CONFIG_SATELITE: Record<string, string | boolean> = {
+  lightPreset: "day",
+  show3dObjects: true,
+  showPointOfInterestLabels: false,
+  showTransitLabels: false,
+};
+
+export function eSatelite(url: string): boolean {
+  return url === ESTILOS["standard-satellite"];
+}
+
+/** A config "basemap" de um estilo (ou nada, se não for da família Standard). */
+export function configDe(url: string) {
+  if (!eStandard(url)) return undefined;
+  return { basemap: eSatelite(url) ? CONFIG_SATELITE : CONFIG_STANDARD };
+}
+
+/**
+ * Os dois estilos do botão "Satélite / Mapa": o mapa é o estilo pedido (ou o
+ * Standard, se o pedido já for o satélite); o satélite é o Standard Satellite.
+ */
+export function estilosDoBotao(pedido?: string | null): { mapa: string; satelite: string } {
+  const base = estiloMapbox(pedido);
+  return { mapa: eSatelite(base) ? ESTILOS.standard : base, satelite: ESTILOS["standard-satellite"] };
+}
+
+const CHAVE_SATELITE = "toucamara:mapa-satelite";
+
+/** A escolha de quem vê (só neste browser); null se nunca escolheu. */
+export function lerPreferenciaSatelite(): boolean | null {
+  try {
+    const v = window.localStorage.getItem(CHAVE_SATELITE);
+    return v === null ? null : v === "1";
+  } catch {
+    return null;
+  }
+}
+
+export function guardarPreferenciaSatelite(satelite: boolean) {
+  try {
+    window.localStorage.setItem(CHAVE_SATELITE, satelite ? "1" : "0");
+  } catch {
+    // Sem armazenamento (janela privada): fica só nesta página.
+  }
+}

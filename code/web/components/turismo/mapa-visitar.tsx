@@ -102,6 +102,7 @@ export default function MapaVisitar({
             bussola: true,
             localizacao: true,
             vista3d: true,
+            satelite: true,
           }}
         />
       </div>
