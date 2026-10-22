@@ -433,7 +433,7 @@ function QuemTrata({
       </div>
       <ErroLinha erro={acao.erro} className="mb-2" />
       {regras.length ? (
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Regras de encaminhamento">
           <table className="w-full min-w-[760px] text-left">
             <thead>
               <tr className="border-y border-linha text-[11px] font-bold text-tinta-3">

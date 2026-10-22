@@ -1,8 +1,9 @@
 "use client";
 
 import { AlertTriangle, Lock } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ErroApi } from "@/lib/api";
+import { useFocoPreso } from "@/lib/foco";
 import { useSessao } from "@/lib/sessao";
 
 /*
@@ -387,12 +388,9 @@ export function Dialogo({
   children: React.ReactNode;
   largura?: string;
 }) {
-  useEffect(() => {
-    if (!aberto) return;
-    const tecla = (e: KeyboardEvent) => e.key === "Escape" && onFechar();
-    window.addEventListener("keydown", tecla);
-    return () => window.removeEventListener("keydown", tecla);
-  }, [aberto, onFechar]);
+  // Foco preso lá dentro, Esc fecha e o foco volta ao botão que o abriu.
+  const caixa = useRef<HTMLDivElement>(null);
+  useFocoPreso(caixa, aberto, onFechar);
   if (!aberto) return null;
   return (
     <div
@@ -400,6 +398,7 @@ export function Dialogo({
       onMouseDown={(e) => e.target === e.currentTarget && onFechar()}
     >
       <div
+        ref={caixa}
         role="dialog"
         aria-modal="true"
         aria-label={titulo}

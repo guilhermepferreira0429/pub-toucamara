@@ -71,12 +71,12 @@ function Topo({
       <span className="flex min-w-0 flex-1 flex-col">
         <span className="text-sm font-bold text-white">{titulo}</span>
         {subtitulo && (
-          <span className="truncate text-[11px] text-white/80">{subtitulo}</span>
+          <span className="truncate text-[11px] text-white/90">{subtitulo}</span>
         )}
       </span>
       {direita && (
         <span
-          className={`shrink-0 font-bold ${mono ? "font-mono text-xs text-white/80" : "text-[13px] text-white"}`}
+          className={`shrink-0 font-bold ${mono ? "font-mono text-xs text-white/90" : "text-[13px] text-white"}`}
         >
           {direita}
         </span>

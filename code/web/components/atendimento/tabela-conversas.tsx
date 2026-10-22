@@ -21,7 +21,7 @@ export function TabelaConversas({
   const th =
     "h-9 px-2 text-left text-[11px] font-bold tracking-[0.8px] text-tinta-3";
   return (
-    <div className="overflow-x-auto">
+    <div className="overflow-x-auto" tabIndex={0}>
       <table className="w-full min-w-[760px] border-collapse">
         <thead>
           <tr className="border-b border-linha">

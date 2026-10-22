@@ -297,7 +297,7 @@ export function Pagamento({ codigo }: { codigo: string }) {
         <p className="font-display text-[44px] leading-none font-extrabold tracking-[-1.5px]">
           {euros(r.valor_cent)}
         </p>
-        <p className="pt-1 text-[14px] text-white/85">
+        <p className="pt-1 text-[14px] text-white/90">
           {[r.guia_numero && `Guia n.º ${r.guia_numero}`, r.pagar_ate && `pagar até ${dataLonga(r.pagar_ate)}`]
             .filter(Boolean)
             .join(" · ")}

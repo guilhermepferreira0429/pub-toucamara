@@ -85,7 +85,7 @@ export function PaginaZona({ codigo }: { codigo: string }) {
       {destaque ? (
         <CartaoDestaque rotulo={d.zona?.nome ?? "Resposta"} tom={destaque.tom}>
           <p className="font-display text-[26px] leading-tight font-bold">{destaque.titulo}</p>
-          {d.zona?.descricao && <p className="text-[15px] text-white/85">{d.zona.descricao}</p>}
+          {d.zona?.descricao && <p className="text-[15px] text-white/90">{d.zona.descricao}</p>}
         </CartaoDestaque>
       ) : (
         <Nota icone={MapPin} tom="ambar">

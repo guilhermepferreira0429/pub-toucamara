@@ -238,7 +238,7 @@ function ResultadoPorFreguesia({ p }: { p: ResultadoPergunta }) {
           ))}
         </ul>
       </div>
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto" tabIndex={0}>
         <table className="w-full text-[13px]">
           <caption className="sr-only">Resultado por freguesia: {p.texto}</caption>
           <thead>

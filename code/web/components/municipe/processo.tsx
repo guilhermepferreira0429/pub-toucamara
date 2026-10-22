@@ -474,7 +474,7 @@ export function Processo({ codigo }: { codigo: string }) {
       {falta.length === 0 && p.pagamento?.estado === "pendente" && p.pagamento.codigo ? (
         <CartaoDestaque rotulo="Falta só pagar a taxa">
           <p className="font-display text-[34px] leading-none font-bold">{euros(p.pagamento.valor_cent)}</p>
-          <p className="text-[14px] text-white/85">
+          <p className="text-[14px] text-white/90">
             {p.pagamento.guia_numero ? `Guia n.º ${p.pagamento.guia_numero}` : "Taxa do processo"}
             {p.pagamento.pagar_ate ? ` · pagar até ${dataLonga(p.pagamento.pagar_ate)}` : ""}
             {p.pagamento.modo_teste ? " · modo de teste, nada é cobrado" : ""}
@@ -486,7 +486,7 @@ export function Processo({ codigo }: { codigo: string }) {
             <CreditCard className="size-[18px]" aria-hidden />
             Pagar por MB WAY ou Multibanco
           </a>
-          <p className="text-[13px] leading-[1.4] text-white/85">Depois disso, a câmara segue com a decisão.</p>
+          <p className="text-[13px] leading-[1.4] text-white/90">Depois disso, a câmara segue com a decisão.</p>
         </CartaoDestaque>
       ) : falta.length > 0 ? (
         <CartaoDestaque
@@ -497,7 +497,7 @@ export function Processo({ codigo }: { codigo: string }) {
               <li key={f.nome} className="font-display text-[20px] leading-[1.25] font-semibold">
                 {f.nome}
                 {f.prazo && (
-                  <span className="block font-body text-[14px] font-normal text-white/85">
+                  <span className="block font-body text-[14px] font-normal text-white/90">
                     entregar até {dataLonga(f.prazo)}
                   </span>
                 )}
@@ -518,7 +518,7 @@ export function Processo({ codigo }: { codigo: string }) {
               Para entregar, ligue-nos ou escreva no chat.
             </p>
           )}
-          <p className="text-[13px] leading-[1.4] text-white/85">
+          <p className="text-[13px] leading-[1.4] text-white/90">
             {prazo ?? "O prazo da câmara só começa a contar quando o processo estiver completo."}
           </p>
         </CartaoDestaque>

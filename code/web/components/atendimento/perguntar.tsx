@@ -294,7 +294,7 @@ function Resposta({ r, perguntar }: { r: RespostaPergunta; perguntar: (s: string
 function Tabela({ t }: { t: NonNullable<RespostaPergunta["tabela"]> }) {
   const base = t.objeto === "processo" ? "/painel/processos/" : t.objeto === "ocorrencia" ? "/painel/ocorrencias/" : null;
   return (
-    <div className="overflow-x-auto rounded-xl border border-linha">
+    <div className="overflow-x-auto rounded-xl border border-linha" tabIndex={0}>
       <table className="w-full border-collapse text-[13px]">
         <thead className="bg-creme/60">
           <tr>

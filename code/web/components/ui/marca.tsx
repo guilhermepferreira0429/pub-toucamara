@@ -47,7 +47,7 @@ export function FonteOficial({
         <span className="text-[13px] font-medium leading-[1.35] text-tinta">
           {documento}
         </span>
-        {data && <span className="text-[11px] text-verde/70">{data}</span>}
+        {data && <span className="text-[11px] text-verde">{data}</span>}
       </span>
     </>
   );

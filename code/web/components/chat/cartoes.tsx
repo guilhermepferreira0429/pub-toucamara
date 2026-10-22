@@ -313,7 +313,7 @@ function CartaoContacto({ dados }: { dados: Dados }) {
             />
             <span className="flex min-w-0 flex-1 flex-col">
               <span
-                className={`text-[11px] ${forte ? "text-white/80" : "text-tinta-3"}`}
+                className={`text-[11px] ${forte ? "text-white/90" : "text-tinta-3"}`}
               >
                 {rotulo}
                 {c.aberto_agora === false && " · fechado agora"}

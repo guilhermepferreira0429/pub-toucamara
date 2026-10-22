@@ -103,7 +103,7 @@ export function PaginaLicenca({ codigo }: { codigo: string }) {
             <BadgeCheck className="size-7" aria-hidden />
             {nomeCurto} {l.valida ? (fem ? "válida" : "válido") : fem ? "expirada" : "expirado"}
           </p>
-          <p className="text-[15px] text-white/85">
+          <p className="text-[15px] text-white/90">
             {l.titular ? `Em nome de ${l.titular.replace(/\.$/, "")}. ` : ""}
             {l.atividade}.
           </p>

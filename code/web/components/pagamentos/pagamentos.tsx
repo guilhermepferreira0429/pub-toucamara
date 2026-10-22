@@ -212,7 +212,7 @@ function ListaPagamentos() {
         </Cartao>
       </div>
 
-      <Cartao className="overflow-x-auto">
+      <Cartao className="overflow-x-auto" tabIndex={0}>
         <Estado
           aCarregar={lista.aCarregar}
           erro={lista.erro}
@@ -376,7 +376,7 @@ function Taxas() {
                 )}
               </div>
             </div>
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto" tabIndex={0}>
               <table className="w-full min-w-[640px] text-left text-sm">
                 <thead>
                   <tr className="border-b border-linha text-[11px] font-bold tracking-[0.4px] text-tinta-3 uppercase">

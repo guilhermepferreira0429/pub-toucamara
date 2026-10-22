@@ -92,7 +92,7 @@ export function PaginaCampanhas() {
                 <Icone className="size-5" aria-hidden />
               </span>
               <span className="font-display text-lg leading-tight font-bold">{t.acao}</span>
-              <span className={`text-[13px] ${destaque ? "text-white/80" : "text-tinta-3"}`}>
+              <span className={`text-[13px] ${destaque ? "text-white/90" : "text-tinta-3"}`}>
                 <Phone className="mr-1 inline size-3.5" aria-hidden />
                 {numero(inscritas)} pessoas inscritas
               </span>
