@@ -152,39 +152,66 @@ export class AuthService {
       ip,
     });
     const horas = this.cfg().validadeHoras;
-    const { SignJWT } = await import('jose');
-    const jwt = await new SignJWT({})
-      .setProtectedHeader({ alg: 'HS256' })
-      .setSubject(u.id)
-      .setIssuedAt()
-      .setExpirationTime(`${horas}h`)
-      .sign(this.segredo());
+    const expira = new Date(Date.now() + horas * 3_600_000);
     return {
-      token: jwt,
-      expira_em: new Date(Date.now() + horas * 3_600_000).toISOString(),
+      token: await this.emitir(u.id, expira),
+      expira_em: expira.toISOString(),
       utilizador: paraUtilizador(u),
     };
+  }
+
+  /**
+   * O JWT do painel. Com `sessaoApp` (app da equipa de campo) leva o id da
+   * sessão do dispositivo em `sid`: deixa de valer quando ela for revogada.
+   */
+  async emitir(
+    utilizadorId: string,
+    expira: Date,
+    sessaoApp?: string,
+  ): Promise<string> {
+    const { SignJWT } = await import('jose');
+    return new SignJWT(sessaoApp ? { sid: sessaoApp } : {})
+      .setProtectedHeader({ alg: 'HS256' })
+      .setSubject(utilizadorId)
+      .setIssuedAt()
+      .setExpirationTime(Math.floor(expira.getTime() / 1000))
+      .sign(this.segredo());
   }
 
   /** Valida o JWT e carrega o utilizador (desativado = fora). */
   async verificar(jwt: string): Promise<UtilizadorPainel> {
     let id: string | undefined;
+    let sid: string | null = null;
     try {
       const { jwtVerify } = await import('jose');
       const { payload } = await jwtVerify(jwt, this.segredo(), {
         algorithms: ['HS256'],
       });
       id = payload.sub;
+      sid = typeof payload['sid'] === 'string' ? payload['sid'] : null;
     } catch {
       id = undefined;
     }
+    // Sessão da app da equipa: tem de estar ativa (sair/revogar corta-a).
     const [u] = id
       ? await this.db.query<LinhaUtilizador>(
-          `SELECT id, nome, email, perfil, municipio_id, servico_id
-           FROM utilizadores WHERE id = $1 AND ativo`,
-          [id],
+          `SELECT u.id, u.nome, u.email, u.perfil, u.municipio_id, u.servico_id
+           FROM utilizadores u
+           WHERE u.id = $1 AND u.ativo
+             AND ($2::uuid IS NULL OR EXISTS (
+               SELECT 1 FROM painel_app_sessoes s
+               WHERE s.id = $2 AND s.utilizador_id = u.id
+                 AND s.revogada_em IS NULL AND s.expira_em > now()))`,
+          [id, sid],
         )
       : [];
+    if (u && sid) {
+      await this.db.query(
+        `UPDATE painel_app_sessoes SET ultimo_uso_em = now()
+         WHERE id = $1 AND (ultimo_uso_em IS NULL OR ultimo_uso_em < now() - interval '5 minutes')`,
+        [sid],
+      );
+    }
     if (!u) {
       throw new ErroApi(
         HttpStatus.UNAUTHORIZED,
@@ -192,7 +219,7 @@ export class AuthService {
         'Sessão inválida ou expirada.',
       );
     }
-    return paraUtilizador(u);
+    return sid ? { ...paraUtilizador(u), sessaoAppId: sid } : paraUtilizador(u);
   }
 
   async perfil(id: string) {
