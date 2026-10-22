@@ -15,6 +15,7 @@ export const FERRAMENTAS_PUBLICAS = [
   'consultas_abertas',
   'que_apoios_tenho',
   'procurar_deliberacoes',
+  'o_que_se_passa',
 ] as const;
 
 /** Com a chave pessoal: as ações em nome da pessoa. */
@@ -45,6 +46,7 @@ export const FERRAMENTAS_PESSOAIS = [
   'renovar_licenca',
   'registar_reclamacao',
   'pedir_consulta_arquivo',
+  'avisar_me',
 ] as const;
 
 /** Não mudam nada: o cliente pode correr sem pedir confirmação. */
@@ -60,6 +62,7 @@ export const SO_LEITURA = new Set<string>([
   'redigir',
   'conversa_anterior',
   'procurar_deliberacoes',
+  'o_que_se_passa',
 ]);
 
 export const TITULOS: Record<string, string> = {
@@ -96,6 +99,8 @@ export const TITULOS: Record<string, string> = {
   pedir_consulta_arquivo: 'Pedir para consultar um processo antigo no arquivo',
   conversa_anterior: 'Conversas anteriores',
   nao_quero_avisos: 'Deixar de receber avisos por zona',
+  o_que_se_passa: 'O que se passa perto de mim (obras, avisos, eventos)',
+  avisar_me: 'Ser avisado do que aparecer na minha rua',
 };
 
 /** Instruções para o modelo do assistente (vão no `initialize`). */
@@ -141,6 +146,12 @@ export function resumirPedido(
       return `Procurou deliberações sobre "${texto(entrada.assunto) ?? '…'}"${r.sem_resultados ? ' (nenhuma)' : ''}`;
     case 'ver_vagas':
       return 'Viu vagas para atendimento';
+    case 'o_que_se_passa':
+      return `Viu o que se passa${entrada.morada ? ` perto de ${texto(entrada.morada, 60)}` : ''}`;
+    case 'avisar_me':
+      return r.subscrito === true
+        ? `Pediu avisos (${Array.isArray(entrada.tipos) ? (entrada.tipos as string[]).join(', ') : ''})`
+        : 'Quis ser avisado do que se passa perto';
     case 'o_que_posso_fazer':
       return `Perguntou o que pode fazer em ${texto(entrada.morada, 60) ?? '…'}`;
     case 'registar_ocorrencia':

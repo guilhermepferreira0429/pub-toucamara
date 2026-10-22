@@ -46,6 +46,10 @@ export const PERMISSOES = {
   // carregar digitalizações e rever metadados é dos técnicos e da chefia
   // (arquivo/regras.ts, PERFIS_DOCUMENTOS).
   arquivo: ['atendimento', 'tecnico', 'chefe_divisao'],
+  // Comunicados, notícias e eventos do feed "o que se passa perto de mim":
+  // quem atende (comunicação) e a chefia escrevem e publicam; ver é de quem
+  // tem a visão geral.
+  comunicados: ['atendimento', 'chefe_divisao'],
 } as const satisfies Record<string, readonly Perfil[]>;
 
 export type Recurso = keyof typeof PERMISSOES;

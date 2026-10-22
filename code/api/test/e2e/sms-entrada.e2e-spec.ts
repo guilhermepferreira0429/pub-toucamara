@@ -19,9 +19,16 @@ const NUMERO_SMS = '+351939000111';
 describe('SMS de entrada (e2e)', () => {
   let ctx: Contexto;
   let sid = 0;
+  let antes:
+    { telefone_sms: string | null; telefone_linha: string | null } | undefined;
 
   beforeAll(async () => {
     ctx = await arrancarApp();
+    antes = await linha(
+      ctx.db,
+      `SELECT telefone_sms, telefone_linha FROM municipios WHERE id = $1`,
+      [MUNICIPIO_ID],
+    );
     const config = ctx.app.get(ConfigService);
     config.set('comunicacao.twilio', { accountSid: 'ACin', authToken: TOKEN });
     config.set('app.apiUrl', 'https://api.teste.pt');
@@ -30,7 +37,18 @@ describe('SMS de entrada (e2e)', () => {
       [MUNICIPIO_ID, NUMERO_SMS],
     );
   });
-  afterAll(() => ctx.fechar());
+  // Os outros ficheiros esperam os números do seed.
+  afterAll(async () => {
+    await ctx.db.query(
+      `UPDATE municipios SET telefone_sms = $2, telefone_linha = $3 WHERE id = $1`,
+      [
+        MUNICIPIO_ID,
+        antes?.telefone_sms ?? null,
+        antes?.telefone_linha ?? null,
+      ],
+    );
+    await ctx.fechar();
+  });
 
   function enviar(de: string, corpo: string, assinar = true) {
     const p = {

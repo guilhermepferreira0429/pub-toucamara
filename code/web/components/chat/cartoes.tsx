@@ -19,6 +19,7 @@ import {
   MessageSquareText,
   NotebookPen,
   Package,
+  BellRing,
   Phone,
   Send,
   Siren,
@@ -1023,6 +1024,56 @@ function CartaoReclamacao({ dados }: { dados: Dados }) {
   );
 }
 
+/* ------------------------------------------------------------------ */
+/* O que se passa perto (o_que_se_passa) e "avise-me" (avisar_me)        */
+/* ------------------------------------------------------------------ */
+
+function CartaoAgora({ ferramenta, dados }: { ferramenta: string; dados: Dados }) {
+  if (ferramenta === "avisar_me") {
+    if (dados.subscrito !== true) return null;
+    return (
+      <div className={`${CAIXA} gap-3 border-linha p-4`}>
+        <p className="flex items-center gap-2.5">
+          <span className="flex size-8 items-center justify-center rounded-full bg-verde" aria-hidden>
+            <BellRing className="size-4 text-white" />
+          </span>
+          <span className="flex flex-col">
+            <span className="text-[15px] font-bold text-tinta">Vamos avisá-lo por SMS</span>
+            {txt(dados.zona) && <span className="text-[13px] text-tinta-2">{txt(dados.zona)}</span>}
+          </span>
+        </p>
+        <p className="text-xs text-tinta-2">Para deixar de receber, responda PARAR a um desses SMS.</p>
+      </div>
+    );
+  }
+  const itens = lista(dados.itens);
+  const link = txt(dados.link);
+  if (!itens.length && !link) return null;
+  const local = obj(dados.local);
+  return (
+    <div className={`${CAIXA} gap-3 border-linha p-4`}>
+      <span className="text-[10px] font-bold uppercase tracking-[1px] text-tinta-3">
+        {txt(local.descricao) ? `Perto de ${txt(local.descricao)}` : "No concelho"}
+        {txt(dados.periodo) ? ` · ${txt(dados.periodo)}` : ""}
+      </span>
+      {itens.length > 0 ? (
+        <ul className="rounded-xl bg-creme px-3">
+          {itens.map((i, k) => (
+            <Linha key={k} icone={i.gravidade === "emergencia" ? TriangleAlert : MapPin}>
+              <span className="font-semibold">{txt(i.titulo)}</span>
+              {txt(i.rua) && <span className="text-tinta-2"> · {txt(i.rua)}</span>}
+              {txt(i.quando) && <span className="block text-xs text-tinta-2">{txt(i.quando)}</span>}
+            </Linha>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-sm text-tinta-2">Nada a assinalar.</p>
+      )}
+      {link && <LinkCartao href={link}>Ver tudo o que se passa</LinkCartao>}
+    </div>
+  );
+}
+
 /** O cartão certo para cada tipo (os desconhecidos não aparecem). */
 export function CartaoChat({ cartao, acoes }: { cartao: Cartao; acoes: AcoesCartao }) {
   switch (cartao.tipo) {
@@ -1056,6 +1107,8 @@ export function CartaoChat({ cartao, acoes }: { cartao: Cartao; acoes: AcoesCart
       return <CartaoConsulta dados={cartao.dados} />;
     case "reclamacao":
       return <CartaoReclamacao dados={cartao.dados} />;
+    case "agora":
+      return <CartaoAgora ferramenta={cartao.ferramenta} dados={cartao.dados} />;
     default:
       return null;
   }

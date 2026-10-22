@@ -127,6 +127,18 @@ const VERBOS: Record<string, string> = {
   entrar_app: 'entrou na app do munícipe',
   sair_app: 'saiu da app do munícipe',
   mudar_preferencias_app: 'mudou as notificações da app de',
+  criar_comunicado: 'escreveu',
+  editar_comunicado: 'editou',
+  publicar_comunicado: 'publicou',
+  despublicar_comunicado: 'tirou do feed',
+  apagar_comunicado: 'apagou',
+  criar_evento: 'criou',
+  editar_evento: 'editou',
+  publicar_evento: 'publicou',
+  despublicar_evento: 'tirou do feed',
+  apagar_evento: 'apagou',
+  subscrever_agora: 'pediu avisos de',
+  aceitar_avisos: 'voltou a aceitar avisos em',
 };
 
 const OBJETOS: Record<string, string> = {
@@ -179,6 +191,9 @@ const OBJETOS: Record<string, string> = {
   emergencia: 'um aviso de emergência',
   emergencias_config: 'os avisos de emergência',
   sessao_app: '',
+  comunicado: 'um comunicado ou notícia',
+  evento: 'um evento',
+  agora_subscricao: 'uma zona (o que se passa perto de mim)',
 };
 
 export function frase(acao: string, objetoTipo: string): string {
