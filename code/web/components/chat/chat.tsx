@@ -64,6 +64,7 @@ const A_FAZER: Record<string, string> = {
   o_que_se_passa: "A ver o que se passa perto…",
   avisar_me: "A combinar os avisos…",
   entregar_pedido: "A preparar a entrega do pedido…",
+  o_que_visitar: "A preparar o roteiro…",
 };
 
 const SUGESTOES = [
@@ -170,6 +171,10 @@ interface Props {
   /** Janela: fechar. */
   aoFechar?: () => void;
   sugestoes?: string[];
+  /** Língua da conversa (ex.: "en" no /visitar); por omissão, a do browser. */
+  idioma?: string;
+  /** Saudação mostrada (na língua da página), em vez da do servidor. */
+  saudacao?: string;
   /** Para o portal: pôr o cursor no campo ao abrir. */
   ref?: React.Ref<ChatControlo>;
 }
@@ -186,13 +191,16 @@ export function Chat({
   voltarHref = "/",
   aoFechar,
   sugestoes = SUGESTOES,
+  idioma,
+  saudacao,
   ref,
 }: Props) {
-  const chat = useChat(municipio);
+  const chat = useChat(municipio, idioma, saudacao);
   const { enviar: enviarChat, ocupado } = chat;
   const idCampo = useId();
   const janela = variante === "janela";
-  const lingua = useLinguaBrowser();
+  const linguaBrowser = useLinguaBrowser();
+  const lingua = idioma ?? linguaBrowser;
   const outraLingua = !lingua.toLowerCase().startsWith("pt");
 
   const [rascunho, setRascunho] = useState("");

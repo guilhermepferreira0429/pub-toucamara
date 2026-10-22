@@ -33,6 +33,11 @@ import { useState } from "react";
 import { Etiqueta } from "@/components/ui/botao";
 import { FonteOficial } from "@/components/ui/marca";
 import { CartaoChatEntrega } from "@/components/entregas/cartao-chat";
+import {
+  CODIGO_LINGUA,
+  linguaValida,
+  TEXTOS as TEXTOS_TURISMO,
+} from "@/components/turismo/textos";
 import type { Cartao } from "./tipos";
 
 /* ------------------------------------------------------------------ */
@@ -1421,6 +1426,49 @@ function CartaoTermo({ dados }: { dados: Dados }) {
   );
 }
 
+/** Turistas: o roteiro sugerido (na língua da conversa) com o link do mapa. */
+function CartaoTurismo({ dados }: { dados: Dados }) {
+  const paragens = lista(dados.roteiro);
+  if (!paragens.length) return null;
+  const l = linguaValida(txt(dados.lingua)) ?? "pt";
+  const t = TEXTOS_TURISMO[l];
+  const eventos = lista(dados.eventos_proximos_dias);
+  const total = num(dados.minutos_total);
+  return (
+    <div lang={CODIGO_LINGUA[l]} className={`${CAIXA} gap-2 border-linha p-4`}>
+      <span className="text-[10px] font-bold uppercase tracking-[1px] text-tinta-3">
+        {t.roteiros}
+        {total ? ` · ${t.duracao(total)}` : ""}
+      </span>
+      <ol className="flex flex-col">
+        {paragens.map((p, i) => (
+          <Linha key={`${txt(p.nome)}-${i}`} icone={MapPin}>
+            <span className="font-semibold">
+              {i + 1}. {txt(p.nome)}
+            </span>
+            {num(p.minutos) ? (
+              <span className="text-tinta-2"> · {t.minutos(num(p.minutos)!)}</span>
+            ) : null}
+          </Linha>
+        ))}
+      </ol>
+      {eventos.length > 0 && (
+        <p className="text-[13px] text-tinta-2">
+          {t.eventosProximos}: {eventos.map((e) => txt(e.titulo)).filter(Boolean).join(" · ")}
+        </p>
+      )}
+      {dados.demonstracao === true && (
+        <p className="text-[11px] font-semibold text-ambar">{t.avisoDemo}</p>
+      )}
+      {txt(dados.link) && (
+        <LinkCartao href={txt(dados.link)!} icone={MapPin}>
+          {t.abrirMapa}
+        </LinkCartao>
+      )}
+    </div>
+  );
+}
+
 /** O cartão certo para cada tipo (os desconhecidos não aparecem). */
 export function CartaoChat({
   cartao,
@@ -1480,6 +1528,8 @@ export function CartaoChat({
       return <CartaoChatEntrega dados={cartao.dados} />;
     case "documento":
       return <CartaoDocumento dados={cartao.dados} />;
+    case "turismo":
+      return <CartaoTurismo dados={cartao.dados} />;
     case "termo":
       return <CartaoTermo dados={cartao.dados} />;
     default:

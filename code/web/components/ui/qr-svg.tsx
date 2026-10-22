@@ -4,7 +4,15 @@ import { useMemo } from "react";
 import { gerarQr } from "@/components/chamada/qr";
 
 /** Código QR em SVG (gerado aqui, sem serviços de fora). */
-export function QrSvg({ texto, className }: { texto: string; className?: string }) {
+export function QrSvg({
+  texto,
+  className,
+  rotulo = "Código QR da licença",
+}: {
+  texto: string;
+  className?: string;
+  rotulo?: string;
+}) {
   const caminho = useMemo(() => {
     const m = gerarQr(texto);
     let d = "";
@@ -19,7 +27,7 @@ export function QrSvg({ texto, className }: { texto: string; className?: string 
     <svg
       viewBox={`0 0 ${caminho.lado} ${caminho.lado}`}
       role="img"
-      aria-label="Código QR da licença"
+      aria-label={rotulo}
       shapeRendering="crispEdges"
       className={`aspect-square rounded-2xl bg-white ${className ?? ""}`}
     >
