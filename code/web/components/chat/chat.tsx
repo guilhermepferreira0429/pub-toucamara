@@ -63,6 +63,7 @@ const A_FAZER: Record<string, string> = {
   registar_reclamacao: "A preparar a sua reclamação…",
   o_que_se_passa: "A ver o que se passa perto…",
   avisar_me: "A combinar os avisos…",
+  entregar_pedido: "A preparar a entrega do pedido…",
 };
 
 const SUGESTOES = [

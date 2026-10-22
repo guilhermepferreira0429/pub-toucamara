@@ -65,6 +65,7 @@ import { ProcessosModule } from './modules/processos/processos.module.js';
 import { RelatoriosModule } from './modules/relatorios/relatorios.module.js';
 import { RequerimentosModule } from './modules/requerimentos/requerimentos.module.js';
 import { TransparenciaModule } from './modules/transparencia/transparencia.module.js';
+import { EntregasModule } from './modules/entregas/entregas.module.js';
 
 @Module({
   imports: [
@@ -138,6 +139,7 @@ import { TransparenciaModule } from './modules/transparencia/transparencia.modul
     ContratacaoModule,
     // Transparência: dados abertos e indicadores no portal
     TransparenciaModule,
+    EntregasModule,
     FiscalizacaoModule,
     // Arquivo antigo digitalizado e pedidos de consulta
     ArquivoModule,

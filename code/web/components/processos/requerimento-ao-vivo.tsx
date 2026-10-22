@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { CartaoEntregaEmNome } from "@/components/entregas/cartao-entrega";
 import { useEffect, useRef, useState } from "react";
 import { Aviso, CabecalhoPagina } from "@/components/painel/cabecalho";
 import { sse } from "@/lib/api";
@@ -279,6 +280,7 @@ export function RequerimentoAoVivo() {
             </div>
 
             <div className="flex flex-col gap-4">
+              {dados.estado !== "a_preencher" && <CartaoEntregaEmNome requerimentoId={id} />}
               <Cartao className="flex flex-col gap-2 p-5">
                 <RotuloSeccao>Documentos</RotuloSeccao>
                 <ul className="flex flex-col">

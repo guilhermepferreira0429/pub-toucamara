@@ -32,6 +32,7 @@ import {
 import { useState } from "react";
 import { Etiqueta } from "@/components/ui/botao";
 import { FonteOficial } from "@/components/ui/marca";
+import { CartaoChatEntrega } from "@/components/entregas/cartao-chat";
 import type { Cartao } from "./tipos";
 
 /* ------------------------------------------------------------------ */
@@ -47,7 +48,9 @@ const obj = (v: unknown): Dados =>
   v !== null && typeof v === "object" && !Array.isArray(v) ? (v as Dados) : {};
 const lista = (v: unknown): Dados[] => (Array.isArray(v) ? v.map(obj) : []);
 const textos = (v: unknown): string[] =>
-  Array.isArray(v) ? v.filter((x): x is string => typeof x === "string" && !!x) : [];
+  Array.isArray(v)
+    ? v.filter((x): x is string => typeof x === "string" && !!x)
+    : [];
 
 const euros = (cent: number) =>
   new Intl.NumberFormat("pt-PT", { style: "currency", currency: "EUR" }).format(
@@ -59,7 +62,10 @@ const dataCurta = (iso: string | null) => {
   const d = new Date(iso);
   return Number.isNaN(d.getTime())
     ? null
-    : new Intl.DateTimeFormat("pt-PT", { day: "numeric", month: "short" }).format(d);
+    : new Intl.DateTimeFormat("pt-PT", {
+        day: "numeric",
+        month: "short",
+      }).format(d);
 };
 
 /** Ações que os cartões pedem ao chat. */
@@ -88,7 +94,9 @@ function Linha({
   return (
     <li className="flex gap-2.5 border-b border-linha py-[9px] last:border-b-0">
       <Icone className="mt-0.5 size-4 shrink-0 text-tinta-2" aria-hidden />
-      <span className="min-w-0 flex-1 text-sm leading-[1.4] text-tinta">{children}</span>
+      <span className="min-w-0 flex-1 text-sm leading-[1.4] text-tinta">
+        {children}
+      </span>
     </li>
   );
 }
@@ -154,7 +162,11 @@ function Feito({ children }: { children: React.ReactNode }) {
 /* Fonte oficial                                                        */
 /* ------------------------------------------------------------------ */
 
-function CartaoFonte({ cartao }: { cartao: Extract<Cartao, { tipo: "fonte" }> }) {
+function CartaoFonte({
+  cartao,
+}: {
+  cartao: Extract<Cartao, { tipo: "fonte" }>;
+}) {
   return (
     <div className="flex flex-col gap-1.5">
       {cartao.fontes.map((f) => (
@@ -211,9 +223,11 @@ const ROTULO_CONTACTO: Record<string, string> = {
 };
 
 function hrefContacto(tipo: string, valor: string): string | null {
-  if (tipo === "telefone" || tipo === "avarias") return `tel:${valor.replace(/[^\d+]/g, "")}`;
+  if (tipo === "telefone" || tipo === "avarias")
+    return `tel:${valor.replace(/[^\d+]/g, "")}`;
   if (tipo === "email") return `mailto:${valor}`;
-  if (tipo === "site") return /^https?:\/\//.test(valor) ? valor : `https://${valor}`;
+  if (tipo === "site")
+    return /^https?:\/\//.test(valor) ? valor : `https://${valor}`;
   if (tipo === "morada" || tipo === "balcao")
     return `https://www.openstreetmap.org/search?query=${encodeURIComponent(valor)}`;
   return null;
@@ -245,19 +259,24 @@ function CartaoContacto({ dados }: { dados: Dados }) {
   const entidade = obj(dados.entidade);
   const nome = txt(entidade.nome);
   if (!nome) return null;
-  const contactos = [obj(dados.contacto), ...lista(dados.outros_contactos)].filter(
-    (c) => txt(c.valor) && txt(c.tipo),
-  );
+  const contactos = [
+    obj(dados.contacto),
+    ...lista(dados.outros_contactos),
+  ].filter((c) => txt(c.valor) && txt(c.tipo));
   const destaque = contactos.findIndex((c) => c.tipo === "avarias");
   const iDestaque =
     destaque >= 0
       ? destaque
       : contactos.findIndex((c) => c.tipo === "telefone");
-  const agua = /agua|água|saneamento/i.test(`${txt(entidade.tipo) ?? ""} ${nome}`);
+  const agua = /agua|água|saneamento/i.test(
+    `${txt(entidade.tipo) ?? ""} ${nome}`,
+  );
   const IconeEntidade = agua ? Droplets : Landmark;
 
   return (
-    <div className={`${CAIXA} gap-2.5 rounded-[4px_16px_16px_16px] border-linha p-3.5`}>
+    <div
+      className={`${CAIXA} gap-2.5 rounded-[4px_16px_16px_16px] border-linha p-3.5`}
+    >
       <div className="flex items-center gap-2.5">
         <span
           className={`flex size-8 shrink-0 items-center justify-center rounded-lg text-white ${agua ? "bg-[#2a7ab8]" : "bg-tinta"}`}
@@ -268,14 +287,19 @@ function CartaoContacto({ dados }: { dados: Dados }) {
         <span className="flex min-w-0 flex-col">
           <span className="text-sm font-bold text-tinta">{nome}</span>
           {txt(entidade.descricao) && (
-            <span className="text-[11px] text-tinta-3">{txt(entidade.descricao)}</span>
+            <span className="text-[11px] text-tinta-3">
+              {txt(entidade.descricao)}
+            </span>
           )}
         </span>
       </div>
       {contactos.map((c, i) => {
         const tipo = txt(c.tipo) ?? "telefone";
         const valor = txt(c.valor) ?? "";
-        const rotulo = [txt(c.rotulo) ?? ROTULO_CONTACTO[tipo] ?? tipo, txt(c.horario)]
+        const rotulo = [
+          txt(c.rotulo) ?? ROTULO_CONTACTO[tipo] ?? tipo,
+          txt(c.horario),
+        ]
           .filter(Boolean)
           .join(", ");
         const href = hrefContacto(tipo, valor);
@@ -283,9 +307,14 @@ function CartaoContacto({ dados }: { dados: Dados }) {
         const Icone = ICONE_CONTACTO[tipo] ?? Phone;
         const conteudo = (
           <>
-            <Icone className={`size-[15px] shrink-0 ${forte ? "text-white" : "text-tinta"}`} aria-hidden />
+            <Icone
+              className={`size-[15px] shrink-0 ${forte ? "text-white" : "text-tinta"}`}
+              aria-hidden
+            />
             <span className="flex min-w-0 flex-1 flex-col">
-              <span className={`text-[11px] ${forte ? "text-white/80" : "text-tinta-3"}`}>
+              <span
+                className={`text-[11px] ${forte ? "text-white/80" : "text-tinta-3"}`}
+              >
                 {rotulo}
                 {c.aberto_agora === false && " · fechado agora"}
               </span>
@@ -362,7 +391,10 @@ function CartaoMarcacao({
   return (
     <div className={`${CAIXA} gap-3.5 border-verde p-[18px]`}>
       <p className="flex items-center gap-2.5">
-        <span className="flex size-8 items-center justify-center rounded-full bg-verde" aria-hidden>
+        <span
+          className="flex size-8 items-center justify-center rounded-full bg-verde"
+          aria-hidden
+        >
           <Check className="size-[18px] text-white" />
         </span>
         <span className="font-display text-xl font-bold tracking-[-0.3px] text-tinta">
@@ -372,15 +404,23 @@ function CartaoMarcacao({
       <ul className="flex flex-col">
         {quando && (
           <Linha icone={Calendar}>
-            <span className="block font-semibold first-letter:uppercase">{quando}</span>
+            <span className="block font-semibold first-letter:uppercase">
+              {quando}
+            </span>
           </Linha>
         )}
         {recolha ? (
           <>
-            {txt(dados.morada) && <Linha icone={MapPin}>{txt(dados.morada)}</Linha>}
-            {itens.length > 0 && <Linha icone={Package}>{itens.join(", ")}</Linha>}
+            {txt(dados.morada) && (
+              <Linha icone={MapPin}>{txt(dados.morada)}</Linha>
+            )}
+            {itens.length > 0 && (
+              <Linha icone={Package}>{itens.join(", ")}</Linha>
+            )}
             {txt(dados.entidade) && (
-              <Linha icone={Landmark}>Recolha feita por {txt(dados.entidade)}</Linha>
+              <Linha icone={Landmark}>
+                Recolha feita por {txt(dados.entidade)}
+              </Linha>
             )}
           </>
         ) : (
@@ -392,7 +432,9 @@ function CartaoMarcacao({
                 {txt(dados.local)}
               </Linha>
             )}
-            {levar.length > 0 && <Linha icone={FileText}>Leve: {levar.join(", ")}</Linha>}
+            {levar.length > 0 && (
+              <Linha icone={FileText}>Leve: {levar.join(", ")}</Linha>
+            )}
           </>
         )}
       </ul>
@@ -447,7 +489,10 @@ function CartaoSimulacao({ dados }: { dados: Dados }) {
           const desc = txt(l.descricao) ?? txt(l.codigo) ?? "Taxa";
           const q = num(l.quantidade);
           const u = UNIDADE[txt(l.unidade) ?? ""];
-          const detalhe = u && q !== null ? `: ${q.toLocaleString("pt-PT")} ${q === 1 ? u[0] : u[1]}` : "";
+          const detalhe =
+            u && q !== null
+              ? `: ${q.toLocaleString("pt-PT")} ${q === 1 ? u[0] : u[1]}`
+              : "";
           const v = num(l.valor_cent);
           return (
             <div
@@ -458,7 +503,9 @@ function CartaoSimulacao({ dados }: { dados: Dados }) {
                 {desc}
                 {detalhe}
               </dt>
-              <dd className="shrink-0 font-semibold text-tinta">{v !== null ? euros(v) : "—"}</dd>
+              <dd className="shrink-0 font-semibold text-tinta">
+                {v !== null ? euros(v) : "—"}
+              </dd>
             </div>
           );
         })}
@@ -519,15 +566,21 @@ function CartaoPagamento({ dados }: { dados: Dados }) {
         {estado === "pago" ? (
           <Etiqueta tom="verde">Pago</Etiqueta>
         ) : estado === "expirado" || estado === "cancelado" ? (
-          <Etiqueta tom="ambar">{estado === "expirado" ? "Expirado" : "Cancelado"}</Etiqueta>
+          <Etiqueta tom="ambar">
+            {estado === "expirado" ? "Expirado" : "Cancelado"}
+          </Etiqueta>
         ) : dados.modo_teste === true ? (
           <Etiqueta>Teste</Etiqueta>
         ) : null}
       </div>
       {metodo === "mbway" && txt(mbway.telemovel) ? (
         <p className="text-sm leading-[1.45] text-tinta">
-          Pedido enviado para <strong>{txt(mbway.telemovel)}</strong>. Aceite na app MB WAY
-          {num(mbway.validade_minutos) ? ` nos próximos ${num(mbway.validade_minutos)} minutos` : ""}.
+          Pedido enviado para <strong>{txt(mbway.telemovel)}</strong>. Aceite na
+          app MB WAY
+          {num(mbway.validade_minutos)
+            ? ` nos próximos ${num(mbway.validade_minutos)} minutos`
+            : ""}
+          .
           {valor !== null && (
             <span className="mt-1 block font-display text-[22px] font-bold text-terracota-escuro">
               {euros(valor)}
@@ -552,7 +605,9 @@ function CartaoPagamento({ dados }: { dados: Dados }) {
         <p className="text-xs text-tinta-2">Pagar até {pagarAte}.</p>
       )}
       {dados.sms_enviado === true && <Feito>Enviado por SMS</Feito>}
-      {link && estado !== "pago" && <LinkCartao href={link}>Pagar online</LinkCartao>}
+      {link && estado !== "pago" && (
+        <LinkCartao href={link}>Pagar online</LinkCartao>
+      )}
     </div>
   );
 }
@@ -567,18 +622,29 @@ const TIPO_RASCUNHO: Record<string, string> = {
   pedido: "Pedido",
 };
 
-function CartaoRascunho({ dados, acoes }: { dados: Dados; acoes: AcoesCartao }) {
+function CartaoRascunho({
+  dados,
+  acoes,
+}: {
+  dados: Dados;
+  acoes: AcoesCartao;
+}) {
   const [copiado, setCopiado] = useState(false);
   const texto = txt(dados.texto) ?? "";
   const assunto = txt(dados.assunto);
   const destinatario = txt(dados.destinatario);
-  const rotulo = [TIPO_RASCUNHO[txt(dados.tipo) ?? ""] ?? "Rascunho", destinatario && `para ${destinatario}`]
+  const rotulo = [
+    TIPO_RASCUNHO[txt(dados.tipo) ?? ""] ?? "Rascunho",
+    destinatario && `para ${destinatario}`,
+  ]
     .filter(Boolean)
     .join(" · ");
 
   async function copiar() {
     try {
-      await navigator.clipboard.writeText(assunto ? `${assunto}\n\n${texto}` : texto);
+      await navigator.clipboard.writeText(
+        assunto ? `${assunto}\n\n${texto}` : texto,
+      );
       setCopiado(true);
       setTimeout(() => setCopiado(false), 2000);
     } catch {
@@ -598,12 +664,20 @@ function CartaoRascunho({ dados, acoes }: { dados: Dados; acoes: AcoesCartao }) 
           className="inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[11px] font-semibold text-tinta-3 hover:text-tinta"
           aria-label={copiado ? "Texto copiado" : "Copiar o texto"}
         >
-          {copiado ? <Check className="size-3.5" aria-hidden /> : <Copy className="size-3.5" aria-hidden />}
+          {copiado ? (
+            <Check className="size-3.5" aria-hidden />
+          ) : (
+            <Copy className="size-3.5" aria-hidden />
+          )}
           {copiado ? "Copiado" : "Copiar"}
         </button>
       </div>
-      {assunto && <p className="text-[13px] font-semibold text-tinta">{assunto}</p>}
-      <p className="whitespace-pre-line text-[13px] leading-normal text-tinta">{texto}</p>
+      {assunto && (
+        <p className="text-[13px] font-semibold text-tinta">{assunto}</p>
+      )}
+      <p className="whitespace-pre-line text-[13px] leading-normal text-tinta">
+        {texto}
+      </p>
       {txt(dados.proximo_passo) && (
         <p className="text-xs text-tinta-3">{txt(dados.proximo_passo)}</p>
       )}
@@ -643,7 +717,8 @@ function CartaoRequerimento({ dados }: { dados: Dados }) {
     ? textos(dados.documentos_em_falta)
     : textos(docs.faltam);
   const estado = txt(dados.estado);
-  const pronto = estado === "pronto" || estado === "assinado" || estado === "entregue";
+  const pronto =
+    estado === "pronto" || estado === "assinado" || estado === "entregue";
   const link = txt(dados.link);
   const idioma = txt(dados.idioma);
   const outraLingua = idioma && !idioma.toLowerCase().startsWith("pt");
@@ -661,7 +736,10 @@ function CartaoRequerimento({ dados }: { dados: Dados }) {
         </p>
       )}
       <p className="flex items-start gap-2">
-        <ClipboardList className="mt-0.5 size-4 shrink-0 text-terracota-escuro" aria-hidden />
+        <ClipboardList
+          className="mt-0.5 size-4 shrink-0 text-terracota-escuro"
+          aria-hidden
+        />
         <span className="font-serif text-[15px] font-semibold uppercase leading-[1.4] text-tinta">
           {nome}
         </span>
@@ -671,17 +749,24 @@ function CartaoRequerimento({ dados }: { dados: Dados }) {
           <span className="text-xs text-tinta-2">
             {preenchidos} de {campos.length} respostas preenchidas
           </span>
-          <span className="h-1.5 overflow-hidden rounded-full bg-creme-2" aria-hidden>
+          <span
+            className="h-1.5 overflow-hidden rounded-full bg-creme-2"
+            aria-hidden
+          >
             <span
               className="block h-full rounded-full bg-verde transition-[width]"
-              style={{ width: `${Math.round((preenchidos / Math.max(1, campos.length)) * 100)}%` }}
+              style={{
+                width: `${Math.round((preenchidos / Math.max(1, campos.length)) * 100)}%`,
+              }}
             />
           </span>
         </div>
       )}
       {docsFaltam.length > 0 && (
         <p className="text-xs leading-[1.45] text-tinta-2">
-          <strong className="font-semibold text-tinta">Documentos em falta:</strong>{" "}
+          <strong className="font-semibold text-tinta">
+            Documentos em falta:
+          </strong>{" "}
           {docsFaltam.join(", ")}
         </p>
       )}
@@ -691,7 +776,9 @@ function CartaoRequerimento({ dados }: { dados: Dados }) {
           {dados.sms_enviado === true ? " · enviado por SMS" : ""}
         </Feito>
       ) : (
-        <span className="self-start text-[11px] font-semibold text-tinta-3">A preencher</span>
+        <span className="self-start text-[11px] font-semibold text-tinta-3">
+          A preencher
+        </span>
       )}
       {link && <LinkCartao href={link}>Abrir o requerimento</LinkCartao>}
     </div>
@@ -710,7 +797,10 @@ function CartaoOcorrencia({ dados }: { dados: Dados }) {
   return (
     <div className={`${CAIXA} gap-3 border-linha p-4`}>
       <p className="flex items-center gap-2.5">
-        <span className="flex size-8 items-center justify-center rounded-full bg-tinta" aria-hidden>
+        <span
+          className="flex size-8 items-center justify-center rounded-full bg-tinta"
+          aria-hidden
+        >
           <TriangleAlert className="size-4 text-white" />
         </span>
         <span className="flex flex-col">
@@ -718,7 +808,9 @@ function CartaoOcorrencia({ dados }: { dados: Dados }) {
             {duplicada ? "Já estava registada" : "Ocorrência registada"}
           </span>
           {numero && (
-            <span className="font-mono text-[13px] font-semibold text-verde">N.º {numero}</span>
+            <span className="font-mono text-[13px] font-semibold text-verde">
+              N.º {numero}
+            </span>
           )}
         </span>
       </p>
@@ -733,7 +825,9 @@ function CartaoOcorrencia({ dados }: { dados: Dados }) {
         </p>
       )}
       {dados.sms_enviado === true && <Feito>Número enviado por SMS</Feito>}
-      {linkFoto && <LinkCartao href={linkFoto}>Juntar uma fotografia</LinkCartao>}
+      {linkFoto && (
+        <LinkCartao href={linkFoto}>Juntar uma fotografia</LinkCartao>
+      )}
     </div>
   );
 }
@@ -763,12 +857,19 @@ function CartaoPassagem({ dados }: { dados: Dados }) {
   return (
     <div className={`${CAIXA} gap-2.5 border-linha p-4`}>
       <p className="flex items-center gap-2.5">
-        <span className="flex size-8 items-center justify-center rounded-full bg-tinta" aria-hidden>
+        <span
+          className="flex size-8 items-center justify-center rounded-full bg-tinta"
+          aria-hidden
+        >
           <UserRound className="size-4 text-white" />
         </span>
-        <span className="text-[15px] font-bold text-tinta">Passado a um funcionário</span>
+        <span className="text-[15px] font-bold text-tinta">
+          Passado a um funcionário
+        </span>
       </p>
-      {dizer && <p className="text-[13px] leading-[1.45] text-tinta">{dizer}</p>}
+      {dizer && (
+        <p className="text-[13px] leading-[1.45] text-tinta">{dizer}</p>
+      )}
       {ate && (
         <p className="flex items-center gap-1.5 text-xs text-tinta-2">
           <Clock className="size-3.5" aria-hidden />
@@ -869,15 +970,27 @@ function CartaoProcesso({ dados }: { dados: Dados }) {
         const prazo = dataCurta(txt(p.prazo_fim));
         const dias = num(p.dias_uteis_restantes);
         return (
-          <div key={txt(p.numero)} className={`${CAIXA} gap-2 border-linha p-4`}>
+          <div
+            key={txt(p.numero)}
+            className={`${CAIXA} gap-2 border-linha p-4`}
+          >
             <p className="flex items-start gap-2">
-              <FileText className="mt-0.5 size-4 shrink-0 text-terracota-escuro" aria-hidden />
+              <FileText
+                className="mt-0.5 size-4 shrink-0 text-terracota-escuro"
+                aria-hidden
+              />
               <span className="flex min-w-0 flex-col">
-                <span className="font-mono text-[13px] font-semibold text-tinta">{txt(p.numero)}</span>
-                {txt(p.tipo) && <span className="text-xs text-tinta-2">{txt(p.tipo)}</span>}
+                <span className="font-mono text-[13px] font-semibold text-tinta">
+                  {txt(p.numero)}
+                </span>
+                {txt(p.tipo) && (
+                  <span className="text-xs text-tinta-2">{txt(p.tipo)}</span>
+                )}
               </span>
             </p>
-            {txt(p.fase) && <Etiqueta className="self-start">{txt(p.fase)}</Etiqueta>}
+            {txt(p.fase) && (
+              <Etiqueta className="self-start">{txt(p.fase)}</Etiqueta>
+            )}
             {prazo && (
               <p className="text-xs text-tinta-2">
                 Prazo da câmara: {prazo}
@@ -900,7 +1013,13 @@ function CartaoProcesso({ dados }: { dados: Dados }) {
 /* Apoios (que_apoios_tenho, pedir_apoio)                               */
 /* ------------------------------------------------------------------ */
 
-function CartaoApoios({ ferramenta, dados }: { ferramenta: string; dados: Dados }) {
+function CartaoApoios({
+  ferramenta,
+  dados,
+}: {
+  ferramenta: string;
+  dados: Dados;
+}) {
   if (ferramenta === "pedir_apoio") {
     const numero = txt(dados.numero);
     if (dados.pedido !== true || !numero) return null;
@@ -908,9 +1027,14 @@ function CartaoApoios({ ferramenta, dados }: { ferramenta: string; dados: Dados 
     return (
       <div className={`${CAIXA} gap-2 border-linha p-4`}>
         <p className="flex items-start gap-2">
-          <HandCoins className="mt-0.5 size-4 shrink-0 text-terracota-escuro" aria-hidden />
+          <HandCoins
+            className="mt-0.5 size-4 shrink-0 text-terracota-escuro"
+            aria-hidden
+          />
           <span className="flex min-w-0 flex-col">
-            <span className="font-mono text-[13px] font-semibold text-tinta">{numero}</span>
+            <span className="font-mono text-[13px] font-semibold text-tinta">
+              {numero}
+            </span>
             <span className="text-xs text-tinta-2">Pedido de apoio</span>
           </span>
         </p>
@@ -941,7 +1065,10 @@ function CartaoApoios({ ferramenta, dados }: { ferramenta: string; dados: Dados 
   return (
     <div className={`${CAIXA} gap-2 border-linha p-4`}>
       <p className="flex items-center gap-2 text-sm font-semibold text-tinta">
-        <HandCoins className="size-4 shrink-0 text-terracota-escuro" aria-hidden />
+        <HandCoins
+          className="size-4 shrink-0 text-terracota-escuro"
+          aria-hidden
+        />
         {tem.length ? "Pode ter direito a" : "Apoios"}
       </p>
       {tem.length > 0 ? (
@@ -949,18 +1076,30 @@ function CartaoApoios({ ferramenta, dados }: { ferramenta: string; dados: Dados 
           {tem.map((x) => (
             <Linha key={txt(x.apoio) ?? txt(x.nome)} icone={Check}>
               <span className="font-semibold">{txt(x.nome)}</span>
-              {txt(x.valor) && <span className="block text-xs text-tinta-2">{txt(x.valor)}</span>}
+              {txt(x.valor) && (
+                <span className="block text-xs text-tinta-2">
+                  {txt(x.valor)}
+                </span>
+              )}
             </Linha>
           ))}
         </ul>
       ) : (
-        <p className="text-sm text-tinta-2">Não encontrámos nenhum apoio a que tenha direito.</p>
+        <p className="text-sm text-tinta-2">
+          Não encontrámos nenhum apoio a que tenha direito.
+        </p>
       )}
-      {talvez.length > 0 && <p className="text-xs text-tinta-2">Talvez também: {talvez.join(", ")}</p>}
+      {talvez.length > 0 && (
+        <p className="text-xs text-tinta-2">
+          Talvez também: {talvez.join(", ")}
+        </p>
+      )}
       {dados.valores_de_demonstracao === true && (
         <Etiqueta className="self-start">valores de demonstração</Etiqueta>
       )}
-      {link && dados.respondido === true && <LinkCartao href={link}>Ver a lista e o que entregar</LinkCartao>}
+      {link && dados.respondido === true && (
+        <LinkCartao href={link}>Ver a lista e o que entregar</LinkCartao>
+      )}
     </div>
   );
 }
@@ -977,17 +1116,30 @@ function CartaoConsulta({ dados }: { dados: Dados }) {
   return (
     <div className={`${CAIXA} gap-3 border-linha p-4`}>
       <p className="flex items-center gap-2.5">
-        <span className="flex size-8 items-center justify-center rounded-full bg-verde" aria-hidden>
+        <span
+          className="flex size-8 items-center justify-center rounded-full bg-verde"
+          aria-hidden
+        >
           <Vote className="size-4 text-white" />
         </span>
         <span className="flex flex-col">
-          <span className="text-[15px] font-bold text-tinta">A sua opinião foi registada</span>
-          {txt(dados.consulta) && <span className="text-[13px] text-tinta-2">{txt(dados.consulta)}</span>}
+          <span className="text-[15px] font-bold text-tinta">
+            A sua opinião foi registada
+          </span>
+          {txt(dados.consulta) && (
+            <span className="text-[13px] text-tinta-2">
+              {txt(dados.consulta)}
+            </span>
+          )}
         </span>
       </p>
       <ul className="rounded-xl bg-creme px-3">
-        {txt(dados.freguesia) && <Linha icone={MapPin}>Freguesia: {txt(dados.freguesia)}</Linha>}
-        {txt(dados.relatorio) && <Linha icone={Calendar}>Relatório a {txt(dados.relatorio)}</Linha>}
+        {txt(dados.freguesia) && (
+          <Linha icone={MapPin}>Freguesia: {txt(dados.freguesia)}</Linha>
+        )}
+        {txt(dados.relatorio) && (
+          <Linha icone={Calendar}>Relatório a {txt(dados.relatorio)}</Linha>
+        )}
       </ul>
       {dados.alterada === true && <Feito>Substitui a resposta anterior</Feito>}
       {link && <LinkCartao href={link}>Ver a consulta</LinkCartao>}
@@ -1005,21 +1157,36 @@ function CartaoReclamacao({ dados }: { dados: Dados }) {
   return (
     <div className={`${CAIXA} gap-3 border-linha p-4`}>
       <p className="flex items-center gap-2.5">
-        <span className="flex size-8 items-center justify-center rounded-full bg-verde" aria-hidden>
+        <span
+          className="flex size-8 items-center justify-center rounded-full bg-verde"
+          aria-hidden
+        >
           <NotebookPen className="size-4 text-white" />
         </span>
         <span className="flex flex-col">
-          <span className="text-[15px] font-bold text-tinta">Reclamação registada</span>
-          {txt(dados.numero) && <span className="font-mono text-[13px] text-tinta-2">{txt(dados.numero)}</span>}
+          <span className="text-[15px] font-bold text-tinta">
+            Reclamação registada
+          </span>
+          {txt(dados.numero) && (
+            <span className="font-mono text-[13px] text-tinta-2">
+              {txt(dados.numero)}
+            </span>
+          )}
         </span>
       </p>
       <ul className="rounded-xl bg-creme px-3">
         {txt(dados.responder_ate_dito) && (
-          <Linha icone={Calendar}>A câmara responde até {txt(dados.responder_ate_dito)}</Linha>
+          <Linha icone={Calendar}>
+            A câmara responde até {txt(dados.responder_ate_dito)}
+          </Linha>
         )}
-        {dados.sms_enviado === true && <Linha icone={Send}>Enviámos o número e o link por SMS</Linha>}
+        {dados.sms_enviado === true && (
+          <Linha icone={Send}>Enviámos o número e o link por SMS</Linha>
+        )}
       </ul>
-      {dados.prazo_de_demonstracao === true && <Etiqueta className="self-start">prazo de demonstração</Etiqueta>}
+      {dados.prazo_de_demonstracao === true && (
+        <Etiqueta className="self-start">prazo de demonstração</Etiqueta>
+      )}
       {link && <LinkCartao href={link}>Ver a reclamação</LinkCartao>}
     </div>
   );
@@ -1029,21 +1196,38 @@ function CartaoReclamacao({ dados }: { dados: Dados }) {
 /* O que se passa perto (o_que_se_passa) e "avise-me" (avisar_me)        */
 /* ------------------------------------------------------------------ */
 
-function CartaoAgora({ ferramenta, dados }: { ferramenta: string; dados: Dados }) {
+function CartaoAgora({
+  ferramenta,
+  dados,
+}: {
+  ferramenta: string;
+  dados: Dados;
+}) {
   if (ferramenta === "avisar_me") {
     if (dados.subscrito !== true) return null;
     return (
       <div className={`${CAIXA} gap-3 border-linha p-4`}>
         <p className="flex items-center gap-2.5">
-          <span className="flex size-8 items-center justify-center rounded-full bg-verde" aria-hidden>
+          <span
+            className="flex size-8 items-center justify-center rounded-full bg-verde"
+            aria-hidden
+          >
             <BellRing className="size-4 text-white" />
           </span>
           <span className="flex flex-col">
-            <span className="text-[15px] font-bold text-tinta">Vamos avisá-lo por SMS</span>
-            {txt(dados.zona) && <span className="text-[13px] text-tinta-2">{txt(dados.zona)}</span>}
+            <span className="text-[15px] font-bold text-tinta">
+              Vamos avisá-lo por SMS
+            </span>
+            {txt(dados.zona) && (
+              <span className="text-[13px] text-tinta-2">
+                {txt(dados.zona)}
+              </span>
+            )}
           </span>
         </p>
-        <p className="text-xs text-tinta-2">Para deixar de receber, responda PARAR a um desses SMS.</p>
+        <p className="text-xs text-tinta-2">
+          Para deixar de receber, responda PARAR a um desses SMS.
+        </p>
       </div>
     );
   }
@@ -1054,16 +1238,27 @@ function CartaoAgora({ ferramenta, dados }: { ferramenta: string; dados: Dados }
   return (
     <div className={`${CAIXA} gap-3 border-linha p-4`}>
       <span className="text-[10px] font-bold uppercase tracking-[1px] text-tinta-3">
-        {txt(local.descricao) ? `Perto de ${txt(local.descricao)}` : "No concelho"}
+        {txt(local.descricao)
+          ? `Perto de ${txt(local.descricao)}`
+          : "No concelho"}
         {txt(dados.periodo) ? ` · ${txt(dados.periodo)}` : ""}
       </span>
       {itens.length > 0 ? (
         <ul className="rounded-xl bg-creme px-3">
           {itens.map((i, k) => (
-            <Linha key={k} icone={i.gravidade === "emergencia" ? TriangleAlert : MapPin}>
+            <Linha
+              key={k}
+              icone={i.gravidade === "emergencia" ? TriangleAlert : MapPin}
+            >
               <span className="font-semibold">{txt(i.titulo)}</span>
-              {txt(i.rua) && <span className="text-tinta-2"> · {txt(i.rua)}</span>}
-              {txt(i.quando) && <span className="block text-xs text-tinta-2">{txt(i.quando)}</span>}
+              {txt(i.rua) && (
+                <span className="text-tinta-2"> · {txt(i.rua)}</span>
+              )}
+              {txt(i.quando) && (
+                <span className="block text-xs text-tinta-2">
+                  {txt(i.quando)}
+                </span>
+              )}
             </Linha>
           ))}
         </ul>
@@ -1079,7 +1274,13 @@ function CartaoAgora({ ferramenta, dados }: { ferramenta: string; dados: Dados }
 /* Balcão para empresas (o_que_a_empresa_precisa, obrigacoes_da_empresa) */
 /* ------------------------------------------------------------------ */
 
-function CartaoEmpresa({ ferramenta, dados }: { ferramenta: string; dados: Dados }) {
+function CartaoEmpresa({
+  ferramenta,
+  dados,
+}: {
+  ferramenta: string;
+  dados: Dados;
+}) {
   const link = txt(dados.link);
   const datas = lista(dados.proximas_datas);
   if (ferramenta === "obrigacoes_da_empresa") {
@@ -1087,7 +1288,10 @@ function CartaoEmpresa({ ferramenta, dados }: { ferramenta: string; dados: Dados
     return (
       <div className={`${CAIXA} gap-3 border-linha p-4`}>
         <p className="flex items-center gap-2 text-sm font-semibold text-tinta">
-          <Calendar className="size-4 shrink-0 text-terracota-escuro" aria-hidden />
+          <Calendar
+            className="size-4 shrink-0 text-terracota-escuro"
+            aria-hidden
+          />
           As próximas datas
         </p>
         {datas.length > 0 ? (
@@ -1095,14 +1299,24 @@ function CartaoEmpresa({ ferramenta, dados }: { ferramenta: string; dados: Dados
             {datas.map((x, k) => (
               <Linha key={k} icone={Clock}>
                 <span className="font-semibold">{txt(x.titulo)}</span>
-                {txt(x.dito) && <span className="block text-xs text-tinta-2">{txt(x.dito)}</span>}
+                {txt(x.dito) && (
+                  <span className="block text-xs text-tinta-2">
+                    {txt(x.dito)}
+                  </span>
+                )}
               </Linha>
             ))}
           </ul>
         ) : (
-          <p className="text-sm text-tinta-2">Sem renovações nem prazos nos próximos meses.</p>
+          <p className="text-sm text-tinta-2">
+            Sem renovações nem prazos nos próximos meses.
+          </p>
         )}
-        {link && <LinkCartao href={link} icone={Calendar}>Ver o calendário e adicionar ao telemóvel</LinkCartao>}
+        {link && (
+          <LinkCartao href={link} icone={Calendar}>
+            Ver o calendário e adicionar ao telemóvel
+          </LinkCartao>
+        )}
       </div>
     );
   }
@@ -1114,11 +1328,16 @@ function CartaoEmpresa({ ferramenta, dados }: { ferramenta: string; dados: Dados
     <div className={`${CAIXA} gap-3 border-linha p-4`}>
       <p className="flex items-center gap-2 text-sm font-semibold text-tinta">
         <Store className="size-4 shrink-0 text-terracota-escuro" aria-hidden />
-        {txt(dados.atividade) ? `${txt(dados.atividade)}: o que precisa` : "O que a empresa precisa"}
+        {txt(dados.atividade)
+          ? `${txt(dados.atividade)}: o que precisa`
+          : "O que a empresa precisa"}
       </p>
       <ul className="rounded-xl bg-creme px-3">
         {itens.map((x) => (
-          <Linha key={txt(x.chave) ?? txt(x.titulo)} icone={x.onde === "camara" ? Landmark : Globe}>
+          <Linha
+            key={txt(x.chave) ?? txt(x.titulo)}
+            icone={x.onde === "camara" ? Landmark : Globe}
+          >
             <span className="font-semibold">{txt(x.titulo)}</span>
             <span className="block text-xs text-tinta-2">
               {x.onde === "camara" ? "Na câmara" : txt(x.entidade)}
@@ -1127,18 +1346,30 @@ function CartaoEmpresa({ ferramenta, dados }: { ferramenta: string; dados: Dados
           </Linha>
         ))}
       </ul>
-      {total > itens.length && <p className="text-xs text-tinta-2">E mais {total - itens.length} na lista completa.</p>}
+      {total > itens.length && (
+        <p className="text-xs text-tinta-2">
+          E mais {total - itens.length} na lista completa.
+        </p>
+      )}
       {dados.sms_enviado === true && <Feito>Enviámos o link por SMS</Feito>}
       {dados.valores_de_demonstracao === true && (
         <Etiqueta className="self-start">valores de demonstração</Etiqueta>
       )}
-      {link && <LinkCartao href={link}>Ver a lista completa e o calendário</LinkCartao>}
+      {link && (
+        <LinkCartao href={link}>Ver a lista completa e o calendário</LinkCartao>
+      )}
     </div>
   );
 }
 
 /** O cartão certo para cada tipo (os desconhecidos não aparecem). */
-export function CartaoChat({ cartao, acoes }: { cartao: Cartao; acoes: AcoesCartao }) {
+export function CartaoChat({
+  cartao,
+  acoes,
+}: {
+  cartao: Cartao;
+  acoes: AcoesCartao;
+}) {
   switch (cartao.tipo) {
     case "fonte":
       return <CartaoFonte cartao={cartao} />;
@@ -1147,7 +1378,13 @@ export function CartaoChat({ cartao, acoes }: { cartao: Cartao; acoes: AcoesCart
     case "contacto":
       return <CartaoContacto dados={cartao.dados} />;
     case "marcacao":
-      return <CartaoMarcacao ferramenta={cartao.ferramenta} dados={cartao.dados} acoes={acoes} />;
+      return (
+        <CartaoMarcacao
+          ferramenta={cartao.ferramenta}
+          dados={cartao.dados}
+          acoes={acoes}
+        />
+      );
     case "simulacao":
       return <CartaoSimulacao dados={cartao.dados} />;
     case "pagamento":
@@ -1165,15 +1402,23 @@ export function CartaoChat({ cartao, acoes }: { cartao: Cartao; acoes: AcoesCart
     case "processo":
       return <CartaoProcesso dados={cartao.dados} />;
     case "apoios":
-      return <CartaoApoios ferramenta={cartao.ferramenta} dados={cartao.dados} />;
+      return (
+        <CartaoApoios ferramenta={cartao.ferramenta} dados={cartao.dados} />
+      );
     case "consulta":
       return <CartaoConsulta dados={cartao.dados} />;
     case "reclamacao":
       return <CartaoReclamacao dados={cartao.dados} />;
     case "agora":
-      return <CartaoAgora ferramenta={cartao.ferramenta} dados={cartao.dados} />;
+      return (
+        <CartaoAgora ferramenta={cartao.ferramenta} dados={cartao.dados} />
+      );
     case "empresa":
-      return <CartaoEmpresa ferramenta={cartao.ferramenta} dados={cartao.dados} />;
+      return (
+        <CartaoEmpresa ferramenta={cartao.ferramenta} dados={cartao.dados} />
+      );
+    case "entrega":
+      return <CartaoChatEntrega dados={cartao.dados} />;
     default:
       return null;
   }
