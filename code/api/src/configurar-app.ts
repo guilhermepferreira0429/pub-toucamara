@@ -27,6 +27,8 @@ export function configurarApp(app: NestExpressApplication): void {
       'Idempotency-Key',
       'X-Municipio',
     ],
+    // O nome dos ficheiros exportados (CSV): o painel descarrega por fetch.
+    exposedHeaders: ['Content-Disposition'],
     credentials: true,
   });
 }

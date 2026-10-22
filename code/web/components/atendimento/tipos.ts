@@ -285,6 +285,8 @@ export interface ConversaDetalhe {
   turnos: Turno[];
   momentos: Momento[];
   citacoes: Citacao[];
+  /** Números que o agente disse e que não estão nos trechos que citou. */
+  numeros_sem_fonte?: { turno_id: string; numeros: { texto: string; valor: string; tipo: string }[] }[];
   criado: {
     requerimentos: {
       id: string;

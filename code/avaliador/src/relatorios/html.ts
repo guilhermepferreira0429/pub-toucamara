@@ -4,9 +4,11 @@
  * Identidade do produto: terracota, fundo creme, texto azul-escuro; tom
  * simples, para quem decide numa câmara, não para engenheiros.
  */
+import type { ResumoNumeros } from '../juiz/numeros.js';
 import type { Veredicto } from '../tipos.js';
 import {
   ehCerta,
+  numerosSemFonte,
   porCategoria,
   taxa,
   TITULO_EXEMPLO,
@@ -140,9 +142,16 @@ export function cartoesTaxas(execs: ExecucaoRel[]): string {
 <div class="nome">${esc(e.sistema)}</div>
 <div class="taxa">${pctPt(t.taxa)}</div>
 <div class="det">${t.certas + t.passadas_bem} de ${t.total} certas${t.passadas_bem ? ` (${t.passadas_bem} passadas a uma pessoa)` : ''}<br>
-${t.erradas} erradas · ${t.sem_resposta} sem resposta<br>execução de ${dataPt(e.terminada_em ?? e.iniciada_em)}</div></div>`;
+${t.erradas} erradas · ${t.sem_resposta} sem resposta<br>${esc(textoNumeros(numerosSemFonte(e.respostas)))}<br>execução de ${dataPt(e.terminada_em ?? e.iniciada_em)}</div></div>`;
     })
     .join('')}</div>`;
+}
+
+/** "0 números sem fonte" ou "3 números sem fonte em 2 respostas (5%)". */
+export function textoNumeros(n: ResumoNumeros): string {
+  const nums = `${n.numeros_sem_fonte} ${n.numeros_sem_fonte === 1 ? 'número' : 'números'} sem fonte`;
+  if (!n.com_numeros_sem_fonte) return nums;
+  return `${nums} em ${n.com_numeros_sem_fonte} ${n.com_numeros_sem_fonte === 1 ? 'resposta' : 'respostas'} (${pctPt(n.percentagem)})`;
 }
 
 export function tabelaCategorias(execs: ExecucaoRel[]): string {

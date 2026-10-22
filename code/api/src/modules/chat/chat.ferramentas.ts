@@ -77,6 +77,7 @@ export function ferramentasChat(claude: ClaudeService) {
           );
         }
         const texto = await claude.escrever({
+          tarefa: 'chat_ferramenta',
           sistema: SISTEMA_REDIGIR,
           conteudo: conteudoRedigir(ctx.municipio.nome, entrada),
           esforco: 'medium',

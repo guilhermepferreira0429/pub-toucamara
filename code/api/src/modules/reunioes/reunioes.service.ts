@@ -689,6 +689,7 @@ export class ReunioesService {
     if (!o.sem_ia && this.claude.disponivel && r.transcricao) {
       try {
         const ia = await this.claude.extrair(esquemaAtaIa, {
+          tarefa: 'ata_reuniao',
           sistema: SISTEMA_ATA,
           conteudo: conteudoAta(dados(r), r.transcricao),
           esforco: 'high',

@@ -9,6 +9,7 @@ import {
   Put,
   Query,
 } from '@nestjs/common';
+import { Coluna, ficheiroCsv, gerarCsv, nomeCsv } from '../../common/csv.js';
 import { MunicipioAtual, UtilizadorAtual } from '../../common/pedido.js';
 import type { UtilizadorPainel } from '../../common/pedido.js';
 import { validar } from '../../common/validacao.js';
@@ -25,7 +26,48 @@ import {
   esquemaResponder,
   ReclamacoesService,
 } from './reclamacoes.service.js';
-import { esquemaConfig } from './regras.js';
+import { esquemaConfig, NOMES_ESTADO, SituacaoPrazo } from './regras.js';
+
+type ReclamacaoLista = Awaited<
+  ReturnType<ReclamacoesService['exportar']>
+>[number];
+
+const PRAZOS: Record<SituacaoPrazo, string> = {
+  no_prazo: 'No prazo',
+  a_terminar: 'A terminar',
+  termina_hoje: 'Termina hoje',
+  em_atraso: 'Em atraso',
+  respondida_no_prazo: 'Respondida no prazo',
+  respondida_fora_do_prazo: 'Respondida fora do prazo',
+};
+
+/**
+ * Sem nome, telefone, email nem o texto da reclamação (dados pessoais que a
+ * folha de cálculo não precisa): o número abre o detalhe no painel.
+ */
+const COLUNAS_CSV: Coluna<ReclamacaoLista>[] = [
+  { titulo: 'Número', valor: (r) => r.numero },
+  { titulo: 'Recebida em', valor: (r) => r.recebida_em },
+  { titulo: 'Canal', valor: (r) => r.canal_nome },
+  { titulo: 'Estado', valor: (r) => NOMES_ESTADO[r.estado] ?? r.estado },
+  { titulo: 'Serviço visado', valor: (r) => r.servico_visado },
+  { titulo: 'Serviço', valor: (r) => r.servico },
+  { titulo: 'Atribuída a', valor: (r) => r.atribuida_a_nome },
+  { titulo: 'Responder até', valor: (r) => r.responder_ate },
+  { titulo: 'Prazo', valor: (r) => PRAZOS[r.prazo.situacao] },
+  {
+    titulo: 'Dias úteis restantes',
+    valor: (r) => r.prazo.dias_uteis_restantes,
+  },
+  {
+    titulo: 'Respondida em',
+    valor: (r) => (r.respondida_em ? new Date(r.respondida_em) : null),
+  },
+  {
+    titulo: 'Encerrada em',
+    valor: (r) => (r.encerrada_em ? new Date(r.encerrada_em) : null),
+  },
+];
 
 /** Painel · Livro de reclamações. */
 @Controller('painel/reclamacoes')
@@ -37,6 +79,19 @@ export class ReclamacoesPainelController {
   @Get()
   listar(@MunicipioAtual() m: Municipio, @Query() query: unknown) {
     return this.reclamacoes.listar(m, validar(esquemaFiltro, query));
+  }
+
+  /** A lista com os mesmos filtros, em CSV para o Excel. */
+  @Get('exportar.csv')
+  async exportar(@MunicipioAtual() m: Municipio, @Query() query: unknown) {
+    const linhas = await this.reclamacoes.exportar(
+      m,
+      validar(esquemaFiltro, query),
+    );
+    return ficheiroCsv(
+      gerarCsv(COLUNAS_CSV, linhas, m.fuso),
+      nomeCsv('reclamacoes', new Date(), m.fuso),
+    );
   }
 
   /** Registo à mão: balcão, Livro Amarelo em papel, telefone, email. */

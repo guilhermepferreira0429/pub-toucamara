@@ -153,6 +153,7 @@ export class AssistenteService {
     } else {
       try {
         const r = await this.claude.extrair(esquemaRespostaAssistente, {
+          tarefa: 'assistente_procedimentos',
           sistema: SISTEMA_ASSISTENTE,
           conteudo: conteudoAssistente(
             pergunta,

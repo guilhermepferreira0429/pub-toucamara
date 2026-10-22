@@ -36,7 +36,8 @@ export async function carregarExecucoes(
             p.texto AS pergunta, p.comportamento, p.entidade_esperada,
             r.texto, r.captura_key, r.respondida_em,
             f.veredicto, f.avaliador, f.rubrica_versao, f.justificacao,
-            f.factos_errados, f.factos_em_falta, g.resposta AS gabarito_resposta
+            f.factos_errados, f.factos_em_falta, g.resposta AS gabarito_resposta,
+            g.factos_obrigatorios AS gabarito_factos
        FROM avaliacao.respostas r
        JOIN avaliacao.perguntas p ON p.id = r.pergunta_id
        JOIN avaliacao.avaliacao_final f ON f.resposta_id = r.id
