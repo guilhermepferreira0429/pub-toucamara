@@ -1,10 +1,12 @@
 import Anthropic from '@anthropic-ai/sdk';
-import { HttpStatus, Injectable, Logger } from '@nestjs/common';
+import { HttpStatus, Injectable, Logger, Optional } from '@nestjs/common';
 import { ConfigService, ConfigType } from '@nestjs/config';
 import { z } from 'zod';
 import { ErroApi } from '../../common/erros.js';
 import { iaConfig } from '../../config/configuration.js';
 import { ClaudeService } from '../../ia/claude.service.js';
+import { tokensDe } from '../../ia/precos.js';
+import { UsoIaService } from '../../ia/uso-ia.service.js';
 import {
   blocoFicheiro,
   MimeVisao,
@@ -62,6 +64,7 @@ export class ArquivoIaService {
   constructor(
     config: ConfigService,
     private readonly claude: ClaudeService,
+    @Optional() private readonly uso?: UsoIaService,
   ) {
     const cfg = config.getOrThrow<ConfigType<typeof iaConfig>>('ia');
     this.modelo = cfg.modelo;
@@ -112,6 +115,12 @@ export class ArquivoIaService {
         ],
         output_config: { effort: 'low' },
       });
+      void this.uso?.registar({
+        tarefa: 'ocr_arquivo',
+        modelo: this.modelo,
+        resultado: resposta.stop_reason === 'refusal' ? 'recusa' : 'ok',
+        tokens: tokensDe(resposta.usage),
+      });
     } catch (e) {
       this.logger.warn(`OCR falhou: ${(e as Error).message}`);
       throw new ErroApi(
@@ -139,6 +148,7 @@ export class ArquivoIaService {
     anoAtual = new Date().getFullYear(),
   ): Promise<Metadados> {
     const r = await this.claude.extrair(esquemaMetadadosIa, {
+      tarefa: 'metadados_arquivo',
       sistema: SISTEMA_METADADOS,
       conteudo: texto.slice(0, 60_000),
       esforco: 'low',

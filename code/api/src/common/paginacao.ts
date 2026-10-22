@@ -68,3 +68,27 @@ export function pagina<T>(
     ),
   };
 }
+
+/** Linhas no máximo num ficheiro exportado (CSV). */
+export const MAX_EXPORTAR = 10_000;
+
+/**
+ * Para exportar a lista inteira com os mesmos filtros: pede página atrás de
+ * página (200 de cada vez) até ao fim ou a `maximo` linhas.
+ */
+export async function todasAsPaginas<T>(
+  ler: (p: { limite: number; cursor: Cursor | null }) => Promise<Pagina<T>>,
+  maximo = MAX_EXPORTAR,
+): Promise<T[]> {
+  const todas: T[] = [];
+  let cursor: Cursor | null = null;
+  do {
+    const p = await ler({
+      limite: Math.min(200, maximo - todas.length),
+      cursor,
+    });
+    todas.push(...p.itens);
+    cursor = p.proximo_cursor ? lerCursor(p.proximo_cursor) : null;
+  } while (cursor && todas.length < maximo);
+  return todas;
+}

@@ -1,10 +1,12 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { betaZodOutputFormat } from '@anthropic-ai/sdk/helpers/beta/zod';
-import { HttpStatus, Injectable, Logger } from '@nestjs/common';
+import { HttpStatus, Injectable, Logger, Optional } from '@nestjs/common';
 import { ConfigService, ConfigType } from '@nestjs/config';
 import { z } from 'zod';
 import { ErroApi } from '../common/erros.js';
 import { iaConfig } from '../config/configuration.js';
+import { tokensDe } from './precos.js';
+import { UsoIaService } from './uso-ia.service.js';
 
 /** Imagens que o Claude lê; PDF vai como documento. */
 export const MIMES_VISAO = [
@@ -122,7 +124,10 @@ export class VisaoService {
   protected cliente: Anthropic | null;
   private readonly modelo: string;
 
-  constructor(config: ConfigService) {
+  constructor(
+    config: ConfigService,
+    @Optional() private readonly uso?: UsoIaService,
+  ) {
     const cfg = config.getOrThrow<ConfigType<typeof iaConfig>>('ia');
     this.modelo = cfg.modelo;
     this.cliente = cfg.apiKey ? new Anthropic({ apiKey: cfg.apiKey }) : null;
@@ -167,6 +172,12 @@ export class VisaoService {
         },
       }),
     );
+    void this.uso?.registar({
+      tarefa: 'ler_documento',
+      modelo: this.modelo,
+      resultado: resposta.stop_reason === 'refusal' ? 'recusa' : 'ok',
+      tokens: tokensDe(resposta.usage),
+    });
     if (resposta.stop_reason === 'refusal') {
       throw new ErroApi(
         HttpStatus.UNPROCESSABLE_ENTITY,

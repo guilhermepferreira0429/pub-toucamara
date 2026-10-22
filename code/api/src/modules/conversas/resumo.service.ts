@@ -96,6 +96,8 @@ export class ResumoService implements OnModuleInit {
     const objetos = await objetosDaConversa(this.db, conversaId);
 
     const r = await this.claude.extrair(esquemaResumo, {
+      tarefa: 'resumo_conversa',
+      minimizar: true,
       sistema: SISTEMA_RESUMO,
       esforco: 'medium',
       maxTokens: 4000,
@@ -107,10 +109,17 @@ export class ResumoService implements OnModuleInit {
         '',
         'Registado durante a chamada:',
         descreverObjetos(objetos),
-        '',
-        'Transcrição:',
-        formatarTranscricao(turnos),
       ].join('\n'),
+      // O que se disse na chamada vem de fora: vai como dados, não como ordens.
+      externos: [
+        {
+          origem: 'municipe',
+          texto: formatarTranscricao(turnos),
+          rotulo: 'Transcrição',
+        },
+      ],
+      municipioId: c.municipio_id,
+      alvo: { tipo: 'conversa', id: conversaId },
     });
 
     await this.db.transaction(async (tx) => {

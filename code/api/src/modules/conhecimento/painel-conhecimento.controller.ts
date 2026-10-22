@@ -498,6 +498,8 @@ export class PainelConhecimentoController {
       z.object({
         estado: z.enum(['em_dia', 'mudou', 'erro']).optional(),
         entidade_id: z.uuid().optional(),
+        /** true: só as arquivadas (por defeito, só as que se leem). */
+        arquivadas: z.stringbool().optional(),
       }),
       q,
     );

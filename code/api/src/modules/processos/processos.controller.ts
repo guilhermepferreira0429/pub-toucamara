@@ -12,6 +12,8 @@ import {
   StreamableFile,
 } from '@nestjs/common';
 import { z } from 'zod';
+import { Coluna, ficheiroCsv, gerarCsv, nomeCsv } from '../../common/csv.js';
+import { todasAsPaginas } from '../../common/paginacao.js';
 import { MunicipioAtual, UtilizadorAtual } from '../../common/pedido.js';
 import type { UtilizadorPainel } from '../../common/pedido.js';
 import { validar } from '../../common/validacao.js';
@@ -44,6 +46,40 @@ import {
   esquemaTipoNovo,
   TiposProcessoService,
 } from './tipos-processo.service.js';
+
+type ProcessoLista = Awaited<
+  ReturnType<ProcessosPainelService['listar']>
+>['itens'][number];
+
+const DECISOES: Record<string, string> = {
+  admitido: 'Admitido',
+  indeferido: 'Indeferido',
+};
+
+/** O requerente vai com o nome mascarado, como na lista do painel. */
+const COLUNAS_CSV: Coluna<ProcessoLista>[] = [
+  { titulo: 'Número', valor: (p) => p.numero },
+  { titulo: 'Tipo', valor: (p) => p.tipo.nome },
+  { titulo: 'Assunto', valor: (p) => p.assunto },
+  { titulo: 'Morada', valor: (p) => p.morada },
+  { titulo: 'Freguesia', valor: (p) => p.freguesia },
+  { titulo: 'Fase', valor: (p) => p.fase_rotulo },
+  {
+    titulo: 'Decisão',
+    valor: (p) => (p.decisao ? (DECISOES[p.decisao] ?? p.decisao) : null),
+  },
+  { titulo: 'Técnico', valor: (p) => p.tecnico?.nome },
+  { titulo: 'Requerente', valor: (p) => p.municipe },
+  { titulo: 'Entrada', valor: (p) => p.criado_em },
+  { titulo: 'Prazo', valor: (p) => p.prazo_fim },
+  { titulo: 'Dias úteis restantes', valor: (p) => p.dias_uteis_restantes },
+  { titulo: 'Atrasado', valor: (p) => p.atrasado },
+  { titulo: 'Aguarda o munícipe', valor: (p) => p.aguarda_municipe },
+  {
+    titulo: 'Documentos entregues',
+    valor: (p) => `${p.documentos.entregues} de ${p.documentos.exigidos}`,
+  },
+];
 
 @Controller('painel/processos')
 @Painel('processos')
@@ -102,6 +138,23 @@ export class ProcessosPainelController {
     @Query() query: unknown,
   ) {
     return this.painel.listar(m, u, validar(esquemaListaProcessos, query));
+  }
+
+  /** A lista com os mesmos filtros, em CSV para o Excel (sem paginação). */
+  @Get('exportar.csv')
+  async exportar(
+    @MunicipioAtual() m: Municipio,
+    @UtilizadorAtual() u: UtilizadorPainel,
+    @Query() query: unknown,
+  ) {
+    const f = validar(esquemaListaProcessos, query);
+    const itens = await todasAsPaginas((p) =>
+      this.painel.listar(m, u, { ...f, ...p }),
+    );
+    return ficheiroCsv(
+      gerarCsv(COLUNAS_CSV, itens, m.fuso),
+      nomeCsv('processos', new Date(), m.fuso),
+    );
   }
 
   @Get(':id')

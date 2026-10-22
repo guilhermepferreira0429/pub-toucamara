@@ -1011,15 +1011,17 @@ export class PainelConhecimentoService {
 
   async fontes(
     municipioId: string,
-    f: { estado?: string; entidade_id?: string },
+    f: { estado?: string; entidade_id?: string; arquivadas?: boolean },
   ) {
     const [itens, [ultima]] = await Promise.all([
       this.db.query(
         `SELECT fo.id, fo.titulo, fo.tipo, fo.url, fo.estado, fo.erro,
                 fo.ultima_leitura_em, fo.leitura_automatica, fo.lingua, fo.demonstracao,
                 (extract(epoch FROM fo.ler_a_cada) / 3600)::int AS ler_a_cada_horas,
-                CASE WHEN fo.leitura_automatica
-                     THEN coalesce(fo.ultima_leitura_em + fo.ler_a_cada, now()) END AS proxima_leitura_em,
+                CASE WHEN fo.leitura_automatica AND fo.arquivada_em IS NULL
+                     THEN greatest(coalesce(fo.proxima_leitura_em, now()), now()) END AS proxima_leitura_em,
+                fo.seletor, fo.ignorar_robots, fo.falhas_seguidas, fo.arquivada_em,
+                fo.site_id, si.titulo AS site,
                 fo.entidade_id, e.nome AS entidade,
                 (SELECT count(*) FROM fonte_versoes v WHERE v.fonte_id = fo.id)::int AS versoes,
                 (SELECT count(DISTINCT rv.resposta_id) FROM resposta_fontes rf
@@ -1034,12 +1036,19 @@ export class PainelConhecimentoService {
                 (SELECT count(*) FROM alteracoes a
                  WHERE a.fonte_id = fo.id AND a.estado = 'por_rever')::int AS alteracoes_por_rever
          FROM fontes fo JOIN entidades e ON e.id = fo.entidade_id
+         LEFT JOIN fonte_sites si ON si.id = fo.site_id
          WHERE fo.municipio_id = $1
            AND ($2::text IS NULL OR fo.estado = $2)
            AND ($3::uuid IS NULL OR fo.entidade_id = $3)
+           AND ((fo.arquivada_em IS NOT NULL) = $4)
          ORDER BY (fo.estado = 'erro') DESC, (fo.estado = 'mudou') DESC, e.nome, fo.titulo
          LIMIT 1000`,
-        [municipioId, f.estado ?? null, f.entidade_id ?? null],
+        [
+          municipioId,
+          f.estado ?? null,
+          f.entidade_id ?? null,
+          f.arquivadas === true,
+        ],
       ),
       this.db.query(
         `SELECT id, iniciada_em, terminada_em, fontes_lidas, mudancas, erros, detalhes

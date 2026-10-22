@@ -219,6 +219,7 @@ export class EntrevistasService {
     if (e.modo === 'ia' && this.claude.disponivel) {
       try {
         const r = await this.claude.extrair(esquemaRascunhoIa, {
+          tarefa: 'entrevista_procedimento',
           sistema: SISTEMA_RASCUNHO,
           conteudo: conteudoRascunho(e.area, e.entrevistado_nome, turnos),
           esforco: 'high',
@@ -336,6 +337,7 @@ export class EntrevistasService {
     try {
       const porCobrir = CHAVES.filter((c) => !feitas.includes(c));
       const r = await this.claude.extrair(esquemaProximaPergunta, {
+        tarefa: 'entrevista_procedimento',
         sistema: SISTEMA_ENTREVISTA,
         conteudo: conteudoEntrevista(
           e.area,

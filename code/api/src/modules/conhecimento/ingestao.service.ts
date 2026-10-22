@@ -4,8 +4,11 @@ import { DatabaseService, Tx } from '../../database/database.service.js';
 import { ClaudeService } from '../../ia/claude.service.js';
 import { JobsService } from '../../jobs/jobs.service.js';
 import { ArmazenamentoService } from '../armazenamento/armazenamento.service.js';
+import { textoDoPdf } from '../arquivo/pdf-texto.js';
 import { AvaliacaoService } from './avaliacao.service.js';
+import { DescarregadorService } from './descarregador.service.js';
 import { IndexacaoService } from './indexacao.service.js';
+import { aplicarSeletor, ErroFonte, lerPagina } from './recolha.js';
 import { EM_VIGOR } from './sql.js';
 import {
   descodificarBytes,
@@ -21,6 +24,8 @@ import {
 export const JOB_INGESTAO = 'ingestao_fontes';
 export const JOB_PROPOR = 'propor_respostas';
 export const JOB_CONTRADICOES = 'detetar_contradicoes';
+/** De 5 em 5 minutos: põe na fila os municípios com fontes vencidas e os sites a descobrir. */
+export const JOB_RECOLHA_TICK = 'recolha_tick';
 
 export interface DadosIngestao {
   /** Só este município (por defeito todos os que têm fontes). */
@@ -37,6 +42,16 @@ export interface ResultadoTexto {
   alteracao_id: string | null;
   trechos: number;
   respostas_afetadas: number;
+  /** O texto novo tem menos de metade do anterior (página partida? seletor errado?). */
+  encolheu?: boolean;
+}
+
+/** Como correu a leitura de uma fonte (fica em `fonte_leituras`). */
+interface Leitura {
+  resultado: 'mudou' | 'igual' | 'nao_modificado';
+  http: number | null;
+  bytes: number | null;
+  aviso: string | null;
 }
 
 interface FonteLinha {
@@ -47,22 +62,42 @@ interface FonteLinha {
   url: string;
   ultimo_hash: string | null;
   hash_original: string | null;
+  etag: string | null;
+  ultima_modificacao: string | null;
+  seletor: string | null;
+  ignorar_robots: boolean;
+  titulo_automatico: boolean;
 }
 
-const USER_AGENT =
-  'TouCamara/1.0 (leitura de fontes oficiais do concelho; +https://toucamara.pt)';
-const TIMEOUT_DOWNLOAD_MS = 20_000;
-const MAX_BYTES = 15 * 1024 * 1024;
 /** Menos texto do que isto: página vazia, só com JavaScript ou bloqueada. */
 const MIN_CARACTERES = 80;
-export const ERRO_PDF = 'PDF: colar texto pelo painel';
+/** Fontes lidas ao mesmo tempo num município (o descarregador espaça os pedidos ao mesmo site). */
+const EM_PARALELO = 4;
+/** O PDF não tem texto (digitalizado): só colando. */
+export const ERRO_PDF =
+  'PDF sem texto (digitalizado?): colar texto pelo painel';
 
-/** Erro de uma fonte: fica em `fontes.erro` e não para as outras. */
-class ErroFonte extends Error {}
+/**
+ * A próxima leitura, contada a partir de `base` (por defeito, agora):
+ * intervalos de um dia ou mais caem à hora de recolha do município (no fuso
+ * dele); os mais curtos contam a partir da leitura. Precisa de `fo` (fontes)
+ * e `m` (municipios).
+ */
+export function proximaLeitura(base = 'now()'): string {
+  return `CASE WHEN fo.ler_a_cada < interval '1 day'
+  THEN ${base} + fo.ler_a_cada
+  ELSE (date_trunc('day', (${base} + fo.ler_a_cada) AT TIME ZONE m.fuso) + m.hora_recolha) AT TIME ZONE m.fuso END`;
+}
+
+/** Fonte vencida: leitura automática, não arquivada e a data já passou (ou nunca foi lida). */
+export const VENCIDA = `fo.leitura_automatica AND fo.arquivada_em IS NULL
+  AND coalesce(fo.proxima_leitura_em, '-infinity') <= now()`;
 
 /**
  * Leitura das fontes (secção 6.2). Por fonte vencida
- * (`ultima_leitura_em + ler_a_cada < now()`): descarregar → texto limpo →
+ * (`proxima_leitura_em <= now()`, ver `proximaLeitura`): descarregar (ver
+ * DescarregadorService: robots.txt, pausa por site, 304) → texto limpo (só o
+ * `seletor`, se a fonte tiver um) →
  * hash do texto (não do HTML: menus e tokens mudam a cada pedido) → igual?
  * só `ultima_leitura_em` → diferente: nova `fonte_versoes`, `trechos`,
  * embeddings, `alteracoes` com diff e respostas afetadas (proposta pela IA
@@ -72,9 +107,13 @@ class ErroFonte extends Error {}
  * nova; a versão atual de cada fonte é a lida mais recentemente entre as
  * que estão em vigor (ver `VERSAO_ATUAL`).
  *
- * PDF: não há leitor. Marca-se `estado='erro'` até alguém colar o texto
- * pelo painel (`registarTexto`, o mesmo caminho). Se o PDF não mudar
- * (`hash_original`), o texto colado continua válido e não volta a erro.
+ * PDF: lê-se a camada de texto. Sem ela (digitalizado) marca-se
+ * `estado='erro'` até alguém colar o texto pelo painel (`registarTexto`, o
+ * mesmo caminho). Se o PDF não mudar (`hash_original`), o texto que está
+ * (lido ou colado) continua válido e não volta a erro.
+ *
+ * Cada leitura fica em `fonte_leituras`; `falhas_seguidas` conta os erros
+ * desde a última leitura boa.
  */
 @Injectable()
 export class IngestaoService {
@@ -87,9 +126,28 @@ export class IngestaoService {
     private readonly armazenamento: ArmazenamentoService,
     private readonly indexacao: IndexacaoService,
     @Optional() private readonly avaliacao?: AvaliacaoService,
+    @Optional()
+    private readonly descarregador: DescarregadorService = new DescarregadorService(),
   ) {}
 
-  /** Job `ingestao_fontes` (03:00 e "Ler agora"). */
+  /** Job `recolha_tick`: os municípios com fontes vencidas vão para a fila (um lote de cada vez por município). */
+  async tick(): Promise<void> {
+    const ms = await this.db.query<{ municipio_id: string }>(
+      `SELECT DISTINCT fo.municipio_id FROM fontes fo WHERE ${VENCIDA}`,
+    );
+    for (const { municipio_id } of ms) {
+      await this.jobs.enviar(
+        JOB_INGESTAO,
+        { municipio_id },
+        { singletonKey: `ingestao:${municipio_id}` },
+      );
+    }
+    await this.db.query(
+      `DELETE FROM fonte_leituras WHERE iniciada_em < now() - interval '90 days'`,
+    );
+  }
+
+  /** Job `ingestao_fontes` (do tick e de "Ler agora"). */
   async correr(d: DadosIngestao = {}): Promise<void> {
     const municipios = d.municipio_id
       ? [d.municipio_id]
@@ -110,8 +168,7 @@ export class IngestaoService {
        FROM fontes fo JOIN municipios m ON m.id = fo.municipio_id
        WHERE fo.municipio_id = $1
          AND ($2::uuid IS NULL OR fo.id = $2)
-         AND ($3::boolean OR (fo.leitura_automatica AND (
-               fo.ultima_leitura_em IS NULL OR fo.ultima_leitura_em + fo.ler_a_cada < now())))
+         AND ($3::boolean OR (${VENCIDA}))
        ORDER BY fo.ultima_leitura_em NULLS FIRST`,
       [municipioId, d.fonte_id ?? null, d.forcar === true],
     );
@@ -124,9 +181,12 @@ export class IngestaoService {
     let mudancas = 0;
     const erros: { fonte_id: string; titulo: string; erro: string }[] = [];
 
-    for (const f of fontes) {
+    await emParalelo(fontes, EM_PARALELO, async (f) => {
+      const inicio = Date.now();
       try {
-        if (await this.lerFonte(f)) mudancas++;
+        const l = await this.lerFonte(f, d.forcar === true);
+        if (l.resultado === 'mudou') mudancas++;
+        await this.registarLeitura(f.id, inicio, l, null);
       } catch (e) {
         const erro =
           e instanceof ErroFonte
@@ -139,11 +199,15 @@ export class IngestaoService {
             [f.id, erro],
           )
           .catch((e2: Error) => this.logger.error(e2.message));
+        await this.registarLeitura(f.id, inicio, null, {
+          codigo: e instanceof ErroFonte ? e.codigo : null,
+          erro,
+        }).catch((e2: Error) => this.logger.error(e2.message));
         if (!(e instanceof ErroFonte)) {
           this.logger.warn(`Fonte ${f.id} (${f.url}): ${erro}`);
         }
       }
-    }
+    });
 
     await this.db.query(
       `UPDATE ingestoes SET terminada_em = now(), fontes_lidas = $2, mudancas = $3,
@@ -172,38 +236,125 @@ export class IngestaoService {
     }
   }
 
-  /** Lê uma fonte. true = há versão nova. Lança `ErroFonte` com a mensagem para o painel. */
-  private async lerFonte(f: FonteLinha): Promise<boolean> {
-    const { bytes, tipo } = await descarregar(f.url);
+  /** Lê uma fonte. Lança `ErroFonte` com a mensagem para o painel. */
+  private async lerFonte(f: FonteLinha, forcar: boolean): Promise<Leitura> {
+    // "Ler agora" (forcar) descarrega sempre: sem pedido condicional.
+    const d = await this.descarregador.obter(f.url, {
+      etag: forcar ? null : f.etag,
+      ultimaModificacao: forcar ? null : f.ultima_modificacao,
+      ignorarRobots: f.ignorar_robots,
+    });
+    if (d.estado === 'nao_modificado') {
+      await this.marcarLida(f.id, null);
+      return {
+        resultado: 'nao_modificado',
+        http: 304,
+        bytes: null,
+        aviso: null,
+      };
+    }
+    const { bytes, tipo } = d;
     const hashOriginal = hashTexto(bytes);
+    await this.db.query(
+      `UPDATE fontes SET etag = $2, ultima_modificacao = $3 WHERE id = $1`,
+      [f.id, d.etag, d.ultimaModificacao],
+    );
+    const leitura = (r: ResultadoTexto | null): Leitura => ({
+      resultado: r?.mudou ? 'mudou' : 'igual',
+      http: d.http,
+      bytes: bytes.length,
+      aviso: r?.encolheu
+        ? 'O texto novo tem menos de metade do anterior: confirmar a alteração'
+        : null,
+    });
 
     if (ePdf(bytes, tipo, f.url)) {
       if (f.hash_original === hashOriginal && f.ultimo_hash) {
-        // O PDF não mudou desde que se colou o texto: continua válido.
+        // O PDF não mudou: o texto que está (lido ou colado) continua válido.
         await this.marcarLida(f.id, hashOriginal);
-        return false;
+        return leitura(null);
       }
-      await this.db.query(
-        `UPDATE fontes SET hash_original = $2 WHERE id = $1`,
-        [f.id, hashOriginal],
+      const { texto } = textoDoPdf(bytes);
+      if (normalizarTexto(texto).length < MIN_CARACTERES) {
+        await this.db.query(
+          `UPDATE fontes SET hash_original = $2 WHERE id = $1`,
+          [f.id, hashOriginal],
+        );
+        throw new ErroFonte(ERRO_PDF, 'pdf');
+      }
+      return leitura(
+        await this.registarTexto(f.id, texto, {
+          original: { bytes, tipo, hash: hashOriginal },
+        }),
       );
-      throw new ErroFonte(ERRO_PDF);
     }
 
     const bruto = descodificarBytes(bytes, tipo);
-    const texto = /text\/plain/i.test(tipo)
-      ? normalizarTexto(bruto)
-      : htmlParaTexto(bruto);
+    const html = !/text\/plain/i.test(tipo);
+    if (html && f.titulo_automatico) {
+      const { titulo } = lerPagina(bruto, f.url);
+      if (titulo) {
+        await this.db.query(
+          `UPDATE fontes SET titulo = $2, titulo_automatico = false WHERE id = $1`,
+          [f.id, titulo],
+        );
+      }
+    }
+    let parte = bruto;
+    if (html && f.seletor) {
+      const sel = aplicarSeletor(bruto, f.seletor);
+      if (!sel) {
+        throw new ErroFonte(
+          `O seletor "${f.seletor}" já não encontra nada na página: o site mudou de estrutura?`,
+          'seletor',
+        );
+      }
+      parte = `<main>${sel}</main>`;
+    }
+    const texto = html ? htmlParaTexto(parte) : normalizarTexto(bruto);
     if (texto.length < MIN_CARACTERES) {
       throw new ErroFonte(
         'Página sem texto (só com JavaScript ou bloqueada): colar texto pelo painel',
+        'vazio',
       );
     }
 
-    const r = await this.registarTexto(f.id, texto, {
-      original: { bytes, tipo, hash: hashOriginal },
-    });
-    return r.mudou;
+    return leitura(
+      await this.registarTexto(f.id, texto, {
+        original: { bytes, tipo, hash: hashOriginal },
+      }),
+    );
+  }
+
+  /** Histórico da leitura, próxima data e falhas seguidas. */
+  private async registarLeitura(
+    fonteId: string,
+    inicio: number,
+    l: Leitura | null,
+    falha: { codigo: string | null; erro: string } | null,
+  ): Promise<void> {
+    await this.db.query(
+      `INSERT INTO fonte_leituras (fonte_id, iniciada_em, duracao_ms, http_estado, bytes,
+         resultado, codigo_erro, erro, aviso)
+       VALUES ($1, to_timestamp($2 / 1000.0), $3, $4, $5, $6, $7, $8, $9)`,
+      [
+        fonteId,
+        inicio,
+        Date.now() - inicio,
+        l?.http ?? null,
+        l?.bytes ?? null,
+        l?.resultado ?? 'erro',
+        falha?.codigo ?? null,
+        falha?.erro ?? null,
+        l?.aviso ?? null,
+      ],
+    );
+    await this.db.query(
+      `UPDATE fontes fo SET proxima_leitura_em = ${proximaLeitura()},
+              falhas_seguidas = CASE WHEN $2 THEN fo.falhas_seguidas + 1 ELSE 0 END
+       FROM municipios m WHERE m.id = fo.municipio_id AND fo.id = $1`,
+      [fonteId, falha !== null],
+    );
   }
 
   /**
@@ -386,6 +537,7 @@ export class IngestaoService {
         alteracao_id: alteracaoId,
         trechos: novos.length,
         respostas_afetadas: afetadas,
+        encolheu: mudouTexto && texto.length < atual.texto.length / 2,
         novos,
       };
     });
@@ -407,6 +559,7 @@ export class IngestaoService {
       alteracao_id: r.alteracao_id,
       trechos: r.trechos,
       respostas_afetadas: r.respostas_afetadas,
+      encolheu: r.encolheu,
     };
   }
 
@@ -429,49 +582,20 @@ export class IngestaoService {
 }
 
 const FONTE_COLUNAS = `fo.id, fo.municipio_id, m.slug, fo.titulo, fo.url,
-  fo.ultimo_hash, fo.hash_original`;
+  fo.ultimo_hash, fo.hash_original, fo.etag, fo.ultima_modificacao, fo.seletor,
+  fo.ignorar_robots, fo.titulo_automatico`;
 
-async function descarregar(
-  url: string,
-): Promise<{ bytes: Buffer; tipo: string }> {
-  let res: Response;
-  try {
-    res = await fetch(url, {
-      headers: {
-        'User-Agent': USER_AGENT,
-        Accept:
-          'text/html,application/xhtml+xml,text/plain,application/pdf;q=0.9,*/*;q=0.5',
-        'Accept-Language': 'pt-PT,pt;q=0.9',
-      },
-      redirect: 'follow',
-      signal: AbortSignal.timeout(TIMEOUT_DOWNLOAD_MS),
-    });
-  } catch (e) {
-    const nome = (e as Error).name;
-    throw new ErroFonte(
-      nome === 'TimeoutError' || nome === 'AbortError'
-        ? `Sem resposta em ${TIMEOUT_DOWNLOAD_MS / 1000} s`
-        : `Não foi possível ligar: ${(e as Error).message}`,
-    );
-  }
-  if (!res.ok) {
-    throw new ErroFonte(
-      res.status === 403 || res.status === 429
-        ? `O site bloqueou a leitura (HTTP ${res.status}): colar texto pelo painel`
-        : `HTTP ${res.status}`,
-    );
-  }
-  const tamanho = Number(res.headers.get('content-length') ?? 0);
-  if (tamanho > MAX_BYTES) {
-    throw new ErroFonte(
-      `Ficheiro demasiado grande (${Math.round(tamanho / 1e6)} MB)`,
-    );
-  }
-  const bytes = Buffer.from(await res.arrayBuffer());
-  if (bytes.length > MAX_BYTES) {
-    throw new ErroFonte(
-      `Ficheiro demasiado grande (${Math.round(bytes.length / 1e6)} MB)`,
-    );
-  }
-  return { bytes, tipo: res.headers.get('content-type') ?? '' };
+/** Corre `fn` sobre os itens, no máximo `n` de cada vez. */
+async function emParalelo<T>(
+  itens: T[],
+  n: number,
+  fn: (item: T) => Promise<void>,
+): Promise<void> {
+  let i = 0;
+  const trabalhador = async () => {
+    while (i < itens.length) await fn(itens[i++]);
+  };
+  await Promise.all(
+    Array.from({ length: Math.min(n, itens.length) }, trabalhador),
+  );
 }
