@@ -52,13 +52,13 @@ export function PainelTurismo({ aoCarregar }: { aoCarregar: () => void }) {
           </h2>
           <p className="text-[13px] text-tinta-2">
             {d.total_fontes
-              ? `${numero(d.total_fontes)} fontes em ${d.fontes.map((f) => f.lingua.toUpperCase()).join(", ")} · página pública /visitar`
-              : "Ainda não há fontes de turismo. Carregue as de demonstração para ver a página /visitar."}
+              ? `${numero(d.total_fontes)} fontes em ${d.fontes.map((f) => f.lingua.toUpperCase()).join(", ")} · página pública de turismo`
+              : "Ainda não há fontes de turismo. Carregue as de demonstração para ver a página pública de turismo."}
           </p>
         </div>
         {d.demonstracao && <Pilula tom="ambar">valores de demonstração · confirmar com o turismo da câmara</Pilula>}
         <a href="/visitar" target="_blank" rel="noreferrer" className="flex items-center gap-1 text-[13px] font-semibold text-terracota-escuro hover:underline">
-          Abrir /visitar
+          Abrir a página
           <ExternalLink className="size-3" aria-hidden />
         </a>
         {pode("conhecimento") && (

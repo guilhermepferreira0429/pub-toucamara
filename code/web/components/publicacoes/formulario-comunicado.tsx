@@ -172,7 +172,7 @@ export function FormularioComunicado({
           id={IDS.texto}
           rotulo="Texto"
           erro={erros.texto}
-          ajuda={`${f.texto.trim().length} de 5000 caracteres. No /agora aparecem as primeiras linhas; o resto no detalhe.`}
+          ajuda={`${f.texto.trim().length} de 5000 caracteres. Na página «O que se passa» aparecem as primeiras linhas; o resto no detalhe.`}
         >
           {(a) => (
             <textarea
@@ -256,7 +256,7 @@ export function FormularioComunicado({
 
         <div className="flex flex-col gap-1 rounded-xl bg-creme px-3 py-2.5 text-[13px] text-tinta-2">
           <p>
-            <span className="font-semibold text-tinta">Quanto tempo fica no /agora: </span>
+            <span className="font-semibold text-tinta">Quanto tempo fica na página «O que se passa»: </span>
             {comunicado?.visivel_ate
               ? `até ${dia(comunicado.visivel_ate)} (${dias} dias depois de publicado).`
               : `${dias} dias a contar da publicação.`}{" "}
@@ -274,7 +274,7 @@ export function FormularioComunicado({
         {!publicado && <AvisoSms pedidoAbr={pedidoAbr} jaPublicado={!!comunicado?.publicado_em} />}
         {publicado && (
           <p className="rounded-xl border border-linha bg-creme p-3 text-[13px] text-tinta-2">
-            Já está publicado: o que mudar aparece logo no /agora, sem novo aviso por SMS.
+            Já está publicado: o que mudar aparece logo na página «O que se passa», sem novo aviso por SMS.
           </p>
         )}
         <ErroLinha erro={acao.erro} />

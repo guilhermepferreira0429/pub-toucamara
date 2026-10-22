@@ -22,6 +22,7 @@ import {
   quando,
   useAcao,
   useDados,
+  useEquipaInterna,
 } from "./comum";
 import type { Entidade, Fonte, LeituraFonte, Recolha, SiteFontes } from "./tipos";
 
@@ -157,6 +158,8 @@ export function HoraRecolha({ escrever, onMudou }: { escrever: boolean; onMudou:
 
 export function EditarFonte({ fonte, tipos, onFeito }: { fonte: Fonte; tipos: Record<string, { rotulo: string }>; onFeito: (msg: string) => void }) {
   const { pedido } = useSessao();
+  // A parte da página por seletor é afinação técnica: só para a equipa interna.
+  const interno = useEquipaInterna();
   const [v, setV] = useState({
     titulo: fonte.titulo,
     url: fonte.url,
@@ -203,12 +206,14 @@ export function EditarFonte({ fonte, tipos, onFeito }: { fonte: Fonte; tipos: Re
           <SelecionarPeriodo valor={v.ler_a_cada_horas} onMudar={(h) => setV({ ...v, ler_a_cada_horas: h })} />
         </Campo>
       </div>
-      <Campo
-        rotulo="Só esta parte da página (seletor CSS, opcional)"
-        ajuda="Ex.: #conteudo ou .artigo. Se o site mudar e o seletor deixar de encontrar a parte, a fonte fica em erro e avisamos."
-      >
-        <input className={`${classeEntrada} font-mono text-xs`} maxLength={300} placeholder="main" value={v.seletor} onChange={(e) => setV({ ...v, seletor: e.target.value })} />
-      </Campo>
+      {interno && (
+        <Campo
+          rotulo="Só esta parte da página (opcional, equipa técnica)"
+          ajuda="Seletor CSS, ex.: #conteudo ou .artigo. Se o site mudar e o seletor deixar de encontrar a parte, a fonte fica em erro e avisamos."
+        >
+          <input className={`${classeEntrada} font-mono text-xs`} maxLength={300} placeholder="main" value={v.seletor} onChange={(e) => setV({ ...v, seletor: e.target.value })} />
+        </Campo>
+      )}
       <div className="flex items-center gap-2.5 text-[13px] text-tinta">
         <Interruptor ligado={v.leitura_automatica} rotulo="Leitura automática" onMudar={(x) => setV({ ...v, leitura_automatica: x })} />
         Ler automaticamente
