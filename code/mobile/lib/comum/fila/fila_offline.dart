@@ -77,49 +77,53 @@ class Acao {
   String get chave => renovacoes == 0 ? id : '$id-r$renovacoes';
 
   Map<String, dynamic> paraJson() => {
-        'id': id,
-        'tipo': tipo.name,
-        'descricao': descricao,
-        'alvo': alvo,
-        'metodo': metodo,
-        'caminho': caminho,
-        'corpo': corpo,
-        'ficheiro_ref': ficheiroRef,
-        'usar_resultados': usarResultados,
-        'criada_em': criadaEm.toIso8601String(),
-        'tentativas': tentativas,
-        'ultimo_erro': ultimoErro,
-        'estado': estado.name,
-        'intermedio': intermedio,
-        'renovacoes': renovacoes,
-        'dono': dono,
-      };
+    'id': id,
+    'tipo': tipo.name,
+    'descricao': descricao,
+    'alvo': alvo,
+    'metodo': metodo,
+    'caminho': caminho,
+    'corpo': corpo,
+    'ficheiro_ref': ficheiroRef,
+    'usar_resultados': usarResultados,
+    'criada_em': criadaEm.toIso8601String(),
+    'tentativas': tentativas,
+    'ultimo_erro': ultimoErro,
+    'estado': estado.name,
+    'intermedio': intermedio,
+    'renovacoes': renovacoes,
+    'dono': dono,
+  };
 
   factory Acao.deJson(Map<String, dynamic> j) => Acao(
-        id: j['id'] as String,
-        tipo: TipoAcao.values.byName(j['tipo'] as String),
-        descricao: j['descricao'] as String,
-        alvo: j['alvo'] as String,
-        metodo: j['metodo'] as String,
-        caminho: j['caminho'] as String,
-        corpo: (j['corpo'] as Map?)?.cast<String, dynamic>(),
-        ficheiroRef: j['ficheiro_ref'] as String?,
-        usarResultados: ((j['usar_resultados'] as Map?) ?? const {}).map(
-            (k, v) => MapEntry(k as String, (v as List).cast<String>())),
-        criadaEm: DateTime.parse(j['criada_em'] as String),
-        tentativas: (j['tentativas'] as num?)?.toInt() ?? 0,
-        ultimoErro: j['ultimo_erro'] as String?,
-        estado: EstadoAcao.values.byName(j['estado'] as String? ?? 'pendente'),
-        intermedio: (j['intermedio'] as Map?)?.cast<String, dynamic>(),
-        renovacoes: (j['renovacoes'] as num?)?.toInt() ?? 0,
-        dono: j['dono'] as String?,
-      );
+    id: j['id'] as String,
+    tipo: TipoAcao.values.byName(j['tipo'] as String),
+    descricao: j['descricao'] as String,
+    alvo: j['alvo'] as String,
+    metodo: j['metodo'] as String,
+    caminho: j['caminho'] as String,
+    corpo: (j['corpo'] as Map?)?.cast<String, dynamic>(),
+    ficheiroRef: j['ficheiro_ref'] as String?,
+    usarResultados: ((j['usar_resultados'] as Map?) ?? const {}).map(
+      (k, v) => MapEntry(k as String, (v as List).cast<String>()),
+    ),
+    criadaEm: DateTime.parse(j['criada_em'] as String),
+    tentativas: (j['tentativas'] as num?)?.toInt() ?? 0,
+    ultimoErro: j['ultimo_erro'] as String?,
+    estado: EstadoAcao.values.byName(j['estado'] as String? ?? 'pendente'),
+    intermedio: (j['intermedio'] as Map?)?.cast<String, dynamic>(),
+    renovacoes: (j['renovacoes'] as num?)?.toInt() ?? 0,
+    dono: j['dono'] as String?,
+  );
 }
 
 /// O resultado de uma volta de envio.
 class ResultadoEnvio {
-  const ResultadoEnvio(
-      {this.enviadas = 0, this.falharam = 0, this.semRede = false});
+  const ResultadoEnvio({
+    this.enviadas = 0,
+    this.falharam = 0,
+    this.semRede = false,
+  });
   final int enviadas;
   final int falharam;
 
@@ -138,10 +142,10 @@ class FilaOffline extends ChangeNotifier {
     Duration intervalo = const Duration(seconds: 30),
     DateTime Function()? relogio,
     String? Function()? dono,
-  })  : _armazem = armazem,
-        _dono = dono ?? (() => null),
-        _intervalo = intervalo,
-        _relogio = relogio ?? DateTime.now;
+  }) : _armazem = armazem,
+       _dono = dono ?? (() => null),
+       _intervalo = intervalo,
+       _relogio = relogio ?? DateTime.now;
 
   static const _chave = 'fila_v1';
   static const _uuid = Uuid();
@@ -171,9 +175,8 @@ class FilaOffline extends ChangeNotifier {
   /// telemóvel ficam guardadas até ela voltar a entrar).
   List<Acao> get acoes => List.unmodifiable(_acoes.where(_minha));
   int get porEnviar => _acoes.where(_minha).length;
-  int get falhadas => _acoes
-      .where((a) => _minha(a) && a.estado == EstadoAcao.falhou)
-      .length;
+  int get falhadas =>
+      _acoes.where((a) => _minha(a) && a.estado == EstadoAcao.falhou).length;
   bool get aEnviar => _aEnviar != null;
 
   /// Tem ações por enviar desta tarefa?
@@ -189,10 +192,16 @@ class FilaOffline extends ChangeNotifier {
     if (t != null) {
       try {
         final j = jsonDecode(t) as Map<String, dynamic>;
-        _acoes.addAll((j['acoes'] as List)
-            .map((a) => Acao.deJson((a as Map).cast<String, dynamic>())));
-        _resultados.addAll(((j['resultados'] as Map?) ?? const {}).map(
-            (k, v) => MapEntry(k as String, (v as Map).cast<String, dynamic>())));
+        _acoes.addAll(
+          (j['acoes'] as List).map(
+            (a) => Acao.deJson((a as Map).cast<String, dynamic>()),
+          ),
+        );
+        _resultados.addAll(
+          ((j['resultados'] as Map?) ?? const {}).map(
+            (k, v) => MapEntry(k as String, (v as Map).cast<String, dynamic>()),
+          ),
+        );
       } on Object catch (e) {
         debugPrint('Fila ilegível, recomeça vazia: $e');
       }
@@ -202,7 +211,9 @@ class FilaOffline extends ChangeNotifier {
 
   Future<void> _guardar() async {
     // Só os resultados que alguma ação ainda vai usar.
-    final usados = _acoes.expand((a) => a.usarResultados.values.expand((x) => x)).toSet();
+    final usados = _acoes
+        .expand((a) => a.usarResultados.values.expand((x) => x))
+        .toSet();
     _resultados.removeWhere((k, _) => !usados.contains(k));
     await _armazem.escrever(
       _chave,
@@ -222,22 +233,21 @@ class FilaOffline extends ChangeNotifier {
     Map<String, dynamic>? corpo,
     Map<String, List<String>> usarResultados = const {},
     bool enviarJa = true,
-  }) =>
-      _juntar(
-        Acao(
-          id: _uuid.v4(),
-          tipo: TipoAcao.pedido,
-          descricao: descricao,
-          alvo: alvo,
-          metodo: metodo,
-          caminho: caminho,
-          corpo: corpo,
-          usarResultados: usarResultados,
-          criadaEm: _relogio(),
-          dono: _dono(),
-        ),
-        enviarJa,
-      );
+  }) => _juntar(
+    Acao(
+      id: _uuid.v4(),
+      tipo: TipoAcao.pedido,
+      descricao: descricao,
+      alvo: alvo,
+      metodo: metodo,
+      caminho: caminho,
+      corpo: corpo,
+      usarResultados: usarResultados,
+      criadaEm: _relogio(),
+      dono: _dono(),
+    ),
+    enviarJa,
+  );
 
   /// Junta uma fotografia (guardada já no telemóvel) e tenta enviar logo.
   Future<Acao> ficheiro({
@@ -339,10 +349,26 @@ class FilaOffline extends ChangeNotifier {
     var enviadas = 0;
     var falharam = 0;
     ultimaTentativa = _relogio();
-    for (final a in List<Acao>.from(_acoes)) {
-      if (a.estado != EstadoAcao.pendente || !_minha(a)) continue;
+    // Uma de cada vez, a primeira pendente ainda não tentada nesta volta:
+    // apanha também as que se juntarem enquanto esta volta corre.
+    final tentadas = <String>{};
+    while (true) {
+      final a = _acoes
+          .where(
+            (a) =>
+                a.estado == EstadoAcao.pendente &&
+                _minha(a) &&
+                !tentadas.contains(a.id),
+          )
+          .firstOrNull;
+      if (a == null) break;
+      tentadas.add(a.id);
       if (api.token == null) {
-        return ResultadoEnvio(enviadas: enviadas, falharam: falharam, semRede: true);
+        return ResultadoEnvio(
+          enviadas: enviadas,
+          falharam: falharam,
+          semRede: true,
+        );
       }
       try {
         final resposta = await _enviarUma(a);
@@ -358,7 +384,11 @@ class FilaOffline extends ChangeNotifier {
         ultimaFalhaRede = e.motivo;
         await _guardar();
         notifyListeners();
-        return ResultadoEnvio(enviadas: enviadas, falharam: falharam, semRede: true);
+        return ResultadoEnvio(
+          enviadas: enviadas,
+          falharam: falharam,
+          semRede: true,
+        );
       } on ErroApi catch (e) {
         a.tentativas++;
         a.ultimoErro = e.mensagem;
@@ -368,7 +398,11 @@ class FilaOffline extends ChangeNotifier {
           ultimaFalhaRede = e.mensagem;
           await _guardar();
           notifyListeners();
-          return ResultadoEnvio(enviadas: enviadas, falharam: falharam, semRede: true);
+          return ResultadoEnvio(
+            enviadas: enviadas,
+            falharam: falharam,
+            semRede: true,
+          );
         }
         a.estado = EstadoAcao.falhou;
         falharam++;
@@ -381,11 +415,14 @@ class FilaOffline extends ChangeNotifier {
 
   Future<dynamic> _enviarUma(Acao a) async {
     if (a.tipo == TipoAcao.pedido) {
-      final corpo = a.corpo == null ? null : Map<String, dynamic>.from(a.corpo!);
+      final corpo = a.corpo == null
+          ? null
+          : Map<String, dynamic>.from(a.corpo!);
       a.usarResultados.forEach((campo, ids) {
         corpo?[campo] = [
           for (final id in ids)
-            if (_resultados[id]?['foto_id'] != null) _resultados[id]!['foto_id'],
+            if (_resultados[id]?['foto_id'] != null)
+              _resultados[id]!['foto_id'],
         ];
       });
       return api.pedido(a.metodo, a.caminho, corpo: corpo, chave: a.chave);
@@ -394,12 +431,16 @@ class FilaOffline extends ChangeNotifier {
     // Fotografia: 1) URL assinada (com a chave: repetir dá a mesma), 2) PUT.
     final bytes = await ficheiros.ler(a.ficheiroRef!);
     if (bytes == null) {
-      throw ErroApi(410, 'ficheiro_perdido',
-          'A fotografia já não está no telemóvel. Tire-a outra vez.');
+      throw ErroApi(
+        410,
+        'ficheiro_perdido',
+        'A fotografia já não está no telemóvel. Tire-a outra vez.',
+      );
     }
     a.intermedio ??= Map<String, dynamic>.from(
-        await api.pedido('POST', a.caminho, corpo: a.corpo, chave: a.chave)
-            as Map);
+      await api.pedido('POST', a.caminho, corpo: a.corpo, chave: a.chave)
+          as Map,
+    );
     await _guardar();
     final i = a.intermedio!;
     try {
@@ -413,7 +454,11 @@ class FilaOffline extends ChangeNotifier {
         // URL expirada: na próxima volta pede outra (chave nova).
         a.intermedio = null;
         a.renovacoes++;
-        throw ErroApi(503, 'url_expirada', 'A ligação de envio expirou; tenta-se outra vez.');
+        throw ErroApi(
+          503,
+          'url_expirada',
+          'A ligação de envio expirou; tenta-se outra vez.',
+        );
       }
       rethrow;
     }

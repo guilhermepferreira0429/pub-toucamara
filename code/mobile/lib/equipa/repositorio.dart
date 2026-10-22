@@ -19,8 +19,8 @@ class RepositorioEquipa extends ChangeNotifier {
     required Armazem cache,
     required this.localizador,
     String? Function()? dono,
-  })  : _cache = cache,
-        _dono = dono ?? (() => null) {
+  }) : _cache = cache,
+       _dono = dono ?? (() => null) {
     fila.aoEnviar = _depoisDeEnviar;
   }
 
@@ -49,14 +49,26 @@ class RepositorioEquipa extends ChangeNotifier {
   Future<DiaDeTrabalho> carregarHoje() async {
     ondeEstou = await localizador.atual() ?? ondeEstou;
     try {
-      final j = await api.get('/painel/equipa/hoje', query: {
-        if (ondeEstou != null) 'lat': ondeEstou!.lat.toStringAsFixed(6),
-        if (ondeEstou != null) 'lng': ondeEstou!.lng.toStringAsFixed(6),
-      }) as Map;
+      final j =
+          await api.get(
+                '/painel/equipa/hoje',
+                query: {
+                  if (ondeEstou != null)
+                    'lat': ondeEstou!.lat.toStringAsFixed(6),
+                  if (ondeEstou != null)
+                    'lng': ondeEstou!.lng.toStringAsFixed(6),
+                },
+              )
+              as Map;
       final agora = DateTime.now();
-      await _cache.escrever(_chaveHoje,
-          jsonEncode({'obtido_em': agora.toIso8601String(), 'dados': j}));
-      final d = DiaDeTrabalho.deJson(j.cast<String, dynamic>(), obtidoEm: agora);
+      await _cache.escrever(
+        _chaveHoje,
+        jsonEncode({'obtido_em': agora.toIso8601String(), 'dados': j}),
+      );
+      final d = DiaDeTrabalho.deJson(
+        j.cast<String, dynamic>(),
+        obtidoEm: agora,
+      );
       dia = _reordenar(d);
       notifyListeners();
       // Há rede: aproveita para enviar o que ficou e guardar os detalhes.
@@ -73,13 +85,13 @@ class RepositorioEquipa extends ChangeNotifier {
   }
 
   DiaDeTrabalho _reordenar(DiaDeTrabalho d) => DiaDeTrabalho(
-        dia: d.dia,
-        tarefas: ordenarPorProximidade(d.tarefas, ondeEstou),
-        obtidoEm: d.obtidoEm,
-        daCache: d.daCache,
-        mostraVisitas: d.mostraVisitas,
-        mostraOcorrencias: d.mostraOcorrencias,
-      );
+    dia: d.dia,
+    tarefas: ordenarPorProximidade(d.tarefas, ondeEstou),
+    obtidoEm: d.obtidoEm,
+    daCache: d.daCache,
+    mostraVisitas: d.mostraVisitas,
+    mostraOcorrencias: d.mostraOcorrencias,
+  );
 
   Future<DiaDeTrabalho?> _hojeDaCache() async {
     final t = await _cache.ler(_chaveHoje);
@@ -146,34 +158,36 @@ class RepositorioEquipa extends ChangeNotifier {
       );
 
   /// O texto ditado e as respostas da checklist (a API estrutura-o).
-  Future<Acao> relatorioVisita(VisitaDetalhe v, String texto,
-          List<ItemChecklist> checklist, {bool enviarJa = true}) =>
-      fila.pedido(
-        descricao: 'Relatório da visita ${v.numero}',
-        alvo: v.id,
-        metodo: 'POST',
-        caminho: '/painel/fiscalizacao/visitas/${v.id}/relatorio',
-        corpo: {
-          'texto': texto,
-          'checklist': [
-            for (final i in checklist)
-              if (i.resposta != null) i.paraResposta(),
-          ],
-        },
-        enviarJa: enviarJa,
-      );
+  Future<Acao> relatorioVisita(
+    VisitaDetalhe v,
+    String texto,
+    List<ItemChecklist> checklist, {
+    bool enviarJa = true,
+  }) => fila.pedido(
+    descricao: 'Relatório da visita ${v.numero}',
+    alvo: v.id,
+    metodo: 'POST',
+    caminho: '/painel/fiscalizacao/visitas/${v.id}/relatorio',
+    corpo: {
+      'texto': texto,
+      'checklist': [
+        for (final i in checklist)
+          if (i.resposta != null) i.paraResposta(),
+      ],
+    },
+    enviarJa: enviarJa,
+  );
 
   Future<Acao> concluirVisita(VisitaDetalhe v) => fila.pedido(
-        descricao: 'Concluir a visita ${v.numero}',
-        alvo: v.id,
-        metodo: 'POST',
-        caminho: '/painel/fiscalizacao/visitas/${v.id}/concluir',
-      );
+    descricao: 'Concluir a visita ${v.numero}',
+    alvo: v.id,
+    metodo: 'POST',
+    caminho: '/painel/fiscalizacao/visitas/${v.id}/concluir',
+  );
 
   Future<Acao> estadoOcorrencia(OcorrenciaDetalhe o, String estado) =>
       fila.pedido(
-        descricao:
-            '${nomeEstadoOcorrencia(estado)}: ocorrência ${o.numero}',
+        descricao: '${nomeEstadoOcorrencia(estado)}: ocorrência ${o.numero}',
         alvo: o.id,
         metodo: 'PATCH',
         caminho: '/painel/ocorrencias/${o.id}',
@@ -182,8 +196,11 @@ class RepositorioEquipa extends ChangeNotifier {
 
   /// A foto do depois (se houver) e o fecho com a nota, por esta ordem; o
   /// fecho leva o id da foto que a API der ao enviá-la.
-  Future<void> fecharOcorrencia(OcorrenciaDetalhe o,
-      {FotoTirada? foto, required String nota}) async {
+  Future<void> fecharOcorrencia(
+    OcorrenciaDetalhe o, {
+    FotoTirada? foto,
+    required String nota,
+  }) async {
     final ids = <String>[];
     if (foto != null) {
       final a = await fila.ficheiro(
@@ -207,24 +224,42 @@ class RepositorioEquipa extends ChangeNotifier {
   }
 
   /// "Por enviar" desta tarefa: o que o ecrã mostra por cima dos dados.
+  /// Fechada (ocorrência) ou concluída (visita) neste telemóvel, por enviar.
+  bool fechadaAqui(String alvo) => fila
+      .daTarefa(alvo)
+      .any(
+        (a) => a.caminho.endsWith('/fechar') || a.caminho.endsWith('/concluir'),
+      );
+
   String? pendenteDe(String alvo) {
     final l = fila.daTarefa(alvo);
     if (l.isEmpty) return null;
-    if (l.any((a) => a.caminho.endsWith('/fechar'))) return 'Fechada · por enviar';
-    if (l.any((a) => a.caminho.endsWith('/concluir'))) return 'Concluída · por enviar';
+    if (l.any((a) => a.caminho.endsWith('/fechar'))) {
+      return 'Fechada · por enviar';
+    }
+    if (l.any((a) => a.caminho.endsWith('/concluir'))) {
+      return 'Concluída · por enviar';
+    }
     return l.length == 1 ? '1 por enviar' : '${l.length} por enviar';
   }
 
   void _depoisDeEnviar(Acao a, dynamic resposta) {
     // A resposta do relatório/concluir/fechar já é o detalhe atualizado.
-    if (resposta is Map && resposta['id'] == a.alvo && resposta['numero'] != null) {
-      final tipo = a.caminho.contains('/fiscalizacao/') ||
+    if (resposta is Map &&
+        resposta['id'] == a.alvo &&
+        resposta['numero'] != null) {
+      final tipo =
+          a.caminho.contains('/fiscalizacao/') ||
               a.caminho.contains('/equipa/visitas/')
           ? TipoTarefa.visita
           : TipoTarefa.ocorrencia;
-      unawaited(_cache.escrever(_chaveDetalhe(tipo, a.alvo), jsonEncode(resposta)));
+      unawaited(
+        _cache.escrever(_chaveDetalhe(tipo, a.alvo), jsonEncode(resposta)),
+      );
     }
-    if (fila.porEnviar == 0) unawaited(carregarHoje().then((_) {}, onError: (_) {}));
+    if (fila.porEnviar == 0) {
+      unawaited(carregarHoje().then((_) {}, onError: (_) {}));
+    }
     notifyListeners();
   }
 }

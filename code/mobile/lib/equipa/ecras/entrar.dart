@@ -66,13 +66,17 @@ class _EcraEntrarState extends State<EcraEntrar> {
     } on ErroApi catch (e) {
       if (!mounted) return;
       final resto = e.detalhes['tentativas_restantes'];
-      setState(() => _erro = resto != null
-          ? '${e.mensagem} Restam $resto tentativas.'
-          : e.mensagem);
+      setState(
+        () => _erro = resto != null
+            ? '${e.mensagem} Restam $resto tentativas.'
+            : e.mensagem,
+      );
     } on SemRede {
       if (!mounted) return;
-      setState(() => _erro =
-          'Sem ligação ao servidor. Para entrar é preciso rede (depois a app funciona sem ela).');
+      setState(
+        () => _erro =
+            'Sem ligação ao servidor. Para entrar é preciso rede (depois a app funciona sem ela).',
+      );
     } finally {
       if (mounted) setState(() => _ocupado = false);
     }
@@ -82,8 +86,9 @@ class _EcraEntrarState extends State<EcraEntrar> {
     // Cinco toques na marca abrem as definições do servidor (escondidas).
     if (++_toques >= 5) {
       _toques = 0;
-      Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => const EcraDefinicoes()));
+      Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: (_) => const EcraDefinicoes()));
     }
   }
 
@@ -105,8 +110,9 @@ class _EcraEntrarState extends State<EcraEntrar> {
                     onTap: _tocarMarca,
                     behavior: HitTestBehavior.opaque,
                     child: const Align(
-                        alignment: Alignment.centerLeft,
-                        child: Marca(sufixo: 'Equipa', grande: true)),
+                      alignment: Alignment.centerLeft,
+                      child: Marca(sufixo: 'Equipa', grande: true),
+                    ),
                   ),
                   const SizedBox(height: 28),
                   Text('Entrar', style: texto.headlineMedium),
@@ -131,8 +137,9 @@ class _EcraEntrarState extends State<EcraEntrar> {
                       onSubmitted: (_) => _pedir(),
                       style: const TextStyle(fontSize: 20),
                       decoration: const InputDecoration(
-                          labelText: 'Email',
-                          prefixIcon: Icon(Icons.mail_outline_rounded)),
+                        labelText: 'Email',
+                        prefixIcon: Icon(Icons.mail_outline_rounded),
+                      ),
                     ),
                     const SizedBox(height: 20),
                     FilledButton.icon(
@@ -152,11 +159,14 @@ class _EcraEntrarState extends State<EcraEntrar> {
                       textAlign: TextAlign.center,
                       onSubmitted: (_) => _entrar(),
                       style: const TextStyle(
-                          fontSize: 34,
-                          letterSpacing: 10,
-                          fontWeight: FontWeight.w700),
+                        fontSize: 34,
+                        letterSpacing: 10,
+                        fontWeight: FontWeight.w700,
+                      ),
                       decoration: const InputDecoration(
-                          labelText: 'Código', hintText: '000000'),
+                        labelText: 'Código',
+                        hintText: '000000',
+                      ),
                     ),
                     const SizedBox(height: 20),
                     FilledButton.icon(
@@ -169,10 +179,10 @@ class _EcraEntrarState extends State<EcraEntrar> {
                       onPressed: _ocupado
                           ? null
                           : () => setState(() {
-                                _codigoPedido = false;
-                                _codigo.clear();
-                                _erro = null;
-                              }),
+                              _codigoPedido = false;
+                              _codigo.clear();
+                              _erro = null;
+                            }),
                       child: const Text('Mudar o email ou pedir outro código'),
                     ),
                   ],

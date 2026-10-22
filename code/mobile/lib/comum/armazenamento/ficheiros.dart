@@ -2,7 +2,8 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'armazem.dart';
-import 'ficheiros_io.dart' if (dart.library.js_interop) 'ficheiros_web.dart'
+import 'ficheiros_io.dart'
+    if (dart.library.js_interop) 'ficheiros_web.dart'
     as plataforma;
 
 /// Onde ficam as fotografias à espera de rede (a fila guarda só a referência).

@@ -11,39 +11,78 @@ class Marca extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = grande ? 34.0 : 22.0;
-    return Row(mainAxisSize: MainAxisSize.min, children: [
-      Container(
-        width: t * 1.5,
-        height: t * 1.5,
-        decoration: BoxDecoration(
-          color: Cores.terracota,
-          borderRadius: BorderRadius.circular(t * 0.45),
-        ),
-        alignment: Alignment.center,
-        child: Text('T?',
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: t * 1.5,
+          height: t * 1.5,
+          decoration: BoxDecoration(
+            color: Cores.terracota,
+            borderRadius: BorderRadius.circular(t * 0.45),
+          ),
+          alignment: Alignment.center,
+          child: Text(
+            'T?',
             style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w700,
-                fontSize: t * 0.75)),
-      ),
-      SizedBox(width: t * 0.45),
-      Flexible(
-        child: Text.rich(
-          TextSpan(children: [
-            TextSpan(
-                text: 'Tou, Câmara?',
-                style: TextStyle(
-                    fontSize: t, fontWeight: FontWeight.w700, color: Cores.tinta)),
-            if (sufixo != null)
-              TextSpan(
-                  text: ' · $sufixo',
-                  style: TextStyle(
-                      fontSize: t,
-                      fontWeight: FontWeight.w600,
-                      color: Cores.terracotaEscuro)),
-          ]),
+              color: Colors.white,
+              fontWeight: FontWeight.w700,
+              fontSize: t * 0.75,
+            ),
+          ),
         ),
-      ),
-    ]);
+        SizedBox(width: t * 0.45),
+        Flexible(
+          child: grande && sufixo != null
+              // Grande (ecrã de entrar): o nome da app por baixo.
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Tou, Câmara?',
+                      style: TextStyle(
+                        fontSize: t,
+                        fontWeight: FontWeight.w700,
+                        color: Cores.tinta,
+                        height: 1.1,
+                      ),
+                    ),
+                    Text(
+                      sufixo!,
+                      style: TextStyle(
+                        fontSize: t * 0.62,
+                        fontWeight: FontWeight.w700,
+                        color: Cores.terracotaEscuro,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ],
+                )
+              : Text.rich(
+                  TextSpan(
+                    children: [
+                      TextSpan(
+                        text: 'Tou, Câmara?',
+                        style: TextStyle(
+                          fontSize: t,
+                          fontWeight: FontWeight.w700,
+                          color: Cores.tinta,
+                        ),
+                      ),
+                      if (sufixo != null)
+                        TextSpan(
+                          text: ' · $sufixo',
+                          style: TextStyle(
+                            fontSize: t,
+                            fontWeight: FontWeight.w600,
+                            color: Cores.terracotaEscuro,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+        ),
+      ],
+    );
   }
 }

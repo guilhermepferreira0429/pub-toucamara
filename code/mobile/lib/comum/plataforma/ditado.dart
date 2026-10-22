@@ -25,7 +25,9 @@ class DitadoSistema implements Ditado {
       _pronto = await _stt.initialize(onError: (_) {});
       if (_pronto) {
         final locais = await _stt.locales();
-        final pt = locais.where((l) => l.localeId.toLowerCase().startsWith('pt'));
+        final pt = locais.where(
+          (l) => l.localeId.toLowerCase().startsWith('pt'),
+        );
         _local = pt
             .firstWhere(
               (l) => l.localeId.toLowerCase().replaceAll('-', '_') == 'pt_pt',

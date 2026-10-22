@@ -19,7 +19,8 @@ double distanciaMetros(Ponto a, Ponto b) {
   double rad(double g) => g * math.pi / 180;
   final dLat = rad(b.lat - a.lat);
   final dLng = rad(b.lng - a.lng);
-  final h = math.pow(math.sin(dLat / 2), 2) +
+  final h =
+      math.pow(math.sin(dLat / 2), 2) +
       math.cos(rad(a.lat)) *
           math.cos(rad(b.lat)) *
           math.pow(math.sin(dLng / 2), 2);

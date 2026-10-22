@@ -66,7 +66,8 @@ class _AppEquipaState extends State<AppEquipa> with WidgetsBindingObserver {
           listenable: s.sessao,
           builder: (context, _) => switch (s.sessao.estado) {
             EstadoSessao.aCarregar => const Scaffold(
-                body: Center(child: CircularProgressIndicator())),
+              body: Center(child: CircularProgressIndicator()),
+            ),
             EstadoSessao.fora => const EcraEntrar(),
             EstadoSessao.dentro => const EcraHoje(),
           },

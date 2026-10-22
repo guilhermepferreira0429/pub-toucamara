@@ -49,8 +49,9 @@ class _EcraDefinicoesState extends State<EcraDefinicoes> {
     }
     setState(() => _aTestar = true);
     final teste = ClienteApi(
-        servidor: () => ConfigApp.normalizarUrl(_servidor.text),
-        limite: const Duration(seconds: 8));
+      servidor: () => ConfigApp.normalizarUrl(_servidor.text),
+      limite: const Duration(seconds: 8),
+    );
     try {
       await teste.get('/saude');
       setState(() {
@@ -97,18 +98,20 @@ class _EcraDefinicoesState extends State<EcraDefinicoes> {
         padding: const EdgeInsets.all(20),
         children: [
           Text(
-              'Endereço da API central, sem o /v1. Por omissão: ${ConfigApp.apiUrlPorOmissao}',
-              style: Theme.of(context)
-                  .textTheme
-                  .bodyLarge
-                  ?.copyWith(color: Cores.tinta2)),
+            'Endereço da API central, sem o /v1. Por omissão: ${ConfigApp.apiUrlPorOmissao}',
+            style: Theme.of(
+              context,
+            ).textTheme.bodyLarge?.copyWith(color: Cores.tinta2),
+          ),
           const SizedBox(height: 16),
           TextField(
             controller: _servidor,
             keyboardType: TextInputType.url,
             autocorrect: false,
             decoration: const InputDecoration(
-                labelText: 'Servidor da API', prefixIcon: Icon(Icons.dns)),
+              labelText: 'Servidor da API',
+              prefixIcon: Icon(Icons.dns),
+            ),
           ),
           const SizedBox(height: 16),
           TextField(
@@ -128,9 +131,11 @@ class _EcraDefinicoesState extends State<EcraDefinicoes> {
           ),
           if (_resultado != null) ...[
             const SizedBox(height: 12),
-            Pilula(_resultado!,
-                tom: _ok ? TomPilula.verde : TomPilula.ambar,
-                icone: _ok ? Icons.check_circle : Icons.warning_amber_rounded),
+            Pilula(
+              _resultado!,
+              tom: _ok ? TomPilula.verde : TomPilula.ambar,
+              icone: _ok ? Icons.check_circle : Icons.warning_amber_rounded,
+            ),
           ],
           const SizedBox(height: 20),
           FilledButton.icon(
@@ -144,7 +149,9 @@ class _EcraDefinicoesState extends State<EcraDefinicoes> {
               await d.repor();
               _servidor.text = d.servidor;
               _municipio.text = d.municipio;
-              if (context.mounted) avisar(context, 'Reposto o servidor por omissão.');
+              if (context.mounted) {
+                avisar(context, 'Reposto o servidor por omissão.');
+              }
             },
             child: const Text('Repor o servidor por omissão'),
           ),

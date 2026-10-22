@@ -47,93 +47,108 @@ class _MapaTarefasState extends State<MapaTarefas> {
           for (final t in tarefas) LatLng(t.lat!, t.lng!),
           if (eu != null) LatLng(eu.lat, eu.lng),
         ];
-        final semLocal = (s.repositorio.dia?.tarefas.length ?? 0) - tarefas.length;
-        return Stack(children: [
-          FlutterMap(
-            key: ValueKey(pontos.length),
-            options: MapOptions(
-              initialCenter:
-                  pontos.length == 1 ? pontos.first : _centroPorOmissao,
-              initialZoom: 15,
-              initialCameraFit: pontos.length > 1
-                  ? CameraFit.bounds(
-                      bounds: LatLngBounds.fromPoints(pontos),
-                      padding: const EdgeInsets.fromLTRB(48, 48, 48, 220),
-                      maxZoom: 17,
-                    )
-                  : null,
-              backgroundColor: Cores.creme2,
-              onTap: (_, _) => setState(() => _escolhida = null),
-            ),
-            children: [
-              TileLayer(
-                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                userAgentPackageName: 'pt.toucamara.equipa',
-                maxZoom: 19,
-                errorTileCallback: (_, _, _) => _falhouMosaico(),
+        final semLocal =
+            (s.repositorio.dia?.tarefas.length ?? 0) - tarefas.length;
+        return Stack(
+          children: [
+            FlutterMap(
+              key: ValueKey(pontos.length),
+              options: MapOptions(
+                initialCenter: pontos.length == 1
+                    ? pontos.first
+                    : _centroPorOmissao,
+                initialZoom: 15,
+                initialCameraFit: pontos.length > 1
+                    ? CameraFit.bounds(
+                        bounds: LatLngBounds.fromPoints(pontos),
+                        padding: const EdgeInsets.fromLTRB(48, 48, 48, 220),
+                        maxZoom: 17,
+                      )
+                    : null,
+                backgroundColor: Cores.creme2,
+                onTap: (_, _) => setState(() => _escolhida = null),
               ),
-              MarkerLayer(markers: [
-                if (eu != null)
-                  Marker(
-                    point: LatLng(eu.lat, eu.lng),
-                    width: 28,
-                    height: 28,
-                    child: Semantics(
-                      label: 'Estou aqui',
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF1E6FD9),
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white, width: 4),
-                          boxShadow: const [
-                            BoxShadow(blurRadius: 6, color: Colors.black26)
-                          ],
+              children: [
+                TileLayer(
+                  urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                  userAgentPackageName: 'pt.toucamara.equipa',
+                  maxZoom: 19,
+                  errorTileCallback: (_, _, _) => _falhouMosaico(),
+                ),
+                MarkerLayer(
+                  markers: [
+                    if (eu != null)
+                      Marker(
+                        point: LatLng(eu.lat, eu.lng),
+                        width: 28,
+                        height: 28,
+                        child: Semantics(
+                          label: 'Estou aqui',
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF1E6FD9),
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.white, width: 4),
+                              boxShadow: const [
+                                BoxShadow(blurRadius: 6, color: Colors.black26),
+                              ],
+                            ),
+                          ),
                         ),
                       ),
-                    ),
-                  ),
-                for (final (i, t) in tarefas.indexed)
-                  Marker(
-                    point: LatLng(t.lat!, t.lng!),
-                    width: 52,
-                    height: 52,
-                    child: _Alfinete(
-                      numero: i + 1,
-                      tarefa: t,
-                      escolhida: _escolhida?.id == t.id,
-                      aoTocar: () => setState(() => _escolhida = t),
-                    ),
-                  ),
-              ]),
-              const RichAttributionWidget(
-                alignment: AttributionAlignment.bottomLeft,
-                attributions: [
-                  TextSourceAttribution('Contribuidores do OpenStreetMap'),
-                ],
-              ),
-            ],
-          ),
-          Positioned(
-            left: 12,
-            right: 12,
-            top: 12,
-            child: Wrap(spacing: 8, runSpacing: 6, children: [
-              if (_semFundo)
-                const Pilula('Mapa de fundo indisponível (sem rede?)',
-                    tom: TomPilula.ambar, icone: Icons.layers_clear_rounded),
-              if (semLocal > 0)
-                Pilula('$semLocal sem localização (ver na lista)',
-                    icone: Icons.location_off_outlined),
-            ]),
-          ),
-          if (_escolhida != null)
+                    for (final (i, t) in tarefas.indexed)
+                      Marker(
+                        point: LatLng(t.lat!, t.lng!),
+                        width: 52,
+                        height: 52,
+                        child: _Alfinete(
+                          numero: i + 1,
+                          tarefa: t,
+                          escolhida: _escolhida?.id == t.id,
+                          aoTocar: () => setState(() => _escolhida = t),
+                        ),
+                      ),
+                  ],
+                ),
+                const RichAttributionWidget(
+                  alignment: AttributionAlignment.bottomLeft,
+                  attributions: [
+                    TextSourceAttribution('Contribuidores do OpenStreetMap'),
+                  ],
+                ),
+              ],
+            ),
             Positioned(
               left: 12,
               right: 12,
-              bottom: 12,
-              child: CartaoTarefa(tarefa: _escolhida!, compacto: true),
+              top: 12,
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 6,
+                children: [
+                  if (_semFundo)
+                    const Pilula(
+                      'Mapa de fundo indisponível (sem rede?)',
+                      tom: TomPilula.ambar,
+                      icone: Icons.layers_clear_rounded,
+                    ),
+                  if (semLocal > 0)
+                    Pilula(
+                      '$semLocal sem localização (ver na lista)',
+                      icone: Icons.location_off_outlined,
+                    ),
+                ],
+              ),
             ),
-        ]);
+            if (_escolhida != null)
+              Positioned(
+                left: 12,
+                right: 12,
+                bottom: 12,
+                child: CartaoTarefa(tarefa: _escolhida!, compacto: true),
+              ),
+          ],
+        );
       },
     );
   }
@@ -157,8 +172,8 @@ class _Alfinete extends StatelessWidget {
     final cor = tarefa.feita
         ? Cores.verde
         : visita
-            ? Cores.tinta
-            : Cores.terracota;
+        ? Cores.tinta
+        : Cores.terracota;
     return Semantics(
       button: true,
       label: '$numero: ${tarefa.titulo}, ${tarefa.morada}',
@@ -169,18 +184,22 @@ class _Alfinete extends StatelessWidget {
             color: cor,
             shape: BoxShape.circle,
             border: Border.all(
-                color: escolhida ? Cores.ambarSuave : Colors.white,
-                width: escolhida ? 5 : 3),
+              color: escolhida ? Cores.ambarSuave : Colors.white,
+              width: escolhida ? 5 : 3,
+            ),
             boxShadow: const [BoxShadow(blurRadius: 6, color: Colors.black38)],
           ),
           alignment: Alignment.center,
           child: tarefa.feita
               ? const Icon(Icons.check_rounded, color: Colors.white, size: 26)
-              : Text('$numero',
+              : Text(
+                  '$numero',
                   style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 20)),
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 20,
+                  ),
+                ),
         ),
       ),
     );

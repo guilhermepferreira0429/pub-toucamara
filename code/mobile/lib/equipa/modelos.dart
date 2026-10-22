@@ -54,46 +54,46 @@ class Tarefa {
   Ponto? get ponto => temLocal ? Ponto(lat!, lng!) : null;
 
   factory Tarefa.deJson(Map<String, dynamic> j) => Tarefa(
-        tipo: j['tipo'] == 'visita' ? TipoTarefa.visita : TipoTarefa.ocorrencia,
-        id: j['id'] as String,
-        numero: _txt(j['numero']) ?? '',
-        titulo: _txt(j['titulo']) ?? '',
-        resumo: _txt(j['resumo']) ?? '',
-        morada: _txt(j['morada']) ?? 'Sem morada',
-        lat: _num(j['lat']),
-        lng: _num(j['lng']),
-        estado: _txt(j['estado']) ?? '',
-        estadoNome: _txt(j['estado_nome']) ?? _txt(j['estado']) ?? '',
-        feita: j['feita'] == true,
-        atrasada: j['atrasada'] == true,
-        dia: _txt(j['dia']),
-        janela: _txt(j['janela']),
-        referencia: _txt(j['referencia']),
-        reportes: (j['reportes'] as num?)?.toInt() ?? 1,
-        fotos: (j['fotos'] as num?)?.toInt() ?? 0,
-        distanciaM: _num(j['distancia_m']),
-      );
+    tipo: j['tipo'] == 'visita' ? TipoTarefa.visita : TipoTarefa.ocorrencia,
+    id: j['id'] as String,
+    numero: _txt(j['numero']) ?? '',
+    titulo: _txt(j['titulo']) ?? '',
+    resumo: _txt(j['resumo']) ?? '',
+    morada: _txt(j['morada']) ?? 'Sem morada',
+    lat: _num(j['lat']),
+    lng: _num(j['lng']),
+    estado: _txt(j['estado']) ?? '',
+    estadoNome: _txt(j['estado_nome']) ?? _txt(j['estado']) ?? '',
+    feita: j['feita'] == true,
+    atrasada: j['atrasada'] == true,
+    dia: _txt(j['dia']),
+    janela: _txt(j['janela']),
+    referencia: _txt(j['referencia']),
+    reportes: (j['reportes'] as num?)?.toInt() ?? 1,
+    fotos: (j['fotos'] as num?)?.toInt() ?? 0,
+    distanciaM: _num(j['distancia_m']),
+  );
 
   Tarefa comDistancia(double? d) => Tarefa(
-        tipo: tipo,
-        id: id,
-        numero: numero,
-        titulo: titulo,
-        resumo: resumo,
-        morada: morada,
-        lat: lat,
-        lng: lng,
-        estado: estado,
-        estadoNome: estadoNome,
-        feita: feita,
-        atrasada: atrasada,
-        dia: dia,
-        janela: janela,
-        referencia: referencia,
-        reportes: reportes,
-        fotos: fotos,
-        distanciaM: d,
-      );
+    tipo: tipo,
+    id: id,
+    numero: numero,
+    titulo: titulo,
+    resumo: resumo,
+    morada: morada,
+    lat: lat,
+    lng: lng,
+    estado: estado,
+    estadoNome: estadoNome,
+    feita: feita,
+    atrasada: atrasada,
+    dia: dia,
+    janela: janela,
+    referencia: referencia,
+    reportes: reportes,
+    fotos: fotos,
+    distanciaM: d,
+  );
 }
 
 /// Por fazer primeiro, da mais perto para a mais longe (sem coordenadas no
@@ -104,7 +104,10 @@ List<Tarefa> ordenarPorProximidade(List<Tarefa> tarefas, Ponto? origem) {
   final l = [
     for (final t in tarefas)
       t.comDistancia(
-          origem != null && t.ponto != null ? distanciaMetros(origem, t.ponto!) : null),
+        origem != null && t.ponto != null
+            ? distanciaMetros(origem, t.ponto!)
+            : null,
+      ),
   ];
   l.sort((a, b) {
     if (a.feita != b.feita) return a.feita ? 1 : -1;
@@ -136,8 +139,11 @@ class DiaDeTrabalho {
 
   int get porFazer => tarefas.where((t) => !t.feita).length;
 
-  factory DiaDeTrabalho.deJson(Map<String, dynamic> j,
-      {required DateTime obtidoEm, bool daCache = false}) {
+  factory DiaDeTrabalho.deJson(
+    Map<String, dynamic> j, {
+    required DateTime obtidoEm,
+    bool daCache = false,
+  }) {
     final mostra = (j['mostra'] as Map?) ?? const {};
     return DiaDeTrabalho(
       dia: _txt(j['dia']) ?? '',
@@ -168,23 +174,26 @@ class ItemChecklist {
   String? nota;
 
   factory ItemChecklist.deJson(Map<String, dynamic> j) => ItemChecklist(
-        chave: j['chave'] as String,
-        rotulo: _txt(j['rotulo']) ?? '',
-        conformeSe: _txt(j['conforme_se']),
-        artigo: _txt(j['artigo']),
-        resposta: _txt(j['resposta']),
-        nota: _txt(j['nota']),
-      );
+    chave: j['chave'] as String,
+    rotulo: _txt(j['rotulo']) ?? '',
+    conformeSe: _txt(j['conforme_se']),
+    artigo: _txt(j['artigo']),
+    resposta: _txt(j['resposta']),
+    nota: _txt(j['nota']),
+  );
 
   Map<String, dynamic> paraResposta() => {
-        'chave': chave,
-        'resposta': resposta,
-        if (nota != null && nota!.trim().isNotEmpty) 'nota': nota!.trim(),
-      };
+    'chave': chave,
+    'resposta': resposta,
+    if (nota != null && nota!.trim().isNotEmpty) 'nota': nota!.trim(),
+  };
 
   /// Respondido ao contrário do que está bem (vai dar infração).
   bool get naoConforme =>
-      conformeSe != null && resposta != null && resposta != 'na' && resposta != conformeSe;
+      conformeSe != null &&
+      resposta != null &&
+      resposta != 'na' &&
+      resposta != conformeSe;
 }
 
 /// Uma fotografia vinda da API (a URL assinada pode faltar sem S3).
@@ -196,11 +205,11 @@ class FotoApi {
   final String? origem;
 
   factory FotoApi.deJson(Map<String, dynamic> j) => FotoApi(
-        id: j['id'] as String,
-        url: _txt(j['url']),
-        legenda: _txt(j['legenda']),
-        origem: _txt(j['origem']),
-      );
+    id: j['id'] as String,
+    url: _txt(j['url']),
+    legenda: _txt(j['legenda']),
+    origem: _txt(j['origem']),
+  );
 }
 
 /// `GET /v1/painel/fiscalizacao/visitas/:id`.
@@ -270,7 +279,8 @@ class OcorrenciaDetalhe {
   String get estadoNome => nomeEstadoOcorrencia(estado);
 }
 
-String nomeEstadoOcorrencia(String e) => const {
+String nomeEstadoOcorrencia(String e) =>
+    const {
       'nova': 'Nova',
       'com_equipa': 'Com a equipa',
       'resolvida': 'Resolvida',

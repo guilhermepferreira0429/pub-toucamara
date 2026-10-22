@@ -57,7 +57,10 @@ class Servicos {
   }) async {
     final definicoes = Definicoes(prefs);
     await definicoes.carregar();
-    final api = ClienteApi(servidor: () => definicoes.servidor, cliente: cliente);
+    final api = ClienteApi(
+      servidor: () => definicoes.servidor,
+      cliente: cliente,
+    );
     api.municipio = definicoes.municipio;
     definicoes.addListener(() => api.municipio = definicoes.municipio);
     final sessao = ControladorSessao(api: api, armazemSeguro: seguro);
@@ -96,8 +99,11 @@ class Servicos {
 
 /// Dá acesso aos [Servicos] em qualquer ecrã: `Servicos.de(context)`.
 class FornecedorServicos extends InheritedWidget {
-  const FornecedorServicos(
-      {super.key, required this.servicos, required super.child});
+  const FornecedorServicos({
+    super.key,
+    required this.servicos,
+    required super.child,
+  });
   final Servicos servicos;
 
   static Servicos de(BuildContext context) => context

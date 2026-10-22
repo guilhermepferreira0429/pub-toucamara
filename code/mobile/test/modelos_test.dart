@@ -18,25 +18,45 @@ void main() {
       expect(d, inInclusiveRange(1100, 1120));
     });
 
-    test('por fazer da mais perto para a mais longe; sem local no fim; feitas depois', () {
-      Tarefa t(String id, double? lat, {bool feita = false}) => Tarefa(
-            tipo: TipoTarefa.ocorrencia, id: id, numero: id, titulo: '', resumo: '',
-            morada: '', lat: lat, lng: lat == null ? null : -8.2918,
-            estado: '', estadoNome: '', feita: feita,
-          );
-      final r = ordenarPorProximidade(
-        [t('longe', 41.5), t('feita', 41.4426, feita: true), t('sem', null), t('perto', 41.443)],
-        camaraGuimaraes,
-      );
-      expect(r.map((x) => x.id), ['perto', 'longe', 'sem', 'feita']);
-      expect(r.first.distanciaM, greaterThan(0));
-      expect(r[2].distanciaM, isNull);
-    });
+    test(
+      'por fazer da mais perto para a mais longe; sem local no fim; feitas depois',
+      () {
+        Tarefa t(String id, double? lat, {bool feita = false}) => Tarefa(
+          tipo: TipoTarefa.ocorrencia,
+          id: id,
+          numero: id,
+          titulo: '',
+          resumo: '',
+          morada: '',
+          lat: lat,
+          lng: lat == null ? null : -8.2918,
+          estado: '',
+          estadoNome: '',
+          feita: feita,
+        );
+        final r = ordenarPorProximidade([
+          t('longe', 41.5),
+          t('feita', 41.4426, feita: true),
+          t('sem', null),
+          t('perto', 41.443),
+        ], camaraGuimaraes);
+        expect(r.map((x) => x.id), ['perto', 'longe', 'sem', 'feita']);
+        expect(r.first.distanciaM, greaterThan(0));
+        expect(r[2].distanciaM, isNull);
+      },
+    );
 
     test('sem localização: pelo número', () {
-      final dia = DiaDeTrabalho.deJson(respostaHoje(), obtidoEm: DateTime(2026));
+      final dia = DiaDeTrabalho.deJson(
+        respostaHoje(),
+        obtidoEm: DateTime(2026),
+      );
       final r = ordenarPorProximidade(dia.tarefas, null);
-      expect(r.map((t) => t.numero), ['FIS-2026-0001', 'OC-2026-0001', 'OC-2026-0003']);
+      expect(r.map((t) => t.numero), [
+        'FIS-2026-0001',
+        'OC-2026-0001',
+        'OC-2026-0003',
+      ]);
       expect(r.every((t) => t.distanciaM == null), isTrue);
     });
 
@@ -70,7 +90,11 @@ void main() {
       i.resposta = 'nao';
       expect(i.naoConforme, isTrue);
       i.nota = '  sem aviso ';
-      expect(i.paraResposta(), {'chave': 'licenca_afixada', 'resposta': 'nao', 'nota': 'sem aviso'});
+      expect(i.paraResposta(), {
+        'chave': 'licenca_afixada',
+        'resposta': 'nao',
+        'nota': 'sem aviso',
+      });
       i.resposta = 'na';
       expect(i.naoConforme, isFalse);
       expect(v.relatorioFechado, isFalse);
@@ -78,7 +102,12 @@ void main() {
 
     test('ocorrência: fotos do munícipe e do depois, duplicados', () {
       final j = respostaOcorrencia();
-      (j['fotos'] as List).add({'id': 'f-2', 'url': 'https://x', 'origem': 'equipa', 'legenda': 'Depois'});
+      (j['fotos'] as List).add({
+        'id': 'f-2',
+        'url': 'https://x',
+        'origem': 'equipa',
+        'legenda': 'Depois',
+      });
       final o = OcorrenciaDetalhe(j);
       expect(o.aberta, isTrue);
       expect(o.fotosMunicipe.map((f) => f.id), ['f-1']);
@@ -103,22 +132,38 @@ void main() {
   group('fotografias e navegação', () {
     test('tipo da fotografia pelos bytes', () {
       expect(mimeDe(null, 'x', png1px), 'image/png');
-      expect(mimeDe(null, 'x', Uint8List.fromList([0xFF, 0xD8, 0xFF, 0xE0])), 'image/jpeg');
-      expect(mimeDe('image/heic', 'a.heic', Uint8List.fromList([0, 0, 0, 0])), 'image/heic');
+      expect(
+        mimeDe(null, 'x', Uint8List.fromList([0xFF, 0xD8, 0xFF, 0xE0])),
+        'image/jpeg',
+      );
+      expect(
+        mimeDe('image/heic', 'a.heic', Uint8List.fromList([0, 0, 0, 0])),
+        'image/heic',
+      );
     });
 
     test('corpo da fotografia com GPS e hora (UTC)', () {
       final f = FotoTirada(
-          bytes: png1px, mime: 'image/png', tiradaEm: DateTime.utc(2026, 10, 22, 9),
-          local: const Ponto(41.44, -8.29));
+        bytes: png1px,
+        mime: 'image/png',
+        tiradaEm: DateTime.utc(2026, 10, 22, 9),
+        local: const Ponto(41.44, -8.29),
+      );
       expect(f.corpo(legenda: ' Depois '), {
-        'mime': 'image/png', 'legenda': 'Depois', 'lat': 41.44, 'lng': -8.29,
+        'mime': 'image/png',
+        'legenda': 'Depois',
+        'lat': 41.44,
+        'lng': -8.29,
         'tirada_em': '2026-10-22T09:00:00.000Z',
       });
     });
 
     test('navegar: geo: com o ponto e o Google Maps como alternativa', () {
-      final l = enderecosNavegacao(lat: 41.44, lng: -8.29, morada: 'Largo do Toural');
+      final l = enderecosNavegacao(
+        lat: 41.44,
+        lng: -8.29,
+        morada: 'Largo do Toural',
+      );
       expect(l.first.scheme, 'geo');
       expect(l.first.toString(), startsWith('geo:41.44,-8.29?q=41.44,-8.29('));
       expect(l.last.host, 'www.google.com');
@@ -128,9 +173,15 @@ void main() {
     });
 
     test('datas em português', () {
-      expect(diaPorExtenso(DateTime(2026, 10, 22)), 'quinta-feira, 22 de outubro');
+      expect(
+        diaPorExtenso(DateTime(2026, 10, 22)),
+        'quinta-feira, 22 de outubro',
+      );
       expect(diaCurto('2026-10-05'), '05/10');
-      expect(quando(DateTime(2026, 10, 22, 9, 5), agora: DateTime(2026, 10, 22, 18)), 'hoje às 09:05');
+      expect(
+        quando(DateTime(2026, 10, 22, 9, 5), agora: DateTime(2026, 10, 22, 18)),
+        'hoje às 09:05',
+      );
     });
   });
 }

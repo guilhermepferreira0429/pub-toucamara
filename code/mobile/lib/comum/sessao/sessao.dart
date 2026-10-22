@@ -52,22 +52,23 @@ class Sessao {
   }
 
   Map<String, dynamic> paraJson() => {
-        'token': token,
-        'expira_em': expiraEm.toIso8601String(),
-        'sessao_id': sessaoId,
-        'utilizador': {
-          'id': utilizadorId,
-          'nome': nome,
-          'email': email,
-          'perfil': perfil,
-          'servicoId': servicoId,
-        },
-        'municipio': municipioSlug == null
-            ? null
-            : {'slug': municipioSlug, 'nome': municipioNome},
-      };
+    'token': token,
+    'expira_em': expiraEm.toIso8601String(),
+    'sessao_id': sessaoId,
+    'utilizador': {
+      'id': utilizadorId,
+      'nome': nome,
+      'email': email,
+      'perfil': perfil,
+      'servicoId': servicoId,
+    },
+    'municipio': municipioSlug == null
+        ? null
+        : {'slug': municipioSlug, 'nome': municipioNome},
+  };
 
-  String get perfilLegivel => const {
+  String get perfilLegivel =>
+      const {
         'tecnico': 'Técnico / fiscal',
         'chefe_divisao': 'Chefe de divisão',
         'admin': 'Administração',
@@ -81,7 +82,7 @@ enum EstadoSessao { aCarregar, fora, dentro }
 /// Entrar (email → código de 6 dígitos), manter a sessão e sair.
 class ControladorSessao extends ChangeNotifier {
   ControladorSessao({required this.api, required Armazem armazemSeguro})
-      : _armazem = armazemSeguro {
+    : _armazem = armazemSeguro {
     api.aoSessaoInvalida = () {
       // A API recusou o token (revogado/expirado): volta a pedir o código.
       _terminarLocal(motivo: 'A sessão terminou. Entre outra vez.');
@@ -127,18 +128,28 @@ class ControladorSessao extends ChangeNotifier {
 
   /// Pede o código (a API responde igual exista ou não a conta).
   Future<int> pedirCodigo(String email) async {
-    final r = await api.post('/painel/auth/app/codigo',
-        corpo: {'email': email.trim().toLowerCase()});
+    final r = await api.post(
+      '/painel/auth/app/codigo',
+      corpo: {'email': email.trim().toLowerCase()},
+    );
     return ((r as Map?)?['validade_minutos'] as num?)?.toInt() ?? 10;
   }
 
-  Future<void> entrar(String email, String codigo,
-      {String? dispositivo}) async {
-    final r = await api.post('/painel/auth/app/entrar', corpo: {
-      'email': email.trim().toLowerCase(),
-      'codigo': codigo.trim(),
-      'dispositivo': dispositivo ?? dispositivoPorOmissao(),
-    }) as Map;
+  Future<void> entrar(
+    String email,
+    String codigo, {
+    String? dispositivo,
+  }) async {
+    final r =
+        await api.post(
+              '/painel/auth/app/entrar',
+              corpo: {
+                'email': email.trim().toLowerCase(),
+                'codigo': codigo.trim(),
+                'dispositivo': dispositivo ?? dispositivoPorOmissao(),
+              },
+            )
+            as Map;
     final s = Sessao.daResposta(r.cast<String, dynamic>());
     await _armazem.escrever(_chave, jsonEncode(s.paraJson()));
     _aplicar(s);

@@ -19,13 +19,12 @@ class FotoTirada {
 
   /// O corpo do pedido à API (`esquemaFotoCampo`).
   Map<String, dynamic> corpo({String? legenda}) => {
-        'mime': mime,
-        if (legenda != null && legenda.trim().isNotEmpty)
-          'legenda': legenda.trim(),
-        if (local != null) 'lat': local!.lat,
-        if (local != null) 'lng': local!.lng,
-        'tirada_em': tiradaEm.toUtc().toIso8601String(),
-      };
+    'mime': mime,
+    if (legenda != null && legenda.trim().isNotEmpty) 'legenda': legenda.trim(),
+    if (local != null) 'lat': local!.lat,
+    if (local != null) 'lng': local!.lng,
+    'tirada_em': tiradaEm.toUtc().toIso8601String(),
+  };
 }
 
 abstract class Camara {

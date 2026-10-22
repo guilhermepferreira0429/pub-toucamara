@@ -58,13 +58,25 @@ ThemeData temaToucamara() {
   final texto = base.textTheme
       .copyWith(
         headlineMedium: const TextStyle(
-            fontSize: 28, fontWeight: FontWeight.w700, height: 1.2),
+          fontSize: 28,
+          fontWeight: FontWeight.w700,
+          height: 1.2,
+        ),
         headlineSmall: const TextStyle(
-            fontSize: 24, fontWeight: FontWeight.w700, height: 1.25),
+          fontSize: 24,
+          fontWeight: FontWeight.w700,
+          height: 1.25,
+        ),
         titleLarge: const TextStyle(
-            fontSize: 22, fontWeight: FontWeight.w700, height: 1.25),
+          fontSize: 22,
+          fontWeight: FontWeight.w700,
+          height: 1.25,
+        ),
         titleMedium: const TextStyle(
-            fontSize: 19, fontWeight: FontWeight.w600, height: 1.3),
+          fontSize: 19,
+          fontWeight: FontWeight.w600,
+          height: 1.3,
+        ),
         bodyLarge: const TextStyle(fontSize: 18, height: 1.4),
         bodyMedium: const TextStyle(fontSize: 17, height: 1.4),
         bodySmall: const TextStyle(fontSize: 15, height: 1.35),
@@ -73,8 +85,9 @@ ThemeData temaToucamara() {
       )
       .apply(bodyColor: Cores.tinta, displayColor: Cores.tinta);
 
-  final formaBotao =
-      RoundedRectangleBorder(borderRadius: BorderRadius.circular(16));
+  final formaBotao = RoundedRectangleBorder(
+    borderRadius: BorderRadius.circular(16),
+  );
   return base.copyWith(
     textTheme: texto,
     appBarTheme: const AppBarTheme(
@@ -84,10 +97,11 @@ ThemeData temaToucamara() {
       scrolledUnderElevation: 1,
       centerTitle: false,
       titleTextStyle: TextStyle(
-          fontFamily: 'Inter',
-          fontSize: 21,
-          fontWeight: FontWeight.w700,
-          color: Cores.tinta),
+        fontFamily: 'Inter',
+        fontSize: 21,
+        fontWeight: FontWeight.w700,
+        color: Cores.tinta,
+      ),
     ),
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
@@ -116,7 +130,8 @@ ThemeData temaToucamara() {
     ),
     iconButtonTheme: IconButtonThemeData(
       style: IconButton.styleFrom(
-          minimumSize: const Size(alvoMinimo, alvoMinimo)),
+        minimumSize: const Size(alvoMinimo, alvoMinimo),
+      ),
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,

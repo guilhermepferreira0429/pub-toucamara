@@ -11,7 +11,7 @@ abstract class Armazem {
 /// SharedPreferences (Android: ficheiro privado da app; web: localStorage).
 class ArmazemPreferencias implements Armazem {
   ArmazemPreferencias([SharedPreferencesAsync? prefs])
-      : _prefs = prefs ?? SharedPreferencesAsync();
+    : _prefs = prefs ?? SharedPreferencesAsync();
   final SharedPreferencesAsync _prefs;
 
   @override
@@ -28,7 +28,7 @@ class ArmazemPreferencias implements Armazem {
 /// Para o token da sessão: Android Keystore (cifrado); web: WebCrypto.
 class ArmazemSeguro implements Armazem {
   ArmazemSeguro([FlutterSecureStorage? s])
-      : _s = s ?? const FlutterSecureStorage();
+    : _s = s ?? const FlutterSecureStorage();
   final FlutterSecureStorage _s;
 
   @override

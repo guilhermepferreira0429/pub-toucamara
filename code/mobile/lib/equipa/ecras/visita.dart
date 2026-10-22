@@ -71,15 +71,31 @@ class _EcraVisitaState extends State<EcraVisita> {
         _v = v;
         _daCache = daCache;
         _erro = null;
-        _checklist = v.checklist;
+        // As respostas dadas aqui e ainda não guardadas ganham às da API
+        // (a lista recarrega quando a fila envia uma fotografia).
+        final locais = {
+          for (final i in _checklist)
+            if (i.resposta != null) i.chave: i,
+        };
+        _checklist = [
+          for (final i in v.checklist)
+            if (locais[i.chave] case final l?)
+              (i
+                ..resposta = l.resposta
+                ..nota = l.nota)
+            else
+              i,
+        ];
         if (!manterTexto && _relatorio.text.isEmpty) {
           _relatorio.text = v.transcricao ?? '';
         }
       });
     } on SemRede {
       if (mounted) {
-        setState(() => _erro =
-            'Sem rede e esta visita não está guardada no telemóvel. Abra-a quando tiver rede.');
+        setState(
+          () => _erro =
+              'Sem rede e esta visita não está guardada no telemóvel. Abra-a quando tiver rede.',
+        );
       }
     } on ErroApi catch (e) {
       if (mounted) setState(() => _erro = e.mensagem);
@@ -101,8 +117,10 @@ class _EcraVisitaState extends State<EcraVisita> {
     }
     if (!await d.preparar()) {
       if (mounted) {
-        avisar(context,
-            'O ditado por voz não está disponível neste aparelho. Use o microfone do teclado ou escreva.');
+        avisar(
+          context,
+          'O ditado por voz não está disponível neste aparelho. Use o microfone do teclado ou escreva.',
+        );
       }
       return;
     }
@@ -111,8 +129,9 @@ class _EcraVisitaState extends State<EcraVisita> {
     await d.comecar((texto, fim) {
       if (!mounted) return;
       setState(() {
-        _relatorio.text =
-            _antesDoDitado.isEmpty ? texto : '$_antesDoDitado $texto';
+        _relatorio.text = _antesDoDitado.isEmpty
+            ? texto
+            : '$_antesDoDitado $texto';
         if (fim) _aOuvir = false;
       });
     });
@@ -126,10 +145,11 @@ class _EcraVisitaState extends State<EcraVisita> {
     await s.repositorio.fotoVisita(v, f);
     if (mounted) {
       avisar(
-          context,
-          f.local == null
-              ? 'Fotografia guardada (sem GPS).'
-              : 'Fotografia guardada com GPS e hora.');
+        context,
+        f.local == null
+            ? 'Fotografia guardada (sem GPS).'
+            : 'Fotografia guardada com GPS e hora.',
+      );
     }
   }
 
@@ -141,7 +161,10 @@ class _EcraVisitaState extends State<EcraVisita> {
     final s = FornecedorServicos.de(context);
     await s.repositorio.relatorioVisita(_v!, _texto, _checklist);
     if (avisarFim && mounted) {
-      avisar(context, 'Relatório guardado. Vai para a câmara assim que houver rede.');
+      avisar(
+        context,
+        'Relatório guardado. Vai para a câmara assim que houver rede.',
+      );
     }
     return true;
   }
@@ -152,14 +175,17 @@ class _EcraVisitaState extends State<EcraVisita> {
       builder: (c) => AlertDialog(
         title: const Text('Concluir a visita?'),
         content: const Text(
-            'O relatório fecha e já não se altera. A câmara gera o PDF e trata do que se segue (nova visita se houver infrações, aviso ao munícipe).'),
+          'O relatório fecha e já não se altera. A câmara gera o PDF e trata do que se segue (nova visita se houver infrações, aviso ao munícipe).',
+        ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(c, false),
-              child: const Text('Ainda não')),
+            onPressed: () => Navigator.pop(c, false),
+            child: const Text('Ainda não'),
+          ),
           FilledButton(
-              onPressed: () => Navigator.pop(c, true),
-              child: const Text('Concluir')),
+            onPressed: () => Navigator.pop(c, true),
+            child: const Text('Concluir'),
+          ),
         ],
       ),
     );
@@ -190,38 +216,43 @@ class _EcraVisitaState extends State<EcraVisita> {
     final v = _v;
     return Scaffold(
       appBar: AppBar(title: Text('Visita ${widget.numero}')),
-      body: Column(children: [
-        IndicadorFila(fila: s.fila),
-        Expanded(
-          child: v == null
-              ? Center(
-                  child: _erro != null
-                      ? Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: ErroLinha(_erro!, aoTentar: _carregar))
-                      : const CircularProgressIndicator())
-              : ListenableBuilder(
-                  listenable: s.fila,
-                  builder: (context, _) {
-                    final pendentes = s.fila.daTarefa(v.id);
-                    final concluidaLocal =
-                        pendentes.any((a) => a.caminho.endsWith('/concluir'));
-                    final editavel = v.aberta && !v.relatorioFechado && !concluidaLocal;
-                    return ListView(
-                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
-                      children: [
-                        _cabecalho(v, texto, concluidaLocal),
-                        const SizedBox(height: 16),
-                        _local(v, texto),
-                        const SizedBox(height: 16),
-                        if (v.relatorioFechado) ...[
-                          _fechado(v, texto),
+      body: Column(
+        children: [
+          IndicadorFila(fila: s.fila),
+          Expanded(
+            child: v == null
+                ? Center(
+                    child: _erro != null
+                        ? Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: ErroLinha(_erro!, aoTentar: _carregar),
+                          )
+                        : const CircularProgressIndicator(),
+                  )
+                : ListenableBuilder(
+                    listenable: s.fila,
+                    builder: (context, _) {
+                      final pendentes = s.fila.daTarefa(v.id);
+                      final concluidaLocal = pendentes.any(
+                        (a) => a.caminho.endsWith('/concluir'),
+                      );
+                      final editavel =
+                          v.aberta && !v.relatorioFechado && !concluidaLocal;
+                      return ListView(
+                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+                        children: [
+                          _cabecalho(v, texto, concluidaLocal),
                           const SizedBox(height: 16),
-                        ],
-                        _secaoChecklist(editavel, texto),
-                        const SizedBox(height: 16),
-                        Cartao(
-                          child: Column(
+                          _local(v, texto),
+                          const SizedBox(height: 16),
+                          if (v.relatorioFechado) ...[
+                            _fechado(v, texto),
+                            const SizedBox(height: 16),
+                          ],
+                          _secaoChecklist(editavel, texto),
+                          const SizedBox(height: 16),
+                          Cartao(
+                            child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 const Rotulo('Fotografias'),
@@ -237,95 +268,139 @@ class _EcraVisitaState extends State<EcraVisita> {
                                   const SizedBox(height: 14),
                                   BotoesFoto(aoEscolher: _foto),
                                 ],
-                              ]),
-                        ),
-                        const SizedBox(height: 16),
-                        if (editavel) _secaoRelatorio(texto),
-                      ],
-                    );
-                  },
-                ),
-        ),
-      ]),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          if (editavel) _secaoRelatorio(texto),
+                        ],
+                      );
+                    },
+                  ),
+          ),
+        ],
+      ),
     );
   }
 
   Widget _cabecalho(VisitaDetalhe v, TextTheme texto, bool concluidaLocal) =>
-      Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(v.tipoNome, style: texto.headlineSmall),
-        const SizedBox(height: 8),
-        Wrap(spacing: 8, runSpacing: 6, children: [
-          Pilula(concluidaLocal ? 'Concluída · por enviar' : v.estadoNome,
-              tom: concluidaLocal
-                  ? TomPilula.tinta
-                  : v.feita
-                      ? TomPilula.verde
-                      : TomPilula.neutro),
-          if (v.janela != null) Pilula(v.janela!, icone: Icons.schedule_rounded),
-          if (_daCache)
-            const Pilula('Sem rede · guardado no telemóvel',
-                tom: TomPilula.ambar, icone: Icons.cloud_off_rounded),
-          if (v.valoresDemonstracao)
-            const Pilula('valores de demonstração', tom: TomPilula.ambar),
-        ]),
-      ]);
-
-  Widget _local(VisitaDetalhe v, TextTheme texto) => Cartao(
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          const Rotulo('Local e motivo'),
-          LinhaDado(Icons.place_outlined, v.morada, forte: true),
-          LinhaDado(Icons.info_outline_rounded, v.motivo),
-          if (v.ocorrencia != null)
-            LinhaDado(Icons.report_outlined,
-                'Ocorrência ${v.ocorrencia!['numero']} · ${v.ocorrencia!['categoria']}: ${v.ocorrencia!['descricao']}'),
-          if (v.processo != null)
-            LinhaDado(Icons.folder_outlined,
-                'Processo ${v.processo!['numero']} · ${v.processo!['assunto'] ?? ''}'),
-          const SizedBox(height: 10),
-          OutlinedButton.icon(
-            onPressed: () => navegarPara(lat: v.lat, lng: v.lng, morada: v.morada),
-            icon: const Icon(Icons.navigation_rounded),
-            label: const Text('Navegar até lá'),
+      Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(v.tipoNome, style: texto.headlineSmall),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 6,
+            children: [
+              Pilula(
+                concluidaLocal ? 'Concluída · por enviar' : v.estadoNome,
+                tom: concluidaLocal
+                    ? TomPilula.tinta
+                    : v.feita
+                    ? TomPilula.verde
+                    : TomPilula.neutro,
+              ),
+              if (v.janela != null)
+                Pilula(v.janela!, icone: Icons.schedule_rounded),
+              if (_daCache)
+                const Pilula(
+                  'Sem rede · guardado no telemóvel',
+                  tom: TomPilula.ambar,
+                  icone: Icons.cloud_off_rounded,
+                ),
+              if (v.valoresDemonstracao)
+                const Pilula('valores de demonstração', tom: TomPilula.ambar),
+            ],
           ),
-        ]),
+        ],
       );
 
+  Widget _local(VisitaDetalhe v, TextTheme texto) => Cartao(
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Rotulo('Local e motivo'),
+        LinhaDado(Icons.place_outlined, v.morada, forte: true),
+        LinhaDado(Icons.info_outline_rounded, v.motivo),
+        if (v.ocorrencia != null)
+          LinhaDado(
+            Icons.report_outlined,
+            'Ocorrência ${v.ocorrencia!['numero']} · ${v.ocorrencia!['categoria']}: ${v.ocorrencia!['descricao']}',
+          ),
+        if (v.processo != null)
+          LinhaDado(
+            Icons.folder_outlined,
+            'Processo ${v.processo!['numero']} · ${v.processo!['assunto'] ?? ''}',
+          ),
+        const SizedBox(height: 10),
+        OutlinedButton.icon(
+          onPressed: () =>
+              navegarPara(lat: v.lat, lng: v.lng, morada: v.morada),
+          icon: const Icon(Icons.navigation_rounded),
+          label: const Text('Navegar até lá'),
+        ),
+      ],
+    ),
+  );
+
   Widget _fechado(VisitaDetalhe v, TextTheme texto) => Cartao(
-        cor: Cores.verdeSuave,
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Row(children: [
+    cor: Cores.verdeSuave,
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
             const Icon(Icons.task_alt_rounded, color: Cores.verde, size: 30),
             const SizedBox(width: 10),
             Expanded(child: Text('Relatório fechado', style: texto.titleLarge)),
-          ]),
-          if (v.conclusaoNome != null) ...[
-            const SizedBox(height: 6),
-            Text(v.conclusaoNome!, style: texto.titleMedium),
           ],
-          if (v.resumoRelatorio != null) ...[
-            const SizedBox(height: 6),
-            Text(v.resumoRelatorio!, style: texto.bodyLarge),
-          ],
-          const SizedBox(height: 12),
-          FilledButton.icon(
-            onPressed: _pdf,
-            icon: const Icon(Icons.picture_as_pdf_rounded),
-            label: const Text('Abrir o PDF do relatório'),
-          ),
-        ]),
-      );
+        ),
+        if (v.conclusaoNome != null) ...[
+          const SizedBox(height: 6),
+          Text(v.conclusaoNome!, style: texto.titleMedium),
+        ],
+        if (v.resumoRelatorio != null) ...[
+          const SizedBox(height: 6),
+          Text(v.resumoRelatorio!, style: texto.bodyLarge),
+        ],
+        const SizedBox(height: 12),
+        FilledButton.icon(
+          onPressed: _pdf,
+          icon: const Icon(Icons.picture_as_pdf_rounded),
+          label: const Text('Abrir o PDF do relatório'),
+        ),
+      ],
+    ),
+  );
 
   Widget _secaoChecklist(bool editavel, TextTheme texto) => Cartao(
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          const Rotulo('Checklist'),
-          if (_checklist.isEmpty)
-            Text('Esta visita não tem checklist.', style: texto.bodyMedium),
-          for (final i in _checklist) ...[
-            Text(i.rotulo, style: texto.titleMedium),
-            if (i.artigo != null)
-              Text(i.artigo!,
-                  style: texto.bodySmall?.copyWith(color: Cores.tinta2)),
-            const SizedBox(height: 8),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Rotulo('Checklist'),
+        if (_checklist.isEmpty)
+          Text('Esta visita não tem checklist.', style: texto.bodyMedium),
+        for (final i in _checklist) ...[
+          Text(i.rotulo, style: texto.titleMedium),
+          if (i.artigo != null)
+            Text(
+              i.artigo!,
+              style: texto.bodySmall?.copyWith(color: Cores.tinta2),
+            ),
+          const SizedBox(height: 8),
+          if (!editavel)
+            // Fechada: mostra a resposta (o botão desativado escondia-a).
+            Pilula(
+              const {
+                    'sim': 'Sim',
+                    'nao': 'Não',
+                    'na': 'Não se aplica',
+                  }[i.resposta] ??
+                  'Sem resposta',
+              tom: i.resposta == null ? TomPilula.neutro : TomPilula.tinta,
+            )
+          else
             SizedBox(
               width: double.infinity,
               child: SegmentedButton<String>(
@@ -337,74 +412,83 @@ class _EcraVisitaState extends State<EcraVisita> {
                   ButtonSegment(value: 'na', label: Text('N/A')),
                 ],
                 selected: {if (i.resposta != null) i.resposta!},
-                onSelectionChanged: editavel
-                    ? (sel) => setState(
-                        () => i.resposta = sel.isEmpty ? null : sel.first)
-                    : null,
+                onSelectionChanged: (sel) =>
+                    setState(() => i.resposta = sel.isEmpty ? null : sel.first),
               ),
             ),
-            if (i.naoConforme)
-              const Padding(
-                padding: EdgeInsets.only(top: 6),
-                child: Pilula('Não conforme', tom: TomPilula.terracota),
-              ),
-            const SizedBox(height: 16),
-          ],
-        ]),
-      );
+          if (i.naoConforme)
+            const Padding(
+              padding: EdgeInsets.only(top: 6),
+              child: Pilula('Não conforme', tom: TomPilula.terracota),
+            ),
+          const SizedBox(height: 16),
+        ],
+      ],
+    ),
+  );
 
   Widget _secaoRelatorio(TextTheme texto) => Cartao(
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          const Rotulo('Relatório ditado'),
-          Text('Diga o que viu, como se estivesse a contar ao chefe. A câmara organiza o texto.',
-              style: texto.bodyMedium?.copyWith(color: Cores.tinta2)),
-          const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton.icon(
-              style: FilledButton.styleFrom(
-                backgroundColor: _aOuvir ? Cores.terracotaEscuro : Cores.tinta,
-                minimumSize: const Size(alvoMinimo, 64),
-              ),
-              onPressed: _ditar,
-              icon: Icon(_aOuvir ? Icons.stop_rounded : Icons.mic_rounded, size: 30),
-              label: Text(_aOuvir ? 'A ouvir… toque para parar' : 'Ditar relatório'),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Rotulo('Relatório ditado'),
+        Text(
+          'Diga o que viu, como se estivesse a contar ao chefe. A câmara organiza o texto.',
+          style: texto.bodyMedium?.copyWith(color: Cores.tinta2),
+        ),
+        const SizedBox(height: 12),
+        SizedBox(
+          width: double.infinity,
+          child: FilledButton.icon(
+            style: FilledButton.styleFrom(
+              backgroundColor: _aOuvir ? Cores.terracotaEscuro : Cores.tinta,
+              minimumSize: const Size(alvoMinimo, 64),
+            ),
+            onPressed: _ditar,
+            icon: Icon(
+              _aOuvir ? Icons.stop_rounded : Icons.mic_rounded,
+              size: 30,
+            ),
+            label: Text(
+              _aOuvir ? 'A ouvir… toque para parar' : 'Ditar relatório',
             ),
           ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _relatorio,
-            minLines: 4,
-            maxLines: 12,
-            textCapitalization: TextCapitalization.sentences,
-            decoration: const InputDecoration(
-              labelText: 'Relatório',
-              alignLabelWithHint: true,
-            ),
+        ),
+        const SizedBox(height: 12),
+        TextField(
+          controller: _relatorio,
+          minLines: 4,
+          maxLines: 12,
+          textCapitalization: TextCapitalization.sentences,
+          decoration: const InputDecoration(
+            labelText: 'Relatório',
+            alignLabelWithHint: true,
           ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _notas,
-            minLines: 2,
-            maxLines: 6,
-            textCapitalization: TextCapitalization.sentences,
-            decoration: const InputDecoration(
-              labelText: 'Notas (opcional)',
-              alignLabelWithHint: true,
-            ),
+        ),
+        const SizedBox(height: 12),
+        TextField(
+          controller: _notas,
+          minLines: 2,
+          maxLines: 6,
+          textCapitalization: TextCapitalization.sentences,
+          decoration: const InputDecoration(
+            labelText: 'Notas (opcional)',
+            alignLabelWithHint: true,
           ),
-          const SizedBox(height: 16),
-          OutlinedButton.icon(
-            onPressed: _guardarRelatorio,
-            icon: const Icon(Icons.save_outlined),
-            label: const Text('Guardar relatório'),
-          ),
-          const SizedBox(height: 10),
-          FilledButton.icon(
-            onPressed: _concluir,
-            icon: const Icon(Icons.task_alt_rounded),
-            label: const Text('Concluir visita'),
-          ),
-        ]),
-      );
+        ),
+        const SizedBox(height: 16),
+        OutlinedButton.icon(
+          onPressed: _guardarRelatorio,
+          icon: const Icon(Icons.save_outlined),
+          label: const Text('Guardar relatório'),
+        ),
+        const SizedBox(height: 10),
+        FilledButton.icon(
+          onPressed: _concluir,
+          icon: const Icon(Icons.task_alt_rounded),
+          label: const Text('Concluir visita'),
+        ),
+      ],
+    ),
+  );
 }

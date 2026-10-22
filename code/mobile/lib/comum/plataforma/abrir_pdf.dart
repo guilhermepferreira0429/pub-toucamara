@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
-import 'abrir_pdf_io.dart' if (dart.library.js_interop) 'abrir_pdf_web.dart'
+import 'abrir_pdf_io.dart'
+    if (dart.library.js_interop) 'abrir_pdf_web.dart'
     as plataforma;
 
 /// Abre um PDF (bytes vindos da API, com a sessão) no visualizador do

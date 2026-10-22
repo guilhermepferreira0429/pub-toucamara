@@ -64,8 +64,10 @@ class _EcraOcorrenciaState extends State<EcraOcorrencia> {
       });
     } on SemRede {
       if (mounted) {
-        setState(() => _erro =
-            'Sem rede e esta ocorrência não está guardada no telemóvel. Abra-a quando tiver rede.');
+        setState(
+          () => _erro =
+              'Sem rede e esta ocorrência não está guardada no telemóvel. Abra-a quando tiver rede.',
+        );
       }
     } on ErroApi catch (e) {
       if (mounted) setState(() => _erro = e.mensagem);
@@ -73,18 +75,21 @@ class _EcraOcorrenciaState extends State<EcraOcorrencia> {
   }
 
   Future<void> _estado(String estado) async {
-    await FornecedorServicos.de(context)
-        .repositorio
-        .estadoOcorrencia(_o!, estado);
+    await FornecedorServicos.de(
+      context,
+    ).repositorio.estadoOcorrencia(_o!, estado);
     if (mounted) avisar(context, 'Guardado: ${nomeEstadoOcorrencia(estado)}.');
   }
 
   Future<void> _fechar() async {
-    final fechou = await Navigator.of(context).push<bool>(MaterialPageRoute(
-        builder: (_) => EcraFecharOcorrencia(ocorrencia: _o!)));
+    final fechou = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(builder: (_) => EcraFecharOcorrencia(ocorrencia: _o!)),
+    );
     if (fechou == true && mounted) {
-      avisar(context,
-          'Fechada. Quem reportou é avisado por SMS quando chegar à câmara.');
+      avisar(
+        context,
+        'Fechada. Quem reportou é avisado por SMS quando chegar à câmara.',
+      );
     }
   }
 
@@ -95,168 +100,208 @@ class _EcraOcorrenciaState extends State<EcraOcorrencia> {
     final o = _o;
     return Scaffold(
       appBar: AppBar(title: Text('Ocorrência ${widget.numero}')),
-      body: Column(children: [
-        IndicadorFila(fila: s.fila),
-        Expanded(
-          child: o == null
-              ? Center(
-                  child: _erro != null
-                      ? Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: ErroLinha(_erro!, aoTentar: _carregar))
-                      : const CircularProgressIndicator())
-              : ListenableBuilder(
-                  listenable: s.fila,
-                  builder: (context, _) {
-                    final pendentes = s.fila.daTarefa(o.id);
-                    final fechadaLocal =
-                        pendentes.any((a) => a.caminho.endsWith('/fechar'));
-                    final estadoLocal = pendentes
-                        .where((a) => a.metodo == 'PATCH')
-                        .map((a) => a.corpo?['estado'] as String?)
-                        .lastOrNull;
-                    final estado = fechadaLocal
-                        ? 'resolvida'
-                        : estadoLocal ?? o.estado;
-                    final aberta = estado == 'nova' || estado == 'com_equipa';
-                    return ListView(
-                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
-                      children: [
-                        Text(o.categoria, style: texto.headlineSmall),
-                        const SizedBox(height: 8),
-                        Wrap(spacing: 8, runSpacing: 6, children: [
-                          Pilula(
-                              pendentes.isEmpty
-                                  ? o.estadoNome
-                                  : '${nomeEstadoOcorrencia(estado)} · por enviar',
-                              tom: pendentes.isNotEmpty
-                                  ? TomPilula.tinta
-                                  : estado == 'resolvida'
-                                      ? TomPilula.verde
-                                      : TomPilula.neutro),
-                          if (o.reportes > 1)
-                            Pilula('${o.reportes} pessoas avisaram',
-                                tom: TomPilula.terracota),
-                          if (o.previstaPara != null)
-                            Pilula('Prevista ${diaCurto(o.previstaPara!)}',
-                                icone: Icons.event_rounded),
-                          if (_daCache)
-                            const Pilula('Sem rede · guardado no telemóvel',
-                                tom: TomPilula.ambar,
-                                icone: Icons.cloud_off_rounded),
-                        ]),
-                        const SizedBox(height: 16),
-                        Cartao(
-                          child: Column(
+      body: Column(
+        children: [
+          IndicadorFila(fila: s.fila),
+          Expanded(
+            child: o == null
+                ? Center(
+                    child: _erro != null
+                        ? Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: ErroLinha(_erro!, aoTentar: _carregar),
+                          )
+                        : const CircularProgressIndicator(),
+                  )
+                : ListenableBuilder(
+                    listenable: s.fila,
+                    builder: (context, _) {
+                      final pendentes = s.fila.daTarefa(o.id);
+                      final fechadaLocal = pendentes.any(
+                        (a) => a.caminho.endsWith('/fechar'),
+                      );
+                      final estadoLocal = pendentes
+                          .where((a) => a.metodo == 'PATCH')
+                          .map((a) => a.corpo?['estado'] as String?)
+                          .lastOrNull;
+                      final estado = fechadaLocal
+                          ? 'resolvida'
+                          : estadoLocal ?? o.estado;
+                      final aberta = estado == 'nova' || estado == 'com_equipa';
+                      return ListView(
+                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+                        children: [
+                          Text(o.categoria, style: texto.headlineSmall),
+                          const SizedBox(height: 8),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 6,
+                            children: [
+                              Pilula(
+                                pendentes.isEmpty
+                                    ? o.estadoNome
+                                    : '${nomeEstadoOcorrencia(estado)} · por enviar',
+                                tom: pendentes.isNotEmpty
+                                    ? TomPilula.tinta
+                                    : estado == 'resolvida'
+                                    ? TomPilula.verde
+                                    : TomPilula.neutro,
+                              ),
+                              if (o.reportes > 1)
+                                Pilula(
+                                  '${o.reportes} pessoas avisaram',
+                                  tom: TomPilula.terracota,
+                                ),
+                              if (o.previstaPara != null)
+                                Pilula(
+                                  'Prevista ${diaCurto(o.previstaPara!)}',
+                                  icone: Icons.event_rounded,
+                                ),
+                              if (_daCache)
+                                const Pilula(
+                                  'Sem rede · guardado no telemóvel',
+                                  tom: TomPilula.ambar,
+                                  icone: Icons.cloud_off_rounded,
+                                ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          Cartao(
+                            child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 const Rotulo('O que foi reportado'),
                                 Text(o.descricao, style: texto.bodyLarge),
                                 const SizedBox(height: 10),
-                                LinhaDado(Icons.place_outlined, o.morada,
-                                    forte: true),
+                                LinhaDado(
+                                  Icons.place_outlined,
+                                  o.morada,
+                                  forte: true,
+                                ),
                                 if (o.municipeNome != null)
-                                  LinhaDado(Icons.person_outline_rounded,
-                                      'Reportada por ${o.municipeNome}'),
+                                  LinhaDado(
+                                    Icons.person_outline_rounded,
+                                    'Reportada por ${o.municipeNome}',
+                                  ),
                                 const SizedBox(height: 10),
                                 OutlinedButton.icon(
                                   onPressed: () => navegarPara(
-                                      lat: o.lat, lng: o.lng, morada: o.morada),
+                                    lat: o.lat,
+                                    lng: o.lng,
+                                    morada: o.morada,
+                                  ),
                                   icon: const Icon(Icons.navigation_rounded),
                                   label: const Text('Navegar até lá'),
                                 ),
-                              ]),
-                        ),
-                        const SizedBox(height: 16),
-                        Cartao(
-                          child: Column(
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          Cartao(
+                            child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 const Rotulo('Fotografias do munícipe'),
                                 GaleriaFotos(
-                                    fotos: o.fotosMunicipe,
-                                    vazio: 'O munícipe não enviou fotografias.'),
+                                  fotos: o.fotosMunicipe,
+                                  vazio: 'O munícipe não enviou fotografias.',
+                                ),
                                 if (o.fotosDepois.isNotEmpty ||
                                     pendentes.any(
-                                        (a) => a.tipo == TipoAcao.ficheiro)) ...[
+                                      (a) => a.tipo == TipoAcao.ficheiro,
+                                    )) ...[
                                   const SizedBox(height: 16),
                                   const Rotulo('Depois (equipa)'),
                                   GaleriaFotos(
                                     fotos: o.fotosDepois,
                                     pendentes: pendentes
                                         .where(
-                                            (a) => a.tipo == TipoAcao.ficheiro)
+                                          (a) => a.tipo == TipoAcao.ficheiro,
+                                        )
                                         .toList(),
                                   ),
                                 ],
-                              ]),
-                        ),
-                        if (o.duplicados.isNotEmpty) ...[
-                          const SizedBox(height: 16),
-                          Cartao(
-                            child: Column(
+                              ],
+                            ),
+                          ),
+                          if (o.duplicados.isNotEmpty) ...[
+                            const SizedBox(height: 16),
+                            Cartao(
+                              child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Rotulo(
-                                      'Outros avisos do mesmo problema (${o.duplicados.length})'),
+                                    'Outros avisos do mesmo problema (${o.duplicados.length})',
+                                  ),
                                   for (final d in o.duplicados)
                                     Padding(
-                                      padding:
-                                          const EdgeInsets.symmetric(vertical: 6),
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 6,
+                                      ),
                                       child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Text('${d['numero']}',
-                                                style: texto.titleMedium),
-                                            Text('${d['descricao'] ?? ''}',
-                                                style: texto.bodyMedium),
-                                          ]),
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            '${d['numero']}',
+                                            style: texto.titleMedium,
+                                          ),
+                                          Text(
+                                            '${d['descricao'] ?? ''}',
+                                            style: texto.bodyMedium,
+                                          ),
+                                        ],
+                                      ),
                                     ),
-                                ]),
-                          ),
-                        ],
-                        const SizedBox(height: 20),
-                        if (o.duplicada)
-                          const ErroLinha(
-                              'Esta ocorrência está junta a outra: trate a original.')
-                        else if (aberta) ...[
-                          FilledButton.icon(
-                            onPressed: _fechar,
-                            icon: const Icon(Icons.photo_camera_rounded),
-                            label: const Text('Fechar com foto do depois'),
-                          ),
-                          const SizedBox(height: 10),
-                          if (estado == 'nova')
+                                ],
+                              ),
+                            ),
+                          ],
+                          const SizedBox(height: 20),
+                          if (o.duplicada)
+                            const ErroLinha(
+                              'Esta ocorrência está junta a outra: trate a original.',
+                            )
+                          else if (aberta) ...[
+                            FilledButton.icon(
+                              onPressed: _fechar,
+                              icon: const Icon(Icons.photo_camera_rounded),
+                              label: const Text('Fechar com foto do depois'),
+                            ),
+                            const SizedBox(height: 10),
+                            if (estado == 'nova')
+                              OutlinedButton.icon(
+                                onPressed: () => _estado('com_equipa'),
+                                icon: const Icon(Icons.engineering_rounded),
+                                label: const Text('Vou tratar disto'),
+                              ),
+                          ] else if (estado == 'resolvida' && pendentes.isEmpty)
                             OutlinedButton.icon(
                               onPressed: () => _estado('com_equipa'),
-                              icon: const Icon(Icons.engineering_rounded),
-                              label: const Text('Vou tratar disto'),
+                              icon: const Icon(Icons.undo_rounded),
+                              label: const Text('Reabrir'),
                             ),
-                        ] else if (estado == 'resolvida' && pendentes.isEmpty)
-                          OutlinedButton.icon(
-                            onPressed: () => _estado('com_equipa'),
-                            icon: const Icon(Icons.undo_rounded),
-                            label: const Text('Reabrir'),
-                          ),
-                        if (o.eventos.isNotEmpty) ...[
-                          const SizedBox(height: 20),
-                          const Rotulo('Histórico'),
-                          for (final e in o.eventos.reversed.take(6))
-                            LinhaDado(Icons.history_rounded, _evento(e)),
+                          if (o.eventos.isNotEmpty) ...[
+                            const SizedBox(height: 20),
+                            const Rotulo('Histórico'),
+                            for (final e in o.eventos.reversed.take(6))
+                              LinhaDado(Icons.history_rounded, _evento(e)),
+                          ],
                         ],
-                      ],
-                    );
-                  },
-                ),
-        ),
-      ]),
+                      );
+                    },
+                  ),
+          ),
+        ],
+      ),
     );
   }
 
   String _evento(Map<String, dynamic> e) {
     final em = DateTime.tryParse('${e['em']}');
-    final quem = e['ator_nome'] ?? (e['ator_tipo'] == 'municipe' ? 'Munícipe' : 'Sistema');
+    final quem =
+        e['ator_nome'] ??
+        (e['ator_tipo'] == 'municipe' ? 'Munícipe' : 'Sistema');
     final dados = (e['dados'] as Map?) ?? const {};
     final o = switch (e['tipo']) {
       'registada' => 'registada',
@@ -293,8 +338,9 @@ class _EcraFecharOcorrenciaState extends State<EcraFecharOcorrencia> {
   }
 
   Future<void> _tirar(bool daGaleria) async {
-    final f =
-        await FornecedorServicos.de(context).camara.tirar(daGaleria: daGaleria);
+    final f = await FornecedorServicos.de(
+      context,
+    ).camara.tirar(daGaleria: daGaleria);
     if (f != null && mounted) setState(() => _foto = f);
   }
 
@@ -309,14 +355,17 @@ class _EcraFecharOcorrenciaState extends State<EcraFecharOcorrencia> {
         builder: (c) => AlertDialog(
           title: const Text('Fechar sem fotografia?'),
           content: const Text(
-              'A fotografia do depois mostra ao munícipe e à chefia que ficou resolvido.'),
+            'A fotografia do depois mostra ao munícipe e à chefia que ficou resolvido.',
+          ),
           actions: [
             TextButton(
-                onPressed: () => Navigator.pop(c, false),
-                child: const Text('Tirar foto')),
+              onPressed: () => Navigator.pop(c, false),
+              child: const Text('Tirar foto'),
+            ),
             FilledButton(
-                onPressed: () => Navigator.pop(c, true),
-                child: const Text('Fechar sem foto')),
+              onPressed: () => Navigator.pop(c, true),
+              child: const Text('Fechar sem foto'),
+            ),
           ],
         ),
       );
@@ -324,9 +373,11 @@ class _EcraFecharOcorrenciaState extends State<EcraFecharOcorrencia> {
     }
     if (!mounted) return;
     setState(() => _ocupado = true);
-    await FornecedorServicos.de(context)
-        .repositorio
-        .fecharOcorrencia(widget.ocorrencia, foto: _foto, nota: _nota.text);
+    await FornecedorServicos.de(context).repositorio.fecharOcorrencia(
+      widget.ocorrencia,
+      foto: _foto,
+      nota: _nota.text,
+    );
     if (mounted) Navigator.of(context).pop(true);
   }
 
@@ -350,23 +401,37 @@ class _EcraFecharOcorrenciaState extends State<EcraFecharOcorrencia> {
                   ? Container(
                       color: Cores.creme2,
                       alignment: Alignment.center,
-                      child: const Column(mainAxisSize: MainAxisSize.min, children: [
-                        Icon(Icons.photo_camera_outlined, size: 56, color: Cores.tinta2),
-                        SizedBox(height: 8),
-                        Text('Tire uma fotografia de como ficou',
-                            style: TextStyle(fontSize: 17, color: Cores.tinta2)),
-                      ]),
+                      child: const Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.photo_camera_outlined,
+                            size: 56,
+                            color: Cores.tinta2,
+                          ),
+                          SizedBox(height: 8),
+                          Text(
+                            'Tire uma fotografia de como ficou',
+                            style: TextStyle(fontSize: 17, color: Cores.tinta2),
+                          ),
+                        ],
+                      ),
                     )
                   : Image.memory(_foto!.bytes, fit: BoxFit.cover),
             ),
           ),
           if (_foto != null) ...[
             const SizedBox(height: 8),
-            Wrap(spacing: 8, children: [
-              Pilula(quando(_foto!.tiradaEm), icone: Icons.schedule_rounded),
-              Pilula(_foto!.local == null ? 'Sem GPS' : 'GPS ${_foto!.local}',
-                  icone: Icons.my_location_rounded),
-            ]),
+            Wrap(
+              spacing: 8,
+              children: [
+                Pilula(quando(_foto!.tiradaEm), icone: Icons.schedule_rounded),
+                Pilula(
+                  _foto!.local == null ? 'Sem GPS' : 'GPS ${_foto!.local}',
+                  icone: Icons.my_location_rounded,
+                ),
+              ],
+            ),
           ],
           const SizedBox(height: 12),
           BotoesFoto(aoEscolher: _tirar, ativo: !_ocupado),

@@ -54,16 +54,20 @@ class _EcraSessaoState extends State<EcraSessao> {
       context: context,
       builder: (c) => AlertDialog(
         title: const Text('Sair da app?'),
-        content: Text(n == 0
-            ? 'Para voltar a entrar precisa de um código novo por email.'
-            : 'Tem $n ${n == 1 ? 'ação' : 'ações'} por enviar. Ficam guardadas e são enviadas quando voltar a entrar neste telemóvel.'),
+        content: Text(
+          n == 0
+              ? 'Para voltar a entrar precisa de um código novo por email.'
+              : 'Tem $n ${n == 1 ? 'ação' : 'ações'} por enviar. Ficam guardadas e são enviadas quando voltar a entrar neste telemóvel.',
+        ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(c, false),
-              child: const Text('Ficar')),
+            onPressed: () => Navigator.pop(c, false),
+            child: const Text('Ficar'),
+          ),
           FilledButton(
-              onPressed: () => Navigator.pop(c, true),
-              child: const Text('Sair')),
+            onPressed: () => Navigator.pop(c, true),
+            child: const Text('Sair'),
+          ),
         ],
       ),
     );
@@ -80,16 +84,21 @@ class _EcraSessaoState extends State<EcraSessao> {
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
       children: [
         Cartao(
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(sessao.nome, style: texto.headlineSmall),
-            const SizedBox(height: 6),
-            LinhaDado(Icons.mail_outline_rounded, sessao.email),
-            LinhaDado(Icons.badge_outlined, sessao.perfilLegivel),
-            if (sessao.municipioNome != null)
-              LinhaDado(Icons.location_city_rounded, sessao.municipioNome!),
-            LinhaDado(Icons.lock_clock_outlined,
-                'Sessão válida até ${quando(sessao.expiraEm)}'),
-          ]),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(sessao.nome, style: texto.headlineSmall),
+              const SizedBox(height: 6),
+              LinhaDado(Icons.mail_outline_rounded, sessao.email),
+              LinhaDado(Icons.badge_outlined, sessao.perfilLegivel),
+              if (sessao.municipioNome != null)
+                LinhaDado(Icons.location_city_rounded, sessao.municipioNome!),
+              LinhaDado(
+                Icons.lock_clock_outlined,
+                'Sessão válida até ${quando(sessao.expiraEm)}',
+              ),
+            ],
+          ),
         ),
         const SizedBox(height: 16),
         const Rotulo('Telemóveis com sessão aberta'),
@@ -103,27 +112,34 @@ class _EcraSessaoState extends State<EcraSessao> {
         if (_sessoes != null)
           for (final x in _sessoes!) ...[
             Cartao(
-              child: Row(children: [
-                const Icon(Icons.smartphone_rounded, size: 30),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
+              child: Row(
+                children: [
+                  const Icon(Icons.smartphone_rounded, size: 30),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('${x['dispositivo'] ?? 'Telemóvel'}',
-                            style: texto.titleMedium),
                         Text(
-                            'Entrou ${quando(DateTime.parse(x['criada_em'] as String))}',
-                            style: texto.bodySmall),
-                      ]),
-                ),
-                if (x['esta'] == true)
-                  const Pilula('Este', tom: TomPilula.verde)
-                else
-                  TextButton(
+                          '${x['dispositivo'] ?? 'Telemóvel'}',
+                          style: texto.titleMedium,
+                        ),
+                        Text(
+                          'Entrou ${quando(DateTime.parse(x['criada_em'] as String))}',
+                          style: texto.bodySmall,
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (x['esta'] == true)
+                    const Pilula('Este', tom: TomPilula.verde)
+                  else
+                    TextButton(
                       onPressed: () => _terminar(x['id'] as String),
-                      child: const Text('Terminar')),
-              ]),
+                      child: const Text('Terminar'),
+                    ),
+                ],
+              ),
             ),
             const SizedBox(height: 10),
           ],
@@ -135,8 +151,9 @@ class _EcraSessaoState extends State<EcraSessao> {
           title: const Text('Servidor'),
           subtitle: Text(s.definicoes.servidor),
           trailing: const Icon(Icons.chevron_right_rounded),
-          onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const EcraDefinicoes())),
+          onTap: () => Navigator.of(
+            context,
+          ).push(MaterialPageRoute(builder: (_) => const EcraDefinicoes())),
         ),
         const SizedBox(height: 16),
         FilledButton.icon(
