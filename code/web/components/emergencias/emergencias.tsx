@@ -298,6 +298,13 @@ function FaltaParaReal() {
   );
 }
 
+/** Texto pré-preenchido (do guião), para não se confundir com um exemplo nem passar sem ser lido. */
+function sugeridoSe(sim: boolean) {
+  return sim ? (
+    <span className="rounded-full bg-ambar-suave px-2 py-0.5 text-[11px] font-semibold text-ambar">sugerido, reveja</span>
+  ) : null;
+}
+
 function AvisoSimulado({ texto }: { texto: string }) {
   return (
     <p className="flex items-start gap-2 rounded-xl border border-terracota bg-terracota-suave px-3 py-2.5 text-xs text-terracota-escuro">
@@ -532,7 +539,8 @@ function inicial(c: Config | undefined, tipo: Tipo = "cheia"): Formulario {
     descricao: "",
     valida_ate: "",
     chamadas: "",
-    fontes: ["municipes", "cuidado", "lista"],
+    // A lista CSV só entra quando se carrega uma: ligada por omissão parecia ter números reais.
+    fontes: ["municipes", "cuidado"],
     cell_broadcast: false,
     csv: "",
   };
@@ -588,6 +596,8 @@ function NovaEmergencia({ config, onCriada }: { config: Config | undefined; onCr
     const g = config?.guioes[tipo];
     muda({ tipo, ...(g ? { instrucoes: g.instrucoes, dizer: g.dizer, perguntas: g.perguntas.join("\n") } : {}) });
   };
+  // O guião do tipo vem pré-preenchido: enquanto não for mudado, diz "sugerido, reveja".
+  const g = config?.guioes[f.tipo];
   const alternarFonte = (x: Fonte) =>
     muda({ fontes: f.fontes.includes(x) ? f.fontes.filter((y) => y !== x) : [...f.fontes, x] });
 
@@ -625,26 +635,26 @@ function NovaEmergencia({ config, onCriada }: { config: Config | undefined; onCr
         </Campo>
       </div>
       <Campo rotulo="Título (para o painel e para o agente)">
-        <input className={classeEntrada} required minLength={3} maxLength={120} value={f.titulo} onChange={(e) => muda({ titulo: e.target.value })} placeholder="Cheia no rio Ave" />
+        <input className={classeEntrada} required minLength={3} maxLength={120} value={f.titulo} onChange={(e) => muda({ titulo: e.target.value })} placeholder="Ex.: Cheia no rio Ave" />
       </Campo>
       <Campo rotulo="Mensagem do SMS" ajuda={`${f.mensagem_sms.length} / 300 · curta: vai com as instruções e o número de emergência`}>
-        <textarea className={`${classeEntrada} min-h-16`} required minLength={10} maxLength={300} value={f.mensagem_sms} onChange={(e) => muda({ mensagem_sms: e.target.value })} placeholder="Risco de cheia esta noite junto ao rio Ave." />
+        <textarea className={`${classeEntrada} min-h-16`} required minLength={10} maxLength={300} value={f.mensagem_sms} onChange={(e) => muda({ mensagem_sms: e.target.value })} placeholder="Ex.: Risco de cheia esta noite junto ao rio Ave." />
       </Campo>
       <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_120px]">
-        <Campo rotulo="Instruções (para onde ir, o que fazer)">
+        <Campo rotulo="Instruções (para onde ir, o que fazer)" marca={sugeridoSe(f.instrucoes === g?.instrucoes)}>
           <input className={classeEntrada} maxLength={300} value={f.instrucoes} onChange={(e) => muda({ instrucoes: e.target.value })} />
         </Campo>
-        <Campo rotulo="N.º de emergência">
+        <Campo rotulo="N.º de emergência" marca={sugeridoSe(f.numero === "112")}>
           <input className={classeEntrada} value={f.numero} onChange={(e) => muda({ numero: e.target.value })} />
         </Campo>
       </div>
       <details className="rounded-xl border border-linha p-4" open={f.gravidade !== "aviso"}>
         <summary className="cursor-pointer text-[13px] font-semibold text-tinta">Guião da chamada do agente</summary>
         <div className="mt-3 flex flex-col gap-3">
-          <Campo rotulo="O que o agente diz">
+          <Campo rotulo="O que o agente diz" marca={sugeridoSe(f.dizer === g?.dizer)}>
             <textarea className={`${classeEntrada} min-h-16`} minLength={10} maxLength={600} value={f.dizer} onChange={(e) => muda({ dizer: e.target.value })} />
           </Campo>
-          <Campo rotulo="O que pergunta (uma por linha, até 5)">
+          <Campo rotulo="O que pergunta (uma por linha, até 5)" marca={sugeridoSe(f.perguntas === g?.perguntas.join("\n"))}>
             <textarea className={`${classeEntrada} min-h-20`} value={f.perguntas} onChange={(e) => muda({ perguntas: e.target.value })} />
           </Campo>
           <Campo rotulo="A quem liga">
@@ -686,7 +696,7 @@ function NovaEmergencia({ config, onCriada }: { config: Config | undefined; onCr
         </div>
         {f.zonaTipo === "poligono" && (
           <Campo rotulo="Vértices (um por linha: latitude, longitude; pelo menos 3)">
-            <textarea className={`${classeEntrada} min-h-24 font-mono text-xs`} required value={f.pontos} onChange={(e) => muda({ pontos: e.target.value })} placeholder={"41.4425, -8.2918\n41.4431, -8.2902\n41.4419, -8.2895"} />
+            <textarea className={`${classeEntrada} min-h-24 font-mono text-xs`} required value={f.pontos} onChange={(e) => muda({ pontos: e.target.value })} placeholder={"Ex.:\n41.4425, -8.2918\n41.4431, -8.2902\n41.4419, -8.2895"} />
           </Campo>
         )}
         {f.zonaTipo === "ponto" && (
@@ -704,12 +714,12 @@ function NovaEmergencia({ config, onCriada }: { config: Config | undefined; onCr
         )}
         {f.zonaTipo === "freguesias" && (
           <Campo rotulo="Freguesias (uma por linha)">
-            <textarea className={`${classeEntrada} min-h-20`} required value={f.freguesias} onChange={(e) => muda({ freguesias: e.target.value })} placeholder="Azurém" />
+            <textarea className={`${classeEntrada} min-h-20`} required value={f.freguesias} onChange={(e) => muda({ freguesias: e.target.value })} placeholder="Ex.: Azurém" />
           </Campo>
         )}
         <div className="grid gap-3 sm:grid-cols-2">
           <Campo rotulo="Descrição da zona (opcional)">
-            <input className={classeEntrada} maxLength={200} value={f.descricao} onChange={(e) => muda({ descricao: e.target.value })} placeholder="Margens do rio Ave" />
+            <input className={classeEntrada} maxLength={200} value={f.descricao} onChange={(e) => muda({ descricao: e.target.value })} placeholder="Ex.: Margens do rio Ave" />
           </Campo>
           <Campo rotulo="Válido até" ajuda="Por omissão, 24 horas. Depois encerra sozinho.">
             <input type="datetime-local" className={classeEntrada} value={f.valida_ate} onChange={(e) => muda({ valida_ate: e.target.value })} />
@@ -749,7 +759,7 @@ function NovaEmergencia({ config, onCriada }: { config: Config | undefined; onCr
         {f.fontes.includes("lista") && (
           <div className="flex flex-col gap-2">
             <Campo rotulo="Lista de telefones (CSV: telefone ou telefone;nome, um por linha)">
-              <textarea className={`${classeEntrada} min-h-20 font-mono text-xs`} value={f.csv} onChange={(e) => muda({ csv: e.target.value })} placeholder={"912345678;Maria Silva\n913000111"} />
+              <textarea className={`${classeEntrada} min-h-20 font-mono text-xs`} value={f.csv} onChange={(e) => muda({ csv: e.target.value })} placeholder={"Ex.: 9XXXXXXXX;Nome da pessoa"} />
             </Campo>
             <label className="flex w-fit cursor-pointer items-center gap-1.5 text-xs font-semibold text-tinta-2">
               <Upload className="size-3.5" aria-hidden />
@@ -798,13 +808,60 @@ function NovaEmergencia({ config, onCriada }: { config: Config | undefined; onCr
   );
 }
 
-/** Dupla confirmação: o número de pessoas e depois escrever ENVIAR. */
-function Confirmar({ d, onFeito }: { d: Detalhe; onFeito: () => void }) {
+/** O que vai sair, à frente de quem confirma: o SMS final, a zona, quantos, os vulneráveis, o tempo e o custo. */
+function ResumoEnvio({ d, p }: { d: Detalhe; p: Plano }) {
+  return (
+    <div className="flex flex-col gap-3 rounded-xl bg-creme p-3">
+      <div>
+        <Rotulo className="mb-1">Assim fica o SMS</Rotulo>
+        <p className="rounded-[14px_14px_14px_4px] bg-[#E9E9EB] px-3 py-2.5 text-[13px] text-[#111111]">{p.sms.texto}</p>
+      </div>
+      <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-[13px]">
+        <div className="col-span-2">
+          <dt className="text-xs text-tinta-3">Zona</dt>
+          <dd className="font-semibold text-tinta">{p.zona}</dd>
+        </div>
+        <div>
+          <dt className="text-xs text-tinta-3">Pessoas</dt>
+          <dd className="font-semibold text-tinta">
+            {numero(p.destinatarios.total)}
+            {p.destinatarios.simulados ? ` (${numero(p.destinatarios.simulados)} simulados)` : ""}
+          </dd>
+        </div>
+        <div>
+          <dt className="text-xs text-tinta-3">Vulneráveis</dt>
+          <dd className="font-semibold text-tinta">{numero(p.destinatarios.vulneraveis)}</dd>
+        </div>
+        <div>
+          <dt className="text-xs text-tinta-3">Chamadas do agente</dt>
+          <dd className="font-semibold text-tinta">
+            {d.chamadas === "nenhuma" ? "nenhuma" : numero(p.chamadas.total)}
+          </dd>
+        </div>
+        <div>
+          <dt className="text-xs text-tinta-3">Todos avisados em</dt>
+          <dd className="font-semibold text-tinta">{minutos(p.tempo.minutos_ate_todos_avisados)}</dd>
+        </div>
+        <div className="col-span-2">
+          <dt className="flex items-center gap-2 text-xs text-tinta-3">
+            Custo estimado <Demonstracao />
+          </dt>
+          <dd className="font-semibold text-tinta">
+            {euro(p.custo.total)} <span className="font-normal text-tinta-2">· SMS {euro(p.custo.sms)} · chamadas {euro(p.custo.chamadas)}</span>
+          </dd>
+        </div>
+      </dl>
+    </div>
+  );
+}
+
+/** Dupla confirmação, sempre depois de simular: o número de pessoas e depois escrever ENVIAR. */
+function Confirmar({ d, plano, onFeito }: { d: Detalhe; plano: Plano; onFeito: () => void }) {
   const { pedido } = useSessao();
   const [passo, setPasso] = useState<1 | 2>(1);
   const [n, setN] = useState("");
   const [texto, setTexto] = useState("");
-  const [esperado, setEsperado] = useState(d.destinatarios_previstos);
+  const [esperado, setEsperado] = useState(plano.destinatarios.total);
   const acao = useAcao();
   return (
     <form
@@ -823,6 +880,7 @@ function Confirmar({ d, onFeito }: { d: Detalhe; onFeito: () => void }) {
         if (r) onFeito();
       }}
     >
+      <ResumoEnvio d={d} p={plano} />
       {passo === 1 ? (
         <>
           <p className="text-sm text-tinta-2">
@@ -1092,7 +1150,7 @@ function VerEmergencia({ id, onMudou }: { id: string; onMudou: () => void }) {
                   Simular
                 </Botao>
                 {enviar && (
-                  <Botao icone={Send} onClick={() => setConfirmar(true)}>
+                  <Botao icone={Send} disabled={!plano} onClick={() => setConfirmar(true)}>
                     Enviar
                   </Botao>
                 )}
@@ -1115,6 +1173,9 @@ function VerEmergencia({ id, onMudou }: { id: string; onMudou: () => void }) {
                 )}
               </div>
               {!enviar && <p className="text-xs text-tinta-3">Só o chefe de divisão (ou a equipa Tou, Câmara?) envia.</p>}
+              {enviar && !plano && (
+                <p className="text-xs text-tinta-3">Simule primeiro: o envio só abre depois de ver quem recebe, o SMS e o custo.</p>
+              )}
               {plano && <VerPlano p={plano} />}
             </div>
           )}
@@ -1171,9 +1232,10 @@ function VerEmergencia({ id, onMudou }: { id: string; onMudou: () => void }) {
         </div>
       )}
       <Dialogo titulo="Confirmar envio" aberto={confirmar} onFechar={() => setConfirmar(false)}>
-        {d && confirmar && (
+        {d && plano && confirmar && (
           <Confirmar
             d={d}
+            plano={plano}
             onFeito={() => {
               setConfirmar(false);
               setPlano(null);

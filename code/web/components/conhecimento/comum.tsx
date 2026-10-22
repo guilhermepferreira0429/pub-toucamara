@@ -359,17 +359,23 @@ export function Interruptor({
 export function Campo({
   rotulo,
   ajuda,
+  marca,
   children,
   className = "",
 }: {
   rotulo: string;
   ajuda?: React.ReactNode;
+  /** Junto ao rótulo (ex.: "sugerido, reveja"). */
+  marca?: React.ReactNode;
   children: React.ReactNode;
   className?: string;
 }) {
   return (
     <label className={`flex flex-col gap-2 ${className}`}>
-      <span className="text-[13px] font-semibold text-tinta">{rotulo}</span>
+      <span className="flex flex-wrap items-center gap-2 text-[13px] font-semibold text-tinta">
+        {rotulo}
+        {marca}
+      </span>
       {children}
       {ajuda && <span className="text-xs text-tinta-3">{ajuda}</span>}
     </label>
