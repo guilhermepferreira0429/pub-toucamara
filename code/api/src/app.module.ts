@@ -66,6 +66,7 @@ import { ReunioesModule } from './modules/reunioes/reunioes.module.js';
 import { ContratacaoModule } from './modules/contratacao/contratacao.module.js';
 import { PortaIasModule } from './modules/porta-ias/porta-ias.module.js';
 import { PerguntasChefiaModule } from './modules/perguntas-chefia/perguntas-chefia.module.js';
+import { ConcelhoModule } from './modules/concelho/concelho.module.js';
 import { ProcedimentosModule } from './modules/procedimentos/procedimentos.module.js';
 import { ProcessosModule } from './modules/processos/processos.module.js';
 import { RelatoriosModule } from './modules/relatorios/relatorios.module.js';
@@ -120,6 +121,7 @@ import { EntregasModule } from './modules/entregas/entregas.module.js';
     PainelModule,
     RelatoriosModule,
     PerguntasChefiaModule,
+    ConcelhoModule,
     ChamadasSaidaModule,
     DocsModule,
     SmsEntradaModule,
