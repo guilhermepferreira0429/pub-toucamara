@@ -1287,6 +1287,72 @@
     },
     {
       "type": "webhook",
+      "name": "o_que_visitar",
+      "description": "Sugere um roteiro de visita ao concelho para um turista ou visitante: com o tempo que tem, o que gosta e se tem mobilidade reduzida, devolve os sítios por ordem a pé, os eventos dos próximos dias e um link com o mapa. Usa quando a pessoa pergunta o que visitar, o que ver em X horas ou por onde começar. Para perguntas sobre um sítio concreto (o que é, como chegar) usa procurar_conhecimento. Responde na língua da pessoa, diz que os tempos são estimativas e que horários e preços se confirmam no local ou no site oficial; não inventes horários nem preços.",
+      "response_timeout_secs": 20,
+      "tool_error_handling_mode": "passthrough",
+      "api_schema": {
+        "url": "${API_URL}/v1/agent/tools/o_que_visitar",
+        "method": "POST",
+        "content_type": "application/json",
+        "request_headers": {
+          "X-Agente-Segredo": {
+            "secret_id": "${SEGREDO:toucamara_agente_segredo}"
+          },
+          "X-Municipio": "${MUNICIPIO}",
+          "X-Conversa-Id": {
+            "variable_name": "system__conversation_id"
+          },
+          "X-Telefone": {
+            "variable_name": "system__caller_id"
+          },
+          "X-Telefone-Web": {
+            "variable_name": "telefone"
+          }
+        },
+        "request_body_schema": {
+          "type": "object",
+          "properties": {
+            "minutos": {
+              "type": "integer",
+              "description": "Tempo que a pessoa tem, em minutos (2 horas = 120, meio dia = 240, o dia todo = 420). Se não disser, não perguntes: usa 180."
+            },
+            "interesses": {
+              "type": "array",
+              "description": "O que a pessoa gosta: historia, museus, natureza, gastronomia, eventos. Vazio = um pouco de tudo.",
+              "items": {
+                "type": "string",
+                "description": "Um elemento de interesses.",
+                "enum": [
+                  "historia",
+                  "museus",
+                  "natureza",
+                  "gastronomia",
+                  "eventos"
+                ]
+              }
+            },
+            "mobilidade_reduzida": {
+              "type": "boolean",
+              "description": "true se a pessoa disser que anda com dificuldade, em cadeira de rodas ou com carrinho de bebé."
+            },
+            "lingua": {
+              "type": "string",
+              "description": "A língua da conversa (pt, en, es, fr): os nomes e o link vêm nessa língua.",
+              "enum": [
+                "pt",
+                "en",
+                "es",
+                "fr"
+              ]
+            }
+          },
+          "description": "Parâmetros de o_que_visitar."
+        }
+      }
+    },
+    {
+      "type": "webhook",
       "name": "obrigacoes_da_empresa",
       "description": "Diz as próximas obrigações da empresa da pessoa identificada: renovações e fim das licenças que já tem (com a validade real) e as taxas, e manda por SMS o calendário para pôr no telemóvel. Usa quando perguntarem \"quando tenho de renovar?\" ou \"que prazos tenho?\". Se vier precisa_identificacao, segue a instrução. Para renovar uma licença, usa renovar_licenca.",
       "response_timeout_secs": 20,

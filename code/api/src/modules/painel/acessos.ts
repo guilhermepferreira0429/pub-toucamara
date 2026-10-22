@@ -184,6 +184,8 @@ const VERBOS: Record<string, string> = {
   correr_antecipacoes: 'correu agora a verificação',
   alertar_prazo_camara: 'alertou a chefia do prazo da câmara em',
   abrir_audiencia_previa: 'abriu a audiência prévia em',
+  carregar_turismo_demonstracao:
+    'carregou as fontes de turismo de demonstração',
 };
 
 const OBJETOS: Record<string, string> = {
@@ -248,6 +250,7 @@ const OBJETOS: Record<string, string> = {
   glossario: 'do glossário',
   analise_concelho: 'uma análise do que sentem os munícipes',
   antecipacao_config: 'das antecipações',
+  turismo: 'do turismo',
 };
 
 export function frase(acao: string, objetoTipo: string): string {

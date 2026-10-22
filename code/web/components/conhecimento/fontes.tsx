@@ -8,6 +8,7 @@ import {
   FileQuestion,
   FileText,
   Globe,
+  Landmark,
   Map as IconeMapa,
   Phone,
   Plus,
@@ -21,6 +22,7 @@ import {
 import Link from "next/link";
 import { useState } from "react";
 import { Botao } from "@/components/ui/botao";
+import { PainelTurismo } from "@/components/turismo/painel-turismo";
 import { useSessao } from "@/lib/sessao";
 import {
   Campo,
@@ -45,6 +47,7 @@ const TIPOS: Record<string, { rotulo: string; icone: LucideIcon }> = {
   formulario: { rotulo: "Formulário", icone: FileText },
   plano: { rotulo: "Plano", icone: IconeMapa },
   contactos: { rotulo: "Contactos", icone: Phone },
+  turismo: { rotulo: "Turismo", icone: Landmark },
 };
 
 const ESTADOS: Record<EstadoFonte, { rotulo: string; tom: "verde" | "ambar" | "terracota"; icone: LucideIcon; borda: string }> = {
@@ -246,6 +249,7 @@ export function Fontes() {
       </section>
       {aviso && <p className="rounded-xl bg-verde-suave px-3 py-2 text-[13px] text-verde">{aviso}</p>}
       <ErroLinha erro={ler.erro} />
+      <PainelTurismo aoCarregar={fontes.recarregar} />
 
       <div className="flex flex-wrap gap-1.5" role="group" aria-label="Filtrar fontes">
         {(["", "mudou", "erro", "em_dia"] as const).map((e) => (
@@ -294,6 +298,12 @@ export function Fontes() {
                         : `${f.entidade} · lida ${quando(f.ultima_leitura_em)}`}
                   </p>
                   {!f.leitura_automatica && <p className="text-xs text-tinta-3">Leitura manual (texto colado)</p>}
+                  {(f.demonstracao || (f.lingua && f.lingua !== "pt")) && (
+                    <span className="flex flex-wrap gap-1.5">
+                      {f.lingua && f.lingua !== "pt" && <Pilula tom="neutro">{f.lingua.toUpperCase()}</Pilula>}
+                      {f.demonstracao && <Pilula tom="ambar">valores de demonstração</Pilula>}
+                    </span>
+                  )}
                 </div>
                 <div className="mt-auto flex flex-wrap items-center justify-between gap-2 border-t border-linha pt-2.5">
                   <span className="text-xs font-semibold text-tinta">

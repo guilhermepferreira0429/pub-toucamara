@@ -51,6 +51,7 @@ import { OcorrenciasService } from '../ocorrencias/ocorrencias.service.js';
 import { OrdenamentoService } from '../ordenamento/ordenamento.service.js';
 import { PagamentosService } from '../pagamentos/pagamentos.service.js';
 import { ProcessosDemonstracaoService } from '../processos/processos-demonstracao.service.js';
+import { TurismoService } from '../turismo/turismo.service.js';
 import {
   CONVERSAS,
   ConversaDemo,
@@ -182,6 +183,11 @@ export function passosDemo(): Passo[] {
       rotulo:
         'Antecipações: pedido a acabar, prazo da câmara a acabar, obra perto de caducar',
       chaves: PROCESSOS_ANTECIPACAO.map((p) => p.chave),
+    },
+    {
+      passo: 'turismo',
+      rotulo: 'Fontes de turismo em PT/EN/ES/FR (página /visitar)',
+      chaves: ['turismo'],
     },
     {
       passo: 'balcao',
@@ -525,6 +531,7 @@ export class DemoService {
       ['licencas', () => this.licencas(ctx)],
       ['agora', () => this.agora(ctx)],
       ['linguagem_simples', () => this.linguagemSimples(ctx)],
+      ['turismo', () => this.turismo(ctx)],
       ['balcao', () => this.balcao(ctx)],
       ['antecipacoes', () => this.antecipacoes(ctx)],
     ];
@@ -1534,6 +1541,15 @@ export class DemoService {
     await this.umaVez(c.m, 'glossario', 'glossario', async () => {
       const r = await this.svc(GlossarioService).carregarDemonstracao(c.m, c.u);
       if (r.novos) c.contar('glossario');
+      return c.m.id;
+    });
+  }
+
+  /** Fontes de turismo de demonstração (o mesmo de POST /painel/turismo/demonstracao). */
+  private async turismo(c: Preparacao) {
+    await this.umaVez(c.m, 'turismo', 'turismo', async () => {
+      const r = await this.svc(TurismoService).carregarDemonstracao(c.m, c.u);
+      if (r.criadas) c.contar('turismo');
       return c.m.id;
     });
   }
