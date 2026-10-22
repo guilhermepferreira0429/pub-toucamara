@@ -1,0 +1,103 @@
+-- Seed de Guimarães · fontes do conhecimento (só páginas HTML: os PDF não se
+-- leem sozinhos, colam-se pelo painel). Verificadas a 22 out. 2026.
+-- Depois de carregar: env/prod/docker/ler-fontes.sh (lê, parte em trechos e
+-- calcula os vetores). A leitura noturna das 03:00 mantém-nas em dia.
+--
+-- As tabelas de taxas e o IMI (PDF) estão no 04_taxas_imi.sql, com o texto
+-- tirado à mão. Fica de fora o Regulamento de Ocupação do Espaço Público e
+-- Publicidade (PDF): para o pôr, criar a fonte no painel e colar o texto.
+BEGIN;
+INSERT INTO fontes (id, municipio_id, entidade_id, titulo, tipo, url, ler_a_cada) VALUES
+ -- Câmara
+ ('f1000000-0000-4000-8000-000000000001','a1000000-0000-4000-8000-000000000001','e1000000-0000-4000-8000-000000000001',
+  'Fiscalização · perguntas frequentes (obras, licenças, muros, denúncias)','pagina',
+  'https://www.cm-guimaraes.pt/areas-de-intervencao/protecao-e-seguranca/fiscalizacao/perguntas-frequentes','1 day'),
+ ('f1000000-0000-4000-8000-000000000002','a1000000-0000-4000-8000-000000000001','e1000000-0000-4000-8000-000000000001',
+  'Urbanismo Digital · submeter processos de obras online','pagina',
+  'https://www.cm-guimaraes.pt/areas-de-intervencao/ambiente-e-sustentabilidade/urbanismo/urbanismo-digital','1 day'),
+ ('f1000000-0000-4000-8000-000000000003','a1000000-0000-4000-8000-000000000001','e1000000-0000-4000-8000-000000000001',
+  'Atendimento técnico do urbanismo · horários e marcação','contactos',
+  'https://www.cm-guimaraes.pt/balcao-virtual/horarios-de-atendimento/poi-92/atendimento-tecnico-do-urbanismo','1 day'),
+ ('f1000000-0000-4000-8000-000000000004','a1000000-0000-4000-8000-000000000001','e1000000-0000-4000-8000-000000000001',
+  'Balcão Único de Atendimento · horário','contactos',
+  'https://www.cm-guimaraes.pt/balcao-virtual/horarios-de-atendimento/poi-92/balcao-unico-de-atendimento','1 day'),
+ ('f1000000-0000-4000-8000-000000000005','a1000000-0000-4000-8000-000000000001','e1000000-0000-4000-8000-000000000001',
+  'Contactos da autarquia','contactos',
+  'https://www.cm-guimaraes.pt/ficha-tecnica/declaracao-de-acessibilidade-e-usabilidade/contactos-da-autarquia','1 day'),
+ ('f1000000-0000-4000-8000-000000000006','a1000000-0000-4000-8000-000000000001','e1000000-0000-4000-8000-000000000001',
+  'Estacionamento · zonas tarifadas e autorização de residente','pagina',
+  'https://www.cm-guimaraes.pt/areas-de-intervencao/ambiente-e-sustentabilidade/mobilidade-e-transportes/estacionamento','1 day'),
+ ('f1000000-0000-4000-8000-000000000007','a1000000-0000-4000-8000-000000000001','e1000000-0000-4000-8000-000000000001',
+  'Resíduos volumosos (monstros)','pagina',
+  'https://www.cm-guimaraes.pt/areas-de-intervencao/ambiente-e-sustentabilidade/ambiente/ambiente-e-sustentabilidade/economia-circular-e-gestao-de-residuos/gestao-de-residuos/residuos-volumosos','1 day'),
+ ('f1000000-0000-4000-8000-000000000008','a1000000-0000-4000-8000-000000000001','e1000000-0000-4000-8000-000000000001',
+  'Ecocentros','pagina',
+  'https://www.cm-guimaraes.pt/areas-de-intervencao/ambiente-e-sustentabilidade/ambiente/ambiente-e-sustentabilidade/economia-circular-e-gestao-de-residuos/gestao-de-residuos/ecocentros','1 day'),
+ ('f1000000-0000-4000-8000-000000000009','a1000000-0000-4000-8000-000000000001','e1000000-0000-4000-8000-000000000001',
+  'Centro de Recolha Oficial de Animais de Companhia','pagina',
+  'https://www.cm-guimaraes.pt/areas-de-intervencao/ambiente-e-sustentabilidade/ambiente/bem-estar-animal/centro-de-recolha-oficial-de-animais-de-companhia','1 day'),
+ ('f1000000-0000-4000-8000-00000000000a','a1000000-0000-4000-8000-000000000001','e1000000-0000-4000-8000-000000000001',
+  'Gestão de cemitérios','pagina',
+  'https://www.cm-guimaraes.pt/areas-de-intervencao/ambiente-e-sustentabilidade/ambiente/servicos-urbanos/gestao-de-cemiterios','1 day'),
+ ('f1000000-0000-4000-8000-00000000000b','a1000000-0000-4000-8000-000000000001','e1000000-0000-4000-8000-000000000001',
+  'Registar ocorrências','pagina',
+  'https://www.cm-guimaraes.pt/registar-ocorrencias','1 day'),
+ ('f1000000-0000-4000-8000-00000000000c','a1000000-0000-4000-8000-000000000001','e1000000-0000-4000-8000-000000000001',
+  'Ocupação de espaço público','pagina',
+  'https://www.cm-guimaraes.pt/areas-de-intervencao/ambiente-e-sustentabilidade/ambiente/servicos-urbanos/ocupacao-de-espaco-publico','1 day'),
+ ('f1000000-0000-4000-8000-00000000000d','a1000000-0000-4000-8000-000000000001','e1000000-0000-4000-8000-000000000001',
+  'Tarifa social da água','pagina',
+  'https://www.cm-guimaraes.pt/areas-de-intervencao/acao-social-e-comunidade/acao-social-integrada/outros-apoios-sociais/tarifa-social-para-a-prestacao-dos-servicos-de-aguas','1 day'),
+ -- Vimágua
+ ('f1000000-0000-4000-8000-000000000021','a1000000-0000-4000-8000-000000000001','e1000000-0000-4000-8000-000000000002',
+  'Vimágua · contactos (faltas de água, Linha Ambiente, leituras)','contactos',
+  'https://www.vimagua.pt/s/50','1 day'),
+ ('f1000000-0000-4000-8000-000000000022','a1000000-0000-4000-8000-000000000001','e1000000-0000-4000-8000-000000000002',
+  'Vimágua · como contratar','pagina',
+  'https://www.vimagua.pt/s/14','1 day'),
+ ('f1000000-0000-4000-8000-000000000023','a1000000-0000-4000-8000-000000000001','e1000000-0000-4000-8000-000000000002',
+  'Vimágua · tarifários especiais (tarifa social)','tabela',
+  'https://www.vimagua.pt/s/126','1 day'),
+ ('f1000000-0000-4000-8000-000000000024','a1000000-0000-4000-8000-000000000001','e1000000-0000-4000-8000-000000000002',
+  'Vimágua · leituras do contador','pagina',
+  'https://www.vimagua.pt/s/18','1 day'),
+ ('f1000000-0000-4000-8000-000000000025','a1000000-0000-4000-8000-000000000001','e1000000-0000-4000-8000-000000000002',
+  'Vimágua · tarifário em vigor','tabela',
+  'https://www.vimagua.pt/s/127','1 day'),
+ -- Vitrus
+ ('f1000000-0000-4000-8000-000000000031','a1000000-0000-4000-8000-000000000001','e1000000-0000-4000-8000-000000000003',
+  'Vitrus · recolha de monstros','pagina',
+  'https://vitrusambiente.pt/monstros','1 day'),
+ ('f1000000-0000-4000-8000-000000000032','a1000000-0000-4000-8000-000000000001','e1000000-0000-4000-8000-000000000003',
+  'Vitrus · recolha de resíduos','pagina',
+  'https://vitrusambiente.pt/recolha-residuos','1 day'),
+ ('f1000000-0000-4000-8000-000000000033','a1000000-0000-4000-8000-000000000001','e1000000-0000-4000-8000-000000000003',
+  'Vitrus · fiscalização do estacionamento','pagina',
+  'https://vitrusambiente.pt/fiscalizacao','1 day'),
+ ('f1000000-0000-4000-8000-000000000034','a1000000-0000-4000-8000-000000000001','e1000000-0000-4000-8000-000000000003',
+  'Vitrus · parques de estacionamento','pagina',
+  'https://vitrusambiente.pt/parques','1 day'),
+ -- Tempo Livre, CASFIG, Espaço Cidadão
+ ('f1000000-0000-4000-8000-000000000041','a1000000-0000-4000-8000-000000000001','e1000000-0000-4000-8000-000000000004',
+  'Tempo Livre · Complexo Municipal de Piscinas','pagina',
+  'https://tempolivre.pt/instalacao/complexo-municipal-de-piscinas/','1 day'),
+ ('f1000000-0000-4000-8000-000000000042','a1000000-0000-4000-8000-000000000001','e1000000-0000-4000-8000-000000000004',
+  'Tempo Livre · contactos','contactos',
+  'https://tempolivre.pt/contactos/','1 day'),
+ ('f1000000-0000-4000-8000-000000000051','a1000000-0000-4000-8000-000000000001','e1000000-0000-4000-8000-000000000005',
+  'CASFIG · habitação social','pagina',
+  'https://www.casfig.pt/habitacao-social/','1 day'),
+ ('f1000000-0000-4000-8000-000000000052','a1000000-0000-4000-8000-000000000001','e1000000-0000-4000-8000-000000000005',
+  'CASFIG · contactos','contactos',
+  'https://www.casfig.pt/contactos/','1 day'),
+ ('f1000000-0000-4000-8000-000000000091','a1000000-0000-4000-8000-000000000001','e1000000-0000-4000-8000-000000000009',
+  'Espaço Cidadão de Guimarães','contactos',
+  'https://www.gov.pt/locais-de-atendimento/espaco-cidadao-de-guimaraes','7 days'),
+ -- Lei nacional: RJUE consolidado (isenções no art. 6.º, comunicação prévia no art. 4.º)
+ ('f1000000-0000-4000-8000-0000000000a1','a1000000-0000-4000-8000-000000000001','e1000000-0000-4000-8000-000000000001',
+  'RJUE · Regime Jurídico da Urbanização e Edificação (DL 555/99, versão consolidada)','lei',
+  'https://www.pgdlisboa.pt/leis/lei_mostra_articulado.php?nid=625&tabela=leis','7 days')
+ON CONFLICT (id) DO UPDATE SET
+  entidade_id = EXCLUDED.entidade_id, titulo = EXCLUDED.titulo, tipo = EXCLUDED.tipo,
+  url = EXCLUDED.url, ler_a_cada = EXCLUDED.ler_a_cada;
+COMMIT;

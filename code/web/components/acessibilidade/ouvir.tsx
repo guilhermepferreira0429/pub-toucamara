@@ -18,15 +18,35 @@ function temVoz() {
   return typeof window !== "undefined" && "speechSynthesis" in window && "SpeechSynthesisUtterance" in window;
 }
 
-/** A melhor voz portuguesa que houver (pt-PT, depois qualquer pt). */
+/*
+ * A melhor voz portuguesa do aparelho. As vozes "naturais" (Edge: "Microsoft
+ * … Online (Natural)"; Chrome: "Google português"; Safari: "Premium"/"Enhanced")
+ * soam muito melhor do que as do sistema. Primeiro a variante (pt-PT ganha
+ * sempre a pt-BR: é a câmara de Guimarães a falar), depois a mais natural.
+ */
+const NATURAL = /natural|neural|online|premium|enhanced|melhorad|google/i;
+
+export function pontuarVoz(v: Pick<SpeechSynthesisVoice, "lang" | "name" | "localService">): number {
+  const lang = v.lang.toLowerCase().replace("_", "-");
+  if (!lang.startsWith("pt")) return -1;
+  let p = lang.startsWith("pt-pt") ? 60 : 10;
+  if (NATURAL.test(v.name)) p += 30;
+  else if (!v.localService) p += 15;
+  if (/compact|eloquence|espeak/i.test(v.name)) p -= 15;
+  return p;
+}
+
 function escolherVoz(): SpeechSynthesisVoice | null {
-  const vozes = window.speechSynthesis.getVoices();
-  return (
-    vozes.find((v) => v.lang.toLowerCase() === "pt-pt") ??
-    vozes.find((v) => v.lang.toLowerCase().startsWith("pt-pt")) ??
-    vozes.find((v) => v.lang.toLowerCase().startsWith("pt")) ??
-    null
-  );
+  let melhor: SpeechSynthesisVoice | null = null;
+  let max = -1;
+  for (const v of window.speechSynthesis.getVoices()) {
+    const p = pontuarVoz(v);
+    if (p > max) {
+      max = p;
+      melhor = v;
+    }
+  }
+  return melhor;
 }
 
 /** Texto visível do conteúdo, sem o que está marcado para não ler. */
@@ -76,6 +96,8 @@ export function OuvirPagina() {
   useEffect(() => {
     if (!suportado) return;
     const parar = () => window.speechSynthesis.cancel();
+    // O Chrome só carrega a lista de vozes depois de a pedirem uma vez.
+    window.speechSynthesis.getVoices();
     window.addEventListener("pagehide", parar);
     return () => {
       window.removeEventListener("pagehide", parar);

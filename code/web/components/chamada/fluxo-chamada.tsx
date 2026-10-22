@@ -171,12 +171,19 @@ function Fluxo() {
     telefoneRef.current = !semSms && digitos ? `+351${digitos}` : null;
     conversa.startSession({
       agentId: AGENTE_ID,
+      // WebSocket e não WebRTC: o agente só aceita ligações do nosso domínio
+      // (allowlist) e a ligação WebRTC não leva o cabeçalho Origin, por isso
+      // era recusada logo ("Client did not provide the origin header").
+      connectionType: "websocket",
       useWakeLock: true,
       dynamicVariables: {
         municipio: MUNICIPIO,
         canal: "browser",
         telefone: !semSms && digitos ? `+351${digitos}` : "",
         quer_sms: semSms ? "nao" : "sim",
+        // A gravação já foi aceite no ecrã antes da chamada: a primeira
+        // mensagem não repete o aviso (ao telefone é dito por extenso).
+        aviso_gravacao: "",
       },
     });
   };

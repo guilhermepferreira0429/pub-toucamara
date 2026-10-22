@@ -69,6 +69,7 @@ async function dadosMunicipio(
     voz_id: null,
     voz_nome: null,
     ritmo: null,
+    modelo_voz: null,
     elevenlabs_agent_id: null,
     elevenlabs_agent_id_saida: null,
     fuso: null,
@@ -78,7 +79,8 @@ async function dadosMunicipio(
       `SELECT m.nome, m.fuso, a.nome AS nome_agente, a.saudacao, a.trata_por, a.idiomas,
               a.voz_id, a.voz_nome, a.ritmo, a.elevenlabs_agent_id,
               -- (por jsonb: a BD pode ainda não ter a migração 0082)
-              to_jsonb(a) ->> 'elevenlabs_agent_id_saida' AS elevenlabs_agent_id_saida
+              to_jsonb(a) ->> 'elevenlabs_agent_id_saida' AS elevenlabs_agent_id_saida,
+              to_jsonb(a) ->> 'modelo_voz' AS modelo_voz
        FROM municipios m LEFT JOIN agente_config a ON a.municipio_id = m.id
        WHERE m.slug = $1`,
       [slug],

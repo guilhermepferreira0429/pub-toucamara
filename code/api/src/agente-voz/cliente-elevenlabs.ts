@@ -111,6 +111,48 @@ export class ClienteElevenLabs {
     return this.pedir('GET', `/v1/convai/agents/${encodeURIComponent(id)}`);
   }
 
+  /** Os LLM que o ElevenLabs aceita em agent.prompt.llm. */
+  async llms(): Promise<string[]> {
+    const r = await this.pedir<{
+      llms?: { llm?: string; is_checkpoint?: boolean }[];
+    }>('GET', '/v1/convai/llm/list');
+    return (r.llms ?? [])
+      .filter((l) => typeof l.llm === 'string' && !l.is_checkpoint)
+      .map((l) => l.llm!);
+  }
+
+  /** Texto para voz (MP3): o exemplo de voz do painel. */
+  async falar(
+    vozId: string,
+    texto: string,
+    modelo: string,
+    velocidade: number,
+  ): Promise<Buffer> {
+    const caminho = `/v1/text-to-speech/${encodeURIComponent(vozId)}?output_format=mp3_44100_64`;
+    const r = await this.buscar(`${this.base}${caminho}`, {
+      method: 'POST',
+      headers: {
+        'xi-api-key': this.apiKey,
+        'content-type': 'application/json',
+        accept: 'audio/mpeg',
+      },
+      body: JSON.stringify({
+        text: texto,
+        model_id: modelo,
+        language_code: 'pt',
+        voice_settings: { speed: velocidade },
+      }),
+    });
+    if (!r.ok) {
+      const t = await r.text();
+      throw new ErroElevenLabs(
+        r.status,
+        `ElevenLabs POST ${caminho}: HTTP ${r.status} ${t.slice(0, 300)}`,
+      );
+    }
+    return Buffer.from(await r.arrayBuffer());
+  }
+
   atualizarAgente(id: string, corpo: Obj): Promise<AgenteRemoto> {
     return this.pedir(
       'PATCH',

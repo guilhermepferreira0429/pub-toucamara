@@ -2,6 +2,11 @@ import { HttpStatus, Injectable } from '@nestjs/common';
 import { ErroApi } from '../../common/erros.js';
 import type { UtilizadorPainel } from '../../common/pedido.js';
 import { DatabaseService, Tx } from '../../database/database.service.js';
+import { SincronizacaoAgenteService } from '../../agente-voz/sincronizacao.service.js';
+import {
+  PedidoExemplo,
+  VozPainelService,
+} from '../../agente-voz/voz-painel.service.js';
 import { AuditoriaService } from '../auditoria/auditoria.service.js';
 import type { Municipio } from '../municipios/municipios.service.js';
 import { hojeNoFuso } from './periodos.js';
@@ -29,6 +34,8 @@ export interface ConfigAgente {
   voz_id?: string | null;
   voz_nome?: string | null;
   ritmo?: 'calmo' | 'normal' | 'rapido';
+  /** LLM do agente de voz no ElevenLabs; null: fica o que lá estiver. */
+  modelo_voz?: string | null;
 }
 
 export interface Pronuncia {
@@ -55,12 +62,33 @@ export class AgenteService {
   constructor(
     private readonly db: DatabaseService,
     private readonly auditoria: AuditoriaService,
+    private readonly sincronizacao: SincronizacaoAgenteService,
+    private readonly voz: VozPainelService,
   ) {}
+
+  private async agenteId(m: Municipio): Promise<string | null> {
+    const [a] = await this.db.query<{ elevenlabs_agent_id: string | null }>(
+      'SELECT elevenlabs_agent_id FROM agente_config WHERE municipio_id = $1',
+      [m.id],
+    );
+    return a?.elevenlabs_agent_id ?? null;
+  }
+
+  /** Ouvir a voz e o ritmo antes de gravar (só quem pode editar: gasta créditos). */
+  async exemploVoz(m: Municipio, u: UtilizadorPainel, p: PedidoExemplo) {
+    this.exigirEdicao(u);
+    return this.voz.exemplo(p, await this.agenteId(m));
+  }
+
+  async modelosVoz(m: Municipio) {
+    return this.voz.modelos(await this.agenteId(m));
+  }
 
   async obter(m: Municipio, u: UtilizadorPainel) {
     const [[config], pronuncias, regras] = await Promise.all([
       this.db.query(
-        `SELECT nome, voz_id, voz_nome, ritmo, saudacao, trata_por, idiomas, versao
+        `SELECT nome, voz_id, voz_nome, ritmo, saudacao, trata_por, idiomas, versao,
+                to_jsonb(agente_config) ->> 'modelo_voz' AS modelo_voz
          FROM agente_config WHERE municipio_id = $1`,
         [m.id],
       ),
@@ -90,12 +118,13 @@ export class AgenteService {
       const versao = proximaVersao(atual?.versao ?? null, hojeNoFuso(m.fuso));
       await tx.query(
         `INSERT INTO agente_config (municipio_id, nome, voz_id, saudacao, trata_por, idiomas, versao,
-                                    voz_nome, ritmo)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+                                    voz_nome, ritmo, modelo_voz)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
          ON CONFLICT (municipio_id) DO UPDATE SET
            nome = EXCLUDED.nome, voz_id = EXCLUDED.voz_id, saudacao = EXCLUDED.saudacao,
            trata_por = EXCLUDED.trata_por, idiomas = EXCLUDED.idiomas, versao = EXCLUDED.versao,
-           voz_nome = EXCLUDED.voz_nome, ritmo = EXCLUDED.ritmo`,
+           voz_nome = EXCLUDED.voz_nome, ritmo = EXCLUDED.ritmo,
+           modelo_voz = EXCLUDED.modelo_voz`,
         [
           m.id,
           c.nome,
@@ -106,6 +135,7 @@ export class AgenteService {
           versao,
           c.voz_nome ?? null,
           c.ritmo ?? 'normal',
+          c.modelo_voz ?? null,
         ],
       );
       await this.auditar(
@@ -131,11 +161,14 @@ export class AgenteService {
       );
       return versao;
     });
+    // A voz (ElevenLabs) só muda por sincronização: pede-se já, em fila.
+    await this.sincronizacao.pedir(m.slug);
     return {
       ...c,
       voz_id: c.voz_id ?? null,
       voz_nome: c.voz_nome ?? null,
       ritmo: c.ritmo ?? 'normal',
+      modelo_voz: c.modelo_voz ?? null,
       versao,
     };
   }

@@ -34,6 +34,17 @@ const esquemaConfig = z.object({
   voz_id: z.string().trim().max(100).nullish(),
   voz_nome: z.string().trim().max(80).nullish(),
   ritmo: z.enum(['calmo', 'normal', 'rapido']).default('normal'),
+  modelo_voz: z
+    .string()
+    .trim()
+    .regex(/^[a-z0-9][a-z0-9._-]{1,79}$/, 'Identificador de modelo do ElevenLabs.')
+    .nullish(),
+});
+
+const esquemaExemplo = z.object({
+  saudacao: z.string().trim().min(1).max(500),
+  voz_id: z.string().trim().max(100).nullish(),
+  ritmo: z.enum(['calmo', 'normal', 'rapido']).default('normal'),
 });
 
 const esquemaPerguntaCamara = z.object({
@@ -94,6 +105,21 @@ export class AgenteController {
     @Ip() ip: string,
   ) {
     return this.agente.gravarConfig(m, u, validar(esquemaConfig, body), ip);
+  }
+
+  @Get('modelos')
+  modelos(@MunicipioAtual() m: Municipio) {
+    return this.agente.modelosVoz(m);
+  }
+
+  @Post('exemplo-voz')
+  @HttpCode(200)
+  exemploVoz(
+    @MunicipioAtual() m: Municipio,
+    @UtilizadorAtual() u: UtilizadorPainel,
+    @Body() body: unknown,
+  ) {
+    return this.agente.exemploVoz(m, u, validar(esquemaExemplo, body));
   }
 
   @Get('pronuncias')

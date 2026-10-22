@@ -15,12 +15,15 @@ export type TipoEntrada = 'query' | 'document';
 const VOYAGE_URL = 'https://api.voyageai.com/v1/embeddings';
 const MODELO_VOYAGE = 'voyage-3.5';
 const MODELO_OLLAMA = 'bge-m3';
-/** Textos por pedido ao fornecedor (a Voyage aceita até 1000). */
-const LOTE = 64;
+/**
+ * Textos por pedido ao fornecedor (a Voyage aceita até 1000). O Ollama em CPU
+ * é lento com lotes grandes: em produção EMBEDDINGS_LOTE=8.
+ */
+const LOTE = Number(process.env.EMBEDDINGS_LOTE) || 64;
 /** Pesquisa durante a chamada: se não vier a tempo, segue só com texto. */
 export const TIMEOUT_PERGUNTA_MS = 250;
-/** Ingestão e reindexação: fora da chamada, pode esperar mais. */
-const TIMEOUT_LOTE_MS = 30_000;
+/** Ingestão e reindexação: fora da chamada, pode esperar mais (EMBEDDINGS_TIMEOUT_LOTE_MS). */
+const TIMEOUT_LOTE_MS = Number(process.env.EMBEDDINGS_TIMEOUT_LOTE_MS) || 30_000;
 
 /**
  * Embeddings para a pesquisa híbrida (decisão 6 do plano): Voyage AI ou
