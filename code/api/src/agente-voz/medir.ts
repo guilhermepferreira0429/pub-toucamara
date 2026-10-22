@@ -58,9 +58,11 @@ export function medir(ferramentas: FerramentaEl[], prompt = ''): Peso {
 /**
  * Os limites (tokens das ferramentas) que o teste de alinhamento verifica.
  * Antes da divisão em dois agentes eram ~15,4 mil num só agente: subir isto
- * é uma decisão, não um acidente.
+ * é uma decisão, não um acidente. 8 500 → 8 800 (out.): o catálogo de
+ * serviços (outros_servicos + pedir_servico, ~350 tokens) leva as áreas da
+ * V4 inteiras, que soltas seriam mais umas 20 ferramentas.
  */
-export const LIMITE_TOKENS = { entrada: 8_500, saida: 3_000 } as const;
+export const LIMITE_TOKENS = { entrada: 8_800, saida: 3_000 } as const;
 
 /** Uma tabela curta para a consola. */
 export function tabelaPeso(titulo: string, p: Peso, linhas = 8): string {

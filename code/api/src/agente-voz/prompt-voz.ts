@@ -173,6 +173,19 @@ export const GRUPOS_FERRAMENTAS: {
     ],
   },
   {
+    titulo: 'Outros serviços da câmara (um catálogo, duas ferramentas)',
+    itens: [
+      [
+        'outros_servicos',
+        'escolas, reservas de pavilhões e piscinas, estacionamento e multas, habitação municipal, cemitérios, animais, água (Vimágua): primeiro sem área, depois com a área para os campos',
+      ],
+      [
+        'pedir_servico',
+        'depois de perguntar os campos da ação (e, se altera, de ler os dados de volta)',
+      ],
+    ],
+  },
+  {
     titulo: 'Pessoas e urgências',
     itens: [
       [
