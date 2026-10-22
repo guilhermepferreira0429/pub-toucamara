@@ -52,6 +52,12 @@ export const iaConfig = registerAs('ia', () => ({
   limiteMensalEur: process.env.IA_LIMITE_MENSAL_EUR
     ? Number(process.env.IA_LIMITE_MENSAL_EUR)
     : null,
+  // Página pública da avaliação: nomes a tapar nas respostas do outro
+  // assistente, além do nome do sistema (ex.: a marca do fornecedor).
+  avaliacaoTapar: (process.env.AVALIACAO_TAPAR || '')
+    .split(',')
+    .map((n) => n.trim())
+    .filter((n) => n.length >= 3),
 }));
 
 export const embeddingsConfig = registerAs('embeddings', () => ({

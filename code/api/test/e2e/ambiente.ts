@@ -58,6 +58,7 @@ Object.assign(process.env, {
   JURI_CHAVE: JURI_CHAVE,
   JURI_ATE: '2099-12-31T23:59:59Z',
   JURI_MUNICIPIO: 'teste',
+  AVALIACAO_TAPAR: 'Acme, x',
   JOBS_WORKERS: 'true',
   // Recolha das fontes: sem a pausa de 2 s entre pedidos ao mesmo site.
   RECOLHA_INTERVALO_MS: '0',

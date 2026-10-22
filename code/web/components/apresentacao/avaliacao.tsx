@@ -108,6 +108,11 @@ function Pilula({ v }: { v: Veredicto | null }) {
   );
 }
 
+/** "A assistente do site…" a meio de uma frase: só a primeira letra muda (os nomes próprios ficam). */
+function minusculaInicial(s: string): string {
+  return s.charAt(0).toLowerCase() + s.slice(1);
+}
+
 function Barra({ rotulo, taxa, cor }: { rotulo: string; taxa: number | null; cor: string }) {
   return (
     <div className="flex items-center gap-3">
@@ -159,7 +164,7 @@ function CartaoPergunta({ p, outroNome, comOutro }: { p: Pergunta; outroNome: st
               <Pilula v={p.veredicto} />
               {comOutro && p.outro && (
                 <>
-                  <span className="text-[13px] text-tinta-3">{outroNome}</span>
+                  <span className="text-[13px] text-tinta-3">Assistente do site</span>
                   <Pilula v={p.outro.veredicto} />
                 </>
               )}
@@ -195,7 +200,7 @@ function CartaoPergunta({ p, outroNome, comOutro }: { p: Pergunta; outroNome: st
               )}
             </Bloco>
             {comOutro && p.outro && (
-              <Bloco titulo={`Resposta da ${outroNome.toLowerCase().replace(/^a /, "")}`} tom="bg-creme-2/70">
+              <Bloco titulo={`Resposta d${minusculaInicial(outroNome)}`} tom="bg-creme-2/70">
                 <Texto t={p.outro.resposta} />
                 {p.outro.justificacao && (
                   <p className="border-t border-linha pt-2 text-[14px] leading-relaxed text-tinta-2">
@@ -353,14 +358,16 @@ export function PaginaAvaliacao() {
                     {d.comparacao ? (
                       <div className="flex flex-col gap-3">
                         <p className="text-[15px] font-semibold text-tinta">
-                          Nas mesmas {d.comparacao.perguntas} perguntas, com o mesmo juiz:
+                          Nas mesmas {d.comparacao.perguntas} perguntas, com o mesmo juiz, o Tou, Câmara? e{" "}
+                          {minusculaInicial(d.outro_nome)}:
                         </p>
                         <Barra rotulo="Tou, Câmara?" taxa={d.comparacao.nosso.taxa} cor="bg-verde" />
-                        <Barra rotulo={d.outro_nome} taxa={d.comparacao.outro.taxa} cor="bg-tinta-3" />
+                        <Barra rotulo="Assistente do site" taxa={d.comparacao.outro.taxa} cor="bg-tinta-3" />
                       </div>
                     ) : (
                       <p className="text-[15px] leading-relaxed text-tinta-2">
-                        A comparação com a assistente do site aparece aqui quando as mesmas perguntas lhe forem feitas.
+                        A comparação com {minusculaInicial(d.outro_nome)} aparece aqui quando as mesmas perguntas lhe
+                        forem feitas.
                       </p>
                     )}
                     {d.categorias.length > 0 && (

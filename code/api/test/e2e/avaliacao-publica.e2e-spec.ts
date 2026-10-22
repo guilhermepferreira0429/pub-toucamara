@@ -58,7 +58,8 @@ describe('Avaliação pública (e2e)', () => {
     expect(r.body).toMatchObject({
       municipio: { slug, nome: 'Avaliação Pública' },
       limiar: 80,
-      outro_nome: 'A assistente do site',
+      outro_nome:
+        'A assistente do site da Câmara Municipal de Avaliação Pública',
       nosso: null,
       outro: null,
       comparacao: null,
@@ -119,7 +120,7 @@ describe('Avaliação pública (e2e)', () => {
     // O outro só foi avaliado em duas: a comparação conta essas duas.
     const execOutro = await execucao(outro!.id, conjunto!.id, [
       [perguntas[0], 'Olá, sou a Bia! Contacte a câmara por email.', 'errada'],
-      [perguntas[1], 'A BIA não sabe. Ligue para a câmara.', 'errada'],
+      [perguntas[1], 'A BIA não sabe. Ligue para a câmara. (Acme)', 'errada'],
       [perguntas[2], 'Sem resposta da Bianca.', null],
     ]);
 
@@ -162,8 +163,11 @@ describe('Avaliação pública (e2e)', () => {
           'Veredicto sobre: Olá, sou a [nome]! Contacte a câmara por email.',
       },
     });
-    // O nome sai em qualquer caixa, mas só a palavra inteira.
-    expect(p2.outro.resposta).toBe('A [nome] não sabe. Ligue para a câmara.');
+    // O nome sai em qualquer caixa, mas só a palavra inteira; e também os de
+    // AVALIACAO_TAPAR (a marca do fornecedor).
+    expect(p2.outro.resposta).toBe(
+      'A [nome] não sabe. Ligue para a câmara. ([nome])',
+    );
     expect(p3.outro).toMatchObject({
       resposta: 'Sem resposta da Bianca.',
       veredicto: null,

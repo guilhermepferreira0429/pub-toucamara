@@ -1,4 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
+import { ConfigService, type ConfigType } from '@nestjs/config';
+import type { iaConfig } from '../../config/configuration.js';
 import { DatabaseService, Tx } from '../../database/database.service.js';
 import {
   decidirPublicacao,
@@ -62,7 +64,9 @@ const COLUNAS_RESULTADO = `r.total, r.certas, r.passadas_bem, r.erradas, r.sem_r
 const SO_MEDIDOS = `NOT coalesce((s.config->>'demonstracao')::boolean, false)`;
 
 /** Como a página pública chama o assistente atual do município (nunca pelo nome). */
-export const NOME_OUTRO_PUBLICO = 'A assistente do site';
+export function nomeOutroPublico(municipio: string): string {
+  return `A assistente do site da Câmara Municipal de ${municipio}`;
+}
 
 /** Totais de uma execução para a página pública (sem ids nem nomes de sistemas). */
 export interface ResumoPublico {
@@ -105,7 +109,16 @@ export interface PerguntaPublica {
  */
 @Injectable()
 export class AvaliacaoService {
-  constructor(private readonly db: DatabaseService) {}
+  /** Nomes a tapar sempre nas respostas do outro assistente (`AVALIACAO_TAPAR`). */
+  private readonly taparSempre: string[];
+
+  constructor(
+    private readonly db: DatabaseService,
+    @Optional() config?: ConfigService,
+  ) {
+    this.taparSempre =
+      config?.get<ConfigType<typeof iaConfig>>('ia')?.avaliacaoTapar ?? [];
+  }
 
   /**
    * A execução que decide a publicação: a mais recente `tou-chat`, terminada,
@@ -314,7 +327,7 @@ export class AvaliacaoService {
     const base = {
       municipio: { slug: municipio.slug, nome: municipio.nome },
       limiar: LIMIAR_PUBLICACAO,
-      outro_nome: NOME_OUTRO_PUBLICO,
+      outro_nome: nomeOutroPublico(municipio.nome),
     };
     if (!nosso) {
       return {
@@ -384,7 +397,9 @@ export class AvaliacaoService {
       ),
     ]);
 
-    const tapar = outro ? nomesATapar(outro.sistema) : [];
+    const tapar = outro
+      ? [...nomesATapar(outro.sistema), ...this.taparSempre]
+      : [];
     const perguntas: PerguntaPublica[] = linhas.map(
       ({ outro_resposta, outro_veredicto, outro_justificacao, ...p }) => ({
         ...p,
