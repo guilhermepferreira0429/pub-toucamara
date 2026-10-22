@@ -131,7 +131,11 @@ export class ApoioPassagemService {
         `Pesquisa para a passagem ${id}: ${e instanceof Error ? e.message : String(e)}`,
       );
     }
-    const trechos = (pesquisa?.trechos ?? []).slice(0, 3);
+    // Regras para o funcionário: o turismo não é regra (e "porta" apanhava
+    // "Porto" nos textos dos transportes).
+    const trechos = (pesquisa?.trechos ?? [])
+      .filter((t) => t.tipo_fonte !== 'turismo')
+      .slice(0, 3);
 
     let sugerida: z.output<typeof esquemaSugestao> | null = null;
     let motivoSemIa: string | null = null;
