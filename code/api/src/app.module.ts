@@ -76,6 +76,7 @@ import { RequerimentosModule } from './modules/requerimentos/requerimentos.modul
 import { TransparenciaModule } from './modules/transparencia/transparencia.module.js';
 import { EntregasModule } from './modules/entregas/entregas.module.js';
 import { CartasModule } from './modules/cartas/cartas.module.js';
+import { PesquisaModule } from './modules/pesquisa/pesquisa.module.js';
 
 @Module({
   imports: [
@@ -157,6 +158,8 @@ import { CartasModule } from './modules/cartas/cartas.module.js';
     TransparenciaModule,
     EntregasModule,
     CartasModule,
+    // Pesquisa global do painel (⌘K)
+    PesquisaModule,
     FiscalizacaoModule,
     // Arquivo antigo digitalizado e pedidos de consulta
     ArquivoModule,
