@@ -338,9 +338,9 @@ function Lateral({
       : "Não";
 
   return (
-    <aside className="flex w-full shrink-0 flex-col gap-4 min-[1360px]:w-[300px]">
+    <div className="flex w-full shrink-0 flex-col gap-4 min-[1360px]:w-[300px]">
       <section className="flex flex-col gap-2.5 rounded-[16px_16px_16px_4px] bg-terracota p-5 text-white">
-        <h2 className="text-[11px] font-bold tracking-[1px] text-white/70">RESUMO</h2>
+        <h2 className="text-[11px] font-bold tracking-[1px] text-white/90">RESUMO</h2>
         <p className="text-sm leading-normal">
           {d.resumo ?? (d.resumida_em ? "Sem resumo." : "O resumo ainda está a ser feito.")}
         </p>
@@ -371,7 +371,7 @@ function Lateral({
                   <Link
                     key={p.id}
                     href={`/painel/passagens/${p.id}`}
-                    className="text-terracota-escuro hover:underline"
+                    className="text-terracota-escuro underline"
                   >
                     {MOTIVOS_PASSAGEM[p.motivo] ?? p.motivo}
                   </Link>
@@ -397,7 +397,7 @@ function Lateral({
           ))}
           {cr.processos.map((p) => (
             <LinhaFicha key={p.id} campo="Processo">
-              <Link href={`/painel/processos/${p.id}`} className="text-terracota-escuro hover:underline">
+              <Link href={`/painel/processos/${p.id}`} className="text-terracota-escuro underline">
                 {p.numero}
               </Link>{" "}
               · {p.assunto} <span className="text-tinta-3">({FASES[p.fase] ?? p.fase})</span>
@@ -405,7 +405,7 @@ function Lateral({
           ))}
           {cr.ocorrencias.map((o) => (
             <LinhaFicha key={o.id} campo="Ocorrência">
-              <Link href={`/painel/ocorrencias/${o.id}`} className="text-terracota-escuro hover:underline">
+              <Link href={`/painel/ocorrencias/${o.id}`} className="text-terracota-escuro underline">
                 {o.numero}
               </Link>{" "}
               · {o.categoria}, {o.morada}
@@ -480,7 +480,7 @@ function Lateral({
           </ul>
         </section>
       )}
-    </aside>
+    </div>
   );
 }
 

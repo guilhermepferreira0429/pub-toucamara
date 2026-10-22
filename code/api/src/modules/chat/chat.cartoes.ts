@@ -20,7 +20,10 @@ export type TipoCartao =
   | 'consulta'
   | 'reclamacao'
   | 'agora'
-  | 'empresa';
+  | 'empresa'
+  | 'entrega'
+  | 'documento'
+  | 'termo';
 
 export interface FonteCartao {
   titulo: string;
@@ -73,6 +76,12 @@ const POR_FERRAMENTA: Record<
   // calendário de obrigações (próximas datas, link).
   o_que_a_empresa_precisa: 'empresa',
   obrigacoes_da_empresa: 'empresa',
+  // Entregar em nome da pessoa: o resumo por confirmar ou o link/estado.
+  entregar_pedido: 'entrega',
+  // Linguagem simples: o resumo revisto com o link (resumo + texto oficial).
+  documento_simples: 'documento',
+  // Glossário: o termo e a explicação simples.
+  explicar_termo: 'termo',
 };
 
 function objeto(v: unknown): Record<string, unknown> {

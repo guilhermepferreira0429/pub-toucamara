@@ -154,7 +154,8 @@ export function MapaCalor({
   maximo: number;
 }) {
   return (
-    <figure className="flex flex-col gap-4 overflow-x-auto">
+    // tabIndex: com scroll lateral, tem de dar para o percorrer com o teclado.
+    <figure className="flex flex-col gap-4 overflow-x-auto" tabIndex={0} aria-label="Mapa de calor das chamadas por dia e hora">
       <div className="relative w-fit" aria-hidden>
         <div className="flex flex-col gap-[3px]">
           {DIAS.map((d, i) => (

@@ -49,11 +49,14 @@ import { PainelModule } from './modules/painel/painel.module.js';
 import { CampanhasModule } from './modules/campanhas/campanhas.module.js';
 import { ConsultasPublicasModule } from './modules/consultas-publicas/consultas-publicas.module.js';
 import { LicencasModule } from './modules/licencas/licencas.module.js';
+import { LinguagemSimplesModule } from './modules/linguagem-simples/linguagem-simples.module.js';
 import { ApoiosModule } from './modules/apoios/apoios.module.js';
 import { AppMunicipeModule } from './modules/app-municipe/app-municipe.module.js';
 import { PushModule } from './modules/app-municipe/push.module.js';
 import { ArquivoModule } from './modules/arquivo/arquivo.module.js';
 import { OrdenamentoModule } from './modules/ordenamento/ordenamento.module.js';
+import { RegrasPublicasModule } from './modules/regras-publicas/regras-publicas.module.js';
+import { RegrasVersoesModule } from './modules/regras-publicas/versoes.service.js';
 import { FiscalizacaoModule } from './modules/fiscalizacao/fiscalizacao.module.js';
 import { ReclamacoesModule } from './modules/reclamacoes/reclamacoes.module.js';
 import { ReunioesModule } from './modules/reunioes/reunioes.module.js';
@@ -65,6 +68,7 @@ import { ProcessosModule } from './modules/processos/processos.module.js';
 import { RelatoriosModule } from './modules/relatorios/relatorios.module.js';
 import { RequerimentosModule } from './modules/requerimentos/requerimentos.module.js';
 import { TransparenciaModule } from './modules/transparencia/transparencia.module.js';
+import { EntregasModule } from './modules/entregas/entregas.module.js';
 
 @Module({
   imports: [
@@ -120,6 +124,9 @@ import { TransparenciaModule } from './modules/transparencia/transparencia.modul
     LicencasModule,
     OrdenamentoModule,
     EmpresasModule,
+    // Regras públicas e verificáveis (histórico das regras, verificador)
+    RegrasVersoesModule,
+    RegrasPublicasModule,
     ApoiosModule,
     // V2
     EntradaModule,
@@ -138,11 +145,14 @@ import { TransparenciaModule } from './modules/transparencia/transparencia.modul
     ContratacaoModule,
     // Transparência: dados abertos e indicadores no portal
     TransparenciaModule,
+    EntregasModule,
     FiscalizacaoModule,
     // Arquivo antigo digitalizado e pedidos de consulta
     ArquivoModule,
     // App dos munícipes (Flutter): entrar com o telemóvel, os seus dados, push
     AppMunicipeModule,
+    // Editais e regulamentos em linguagem simples e glossário administrativo
+    LinguagemSimplesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

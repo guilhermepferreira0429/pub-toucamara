@@ -16,9 +16,10 @@ let contador = 0;
 const novoId = () => `m${Date.now().toString(36)}${(contador++).toString(36)}`;
 
 const hora = () =>
-  new Intl.DateTimeFormat("pt-PT", { hour: "2-digit", minute: "2-digit" }).format(
-    new Date(),
-  );
+  new Intl.DateTimeFormat("pt-PT", {
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date());
 
 /** A língua do browser no formato que a API aceita (pt-PT, en, uk…). */
 function idiomaDoBrowser(): string | undefined {
@@ -65,7 +66,9 @@ function juntarCartao(cartoes: Cartao[], novo: Cartao): Cartao[] {
     const i = cartoes.findIndex((c) => c.tipo === "fonte");
     if (i >= 0) {
       const antigo = cartoes[i] as Extract<Cartao, { tipo: "fonte" }>;
-      const vistas = new Set(antigo.fontes.map((f) => `${f.url}#${f.referencia}`));
+      const vistas = new Set(
+        antigo.fontes.map((f) => `${f.url}#${f.referencia}`),
+      );
       const fontes = [
         ...antigo.fontes,
         ...novo.fontes.filter((f) => !vistas.has(`${f.url}#${f.referencia}`)),
@@ -110,7 +113,9 @@ export function useChat(municipio: string) {
   const iniciar = useCallback((): Promise<string | null> => {
     if (sessaoRef.current) return Promise.resolve(sessaoRef.current);
     if (iniciarRef.current) return iniciarRef.current;
-    const pedido = async (anterior: string | undefined): Promise<SessaoCriada> =>
+    const pedido = async (
+      anterior: string | undefined,
+    ): Promise<SessaoCriada> =>
       api<SessaoCriada>("/v1/chat/sessoes", {
         corpo: {
           municipio,
@@ -217,7 +222,11 @@ export function useChat(municipio: string) {
             recebeu = true;
             final += d.texto;
             const delta = d.texto;
-            alterar(idAgente, (m) => ({ ...m, texto: m.texto + delta, ferramenta: null }));
+            alterar(idAgente, (m) => ({
+              ...m,
+              texto: m.texto + delta,
+              ferramenta: null,
+            }));
           } else if (ev.evento === "ferramenta" && typeof d.nome === "string") {
             recebeu = true;
             const nome = d.nome;
@@ -229,15 +238,27 @@ export function useChat(municipio: string) {
           } else if (ev.evento === "cartao") {
             recebeu = true;
             const cartao = ev.dados as Cartao;
-            alterar(idAgente, (m) => ({ ...m, cartoes: juntarCartao(m.cartoes, cartao) }));
+            alterar(idAgente, (m) => ({
+              ...m,
+              cartoes: juntarCartao(m.cartoes, cartao),
+            }));
           } else if (ev.evento === "fim") {
-            alterar(idAgente, (m) => ({ ...m, estado: "feita", ferramenta: null }));
+            alterar(idAgente, (m) => ({
+              ...m,
+              estado: "feita",
+              ferramenta: null,
+            }));
           } else if (ev.evento === "erro") {
             const msg =
               typeof d.mensagem === "string"
                 ? d.mensagem
                 : "Não consegui responder. Tente outra vez.";
-            alterar(idAgente, (m) => ({ ...m, estado: "erro", ferramenta: null, aviso: msg }));
+            alterar(idAgente, (m) => ({
+              ...m,
+              estado: "erro",
+              ferramenta: null,
+              aviso: msg,
+            }));
             setAnuncio(msg);
           }
         }
@@ -267,7 +288,8 @@ export function useChat(municipio: string) {
         } catch (e) {
           const expirou =
             e instanceof ErroApi &&
-            (e.codigo === "sessao_expirada" || e.codigo === "sessao_desconhecida");
+            (e.codigo === "sessao_expirada" ||
+              e.codigo === "sessao_desconhecida");
           if (!expirou) throw e;
           // Sessão velha: abre outra (retoma a anterior) e repete a mensagem.
           sessaoRef.current = null;
@@ -280,7 +302,11 @@ export function useChat(municipio: string) {
         // Stream fechado sem `fim` nem `erro`: o que chegou fica, marcado.
         alterar(idAgente, (m) =>
           m.estado === "a_responder"
-            ? { ...m, estado: m.texto ? "feita" : "interrompida", ferramenta: null }
+            ? {
+                ...m,
+                estado: m.texto ? "feita" : "interrompida",
+                ferramenta: null,
+              }
             : m,
         );
         if (final) setAnuncio(final);
@@ -364,7 +390,12 @@ export function useChat(municipio: string) {
   const pedirCodigo = useCallback(
     async (telefone: string) => {
       const sessao = sessaoRef.current ?? (await iniciar());
-      if (!sessao) throw new ErroApi(0, "sem_ligacao", "Sem ligação. Verifique a internet.");
+      if (!sessao)
+        throw new ErroApi(
+          0,
+          "sem_ligacao",
+          "Sem ligação. Verifique a internet.",
+        );
       return api<{ enviado: boolean; telefone: string; expira_em: string }>(
         `/v1/chat/sessoes/${encodeURIComponent(sessao)}/identificar`,
         { corpo: { telefone } },
@@ -375,7 +406,8 @@ export function useChat(municipio: string) {
 
   const confirmarCodigo = useCallback(async (codigo: string) => {
     const sessao = sessaoRef.current;
-    if (!sessao) throw new ErroApi(0, "sem_ligacao", "Sem ligação. Verifique a internet.");
+    if (!sessao)
+      throw new ErroApi(0, "sem_ligacao", "Sem ligação. Verifique a internet.");
     const r = await api<{ identificado: boolean; telefone: string }>(
       `/v1/chat/sessoes/${encodeURIComponent(sessao)}/confirmar`,
       { corpo: { codigo } },

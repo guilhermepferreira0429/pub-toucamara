@@ -49,7 +49,7 @@ export const CONFIG_RUIDO_OMISSAO: ConfigRuido = {
   duracao_max_horas: 10,
   pessoas_max: 150,
   taxa_cent: 2500,
-  aprovacao: 'funcionario',
+  aprovacao: 'automatica',
   fonte: {
     titulo:
       'Regulamento Geral do Ruído (DL 9/2007), art. 15.º · licença especial de ruído',

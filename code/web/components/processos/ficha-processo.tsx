@@ -13,6 +13,7 @@ import {
 import { useParams } from "next/navigation";
 import { useState } from "react";
 import { Aviso, CabecalhoPagina } from "@/components/painel/cabecalho";
+import { CartaoEntregaEmNome } from "@/components/entregas/cartao-entrega";
 import { useSessao } from "@/lib/sessao";
 import { DialogoLigar, DialogoPedirDocumento } from "./dialogos-processo";
 import { capitalizar, diaCurto, diaHora, textoDiasUteis } from "./formatos";
@@ -353,6 +354,7 @@ export function FichaProcesso() {
             <CartaoDocumentos p={p} />
             <CartaoPedidos p={p} />
             <CartaoRequerente p={p} />
+            <CartaoEntregaEmNome processoId={p.id} />
             {(sync || p.gestao_documental?.estado !== "nao_aplicavel") && (
               <CartaoSincronizacao
                 estado={gd}

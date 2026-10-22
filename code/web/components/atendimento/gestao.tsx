@@ -201,7 +201,7 @@ function TabelaCarga({ carga }: { carga: Carga }) {
   const max = Math.max(1, ...tecnicos.map((t) => t.abertos));
   const th = "pb-2 text-left text-[10px] font-bold tracking-[0.8px] text-tinta-3";
   return (
-    <div className="overflow-x-auto">
+    <div className="overflow-x-auto" tabIndex={0}>
       <table className="w-full min-w-[520px] border-collapse">
         <thead>
           <tr className="border-b border-linha">

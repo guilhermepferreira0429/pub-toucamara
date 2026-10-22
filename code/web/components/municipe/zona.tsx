@@ -2,6 +2,7 @@
 
 import { FileText, MapPin, MessageCircle } from "lucide-react";
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import { BotaoLink } from "@/components/ui/botao";
 import { COR_CATEGORIA, type Ponto } from "@/components/ordenamento/tipos";
 import {
@@ -85,7 +86,7 @@ export function PaginaZona({ codigo }: { codigo: string }) {
       {destaque ? (
         <CartaoDestaque rotulo={d.zona?.nome ?? "Resposta"} tom={destaque.tom}>
           <p className="font-display text-[26px] leading-tight font-bold">{destaque.titulo}</p>
-          {d.zona?.descricao && <p className="text-[15px] text-white/85">{d.zona.descricao}</p>}
+          {d.zona?.descricao && <p className="text-[15px] text-white/90">{d.zona.descricao}</p>}
         </CartaoDestaque>
       ) : (
         <Nota icone={MapPin} tom="ambar">
@@ -154,6 +155,15 @@ export function PaginaZona({ codigo }: { codigo: string }) {
         <BotaoLink href={ROTA_CHAT} tamanho="grande" icone={MessageCircle} className="w-full">
           Preencher o pedido com o agente
         </BotaoLink>
+      )}
+
+      {d.zona && (
+        <Link
+          href={`/regras/zonas/${encodeURIComponent(d.zona.codigo)}`}
+          className="inline-flex min-h-12 items-center text-[16px] font-semibold text-terracota underline underline-offset-2"
+        >
+          Ver todas as regras desta zona (e verificar outras obras)
+        </Link>
       )}
 
       <div className="flex flex-wrap gap-2">

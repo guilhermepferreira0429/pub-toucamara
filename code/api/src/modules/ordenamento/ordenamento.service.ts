@@ -27,6 +27,11 @@ import {
 import type { PedidoAntigo } from '../licencas/simulacao.js';
 import { hojeLisboa } from '../../common/dias-uteis.js';
 import { gerarConsultasDemonstracao } from './consultas-demonstracao.js';
+import { alteracoesZona, ConfigZona } from './explicar-zona.js';
+import {
+  invalidarRegras,
+  RegrasVersoesService,
+} from '../regras-publicas/versoes.service.js';
 import {
   ConsultaAntiga,
   esquemaRegrasZona,
@@ -105,7 +110,28 @@ export class OrdenamentoService {
     private readonly mensagens: MensagensService,
     private readonly conversas: ConversasService,
     private readonly auditoria: AuditoriaService,
+    private readonly versoes: RegrasVersoesService,
   ) {}
+
+  /** As regras de uma zona como ficam no histórico público. */
+  static configZona(z: Zona): ConfigZona {
+    return {
+      nome: z.nome,
+      descricao: z.descricao,
+      regras: z.regras,
+      fonte: z.fonte,
+      demonstracao: z.demonstracao,
+    };
+  }
+
+  /** Desde quando vale a zona como foi carregada. */
+  async criadaEm(zonaId: string): Promise<Date> {
+    const [r] = await this.db.query<{ criada_em: Date }>(
+      'SELECT criada_em FROM zonas_pdm WHERE id = $1',
+      [zonaId],
+    );
+    return r?.criada_em ?? new Date(0);
+  }
 
   async zona(municipioId: string, zonaId: string): Promise<Zona> {
     const [zona] = await this.db.query<Zona>(
@@ -129,6 +155,18 @@ export class OrdenamentoService {
        FROM zonas_pdm WHERE municipio_id = $1 ORDER BY codigo`,
       [municipioId],
     );
+  }
+
+  /**
+   * O motor do PDM: a obra, com estas medidas, nesta zona. É o que a
+   * ferramenta usa e o que o verificador público usa.
+   */
+  avaliarNaZona(
+    zona: Pick<Zona, 'regras'>,
+    obra: Obra,
+    medidas: { area_m2?: number; altura_m?: number },
+  ) {
+    return avaliarObra(zona.regras[obra], medidas);
   }
 
   // ------------------------------------------------------------------
@@ -161,7 +199,7 @@ export class OrdenamentoService {
     const ponto: Ponto = [c.lat, c.lng];
     const zona = zonaDe(ponto, zonas);
     const a = zona
-      ? avaliarObra(zona.regras[e.obra], {
+      ? this.avaliarNaZona(zona, e.obra, {
           area_m2: e.area_m2,
           altura_m: e.altura_m,
         })
@@ -432,7 +470,23 @@ export class OrdenamentoService {
         ['regras', z.regras],
         ...mudou.map((k) => [k, z[k]]),
       ]) as Record<string, unknown>;
+    const inicialDesde = await this.criadaEm(antes.id);
+    const alteracoes = alteracoesZona(
+      OrdenamentoService.configZona(antes),
+      OrdenamentoService.configZona(depois),
+    );
     await this.db.transaction(async (tx) => {
+      // O histórico público: o que mudou, quando e o cargo de quem mudou.
+      await this.versoes.registar(tx, {
+        municipioId: m.id,
+        ambito: 'zona',
+        chave: antes.codigo,
+        antes: OrdenamentoService.configZona(antes),
+        depois: OrdenamentoService.configZona(depois),
+        alteracoes,
+        utilizador: u,
+        inicialDesde,
+      });
       await tx.query(
         `UPDATE zonas_pdm SET regras = $3, nome = $4, descricao = $5, fonte = $6, demonstracao = $7
          WHERE id = $1 AND municipio_id = $2`,
@@ -589,6 +643,7 @@ export class OrdenamentoService {
         tx,
       );
     });
+    invalidarRegras();
     return this.painel(m);
   }
 

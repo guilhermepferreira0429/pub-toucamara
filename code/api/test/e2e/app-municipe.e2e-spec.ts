@@ -99,11 +99,14 @@ describe('App do munícipe (e2e)', () => {
       ctx.http().delete(`/v1/app/${c}`).set('Authorization', `Bearer ${token}`),
   });
 
+  // Só os já tratados: o envio grava 'pendente' e só depois o resultado.
   const pushes = (municipeId: string, origem: string) =>
     linhas(
       ctx.db,
       `SELECT tipo, origem, titulo, corpo, dados, estado, dispositivo_id
-       FROM push_enviados WHERE municipe_id = $1 AND origem = $2 ORDER BY criado_em`,
+       FROM push_enviados
+       WHERE municipe_id = $1 AND origem = $2 AND estado <> 'pendente'
+       ORDER BY criado_em`,
       [municipeId, origem],
     );
 

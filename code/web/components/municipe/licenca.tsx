@@ -1,6 +1,7 @@
 "use client";
 
-import { BadgeCheck, CalendarDays, Clock, Download, Info, MapPin, ShieldAlert } from "lucide-react";
+import { BadgeCheck, CalendarDays, Clock, Download, Info, ListChecks, MapPin, ShieldAlert } from "lucide-react";
+import Link from "next/link";
 import { useSyncExternalStore } from "react";
 import { QrSvg } from "@/components/ui/qr-svg";
 import { API_URL } from "@/lib/api";
@@ -46,6 +47,8 @@ interface LicencaPublica {
   horario: string | null;
   condicoes: string[];
   emitida_em: string | null;
+  /** Emitida sem ninguém: cumpria todas as regras (pode faltar numa API antiga). */
+  decidida_automaticamente?: boolean;
   fonte: string;
   modo_teste: boolean;
   regras_de_demonstracao: boolean;
@@ -103,7 +106,7 @@ export function PaginaLicenca({ codigo }: { codigo: string }) {
             <BadgeCheck className="size-7" aria-hidden />
             {nomeCurto} {l.valida ? (fem ? "válida" : "válido") : fem ? "expirada" : "expirado"}
           </p>
-          <p className="text-[15px] text-white/85">
+          <p className="text-[15px] text-white/90">
             {l.titular ? `Em nome de ${l.titular.replace(/\.$/, "")}. ` : ""}
             {l.atividade}.
           </p>
@@ -192,9 +195,23 @@ export function PaginaLicenca({ codigo }: { codigo: string }) {
           Para renovar, ligue ou escreva-nos e o assistente trata de tudo, com os mesmos dados.
         </p>
       ) : null}
+      {emitida && (
+        <Link
+          href={`/licenca/${encodeURIComponent(codigo)}/porque`}
+          className="inline-flex min-h-12 items-center gap-2 text-[16px] font-semibold text-terracota underline underline-offset-2"
+        >
+          <ListChecks className="size-5" aria-hidden />
+          Porque {fem ? "foi aprovada" : "foi aprovado"}: as regras aplicadas
+        </Link>
+      )}
       <p className="text-[13px] leading-[1.45] text-tinta-3">
         Base: {l.fonte}. Verificada pelas regras da câmara no momento do pedido
-        {l.emitida_em ? " e aprovada por um funcionário" : ""}.
+        {l.emitida_em
+          ? l.decidida_automaticamente
+            ? " e decidida automaticamente, por cumprir todas as regras"
+            : " e aprovada por uma pessoa da câmara"
+          : ""}
+        .
       </p>
     </div>
   );

@@ -14,5 +14,6 @@
   "setupFiles": ["<rootDir>/e2e/ambiente.ts"],
   "testTimeout": 60000,
   "maxWorkers": 1,
-  "forceExit": true
+  "forceExit": true,
+  "workerIdleMemoryLimit": "1GB"
 }

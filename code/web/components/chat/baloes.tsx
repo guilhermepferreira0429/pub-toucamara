@@ -48,11 +48,16 @@ function useTextoSuave(texto: string, aCorrer: boolean) {
   useEffect(() => {
     if (n >= texto.length) return;
     const id = requestAnimationFrame(() => {
-      const reduzir = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      const reduzir = window.matchMedia(
+        "(prefers-reduced-motion: reduce)",
+      ).matches;
       setN((v) =>
         reduzir
           ? texto.length
-          : Math.min(texto.length, v + Math.max(2, Math.ceil((texto.length - v) / 6))),
+          : Math.min(
+              texto.length,
+              v + Math.max(2, Math.ceil((texto.length - v) / 6)),
+            ),
       );
     });
     return () => cancelAnimationFrame(id);
@@ -125,7 +130,7 @@ export function RespostasRapidas({
             type="button"
             disabled={desativado}
             onClick={() => aoEscolher(o)}
-            className={`rounded-full border border-terracota font-semibold text-terracota-escuro transition-colors hover:bg-terracota-suave disabled:opacity-50 ${pequeno ? "px-3.5 py-[7px] text-[13px]" : "px-3.5 py-2 text-sm"}`}
+            className={`rounded-full border border-terracota font-semibold text-terracota-escuro transition-colors hover:bg-terracota-suave disabled:opacity-50 ${pequeno ? "min-h-9 px-3.5 py-[7px] text-[13px]" : "min-h-11 px-4 py-2 text-[15px]"}`}
           >
             {o}
           </button>

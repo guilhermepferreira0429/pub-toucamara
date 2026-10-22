@@ -197,8 +197,9 @@ describe('Licenças: outros tipos e simulação de regras (e2e)', () => {
       .get('/v1/painel/licencas/regras/esplanada')
       .set(chefe)
       .expect(200);
+    // Por omissão a câmara já deixa decidir sozinho (os humanos só tratam das exceções).
     expect(atual.body.config).toMatchObject({
-      aprovacao: 'funcionario',
+      aprovacao: 'automatica',
       demonstracao: true,
     });
     await ctx
@@ -217,9 +218,13 @@ describe('Licenças: outros tipos e simulação de regras (e2e)', () => {
       area_m2: 12,
       mesas: 4,
       passeio_livre_m: 2,
+      // Sem estes dados as regras não decidem sozinhas (dado em falta).
+      estrado: false,
+      centro_historico: false,
     }).expect(200);
     expect(r.body).toMatchObject({
       proposta: 'aprovar',
+      decisao: 'automatica',
       numero: expect.stringMatching(/^ESP /),
       pagamento: { valor_cent: 12 * 6 * 300 },
     });
@@ -429,11 +434,13 @@ describe('Licenças: outros tipos e simulação de regras (e2e)', () => {
     const l = await licencaDe(r.body.numero);
     await pagar(l.processo_id);
     await ctx.app.get(LicencasService).sincronizar();
+    // Cumpre as regras e a câmara deixa decidir sozinho: emitida sem clique.
     const ap = await ctx
       .http()
-      .post(`/v1/painel/licencas/${l.id}/aprovar`)
+      .get(`/v1/painel/licencas/${l.id}`)
       .set(chefe)
       .expect(200);
+    expect(ap.body).toMatchObject({ estado: 'emitida', decisao: 'automatica' });
     const pub = await ctx
       .http()
       .get(`/v1/public/licencas/${ap.body.codigo_verificacao}`)

@@ -93,6 +93,35 @@ export class LicencasPainelController {
     return this.avisos.aExpirar(m, dias);
   }
 
+  /**
+   * "Os humanos só tratam das exceções": % decidido sozinho e exceções
+   * (por tipo e por motivo) nos últimos ?dias=30.
+   */
+  @Get('indicador')
+  indicador(@MunicipioAtual() m: Municipio, @Query() query: unknown) {
+    const { dias } = validar(
+      z.object({ dias: z.coerce.number().int().min(1).max(366).default(30) }),
+      query,
+    );
+    return this.licencas.indicador(m, dias);
+  }
+
+  /** { aprovacao: 'automatica' | 'funcionario' }: quem fecha os pedidos dentro das regras. */
+  @Put('aprovacao/:tipo')
+  @Painel('agente')
+  mudarAprovacao(
+    @MunicipioAtual() m: Municipio,
+    @UtilizadorAtual() u: UtilizadorPainel,
+    @Param('tipo') tipo: string,
+    @Body() body: unknown,
+  ) {
+    const { aprovacao } = validar(
+      z.object({ aprovacao: z.enum(['automatica', 'funcionario']) }),
+      body,
+    );
+    return this.licencas.mudarAprovacao(m, u, tipoDe(tipo), aprovacao);
+  }
+
   @Get('regras/:tipo')
   regrasDe(@MunicipioAtual() m: Municipio, @Param('tipo') tipo: string) {
     const t = tipoDe(tipo);
@@ -185,6 +214,12 @@ export class LicencasPublicoController {
   @Get(':codigo')
   ver(@Param('codigo') codigo: string) {
     return this.licencas.publico(codigo);
+  }
+
+  /** "Porque foi aprovada": as regras aplicadas e a versão em vigor nesse dia. */
+  @Get(':codigo/porque')
+  porque(@Param('codigo') codigo: string) {
+    return this.licencas.porque(codigo);
   }
 
   @Get(':codigo/pdf')

@@ -79,7 +79,7 @@ export const CONFIG_PUBLICIDADE_OMISSAO: ConfigPublicidade = {
   taxa_m2_mes_cent: 150,
   taxa_iluminado_m2_mes_cent: 250,
   taxa_minima_cent: 1000,
-  aprovacao: 'funcionario',
+  aprovacao: 'automatica',
   fonte: {
     titulo:
       'Lei 97/88 (afixação e inscrição de mensagens de publicidade), DL 48/2011 (Licenciamento Zero) e regulamento municipal de publicidade',

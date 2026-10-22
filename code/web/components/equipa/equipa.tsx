@@ -561,7 +561,7 @@ export function PaginaEquipa() {
 
           <Cartao className="flex flex-col p-6">
             <h2 className="pb-3.5 font-display text-[19px] font-bold text-tinta">O que cada perfil pode fazer</h2>
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="O que cada perfil pode fazer">
               <table className="w-full min-w-[440px]">
                 <thead>
                   <tr className="text-[11px] font-bold text-tinta-2">

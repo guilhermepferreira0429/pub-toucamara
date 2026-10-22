@@ -44,7 +44,7 @@ export const CONFIG_DISTICO_OMISSAO: ConfigDistico = {
   validade_meses: 12,
   exige_morada_comprovada: true,
   exige_viatura_em_nome: true,
-  aprovacao: 'funcionario',
+  aprovacao: 'automatica',
   fonte: {
     titulo:
       'Regulamento municipal de estacionamento · dístico de residente nas zonas de estacionamento de duração limitada',

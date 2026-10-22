@@ -26,7 +26,10 @@ export type TipoCartao =
   | "consulta"
   | "reclamacao"
   | "agora"
-  | "empresa";
+  | "empresa"
+  | "entrega"
+  | "documento"
+  | "termo";
 
 export type Cartao =
   | { tipo: "fonte"; fontes: FonteCartao[] }
@@ -42,7 +45,13 @@ export interface Mensagem {
    * pessoa: "enviada" | "por_enviar" (sem ligação, fica guardada).
    * agente: "a_responder" (stream aberto) | "feita" | "interrompida" | "erro".
    */
-  estado: "enviada" | "por_enviar" | "a_responder" | "feita" | "interrompida" | "erro";
+  estado:
+    | "enviada"
+    | "por_enviar"
+    | "a_responder"
+    | "feita"
+    | "interrompida"
+    | "erro";
   /** Ferramenta a correr (indicador "a consultar…"). */
   ferramenta?: string | null;
   /** Ferramentas usadas no turno (decide p. ex. a identificação por SMS). */
@@ -53,4 +62,8 @@ export interface Mensagem {
   hora: string;
 }
 
-export type EstadoLigacao = "a_iniciar" | "pronto" | "sem_ligacao" | "indisponivel";
+export type EstadoLigacao =
+  | "a_iniciar"
+  | "pronto"
+  | "sem_ligacao"
+  | "indisponivel";

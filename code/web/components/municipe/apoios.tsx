@@ -76,7 +76,7 @@ export function PaginaApoios({ codigo }: { codigo: string }) {
           <p className="font-display text-[26px] leading-tight font-bold">
             {n === 1 ? "1 apoio" : `${n} apoios`}
           </p>
-          <p className="text-[15px] text-white/85">{d.tem_direito.map((x) => x.nome).join(", ")}</p>
+          <p className="text-[15px] text-white/90">{d.tem_direito.map((x) => x.nome).join(", ")}</p>
         </CartaoDestaque>
       ) : (
         <Nota icone={HandCoins} tom="neutro">
@@ -101,7 +101,7 @@ export function PaginaApoios({ codigo }: { codigo: string }) {
 
       {d.nao.length > 0 && (
         <details className="rounded-xl border border-linha bg-papel p-4">
-          <summary className="cursor-pointer text-[15px] font-semibold text-tinta">
+          <summary className="cursor-pointer py-3 text-[15px] font-semibold text-tinta">
             Apoios a que não tem direito ({d.nao.length})
           </summary>
           <ul className="mt-3 flex flex-col gap-2">

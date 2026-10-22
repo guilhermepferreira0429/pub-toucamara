@@ -39,6 +39,7 @@ const VERBOS: Record<string, string> = {
   recusar_licenca: 'recusou',
   aprovar_licenca: 'aprovou',
   mudar_regras_licenca: 'mudou as regras de',
+  mudar_aprovacao_licenca: 'mudou quem decide os pedidos de',
   carregar_historico_licencas_demonstracao:
     'carregou pedidos antigos de demonstração de',
   ligou_assistente_ia: 'ligou um assistente de IA',
@@ -143,6 +144,25 @@ const VERBOS: Record<string, string> = {
   criar_requisito_empresa: 'acrescentou um requisito a',
   repor_requisito_empresa: 'repôs o original de um requisito de',
   ver_obrigacoes_empresa: 'viu o calendário de obrigações de',
+  confirmar_entrega: 'confirmou ao agente',
+  pedir_autorizacao_entrega: 'pediu autorização para',
+  consentir_entrega: 'consentiu',
+  autenticacao_recusada: 'falhou a autenticação de',
+  autorizar_entrega: 'autorizou',
+  entregar_em_nome: 'fez',
+  entrega_falhou: 'não conseguiu fazer',
+  tentar_entrega_de_novo: 'tentou de novo',
+  cancelar_entrega: 'cancelou',
+  expirar_entrega: 'deixou expirar o link de',
+  criar_documento_simples: 'começou a versão simples de',
+  gerar_versao_simples: 'gerou a versão simples de',
+  editar_versao_simples: 'editou a versão simples de',
+  publicar_versao_simples: 'reviu e publicou a versão simples de',
+  retirar_versao_simples: 'tirou do ar a versão simples de',
+  criar_termo_glossario: 'acrescentou',
+  editar_termo_glossario: 'editou',
+  apagar_termo_glossario: 'apagou',
+  carregar_glossario_demonstracao: 'carregou os termos de demonstração',
 };
 
 const OBJETOS: Record<string, string> = {
@@ -199,6 +219,10 @@ const OBJETOS: Record<string, string> = {
   evento: 'um evento',
   agora_subscricao: 'uma zona (o que se passa perto de mim)',
   empresa_requisito: 'o balcão para empresas',
+  entrega_em_nome: 'uma entrega em nome do munícipe',
+  documento_simples: 'um documento oficial (linguagem simples)',
+  termo_glossario: 'um termo do glossário',
+  glossario: 'do glossário',
 };
 
 export function frase(acao: string, objetoTipo: string): string {
@@ -226,8 +250,12 @@ export function ligacao(objetoTipo: string, objetoId: string): string | null {
       return `/painel/reclamacoes?id=${objetoId}`;
     case 'emergencia':
       return `/painel/emergencias?id=${objetoId}`;
+    case 'entrega_em_nome':
+      return `/painel/entregas?id=${objetoId}`;
     case 'entrevista':
       return `/painel/procedimentos/entrevistas/${objetoId}`;
+    case 'documento_simples':
+      return `/painel/conhecimento/linguagem-simples/${objetoId}`;
     default:
       return null;
   }

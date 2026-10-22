@@ -14,6 +14,8 @@ const SEPARADORES = [
   { rotulo: "Qualidade", href: "/painel/conhecimento/qualidade" },
   { rotulo: "Fontes", href: "/painel/conhecimento/fontes" },
   { rotulo: "Alterações", href: "/painel/conhecimento/alteracoes" },
+  { rotulo: "Linguagem simples", href: "/painel/conhecimento/linguagem-simples" },
+  { rotulo: "Glossário", href: "/painel/conhecimento/glossario" },
 ] as const;
 
 /**
