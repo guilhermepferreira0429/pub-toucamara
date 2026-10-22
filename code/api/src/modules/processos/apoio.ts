@@ -12,6 +12,7 @@ import { z } from 'zod';
 import type { EmFalta, EstadoPedido } from './avisos.js';
 import type { CampoComValor } from './formulario.js';
 import { Fase, FASES_FECHADAS } from './regras.js';
+import { Verificacao, verificacoesEmTexto } from './verificacoes.js';
 
 // ---------------------------------------------------------------------------
 // Estado do processo (cache)
@@ -612,6 +613,7 @@ export function semDestaques(trechos: TrechoRegulamento[]): TrechoDestacado[] {
 // ---------------------------------------------------------------------------
 
 export const TIPOS_RASCUNHO = [
+  'parecer',
   'oficio',
   'pedido_elementos',
   'notificacao_sms',
@@ -619,13 +621,18 @@ export const TIPOS_RASCUNHO = [
 export type TipoRascunho = (typeof TIPOS_RASCUNHO)[number];
 
 export const TIPO_RASCUNHO_ROTULO: Record<TipoRascunho, string> = {
+  parecer: 'Parecer técnico',
   oficio: 'Ofício',
   pedido_elementos: 'Pedido de elementos',
   notificacao_sms: 'Notificação por SMS',
 };
 
-/** Canal de `modelos_resposta` que serve cada tipo de rascunho. */
+/**
+ * Canal de `modelos_resposta` que serve cada tipo de rascunho. O parecer é
+ * interno: só usa um modelo se o técnico o escolher.
+ */
 export const CANAL_MODELO: Record<TipoRascunho, 'oficio' | 'sms'> = {
+  parecer: 'oficio',
   oficio: 'oficio',
   pedido_elementos: 'oficio',
   notificacao_sms: 'sms',
@@ -637,10 +644,22 @@ const REGRAS_COMUNS = `Regras:
 - Cita os artigos que fundamentam (ex.: "nos termos do art. 11.º do RJUE") só a partir dos trechos de regulamento que recebes. Nunca inventes artigos, prazos, valores nem factos.
 - Se recebes um modelo aprovado da câmara, segue a estrutura e as fórmulas dele, preenchendo os campos entre chavetas com os dados do processo.
 - Se faltar um dado, escreve [a completar pelo técnico] em vez de o inventar.
+- As verificações automáticas são indícios para o técnico: usa-as, mas o que vem da leitura da IA está por confirmar e o que é simulado ou de demonstração não se afirma como verificado. Nunca as apresentes como decisão.
 - Responde só com o texto do documento, sem comentários nem markdown.`;
 
 /** Instruções fixas por tipo (ficam em cache). */
 export const SISTEMA_RASCUNHO: Record<TipoRascunho, string> = {
+  parecer: `Rediges pareceres técnicos internos de uma câmara municipal portuguesa sobre um processo de obras, para o técnico rever e assinar. O parecer vai à chefia que decide, não ao requerente.
+Estrutura, por esta ordem:
+PARECER TÉCNICO
+Processo (n.º) · (tipo de processo)
+Requerente: (nome) · Local: (morada)
+1. Objeto: o que se pede, numa ou duas frases.
+2. Enquadramento: o regime aplicável e se o processo está instruído com os elementos exigidos. Cita os trechos de regulamento pelo número entre parênteses retos, como vêm na lista ([1], [2]).
+3. Apreciação: o que se verificou. Cada verificação em ATENÇÃO ou FALHA tem de aparecer aqui, com o que se recomenda (por exemplo, confirmar com o técnico autor antes da decisão). O que veio da leitura da IA diz-se "o projeto identifica…", nunca como facto verificado pela câmara.
+4. Proposta: admissão, admissão condicionada, pedido de elementos ou indeferimento. Com pontos em ATENÇÃO, a admissão fica condicionada à confirmação referida no ponto 3. Com FALHA (por exemplo, um documento em falta), propõe pedir os elementos em falta em vez de admitir.
+Fecha com "O Técnico" para a assinatura. A data e o cabeçalho do município são acrescentados à parte.
+${REGRAS_COMUNS}`,
   oficio: `Rediges ofícios de uma câmara municipal portuguesa dirigidos ao requerente de um processo, para o técnico rever e aprovar.
 Estrutura: destinatário, assunto com o n.º do processo, corpo (o que se comunica e com que fundamento, o que o requerente tem de fazer, se alguma coisa), fecho cordial e a indicação "O Técnico" para a assinatura. A data e o cabeçalho do município são acrescentados à parte.
 ${REGRAS_COMUNS}`,
@@ -664,6 +683,8 @@ export interface DadosRascunho {
   documentos_pedidos: { nome: string }[];
   prazo_dias_uteis: number | null;
   instrucoes: string | null;
+  /** As verificações automáticas do processo (null = não foram feitas). */
+  verificacoes?: Verificacao[] | null;
 }
 
 /** Os trechos com as frases destacadas marcadas »assim«. */
@@ -688,15 +709,21 @@ export function conteudoRascunho(d: DadosRascunho): string {
     '## Regulamento aplicável',
   ];
   if (d.regulamento.length) {
-    for (const t of d.regulamento) {
+    for (const [i, t] of d.regulamento.entries()) {
       l.push(
-        `- ${t.fonte}${t.referencia ? ` · ${t.referencia}` : ''}` +
+        `[${i + 1}] ${t.fonte}${t.referencia ? ` · ${t.referencia}` : ''}` +
           `${t.porque_se_aplica ? ` (${t.porque_se_aplica})` : ''}:\n  ${trechoComDestaques(t)}`,
       );
     }
   } else {
     l.push('Nenhum trecho encontrado: não cites artigos.');
   }
+  l.push('', '## Verificações automáticas');
+  l.push(
+    d.verificacoes
+      ? verificacoesEmTexto(d.verificacoes)
+      : 'Não foram feitas: não digas que algo foi verificado.',
+  );
   if (d.tipo === 'pedido_elementos') {
     l.push('', '## Elementos a pedir');
     for (const x of d.documentos_pedidos) l.push(`- ${x.nome}`);

@@ -45,6 +45,7 @@ import { gerarPdfOficio } from './oficio-pdf.js';
 import { ProcessosAvisosService } from './processos-avisos.service.js';
 import { ProcessosPainelService } from './processos-painel.service.js';
 import { ProcessosService } from './processos.service.js';
+import { ProcessosVerificacoesService } from './processos-verificacoes.service.js';
 import { Fase } from './regras.js';
 
 export const esquemaAtualizarCache = z.object({
@@ -102,12 +103,18 @@ interface DadosRascunhoGuardados {
   pedido_ids?: string[];
   aviso?: string | null;
   pdf_aviso?: string | null;
+  /** As verificações que entraram no rascunho (auditoria). */
+  verificacoes?: {
+    gerado_em: Date;
+    contagem: Record<string, number>;
+    versao: { motor: string; documentos: string; regras: string };
+  } | null;
 }
 
 interface LinhaRascunho {
   id: string;
   processo_id: string;
-  tipo: TipoRascunho | 'parecer';
+  tipo: TipoRascunho;
   modelo_id: string | null;
   versao: number;
   corpo: string;
@@ -164,6 +171,7 @@ export class ProcessosApoioService {
     private readonly avisos: ProcessosAvisosService,
     private readonly armazenamento: ArmazenamentoService,
     private readonly auditoria: AuditoriaService,
+    private readonly verificacoes: ProcessosVerificacoesService,
   ) {}
 
   // -------------------------------------------------------------------------
@@ -563,6 +571,8 @@ export class ProcessosApoioService {
     modeloId: string | undefined,
   ) {
     const canal = CANAL_MODELO[tipo];
+    // O parecer é interno: os modelos de ofício são para o requerente.
+    if (tipo === 'parecer' && !modeloId) return null;
     if (modeloId) {
       const [m] = await this.db.query<{
         id: string;
@@ -636,8 +646,11 @@ export class ProcessosApoioService {
       this.modelo(municipio.id, b.tipo, b.modelo_id),
       this.painel.detalhe(municipio, id),
     ]);
-    // O regulamento destacado (da cache, se o processo não mudou).
-    const reg = await this.regulamento(municipio, u, id, false);
+    // O regulamento destacado e as verificações (da cache, se nada mudou).
+    const [reg, verificacoes] = await Promise.all([
+      this.regulamento(municipio, u, id, false),
+      this.verificacoes.obter(municipio, u, id, false),
+    ]);
     const [destinatario] = p.municipe_id
       ? await this.db.query<{ nome: string | null }>(
           'SELECT nome FROM municipes WHERE id = $1 AND anonimizado_em IS NULL',
@@ -660,6 +673,7 @@ export class ProcessosApoioService {
         prazo_dias_uteis:
           b.tipo === 'pedido_elementos' ? b.prazo_dias_uteis : null,
         instrucoes: b.instrucoes ?? null,
+        verificacoes: verificacoes.itens,
       }),
     });
     const corpo = limparRascunho(texto, b.tipo);
@@ -683,6 +697,11 @@ export class ProcessosApoioService {
         : {}),
       regulamento,
       artigos_citados: artigosCitados(corpo, regulamento),
+      verificacoes: {
+        gerado_em: verificacoes.gerado_em,
+        contagem: verificacoes.contagem,
+        versao: verificacoes.versao,
+      },
     };
 
     const rascunhoId = await this.db.transaction(async (tx) => {
@@ -775,8 +794,7 @@ export class ProcessosApoioService {
       id: l.id,
       processo_id: l.processo_id,
       tipo: l.tipo,
-      tipo_rotulo:
-        l.tipo === 'parecer' ? 'Parecer' : TIPO_RASCUNHO_ROTULO[l.tipo],
+      tipo_rotulo: TIPO_RASCUNHO_ROTULO[l.tipo],
       estado: l.estado,
       versao: l.versao,
       corpo: l.corpo,
@@ -858,10 +876,7 @@ export class ProcessosApoioService {
   ) {
     await this.db.transaction(async (tx) => {
       const l = await this.rascunhoAberto(tx, municipio.id, id);
-      const corpo = limparRascunho(
-        b.corpo,
-        l.tipo === 'parecer' ? 'oficio' : l.tipo,
-      );
+      const corpo = limparRascunho(b.corpo, l.tipo);
       if (corpo === l.corpo) return;
       const versao = l.versao + 1;
       await tx.query(
@@ -899,7 +914,7 @@ export class ProcessosApoioService {
         tx,
         true,
       );
-      const tipo = l.tipo === 'parecer' ? 'oficio' : l.tipo;
+      const tipo = l.tipo;
       await tx.query(
         `UPDATE documentos_gerados
          SET estado = 'aprovado', assinatura = 'simulada', assinado_por = $2,
@@ -909,6 +924,7 @@ export class ProcessosApoioService {
       );
 
       const descricao: Record<TipoRascunho, string> = {
+        parecer: 'O técnico assinou o parecer técnico.',
         oficio: 'A câmara emitiu um ofício sobre o processo.',
         pedido_elementos: 'A câmara pediu elementos em falta (ofício).',
         notificacao_sms: 'A câmara enviou uma notificação sobre o processo.',
@@ -919,7 +935,8 @@ export class ProcessosApoioService {
         u,
         tipo,
         descricao[tipo],
-        false,
+        // O parecer é interno (vai à chefia); o resto o munícipe vê.
+        tipo === 'parecer',
         { documento_id: id, assinatura: 'simulada' },
       );
 
@@ -971,7 +988,10 @@ export class ProcessosApoioService {
         ...l.dados,
         evento_id: e.id,
         pedido_ids: pedidoIds,
-        aviso: tipo === 'oficio' ? null : (aviso ?? 'sem_contacto'),
+        aviso:
+          tipo === 'oficio' || tipo === 'parecer'
+            ? null
+            : (aviso ?? 'sem_contacto'),
       };
       await tx.query('UPDATE documentos_gerados SET dados = $2 WHERE id = $1', [
         id,

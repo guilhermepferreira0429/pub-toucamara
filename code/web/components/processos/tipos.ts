@@ -162,6 +162,8 @@ export interface ProcessoDetalhe {
     canal_preferido: string | null;
     conversas: number;
   } | null;
+  /** Processo de demonstração (dados fictícios). */
+  demonstracao?: boolean;
   zona_pdm: { codigo: string; nome: string; categoria: string; demonstracao: boolean } | null;
   requerimento: {
     id: string;
@@ -261,6 +263,7 @@ export interface Regulamento {
 }
 
 export const TIPOS_RASCUNHO = [
+  "parecer",
   "oficio",
   "pedido_elementos",
   "notificacao_sms",
@@ -268,6 +271,7 @@ export const TIPOS_RASCUNHO = [
 export type TipoRascunho = (typeof TIPOS_RASCUNHO)[number];
 
 export const TIPO_RASCUNHO_ROTULO: Record<TipoRascunho, string> = {
+  parecer: "Parecer técnico",
   oficio: "Ofício ao munícipe",
   pedido_elementos: "Pedido de elementos",
   notificacao_sms: "Notificação por SMS",
@@ -284,7 +288,7 @@ export interface VersaoRascunho {
 export interface Rascunho {
   id: string;
   processo_id: string;
-  tipo: TipoRascunho | "parecer";
+  tipo: TipoRascunho;
   tipo_rotulo: string;
   estado: "rascunho" | "aprovado" | "assinado" | "enviado" | "descartado";
   versao: number;
@@ -412,4 +416,45 @@ export interface MembroEquipa {
   perfil: string;
   servico: string | null;
   ativo: boolean;
+}
+
+// ---------------------------------------------------------------------------
+// Verificações automáticas (V2 · Apoio ao técnico)
+// ---------------------------------------------------------------------------
+
+export type EstadoAutomatico = "ok" | "atencao" | "falha" | "nao_verificavel";
+export type OrigemVerificacao = "regra" | "ia" | "simulado";
+
+export interface Evidencia {
+  tipo: "documento" | "regra";
+  rotulo: string;
+  documento_id?: string | null;
+  pagina?: number | null;
+  folha?: string | null;
+  url?: string | null;
+}
+
+export interface Verificacao {
+  codigo: string;
+  estado: EstadoAutomatico;
+  titulo: string;
+  detalhe: string;
+  evidencias: Evidencia[];
+  origem: OrigemVerificacao;
+  a_confirmar: boolean;
+  demonstracao: boolean;
+  notas: string[];
+}
+
+export interface Verificacoes {
+  processo_id: string;
+  itens: Verificacao[];
+  contagem: Record<EstadoAutomatico, number>;
+  gerado_em: string;
+  gerado_por: { id: string; nome: string | null } | null;
+  leitura_ia_em: string | null;
+  em_cache: boolean;
+  atualizado: boolean;
+  ia_disponivel: boolean;
+  versao: { motor: string; documentos: string; regras: string };
 }

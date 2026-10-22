@@ -50,6 +50,8 @@ const VERBOS: Record<string, string> = {
   gerar_relatorio: 'gerou',
   enviar_aviso_zona: 'enviou',
   carregar_zonas_demonstracao: 'carregou as zonas de demonstração do',
+  verificar: 'correu as verificações automáticas de',
+  carregar_processo_demonstracao: 'criou o processo de demonstração',
   mudar_regras_zona: 'mudou as regras de',
   carregar_consultas_pdm_demonstracao: 'carregou perguntas de demonstração do',
   criar: 'criou',

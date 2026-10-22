@@ -21,6 +21,7 @@ import {
   MapPin,
   Megaphone,
   MessagesSquare,
+  Newspaper,
   NotebookPen,
   PhoneOutgoing,
   Receipt,
@@ -223,6 +224,12 @@ const SECCOES: Seccao[] = [
         href: "/painel/consultas",
         icone: Vote,
         recurso: "indicadores",
+      },
+      {
+        rotulo: "Comunicados e eventos",
+        href: "/painel/comunicados",
+        icone: Newspaper,
+        recurso: "visao_geral",
       },
       {
         rotulo: "Avisos por zona",
