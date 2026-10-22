@@ -199,12 +199,6 @@ class _EcraDefinicoesState extends State<EcraDefinicoes> {
                       for (final (i, e) in Letra.opcoes.indexed)
                         ButtonSegment(
                           value: e,
-                          tooltip: const [
-                            'Normal',
-                            'Grande',
-                            'Maior',
-                            'Muito grande',
-                          ][i],
                           label: Text(
                             'A',
                             semanticsLabel: const [

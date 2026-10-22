@@ -157,7 +157,10 @@ class _CartaoProcesso extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              Flexible(child: Pilula(p.faseRotulo, tom: TomPilula.tinta)),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 190),
+                child: Pilula(p.faseRotulo, tom: TomPilula.tinta),
+              ),
             ],
           ),
           const SizedBox(height: 6),
@@ -422,7 +425,8 @@ class _CartaoLicenca extends StatelessWidget {
             children: [
               Expanded(child: Text(l.tipoNome, style: t.titleMedium)),
               const SizedBox(width: 8),
-              Flexible(
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 190),
                 child: Pilula(
                   l.estadoDito,
                   tom: l.valida
@@ -518,7 +522,8 @@ class CartaoPagamento extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              Flexible(
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 190),
                 child: Pilula(
                   p.estadoDito,
                   tom: p.pendente
@@ -599,7 +604,8 @@ class _CartaoMarcacao extends StatelessWidget {
             children: [
               Expanded(child: Text(m.servico, style: t.titleMedium)),
               const SizedBox(width: 8),
-              Flexible(
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 190),
                 child: Pilula(
                   m.estadoDito,
                   tom: m.futura ? TomPilula.verde : TomPilula.neutro,
@@ -654,7 +660,8 @@ class _CartaoReclamacao extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              Flexible(
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 190),
                 child: Pilula(
                   r.estadoRotulo,
                   tom: r.resposta != null ? TomPilula.verde : TomPilula.ambar,
@@ -728,7 +735,8 @@ class _CartaoOcorrencia extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              Flexible(
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 190),
                 child: Pilula(
                   o.resolvida
                       ? 'Resolvida'

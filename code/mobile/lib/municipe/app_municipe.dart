@@ -185,9 +185,9 @@ class EcraPrincipal extends StatelessWidget {
             ),
           ],
         ),
-        // Os nomes dos separadores não crescem tanto como o resto (não cabiam).
+        // Os nomes dos separadores não crescem (com os ícones, não cabiam cinco).
         bottomNavigationBar: MediaQuery.withClampedTextScaling(
-          maxScaleFactor: 1.15,
+          maxScaleFactor: 1.0,
           child: NavigationBar(
             selectedIndex: i,
             onDestinationSelected: (n) => s.navegacao.separador.value = n,
