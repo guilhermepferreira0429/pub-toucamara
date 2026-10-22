@@ -53,6 +53,9 @@ import { OrdenamentoService } from '../ordenamento/ordenamento.service.js';
 import { PagamentosService } from '../pagamentos/pagamentos.service.js';
 import { ProcessosDemonstracaoService } from '../processos/processos-demonstracao.service.js';
 import { TurismoService } from '../turismo/turismo.service.js';
+import { CemiteriosService } from '../cemiterios/cemiterios.service.js';
+import { AnimaisService } from '../animais/animais.service.js';
+import { AguaService } from '../agua/agua.service.js';
 import { PROCESSOS_PERFIS } from '../processos/projetos-perfis-pdf.js';
 import {
   CONVERSAS,
@@ -200,6 +203,24 @@ export function passosDemo(): Passo[] {
       passo: 'turismo',
       rotulo: 'Fontes de turismo em PT/EN/ES/FR (página /visitar)',
       chaves: ['turismo'],
+    },
+    {
+      passo: 'cemiterios',
+      rotulo:
+        'Cemitérios: sepulturas, concessões (uma a terminar, taxas por pagar) e pedidos',
+      chaves: ['cemiterios'],
+    },
+    {
+      passo: 'animais',
+      rotulo:
+        'Canil: animais para adoção (/adotar), um pedido de visita, um gato perdido e um encontrado',
+      chaves: ['animais'],
+    },
+    {
+      passo: 'agua',
+      rotulo:
+        'Água (Vimágua): leitura, rotura e fatura encaminhadas pelo adaptador simulado',
+      chaves: ['agua'],
     },
     {
       passo: 'balcao',
@@ -545,6 +566,9 @@ export class DemoService {
       ['agora', () => this.agora(ctx)],
       ['linguagem_simples', () => this.linguagemSimples(ctx)],
       ['turismo', () => this.turismo(ctx)],
+      ['cemiterios', () => this.servicoV4(ctx, 'cemiterios')],
+      ['animais', () => this.servicoV4(ctx, 'animais')],
+      ['agua', () => this.servicoV4(ctx, 'agua')],
       ['balcao', () => this.balcao(ctx)],
       ['antecipacoes', () => this.antecipacoes(ctx)],
     ];
@@ -1605,6 +1629,23 @@ export class DemoService {
     await this.umaVez(c.m, 'turismo', 'turismo', async () => {
       const r = await this.svc(TurismoService).carregarDemonstracao(c.m, c.u);
       if (r.criadas) c.contar('turismo');
+      return c.m.id;
+    });
+  }
+
+  /** Catálogo de serviços (V4): os dados de demonstração de cada área. */
+  private async servicoV4(
+    c: Preparacao,
+    area: 'cemiterios' | 'animais' | 'agua',
+  ) {
+    await this.umaVez(c.m, area, area, async () => {
+      const r =
+        area === 'cemiterios'
+          ? await this.svc(CemiteriosService).carregarDemonstracao(c.m)
+          : area === 'animais'
+            ? await this.svc(AnimaisService).carregarDemonstracao(c.m)
+            : await this.svc(AguaService).carregarDemonstracao(c.m);
+      if (Object.values(r).some((n) => n > 0)) c.contar(area);
       return c.m.id;
     });
   }

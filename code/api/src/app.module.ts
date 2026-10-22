@@ -77,6 +77,9 @@ import { RequerimentosModule } from './modules/requerimentos/requerimentos.modul
 import { TransparenciaModule } from './modules/transparencia/transparencia.module.js';
 import { EntregasModule } from './modules/entregas/entregas.module.js';
 import { CartasModule } from './modules/cartas/cartas.module.js';
+import { CemiteriosModule } from './modules/cemiterios/cemiterios.module.js';
+import { AnimaisModule } from './modules/animais/animais.module.js';
+import { AguaModule } from './modules/agua/agua.module.js';
 
 @Module({
   imports: [
@@ -169,6 +172,10 @@ import { CartasModule } from './modules/cartas/cartas.module.js';
     LinguagemSimplesModule,
     // "A câmara liga-lhe antes de o problema existir": prazos antecipados
     AntecipacoesModule,
+    // Catálogo de serviços (V4): cemitérios, animais, água (Vimágua)
+    CemiteriosModule,
+    AnimaisModule,
+    AguaModule,
     // Preparar a câmara de demonstração (botão no painel e npm run demo:preparar)
     DemoModule,
   ],

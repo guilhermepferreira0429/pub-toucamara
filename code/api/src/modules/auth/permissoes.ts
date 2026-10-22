@@ -53,6 +53,9 @@ export const PERMISSOES = {
   // Preparar a câmara de demonstração e esconder os registos dos testes:
   // só a chefia (e a administração, que pode tudo).
   demo: ['chefe_divisao'],
+  // Serviços municipais do catálogo (V4: cemitérios, animais, água…): quem
+  // atende, os técnicos e a chefia tratam os pedidos registados pelo agente.
+  servicos_municipais: ['atendimento', 'tecnico', 'chefe_divisao'],
 } as const satisfies Record<string, readonly Perfil[]>;
 
 export type Recurso = keyof typeof PERMISSOES;

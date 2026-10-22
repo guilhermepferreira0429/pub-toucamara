@@ -190,6 +190,11 @@ const VERBOS: Record<string, string> = {
   definir_rececao_carta: 'disse quando recebeu',
   preparar_resposta_carta: 'preparou a resposta a',
   entregar_resposta_carta: 'entregou a resposta a',
+  tratar_pedido_cemiterio: 'tratou',
+  mudar_animal_adocao: 'mudou o estado de',
+  tratar_visita_adocao: 'tratou',
+  tratar_animal_reportado: 'tratou',
+  reenviar_pedido_agua: 'reenviou à entidade gestora',
 };
 
 const OBJETOS: Record<string, string> = {
@@ -256,6 +261,11 @@ const OBJETOS: Record<string, string> = {
   antecipacao_config: 'das antecipações',
   turismo: 'do turismo',
   carta: 'uma carta da câmara',
+  pedido_cemiterio: 'um pedido de concessão no cemitério',
+  animal_adocao: 'um animal para adoção',
+  visita_adocao: 'um pedido de visita para adotar',
+  animal_reportado: 'um animal perdido, encontrado ou na via',
+  pedido_agua: 'um pedido de água e saneamento',
 };
 
 export function frase(acao: string, objetoTipo: string): string {
