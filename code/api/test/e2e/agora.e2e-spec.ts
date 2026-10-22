@@ -865,8 +865,9 @@ describe('O que se passa perto de mim (e2e)', () => {
       expect(todas).toEqual([{ tipos: ['eventos', 'obras'] }]);
     });
 
-    it('a notificação tem um ponto de extensão (hoje só SMS)', () => {
+    it('a notificação vai por push na app e, sem app, por SMS', () => {
       expect(ctx.app.get(NotificacoesService).nomesDosCanais()).toEqual([
+        'push',
         'sms',
       ]);
     });
