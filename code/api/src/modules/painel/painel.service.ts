@@ -162,7 +162,7 @@ export class PainelService {
          FROM passagens_humano p
          JOIN conversas c ON c.id = p.conversa_id
          LEFT JOIN utilizadores u ON u.id = p.atribuida_a
-         WHERE c.municipio_id = $1 AND p.estado IN ('aberta','em_curso')
+         WHERE c.municipio_id = $1 AND c.oculto_em IS NULL AND p.estado IN ('aberta','em_curso')
          ORDER BY p.responder_ate ASC NULLS LAST, p.criada_em ASC
          LIMIT 5`,
         [m.id],
@@ -181,7 +181,7 @@ export class PainelService {
                 o.criada_em, count(*) OVER ()::int AS total
          FROM ocorrencias o
          JOIN categorias_ocorrencia cat ON cat.id = o.categoria_id
-         WHERE o.municipio_id = $1 AND o.estado = 'nova' AND o.duplicada_de IS NULL
+         WHERE o.municipio_id = $1 AND o.oculto_em IS NULL AND o.estado = 'nova' AND o.duplicada_de IS NULL
          ORDER BY o.criada_em DESC
          LIMIT 5`,
         [m.id],

@@ -80,7 +80,7 @@ export class PainelConversasService {
        FROM conversas c
        LEFT JOIN temas t ON t.id = c.tema_id
        LEFT JOIN municipes m ON m.id = c.municipe_id
-       WHERE c.municipio_id = $1
+       WHERE c.municipio_id = $1 AND c.oculto_em IS NULL
          AND ($2::canal IS NULL OR c.canal = $2)
          AND ($3::resultado_conv IS NULL OR c.resultado = $3)
          AND ($4::uuid IS NULL OR c.tema_id = $4)

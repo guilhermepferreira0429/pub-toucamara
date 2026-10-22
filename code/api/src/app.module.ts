@@ -49,6 +49,7 @@ import { PainelModule } from './modules/painel/painel.module.js';
 import { CampanhasModule } from './modules/campanhas/campanhas.module.js';
 import { ConsultasPublicasModule } from './modules/consultas-publicas/consultas-publicas.module.js';
 import { LicencasModule } from './modules/licencas/licencas.module.js';
+import { DemoModule } from './modules/demo/demo.module.js';
 import { LinguagemSimplesModule } from './modules/linguagem-simples/linguagem-simples.module.js';
 import { ApoiosModule } from './modules/apoios/apoios.module.js';
 import { AppMunicipeModule } from './modules/app-municipe/app-municipe.module.js';
@@ -153,6 +154,8 @@ import { EntregasModule } from './modules/entregas/entregas.module.js';
     AppMunicipeModule,
     // Editais e regulamentos em linguagem simples e glossário administrativo
     LinguagemSimplesModule,
+    // Preparar a câmara de demonstração (botão no painel e npm run demo:preparar)
+    DemoModule,
   ],
   controllers: [AppController],
   providers: [AppService],

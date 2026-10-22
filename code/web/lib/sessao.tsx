@@ -39,7 +39,8 @@ export type Recurso =
   | "transparencia"
   | "fiscalizacao"
   | "arquivo"
-  | "comunicados";
+  | "comunicados"
+  | "demo";
 
 export type Perfil =
   | "atendimento"

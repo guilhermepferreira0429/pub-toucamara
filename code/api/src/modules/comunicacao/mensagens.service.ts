@@ -1,3 +1,4 @@
+import { eTelefoneDemonstracao } from '../demo/demo.regras.js';
 import { HttpStatus, Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService, ConfigType } from '@nestjs/config';
 import nodemailer, { Transporter } from 'nodemailer';
@@ -218,6 +219,16 @@ export class MensagensService implements OnModuleInit {
     );
     if (!m) throw new Error(`Mensagem ${mensagemId} ainda não existe.`);
     if (!['agendada', 'pendente'].includes(m.estado)) return;
+
+    // Gama de teste da demonstração (+351 910 000 xxx): nunca sai para o
+    // operador, fica como enviada para o painel mostrar.
+    if (eTelefoneDemonstracao(m.destino)) {
+      await this.db.query(
+        `UPDATE mensagens_saida SET estado = 'enviada', enviada_em = now(), provider_id = 'demonstracao' WHERE id = $1`,
+        [mensagemId],
+      );
+      return;
+    }
 
     const { smsProvider } = this.cfg();
     if (smsProvider === 'twilio') {
