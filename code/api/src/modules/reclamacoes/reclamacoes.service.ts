@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { hojeLisboa } from '../../common/dias-uteis.js';
 import { ErroApi } from '../../common/erros.js';
 import { proximoNumero } from '../../common/numeracao.js';
+import { MAX_EXPORTAR } from '../../common/paginacao.js';
 import type { UtilizadorPainel } from '../../common/pedido.js';
 import { DatabaseService, Tx } from '../../database/database.service.js';
 import type { ContextoFerramenta } from '../../ferramentas/ferramenta.js';
@@ -626,6 +627,25 @@ export class ReclamacoesService {
       indicadores: indicadores(todas, hoje, feriados),
       config,
     };
+  }
+
+  /** Para o CSV: os mesmos filtros da lista, sem o limite de 200. */
+  async exportar(m: Municipio, f: z.output<typeof esquemaFiltro>) {
+    const [linhas, feriados] = await Promise.all([
+      this.db.query<Linha>(
+        `${SELECT} WHERE r.municipio_id = $1
+           AND ($2::text IS NULL
+                OR ($2 = 'abertas' AND r.estado IN ('recebida','em_analise'))
+                OR r.estado = $2)
+           AND ($3::uuid IS NULL OR r.servico_id = $3)
+         ORDER BY r.recebida_em DESC, r.criada_em DESC
+         LIMIT $4`,
+        [m.id, f.estado ?? null, f.servico_id ?? null, MAX_EXPORTAR],
+      ),
+      this.municipios.feriados(m.id),
+    ]);
+    const hoje = hojeLisboa();
+    return linhas.map((l) => this.paraPainel(l, hoje, feriados));
   }
 
   async opcoes(m: Municipio) {

@@ -1,6 +1,6 @@
 import { types } from 'pg';
 import { instalarParserDatas } from './datas-pg.js';
-import { lerCursor, pagina } from './paginacao.js';
+import { lerCursor, pagina, todasAsPaginas } from './paginacao.js';
 
 describe('pagina', () => {
   it('sem mais linhas, sem cursor', () => {
@@ -36,5 +36,37 @@ describe('pagina', () => {
       (l) => l,
     );
     expect(lerCursor(p.proximo_cursor!).em).toBe('2026-10-20T09:00:00.123Z');
+  });
+});
+
+describe('todasAsPaginas', () => {
+  const dados = Array.from({ length: 450 }, (_, i) => ({
+    em: new Date(Date.UTC(2026, 0, 1) - i * 60_000),
+    id: String(i).padStart(4, '0'),
+  }));
+  /** Lista falsa com keyset como as do painel. */
+  const ler = ({
+    limite,
+    cursor,
+  }: {
+    limite: number;
+    cursor: { em: string } | null;
+  }) => {
+    const resto = cursor
+      ? dados.filter((d) => d.em < new Date(cursor.em))
+      : dados;
+    return Promise.resolve(
+      pagina(resto.slice(0, limite + 1), limite, (l) => l),
+    );
+  };
+
+  it('junta as páginas até ao fim', async () => {
+    const todas = await todasAsPaginas(ler);
+    expect(todas).toHaveLength(450);
+    expect(new Set(todas.map((t) => t.id)).size).toBe(450);
+  });
+
+  it('para no máximo', async () => {
+    expect(await todasAsPaginas(ler, 250)).toHaveLength(250);
   });
 });
