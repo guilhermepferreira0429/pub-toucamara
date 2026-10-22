@@ -30,8 +30,11 @@ export function Topo({
   mono?: boolean;
 }) {
   return (
-    <header className="flex w-full items-center justify-between gap-3">
-      <Logo tamanho={20} />
+    // No computador o logótipo está na coluna da esquerda: aqui fica só o resto.
+    <header className="flex w-full items-center justify-between gap-3 lg:justify-end">
+      <span className="lg:hidden">
+        <Logo tamanho={20} />
+      </span>
       {direita && (
         <span
           className={`text-right text-[13px] font-medium text-tinta-3 ${mono ? "font-mono font-semibold" : ""}`}

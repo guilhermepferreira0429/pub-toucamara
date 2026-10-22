@@ -15,7 +15,7 @@ export function Ecra({
 }) {
   return (
     <main
-      className={`mx-auto flex min-h-dvh w-full max-w-[430px] flex-col px-5 pb-7 pt-[max(8px,env(safe-area-inset-top))] ${className ?? ""}`}
+      className={`mx-auto flex min-h-dvh w-full max-w-[430px] flex-col px-5 pb-7 pt-[max(8px,env(safe-area-inset-top))] lg:min-h-[min(860px,calc(100dvh-80px))] lg:px-8 lg:pt-7 ${className ?? ""}`}
     >
       {children}
     </main>

@@ -26,7 +26,13 @@ function useEndereco(): string | null {
   return base ? `${base}/ligar` : null;
 }
 
-function Qr({ texto }: { texto: string }) {
+function Qr({
+  texto,
+  className = "aspect-square w-[min(70vh,80vw)] max-w-[560px] rounded-3xl bg-white",
+}: {
+  texto: string;
+  className?: string;
+}) {
   const caminho = useMemo(() => {
     const m = gerarQr(texto);
     let d = "";
@@ -43,7 +49,7 @@ function Qr({ texto }: { texto: string }) {
       role="img"
       aria-label={`Código QR para ${texto}`}
       shapeRendering="crispEdges"
-      className="aspect-square w-[min(70vh,80vw)] max-w-[560px] rounded-3xl bg-white"
+      className={className}
     >
       <path d={caminho.d} className="fill-tinta" />
     </svg>
@@ -84,5 +90,23 @@ export function PaginaQr() {
         />
       )}
     </main>
+  );
+}
+
+/**
+ * No computador, ao lado da chamada: o mesmo /ligar num QR pequeno, para quem
+ * prefere falar pelo telemóvel (a chamada abre lá, sem instalar nada).
+ */
+export function QrParaTelemovel() {
+  const endereco = useEndereco();
+  if (!endereco) return null;
+  return (
+    <div className="flex items-center gap-4 rounded-2xl border border-linha bg-papel p-4">
+      <Qr texto={endereco} className="aspect-square w-[104px] shrink-0 rounded-xl bg-white" />
+      <p className="text-[14px] leading-[1.45] text-tinta-2">
+        <span className="block font-semibold text-tinta">Prefere o telemóvel?</span>
+        Aponte a câmara do telemóvel ao código: a chamada abre lá.
+      </p>
+    </div>
   );
 }
