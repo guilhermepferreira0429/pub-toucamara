@@ -49,7 +49,9 @@ export class ChamadasSaidaModule implements OnModuleInit {
         descricao:
           'Quando a pessoa pede para juntar um familiar ou alguém de confiança à chamada ("fale com o meu filho"). ' +
           'Pergunta o número e confirma-o em voz alta antes de chamar. Diz o texto de "dizer" e, se modo for "conferencia", ' +
-          'não digas mais nada: a chamada muda e voltas logo a seguir. Nunca para emergências (aí é o 112).',
+          'não digas mais nada: a chamada muda e voltas logo a seguir. Se vier precisa_autorizacao, faz a pergunta de "dizer" e, ' +
+          'se a pessoa disser que sim, chama outra vez com autorizou: true. Se modo for "web", o familiar acompanha por um link e o que escrever chega-te como contexto. ' +
+          'Nunca para emergências (aí é o 112).',
         entrada: entradaJuntarFamiliar,
         executar: (ctx, e) => this.juncoes.pedir(ctx, e),
       }),
