@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { DatabaseService, Tx } from '../../database/database.service.js';
 import type { ContextoFerramenta } from '../../ferramentas/ferramenta.js';
+import { variaveisDinamicas } from '../../agente-voz/configuracao.js';
 import { normalizarTelefone } from '../municipes/municipes.service.js';
 import { linhasObjetos, objetosDaConversa } from './objetos-conversa.js';
 import {
@@ -17,7 +18,12 @@ import {
 
 export interface RespostaInicioChamada {
   type: 'conversation_initiation_client_data';
-  dynamic_variables: VariaveisInicio;
+  /**
+   * Todas as variáveis do agente (as do início por cima dos valores por
+   * omissão): os headers das ferramentas usam {{telefone}}, {{municipio}}…
+   * e o ElevenLabs recusa a ferramenta se alguma não tiver chegado.
+   */
+  dynamic_variables: Record<string, string>;
   /** Voz e ritmo do painel (só com ELEVENLABS_SOBREPOR_VOZ=true). */
   conversation_config_override?: { tts: { voice_id?: string; speed: number } };
 }
@@ -70,9 +76,10 @@ export class RetomarService {
     sobreporVoz = false,
   ): Promise<RespostaInicioChamada> {
     let voz: RespostaInicioChamada['conversation_config_override'];
+    let slug = '';
     const resposta = (v: VariaveisInicio): RespostaInicioChamada => ({
       type: 'conversation_initiation_client_data',
-      dynamic_variables: v,
+      dynamic_variables: { ...variaveisDinamicas(slug), ...v },
       ...(voz ? { conversation_config_override: voz } : {}),
     });
     try {
@@ -86,6 +93,7 @@ export class RetomarService {
         );
         return resposta(VARIAVEIS_VAZIAS);
       }
+      slug = municipio.slug;
       // O override tem de estar autorizado no agente do ElevenLabs (Security
       // › Overrides), senão a chamada é recusada: por isso só com a flag.
       if (sobreporVoz) {
@@ -143,6 +151,7 @@ export class RetomarService {
     numero: string | null,
   ): Promise<{
     id: string;
+    slug: string;
     fuso: string;
     voz_id: string | null;
     ritmo: Ritmo;
@@ -150,16 +159,17 @@ export class RetomarService {
     if (!agentId && !numero) return null;
     const [m] = await this.db.query<{
       id: string;
+      slug: string;
       fuso: string;
       voz_id: string | null;
       ritmo: Ritmo;
     }>(
-      `SELECT x.id, x.fuso, a.voz_id, coalesce(a.ritmo, 'normal') AS ritmo FROM (
-         SELECT m.id, m.fuso, 1 AS ordem FROM agente_config a
+      `SELECT x.id, x.slug, x.fuso, a.voz_id, coalesce(a.ritmo, 'normal') AS ritmo FROM (
+         SELECT m.id, m.slug, m.fuso, 1 AS ordem FROM agente_config a
          JOIN municipios m ON m.id = a.municipio_id
          WHERE $1 IN (a.elevenlabs_agent_id, a.elevenlabs_agent_id_saida)
          UNION ALL
-         SELECT id, fuso, 2 FROM municipios
+         SELECT id, slug, fuso, 2 FROM municipios
          WHERE regexp_replace(telefone_linha, '[^0-9+]', '', 'g') = $2
        ) x LEFT JOIN agente_config a ON a.municipio_id = x.id
        ORDER BY x.ordem LIMIT 1`,

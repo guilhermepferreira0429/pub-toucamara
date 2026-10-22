@@ -1,6 +1,8 @@
 import { Module, OnModuleInit } from '@nestjs/common';
 import { JobsService } from '../../jobs/jobs.service.js';
 import { ConhecimentoModule } from '../conhecimento/conhecimento.module.js';
+import { SincronizacaoAgenteService } from '../../agente-voz/sincronizacao.service.js';
+import { VozPainelService } from '../../agente-voz/voz-painel.service.js';
 import { AgenteController } from './agente.controller.js';
 import { AgenteService } from './agente.service.js';
 import { PerguntasCamaraService } from './perguntas-camara.service.js';
@@ -31,6 +33,8 @@ import { VisaoGeralController } from './visao-geral.controller.js';
     PainelService,
     EquipaService,
     AgenteService,
+    SincronizacaoAgenteService,
+    VozPainelService,
     PerguntasCamaraService,
     RgpdService,
     GestaoService,

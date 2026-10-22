@@ -72,6 +72,11 @@ export const comunicacaoConfig = registerAs('comunicacao', () => ({
     accountSid: process.env.TWILIO_ACCOUNT_SID || '',
     authToken: process.env.TWILIO_AUTH_TOKEN || '',
   },
+  // SMS_PROVIDER=zadarma: envio pela API do Zadarma (o remetente é o SMS_REMETENTE).
+  zadarma: {
+    apiKey: process.env.ZADARMA_API_KEY || '',
+    apiSecret: process.env.ZADARMA_API_SECRET || '',
+  },
   // Por defeito sem acentos: GSM-7 leva 160 caracteres por parte, UCS-2 só 70.
   smsTransliterar: process.env.SMS_TRANSLITERAR !== 'false',
   smtp: {

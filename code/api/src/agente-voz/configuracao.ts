@@ -14,7 +14,10 @@ import type { Ferramenta } from '../ferramentas/ferramenta.js';
 import { agentesDe } from '../ferramentas/registo-ferramentas.service.js';
 import { VARIAVEIS_SAIDA_VAZIAS } from '../modules/chamadas-saida/regras.js';
 import { CAMPO_CONSENTIMENTO } from '../modules/conversas/elevenlabs.js';
-import { VARIAVEIS_VAZIAS } from '../modules/conversas/retomar.js';
+import {
+  AVISO_GRAVACAO,
+  VARIAVEIS_VAZIAS,
+} from '../modules/conversas/retomar.js';
 import {
   VELOCIDADE_RITMO,
   type Ritmo,
@@ -75,6 +78,19 @@ export function cabecalhosFerramentas(): Record<string, CabecalhoEl> {
   };
 }
 
+/** O corpo das ferramentas sem parâmetros (ver gerarFerramentas). */
+export const CORPO_SEM_PARAMETROS: ObjetoEl = {
+  type: 'object',
+  description: 'Esta ferramenta não precisa de parâmetros.',
+  properties: {
+    nota: {
+      type: 'string',
+      description: 'Não é preciso preencher; pode ir vazio.',
+    },
+  },
+  required: [],
+} as ObjetoEl;
+
 /** As ferramentas de um agente de voz (as `agentes` de cada ferramenta). */
 export function ferramentasDoAgente(
   lista: Ferramenta[],
@@ -104,7 +120,10 @@ export function gerarFerramentas(
           method: 'POST',
           content_type: 'application/json',
           request_headers: cabecalhosFerramentas(),
-          ...(esquema ? { request_body_schema: esquema } : {}),
+          // O ElevenLabs recusa POST sem request_body_schema (422): as ferramentas
+          // sem parâmetros levam um campo opcional que a API ignora (z.object
+          // deita fora chaves que não conhece).
+          request_body_schema: esquema ?? CORPO_SEM_PARAMETROS,
         },
       };
     });
@@ -145,6 +164,9 @@ export function variaveisDinamicas(municipio: string): Record<string, string> {
     canal: 'telefone',
     telefone: '',
     quer_sms: 'sim',
+    // Ao telefone o aviso é dito na primeira mensagem. No browser (/ligar) a
+    // pessoa já aceitou a gravação no ecrã: a web manda-o vazio.
+    aviso_gravacao: AVISO_GRAVACAO,
   };
 }
 
@@ -163,14 +185,15 @@ export interface DadosMunicipio {
   voz_id: string | null;
   voz_nome: string | null;
   ritmo: string | null;
+  /** O LLM do agente no ElevenLabs (0091); null: fica o que lá estiver. */
+  modelo_voz?: string | null;
   elevenlabs_agent_id: string | null;
   /** O agente das chamadas da câmara (0082); sem ele usa-se o de entrada. */
   elevenlabs_agent_id_saida: string | null;
   fuso: string | null;
 }
 
-export const AVISO_GRAVACAO =
-  'Esta chamada é gravada para a câmara poder confirmar o que lhe foi dito; se não quiser, diga-me.';
+export { AVISO_GRAVACAO };
 
 export function primeiraMensagem(
   m: DadosMunicipio,
@@ -184,10 +207,16 @@ export function primeiraMensagem(
     return `Olá, daqui fala o assistente ${nome} da Câmara Municipal de ${m.nome}. ${AVISO_GRAVACAO}`;
   }
   if (!m.saudacao) return null;
+  // A mesma saudação serve o chat, onde pode acabar em "Em que posso ajudar?":
+  // aqui essa pergunta vem depois do aviso de gravação, não se repete.
+  const t =
+    m.saudacao
+      .trim()
+      .replace(/\s*Em que (?:posso|podemos) ajudar\??$/i, '')
+      .trim() || m.saudacao.trim();
   // "Olá, fala com o Tou, Câmara?": o ponto de interrogação é do nome.
-  const t = m.saudacao.trim();
   const s = /[.!?]$/.test(t) ? t : `${t}.`;
-  return `${s} ${AVISO_GRAVACAO} Em que posso ajudar?`;
+  return `${s} {{aviso_gravacao}} Em que posso ajudar?`;
 }
 
 export interface FicheiroAgente {
@@ -229,6 +258,8 @@ export function gerarAgente(
         'municipios.fuso. Campo do SDK 2.74; confirmar que o agente o aceita.',
       'conversation_config.agent.dynamic_variables.dynamic_variable_placeholders':
         'Todas as variáveis que o prompt e os headers das ferramentas usam, com o valor por omissão (numa chamada pelo browser o webhook de início não corre). Confirmar que o ElevenLabs as usa quando a variável não chega.',
+      'conversation_config.agent.prompt.llm':
+        'agente_config.modelo_voz (painel "Agente"). null: fica o modelo escolhido no ElevenLabs.',
       'conversation_config.tts.voice_id':
         'agente_config.voz_id (no painel "Agente"). null: ainda não há voz escolhida; fica a que está no ElevenLabs.',
       'conversation_config.tts.speed':
@@ -257,8 +288,11 @@ export function gerarAgente(
     conversation_config: {
       agent: {
         first_message: primeiraMensagem(m, agente),
+        // O aviso de gravação vai na primeira mensagem: não pode ser cortado
+        // por quem começa logo a falar (é o que dá o consentimento).
+        disable_first_message_interruptions: true,
         language: 'pt',
-        prompt: { timezone: m.fuso },
+        prompt: { timezone: m.fuso, llm: m.modelo_voz ?? null },
         dynamic_variables: {
           dynamic_variable_placeholders: variaveisDinamicas(m.slug),
         },

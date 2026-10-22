@@ -39,7 +39,17 @@ export const esquemaInicioChamada = z
 export type PedidoInicioChamada = z.infer<typeof esquemaInicioChamada>;
 
 /** As variáveis dinâmicas que o prompt do agente pode usar ({{nome}}). */
+/** O aviso de gravação dito na primeira mensagem da linha (variável {{aviso_gravacao}}). */
+export const AVISO_GRAVACAO =
+  'Esta chamada é gravada para a câmara poder confirmar o que lhe foi dito; se não quiser, diga-me.';
+
 export interface VariaveisInicio {
+  /**
+   * Vai sempre no webhook de início: o ElevenLabs recusa a chamada se a
+   * primeira mensagem tiver uma variável que não chegou. No browser a web
+   * manda-o vazio (a pessoa aceitou a gravação no ecrã).
+   */
+  aviso_gravacao: string;
   nome_municipe: string;
   ja_ligou: 'sim' | 'nao';
   ultima_conversa_quando: string;
@@ -49,6 +59,7 @@ export interface VariaveisInicio {
 }
 
 export const VARIAVEIS_VAZIAS: VariaveisInicio = {
+  aviso_gravacao: AVISO_GRAVACAO,
   nome_municipe: '',
   ja_ligou: 'nao',
   ultima_conversa_quando: '',

@@ -511,8 +511,8 @@ export function FeedAgora({
         {(geo === "recusado" || geo === "indisponivel") && (
           <Nota icone={MapPin} tom="ambar" papel="status">
             {geo === "recusado"
-              ? "Não deu autorização para usar a localização. Não faz mal: escolha a sua freguesia aqui em baixo."
-              : "Não conseguimos saber onde está. Escolha a sua freguesia aqui em baixo."}
+              ? "O browser não nos deixa usar a localização. Pode autorizá-la nas definições do site (o cadeado ao lado do endereço) ou escolher a sua freguesia aqui em baixo."
+              : "O telemóvel não nos deu a localização. Confirme que a localização está ligada (nas definições rápidas, puxando o ecrã de cima para baixo) e carregue outra vez em «Usar a minha localização», ou escolha a sua freguesia aqui em baixo."}
           </Nota>
         )}
         <p className="text-[13px] leading-[1.45] text-tinta-3">

@@ -1,3 +1,4 @@
+import { createHash, createHmac } from 'node:crypto';
 import { HttpStatus, Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService, ConfigType } from '@nestjs/config';
 import nodemailer, { Transporter } from 'nodemailer';
@@ -333,7 +334,11 @@ export class MensagensService implements OnModuleInit {
     }
 
     const { smsProvider } = this.cfg();
-    if (smsProvider === 'twilio') {
+    // O Zadarma só faz SMS: o WhatsApp continua pelo Twilio.
+    if (
+      smsProvider === 'twilio' ||
+      (smsProvider === 'zadarma' && m.canal === 'whatsapp')
+    ) {
       const r = await this.enviarTwilio(
         m.destino,
         m.corpo,
@@ -347,6 +352,23 @@ export class MensagensService implements OnModuleInit {
         );
       } else {
         this.logger.warn(`SMS ${mensagemId} recusado pelo Twilio: ${r.erro}`);
+        await this.db.query(
+          `UPDATE mensagens_saida SET estado = 'falhou', erro = $2 WHERE id = $1`,
+          [mensagemId, r.erro],
+        );
+      }
+      return;
+    }
+    if (smsProvider === 'zadarma') {
+      const r = await this.enviarZadarma(m.destino, m.corpo);
+      if ('id' in r) {
+        await this.db.query(
+          `UPDATE mensagens_saida SET estado = 'enviada', enviada_em = now(), provider_id = $2,
+             custo_cent = coalesce($3, custo_cent) WHERE id = $1`,
+          [mensagemId, r.id, r.custoCent],
+        );
+      } else {
+        this.logger.warn(`SMS ${mensagemId} recusado pelo Zadarma: ${r.erro}`);
         await this.db.query(
           `UPDATE mensagens_saida SET estado = 'falhou', erro = $2 WHERE id = $1`,
           [mensagemId, r.erro],
@@ -429,6 +451,54 @@ export class MensagensService implements OnModuleInit {
     return { erro };
   }
 
+  /**
+   * POST /v1/sms/send/ do Zadarma. Assinatura (documentação da API): os
+   * parâmetros ordenados e codificados como o http_build_query do PHP; a
+   * assinatura é base64(hex(HMAC-SHA1(método + parâmetros + md5(parâmetros),
+   * segredo))) e vai em `Authorization: chave:assinatura`. Recusas da API
+   * devolvem `erro` (a mensagem fica `falhou`); 429, 5xx e rede lançam, para
+   * o pg-boss repetir. O Zadarma não devolve id da mensagem.
+   */
+  private async enviarZadarma(
+    destino: string,
+    corpo: string,
+  ): Promise<{ id: string; custoCent: number | null } | { erro: string }> {
+    const { smsRemetente, zadarma } = this.cfg();
+    if (!zadarma.apiKey || !zadarma.apiSecret) {
+      return { erro: 'ZADARMA_API_KEY/ZADARMA_API_SECRET por configurar' };
+    }
+    const metodo = '/v1/sms/send/';
+    const parametros = parametrosZadarma({
+      message: corpo,
+      number: destino.replace(/^\+/, ''),
+      sender: smsRemetente,
+    });
+    const resp = await fetch(`https://api.zadarma.com${metodo}`, {
+      method: 'POST',
+      headers: {
+        Authorization: `${zadarma.apiKey}:${assinaturaZadarma(metodo, parametros, zadarma.apiSecret)}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: parametros,
+      signal: AbortSignal.timeout(15_000),
+    });
+    const dados = (await resp.json().catch(() => ({}))) as {
+      status?: string;
+      message?: string;
+      cost?: number;
+      currency?: string;
+    };
+    if (resp.ok && dados.status === 'success') {
+      // O custo vem em USD; guarda-se em cêntimos dessa moeda (só indicativo).
+      const custoCent =
+        typeof dados.cost === 'number' ? Math.round(dados.cost * 100) : null;
+      return { id: `zadarma:${Date.now()}`, custoCent };
+    }
+    const erro = `Zadarma ${resp.status}: ${dados.message ?? 'sem detalhe'}`;
+    if (resp.status === 429 || resp.status >= 500) throw new Error(erro);
+    return { erro };
+  }
+
   /** Email direto (links mágicos, relatórios). Sem SMTP: dev escreve no log. */
   async email(novo: NovoEmail): Promise<void> {
     if (!this.correio) {
@@ -457,4 +527,32 @@ export class MensagensService implements OnModuleInit {
       })),
     });
   }
+}
+
+/** urlencode do PHP (RFC 1738): espaço → '+', e também !'()*~ codificados. */
+function urlencodePhp(v: string): string {
+  return encodeURIComponent(v)
+    .replace(/[!'()*~]/g, (c) => '%' + c.charCodeAt(0).toString(16).toUpperCase())
+    .replace(/%20/g, '+');
+}
+
+/** Os parâmetros como o http_build_query do PHP, por ordem alfabética (ksort). */
+export function parametrosZadarma(p: Record<string, string>): string {
+  return Object.keys(p)
+    .sort()
+    .map((k) => `${urlencodePhp(k)}=${urlencodePhp(p[k])}`)
+    .join('&');
+}
+
+/** base64(hex(HMAC-SHA1(método + parâmetros + md5(parâmetros), segredo))). */
+export function assinaturaZadarma(
+  metodo: string,
+  parametros: string,
+  segredo: string,
+): string {
+  const md5 = createHash('md5').update(parametros).digest('hex');
+  const hex = createHmac('sha1', segredo)
+    .update(metodo + parametros + md5)
+    .digest('hex');
+  return Buffer.from(hex).toString('base64');
 }

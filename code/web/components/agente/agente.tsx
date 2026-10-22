@@ -1,7 +1,7 @@
 "use client";
 
-import { Info, Pencil, PhoneOutgoing, Plus, Save, Trash2, X } from "lucide-react";
-import { useState } from "react";
+import { Info, Pencil, PhoneOutgoing, Plus, Save, Trash2, Volume2, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { CabecalhoPagina } from "@/components/painel/cabecalho";
 import { Botao } from "@/components/ui/botao";
 import {
@@ -30,7 +30,13 @@ interface Config {
   voz_id: string | null;
   voz_nome: string | null;
   ritmo: Ritmo;
+  /** LLM do agente de voz no ElevenLabs; null: fica o que lá estiver. */
+  modelo_voz: string | null;
   versao: string;
+}
+interface Modelos {
+  modelos: string[];
+  no_elevenlabs: string | null;
 }
 type Ritmo = "calmo" | "normal" | "rapido";
 const RITMOS: Record<Ritmo, string> = { calmo: "calmo", normal: "normal", rapido: "rápido" };
@@ -109,8 +115,32 @@ function Identidade({
     voz_id: config?.voz_id ?? "",
     voz_nome: config?.voz_nome ?? "",
     ritmo: config?.ritmo ?? ("normal" as Ritmo),
+    modelo_voz: config?.modelo_voz ?? "",
   });
   const acao = useAcao();
+  const exemplo = useAcao();
+  const [modelos, setModelos] = useState<Modelos | null>(null);
+  const audio = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    if (!aberto || modelos) return;
+    pedido<Modelos>("/v1/painel/agente/modelos").then(setModelos, () => setModelos({ modelos: [], no_elevenlabs: null }));
+  }, [aberto, modelos, pedido]);
+  useEffect(() => () => audio.current?.pause(), []);
+
+  const ouvir = async () => {
+    audio.current?.pause();
+    const r = await exemplo.executar(() =>
+      pedido<{ audio: string }>("/v1/painel/agente/exemplo-voz", {
+        metodo: "POST",
+        corpo: { saudacao: v.saudacao.trim(), voz_id: v.voz_id.trim() || null, ritmo: v.ritmo },
+      }),
+    );
+    if (!r) return;
+    audio.current = new Audio(r.audio);
+    void audio.current.play();
+  };
+  const opcoesModelo = [...new Set([...(modelos?.modelos ?? []), v.modelo_voz, modelos?.no_elevenlabs ?? ""])].filter(Boolean);
 
   return (
     <section className="flex flex-col gap-3.5 rounded-[18px] bg-tinta p-[22px]">
@@ -177,6 +207,7 @@ function Identidade({
                   voz_id: v.voz_id.trim() || null,
                   voz_nome: v.voz_nome.trim() || null,
                   ritmo: v.ritmo,
+                  modelo_voz: v.modelo_voz || null,
                 },
               }),
             );
@@ -211,6 +242,38 @@ function Identidade({
             <Campo rotulo="Voz (identificador ElevenLabs)">
               <input className={classeEntrada} maxLength={100} value={v.voz_id} onChange={(e) => setV({ ...v, voz_id: e.target.value })} />
             </Campo>
+            <Campo
+              rotulo="Modelo da conversa (chamadas)"
+              ajuda={
+                modelos?.no_elevenlabs
+                  ? `Agora no ElevenLabs: ${modelos.no_elevenlabs}. Os mais rápidos respondem com menos pausa.`
+                  : "O modelo que pensa as respostas nas chamadas."
+              }
+            >
+              <select className={classeEntrada} value={v.modelo_voz} onChange={(e) => setV({ ...v, modelo_voz: e.target.value })}>
+                <option value="">Manter o do ElevenLabs</option>
+                {opcoesModelo.map((m) => (
+                  <option key={m} value={m}>
+                    {m}
+                  </option>
+                ))}
+              </select>
+            </Campo>
+          </div>
+          <div className="flex flex-wrap items-center gap-3 rounded-[12px] bg-creme px-3.5 py-3">
+            <button
+              type="button"
+              onClick={ouvir}
+              disabled={exemplo.aCorrer || !v.saudacao.trim()}
+              className="flex items-center gap-1.5 rounded-[10px] bg-tinta px-3 py-2 text-xs font-semibold text-white hover:bg-tinta/90 disabled:opacity-50"
+            >
+              <Volume2 className="size-3.5" aria-hidden />
+              {exemplo.aCorrer ? "A gerar…" : "Ouvir exemplo"}
+            </button>
+            <p className="min-w-0 flex-1 text-xs text-tinta-3">
+              A saudação e o aviso de gravação, com esta voz e este ritmo, como quem liga os vai ouvir.
+            </p>
+            <ErroLinha erro={exemplo.erro} />
           </div>
           <p className="text-xs text-tinta-3">Gravar cria uma versão nova do agente: as respostas voltam a precisar de avaliação para publicar.</p>
           <ErroLinha erro={acao.erro} />

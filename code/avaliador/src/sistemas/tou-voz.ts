@@ -230,12 +230,40 @@ export class AdaptadorTouVoz implements Adaptador {
     return (res.status === 204 ? null : await res.json()) as T;
   }
 
+  private variaveis: Promise<Record<string, string>> | null = null;
+
+  /**
+   * Os testes não aplicam os valores por omissão do agente (placeholders):
+   * sem eles a primeira mensagem ({{aviso_gravacao}}) e os headers das
+   * ferramentas ({{telefone}}, {{municipio}}…) falham. Lêem-se do agente.
+   */
+  private variaveisPorOmissao(agente: string): Promise<Record<string, string>> {
+    this.variaveis ??= this.pedir<{
+      conversation_config?: {
+        agent?: {
+          dynamic_variables?: {
+            dynamic_variable_placeholders?: Record<string, unknown>;
+          };
+        };
+      };
+    }>('GET', `/v1/convai/agents/${encodeURIComponent(agente)}`).then((a) => {
+      const ph =
+        a.conversation_config?.agent?.dynamic_variables
+          ?.dynamic_variable_placeholders ?? {};
+      return Object.fromEntries(
+        Object.entries(ph).map(([k, v]) => [k, v == null ? '' : String(v)]),
+      );
+    });
+    return this.variaveis;
+  }
+
   /** Modo por omissão: teste `simulation` criado, corrido e apagado. */
   private async testar(
     agente: string,
     p: { texto: string; idioma: string },
   ): Promise<{ turnos: TurnoEleven[]; bruto: Record<string, unknown> }> {
-    const turnosMax = Number(this.sistema.config.turnos_max) || 3;
+    // 2 turnos chegam para pergunta + resposta (cada turno de texto custa créditos).
+    const turnosMax = Number(this.sistema.config.turnos_max) || 2;
     const teste = await this.pedir<{ id: string }>(
       'POST',
       '/v1/convai/agent-testing/create',
@@ -244,6 +272,12 @@ export class AdaptadorTouVoz implements Adaptador {
         type: 'simulation',
         simulation_scenario: cenario(p.texto),
         simulation_max_turns: turnosMax,
+        // Os testes não usam os valores por omissão do agente: a primeira
+        // mensagem tem {{aviso_gravacao}} e sem ela o teste falha logo.
+        dynamic_variables: {
+          ...(await this.variaveisPorOmissao(agente)),
+          ...((this.sistema.config.variaveis as Record<string, string>) ?? {}),
+        },
         // Obrigatório pela API; o veredicto é do nosso juiz, não deste.
         success_conditions: ['O agente respondeu à pergunta do munícipe.'],
       },
