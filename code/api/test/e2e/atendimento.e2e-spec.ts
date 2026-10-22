@@ -27,7 +27,13 @@ function novoNif(): string {
 
 /** Palavras que não existem em nenhuma fonte nem regra. */
 function semSentido(): string {
-  return `zorblatex quiffnorp ${randomUUID().replace(/\d/g, '').slice(0, 8)}`;
+  // Só letras que não formam palavras: o hexadecimal (a-f) chegava a dar
+  // "cafe" ou "face", que as fontes de turismo têm.
+  const sufixo = randomUUID()
+    .replace(/[^a-f]/g, '')
+    .slice(0, 8)
+    .replace(/[a-f]/g, (c) => 'qxzjvk'['abcdef'.indexOf(c)]);
+  return `zorblatex quiffnorp ${sufixo}`;
 }
 
 async function momentos(ctx: Contexto, providerId: string, tipo: string) {
