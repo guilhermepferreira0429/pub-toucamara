@@ -183,8 +183,8 @@ function ConversaDetalhe({ id }: { id: string }) {
       <div className="flex flex-col gap-6 min-[1360px]:flex-row">
         <section aria-labelledby="transcricao" className="flex min-w-0 flex-1 flex-col gap-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <h2 id="transcricao" className="text-[11px] font-bold tracking-[1px] text-tinta-3">
-              {d.canal === "telefone" ? "TRANSCRIÇÃO" : "MENSAGENS"}
+            <h2 id="transcricao" className="text-[11px] font-bold uppercase tracking-[1px] text-tinta-3">
+              {d.canal === "telefone" ? "Transcrição" : "Mensagens"}
             </h2>
             {d.canal === "telefone" &&
               (consentimento !== null ? (
@@ -357,7 +357,7 @@ function Lateral({
   return (
     <div className="flex w-full shrink-0 flex-col gap-4 min-[1360px]:w-[300px]">
       <section className="flex flex-col gap-2.5 rounded-[16px_16px_16px_4px] bg-terracota p-5 text-white">
-        <h2 className="text-[11px] font-bold tracking-[1px] text-white/90">RESUMO</h2>
+        <h2 className="text-[11px] font-bold uppercase tracking-[1px] text-white/90">Resumo</h2>
         <p className="text-sm leading-normal">
           {d.resumo ?? (d.resumida_em ? "Sem resumo." : "O resumo ainda está a ser feito.")}
         </p>

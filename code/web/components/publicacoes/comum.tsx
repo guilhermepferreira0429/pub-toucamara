@@ -70,7 +70,7 @@ export function PreVisualizacao({ item, slug }: { item: ItemAgora; slug: string 
     <section aria-labelledby="previa-titulo" className="flex flex-col gap-2">
       <h3 id="previa-titulo" className="flex items-center gap-1.5 text-[13px] font-semibold text-tinta">
         <Eye className="size-4 text-tinta-3" aria-hidden />
-        Assim aparece no /agora
+        Assim aparece na página «O que se passa»
       </h3>
       {/* inert: é só para ver (o link do cartão ainda não existe). */}
       <ul inert className="rounded-2xl bg-creme p-3">
@@ -135,11 +135,11 @@ export function AvisoSms({
     texto = a.erro ? a.erro.message : "A contar as subscrições…";
   } else if (d.motivo === "noticia") {
     titulo = "As notícias não enviam SMS";
-    texto = "Aparece no /agora para toda a gente, mas ninguém recebe aviso por SMS.";
+    texto = "Aparece na página «O que se passa» para toda a gente, mas ninguém recebe aviso por SMS.";
   } else if (d.motivo === "todo_concelho") {
     titulo = "Para todo o concelho: não envia SMS";
     texto = evento
-      ? "Sem ponto no mapa nem freguesia, o evento é de todo o concelho: aparece no /agora, mas não avisa ninguém. Marque o ponto ou a freguesia para avisar quem vive perto."
+      ? "Sem ponto no mapa nem freguesia, o evento é de todo o concelho: aparece na página «O que se passa», mas não avisa ninguém. Marque o ponto ou a freguesia para avisar quem vive perto."
       : "Os comunicados para todo o concelho não enviam SMS (só os alertas e as emergências da Proteção Civil o fazem). Escolha as freguesias para avisar quem lá vive.";
   } else {
     avisa = d.pessoas > 0;

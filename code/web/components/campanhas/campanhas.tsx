@@ -67,7 +67,7 @@ export function PaginaCampanhas() {
         descricao="Em ondas de calor, frio ou cortes de água, o agente liga a todas as pessoas inscritas e pergunta se estão bem. Quem precisa de ajuda ou não atende aparece logo aqui."
       />
 
-      <div className="grid gap-4 px-10 md:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 px-4 sm:px-10 md:grid-cols-2 xl:grid-cols-4">
         {presets.map((p) => {
           const t = TIPOS[p.tipo];
           const Icone = t.icone;
@@ -101,7 +101,7 @@ export function PaginaCampanhas() {
         })}
       </div>
 
-      <div className="mt-8 flex gap-1 border-b border-linha px-10" role="tablist">
+      <div className="mt-8 flex gap-1 border-b border-linha px-4 sm:px-10" role="tablist">
         {(
           [
             ["campanhas", "Campanhas"],
@@ -123,7 +123,7 @@ export function PaginaCampanhas() {
         ))}
       </div>
 
-      <div className="px-10 pt-6">
+      <div className="px-4 sm:px-10 pt-6">
         {separador === "campanhas" ? (
           <Cartao>
             <Estado
@@ -175,7 +175,7 @@ function LinhaCampanha({ c }: { c: CampanhaLista }) {
     c.contagens.nao_atendeu + c.contagens.sem_ligacao + c.contagens.recusou + c.contagens.atendeu;
   return (
     <li>
-      <Link href={`/painel/campanhas/${c.id}`} className="flex items-center gap-4 px-5 py-4 hover:bg-creme">
+      <Link href={`/painel/campanhas/${c.id}`} className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-4 hover:bg-creme sm:flex-nowrap sm:px-5">
         <span className="flex size-10 shrink-0 items-center justify-center rounded-[12px] bg-terracota-suave text-terracota-escuro">
           <Icone className="size-5" aria-hidden />
         </span>
@@ -195,7 +195,7 @@ function LinhaCampanha({ c }: { c: CampanhaLista }) {
             {c.criada_por_nome ? ` · ${c.criada_por_nome}` : ""} · {numero(feitas)} de {numero(n)} contactadas
           </span>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 max-sm:pl-14">
           {c.contagens.precisa_ajuda > 0 && (
             <Pilula tom="terracota">
               {numero(c.contagens.precisa_ajuda)}{" "}
@@ -407,51 +407,53 @@ function Pessoas({
           vazio={dados?.contactos.length === 0}
           textoVazio="Ainda não há pessoas inscritas."
         >
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-left text-[11px] font-bold tracking-[0.4px] text-tinta-3 uppercase">
-                <th className="px-5 py-2.5">Nome</th>
-                <th className="px-3 py-2.5">Telefone</th>
-                <th className="px-3 py-2.5">Freguesia</th>
-                <th className="px-3 py-2.5">Notas</th>
-                <th className="px-3 py-2.5">Autorização</th>
-                <th className="px-5 py-2.5" />
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-linha">
-              {(dados?.contactos ?? []).map((c) => (
-                <tr key={c.id}>
-                  <td className="px-5 py-3 font-semibold text-tinta">{c.nome}</td>
-                  <td className="px-3 py-3">
-                    {c.telefone ?? "—"}
-                    {!c.ligavel && (
-                      <Pilula tom="ambar" className="ml-2">
-                        só SMS
-                      </Pilula>
-                    )}
-                  </td>
-                  <td className="px-3 py-3">{c.freguesia ?? "—"}</td>
-                  <td className="px-3 py-3 text-tinta-2">{c.notas ?? ""}</td>
-                  <td className="px-3 py-3 text-xs text-tinta-3">{quando(c.consentimento_em)}</td>
-                  <td className="px-5 py-3 text-right">
-                    <Botao
-                      tamanho="pequeno"
-                      variante="discreto"
-                      icone={Trash2}
-                      aria-label={`Retirar ${c.nome}`}
-                      onClick={async () => {
-                        if (!window.confirm(`Retirar ${c.nome} da lista?`)) return;
-                        const r = await acao.executar(() =>
-                          pedido(`/v1/painel/campanhas/contactos/${c.id}`, { metodo: "DELETE" }),
-                        );
-                        if (r !== undefined) onMudou();
-                      }}
-                    />
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-[11px] font-bold tracking-[0.4px] text-tinta-3 uppercase">
+                  <th className="px-5 py-2.5">Nome</th>
+                  <th className="px-3 py-2.5">Telefone</th>
+                  <th className="px-3 py-2.5">Freguesia</th>
+                  <th className="px-3 py-2.5">Notas</th>
+                  <th className="px-3 py-2.5">Autorização</th>
+                  <th className="px-5 py-2.5" />
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-linha">
+                {(dados?.contactos ?? []).map((c) => (
+                  <tr key={c.id}>
+                    <td className="px-5 py-3 font-semibold text-tinta">{c.nome}</td>
+                    <td className="px-3 py-3">
+                      {c.telefone ?? "—"}
+                      {!c.ligavel && (
+                        <Pilula tom="ambar" className="ml-2">
+                          só SMS
+                        </Pilula>
+                      )}
+                    </td>
+                    <td className="px-3 py-3">{c.freguesia ?? "—"}</td>
+                    <td className="px-3 py-3 text-tinta-2">{c.notas ?? ""}</td>
+                    <td className="px-3 py-3 text-xs text-tinta-3">{quando(c.consentimento_em)}</td>
+                    <td className="px-5 py-3 text-right">
+                      <Botao
+                        tamanho="pequeno"
+                        variante="discreto"
+                        icone={Trash2}
+                        aria-label={`Retirar ${c.nome}`}
+                        onClick={async () => {
+                          if (!window.confirm(`Retirar ${c.nome} da lista?`)) return;
+                          const r = await acao.executar(() =>
+                            pedido(`/v1/painel/campanhas/contactos/${c.id}`, { metodo: "DELETE" }),
+                          );
+                          if (r !== undefined) onMudou();
+                        }}
+                      />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </Estado>
       </Cartao>
 

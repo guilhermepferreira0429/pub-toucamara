@@ -192,7 +192,7 @@ export class FonteOperadoresSimulada implements FonteOperadores {
     this.tentativas.set(chave, tentativa);
     if (falhaSimulada(seed, inicio, tentativa, this.o.taxaErro)) {
       throw new ErroFonteOperadores(
-        'O operador (simulado) não respondeu: falha de demonstração (EMERGENCIAS_SIMULADA_TAXA_ERRO).',
+        'O operador (simulado) não respondeu: falha simulada, de demonstração.',
       );
     }
     const r = paginaSimulada(segs, inicio, tamanho);

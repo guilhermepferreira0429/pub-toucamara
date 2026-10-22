@@ -314,9 +314,9 @@ export function Pilula({
   } as const;
   return (
     <span
-      className={`inline-flex items-center gap-[5px] rounded-xl px-2.5 py-1 text-xs font-semibold whitespace-nowrap ${tons[tom]} ${className}`}
+      className={`inline-flex max-w-full items-center gap-[5px] rounded-xl px-2.5 py-1 text-xs font-semibold sm:whitespace-nowrap ${tons[tom]} ${className}`}
     >
-      {Icone && <Icone className="size-3.5" aria-hidden />}
+      {Icone && <Icone className="size-3.5 shrink-0" aria-hidden />}
       {children}
     </span>
   );

@@ -21,6 +21,7 @@ import {
   trechosDe,
   linhas,
   usePodeEditarRespostas,
+  VAZIO,
 } from "./formulario-resposta";
 import { EditorResposta } from "./resposta";
 import type { Mapa, Resposta, RespostaResumo, Revisoes } from "./tipos";
@@ -75,7 +76,8 @@ export function Respostas() {
   const [filtro, setFiltro] = useState<(typeof FILTROS)[number]["id"]>("");
   const tema = params.get("tema") ?? "";
   const temas = useDados<Mapa>("/v1/painel/conhecimento/mapa");
-  const [nova, setNova] = useState(false);
+  // "?nova=1" (do mapa: "Sem resposta · Criar →") abre logo a nova resposta do tema.
+  const [nova, setNova] = useState(() => params.get("nova") === "1");
   const criar = useAcao();
 
   useEffect(() => {
@@ -111,7 +113,7 @@ export function Respostas() {
   };
 
   return (
-    <div className="grid items-start gap-6 px-10 lg:grid-cols-[400px_minmax(0,1fr)]">
+    <div className="grid grid-cols-1 items-start gap-6 px-4 sm:px-10 lg:grid-cols-[400px_minmax(0,1fr)]">
       <Cartao className="flex flex-col overflow-hidden" aria-label="Respostas">
         <div className="flex flex-col gap-2.5 border-b border-linha p-4">
           <div className="flex gap-2">
@@ -258,8 +260,14 @@ export function Respostas() {
         </Cartao>
       )}
 
-      <Dialogo titulo="Nova resposta" aberto={nova} onFechar={() => setNova(false)} largura="max-w-2xl">
+      <Dialogo
+        titulo="Nova resposta"
+        aberto={nova && editar.pode}
+        onFechar={() => setNova(false)}
+        largura="max-w-2xl"
+      >
         <FormularioResposta
+          inicial={tema ? { ...VAZIO, tema_id: tema } : VAZIO}
           aCorrer={criar.aCorrer}
           erro={criar.erro}
           textoGuardar="Criar rascunho"

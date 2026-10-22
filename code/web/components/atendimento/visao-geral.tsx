@@ -128,7 +128,7 @@ export function VisaoGeral() {
         }
       />
 
-      <div className="flex flex-col gap-8 px-10">
+      <div className="flex flex-col gap-8 px-4 sm:px-10">
         {vg.erro && <ErroBloco mensagem={vg.erro} tentar={vg.recarregar} />}
         {!d && !vg.erro && (
           <>
@@ -243,19 +243,24 @@ function Resumo({ dados, chave }: { dados: Dados; chave: ChavePeriodo }) {
       className="flex flex-col gap-8 border-b border-linha pb-8 pt-2 xl:flex-row xl:items-end xl:gap-12"
     >
       <div className="flex flex-1 flex-col gap-3">
-        <p className="font-display text-[40px] font-bold leading-[1.08] tracking-[-1.2px] text-tinta">
+        <p className="font-display text-[30px] font-bold leading-[1.08] tracking-[-1.2px] text-tinta sm:text-[40px]">
           {numero(n)} {n === 1 ? "conversa atendida" : "conversas atendidas"}{" "}
           {TEXTO_PERIODO[chave]}.
           {fora !== null && n > 0 && <> {pct(fora)} com o balcão fechado.</>}
         </p>
         <p className="text-[15px] text-tinta-2">{comparacao}</p>
       </div>
-      <dl className="flex shrink-0">
+      {/* Telemóvel: 2 × 2; a partir de `sm`, os quatro lado a lado. */}
+      <dl className="grid grid-cols-2 gap-y-5 sm:flex sm:shrink-0">
         {numeros.map((x, k) => (
           <div
             key={x.rotulo}
-            className={`flex w-[132px] flex-col-reverse gap-1 px-5 ${
-              k ? "border-l border-linha" : "pl-0 xl:pl-5"
+            className={`flex flex-col-reverse gap-1 px-5 sm:w-[132px] ${
+              k === 0
+                ? "pl-0 xl:pl-5"
+                : k === 2
+                  ? "pl-0 sm:border-l sm:border-linha sm:pl-5"
+                  : "border-l border-linha"
             }`}
           >
             <dt className="text-xs leading-[1.35] text-tinta-2">{x.rotulo}</dt>

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { CabecalhoPagina } from "@/components/painel/cabecalho";
+import { ROLO_SEPARADORES } from "@/components/painel/rolo";
 import { useSessao } from "@/lib/sessao";
 import { pct, SemAcesso, useDados } from "./comum";
 import type { Mapa, Qualidade } from "./tipos";
@@ -48,7 +49,7 @@ export function MolduraConhecimento({ children }: { children: React.ReactNode })
           ver && (
             <nav
               aria-label="Secções do conhecimento"
-              className="flex flex-wrap gap-1 rounded-xl bg-creme-2 p-1"
+              className={`flex max-w-full flex-wrap gap-1 rounded-xl bg-creme-2 p-1 ${ROLO_SEPARADORES}`}
             >
               {SEPARADORES.map((s) => {
                 const ativo =
@@ -61,7 +62,7 @@ export function MolduraConhecimento({ children }: { children: React.ReactNode })
                     key={s.href}
                     href={s.href}
                     aria-current={ativo ? "page" : undefined}
-                    className={`flex items-center gap-1.5 rounded-[9px] px-3.5 py-2 text-[13px] ${
+                    className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-[9px] px-3.5 py-2 text-[13px] ${
                       ativo
                         ? "bg-papel font-bold text-tinta shadow-sm"
                         : "font-medium text-tinta-2 hover:bg-papel/60"

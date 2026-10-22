@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import { BotaoExportar } from "@/components/painel/botao-exportar";
 import { Aviso, CabecalhoPagina } from "@/components/painel/cabecalho";
@@ -183,7 +184,7 @@ export function PainelOcorrencias({ inicial }: { inicial?: string } = {}) {
         }
       />
 
-      <div className="grid flex-1 gap-5 px-10 lg:grid-cols-[minmax(0,1fr)_360px]">
+      <div className="grid flex-1 grid-cols-1 gap-5 px-4 sm:px-10 lg:grid-cols-[minmax(0,1fr)_360px]">
         <section
           aria-label="Mapa das ocorrências (a lista ao lado tem a mesma informação)"
           className="relative isolate h-[min(calc(100dvh-170px),890px)] min-h-[480px] overflow-hidden rounded-[20px] border border-linha"
@@ -227,7 +228,12 @@ export function PainelOcorrencias({ inicial }: { inicial?: string } = {}) {
             <DetalheOcorrencia
               id={selecionado}
               categorias={categorias.dados ?? []}
-              onVoltar={() => setSelecionado(null)}
+              onVoltar={() => {
+                setSelecionado(null);
+                if (window.location.pathname !== "/painel/ocorrencias") {
+                  window.history.replaceState(null, "", "/painel/ocorrencias");
+                }
+              }}
               onAbrir={setSelecionado}
               onAlterada={() => {
                 lista.recarregar();
@@ -281,9 +287,17 @@ export function PainelOcorrencias({ inicial }: { inicial?: string } = {}) {
                   <ul>
                     {itens.map((o) => (
                       <li key={o.id}>
-                        <button
-                          type="button"
-                          onClick={() => setSelecionado(o.id)}
+                        {/* Link a sério (abre num separador novo, partilha-se); o clique
+                            simples abre-a aqui ao lado, sem recarregar a lista. */}
+                        <Link
+                          href={`/painel/ocorrencias/${o.id}`}
+                          aria-current={selecionado === o.id ? "true" : undefined}
+                          onClick={(e) => {
+                            if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+                            e.preventDefault();
+                            setSelecionado(o.id);
+                            window.history.replaceState(null, "", `/painel/ocorrencias/${o.id}`);
+                          }}
                           className="flex w-full gap-3 border-b border-linha px-4 py-3 text-left hover:bg-creme"
                         >
                           <span className="flex size-[34px] shrink-0 items-center justify-center rounded-[10px] bg-terracota-suave">
@@ -322,7 +336,7 @@ export function PainelOcorrencias({ inicial }: { inicial?: string } = {}) {
                               )}
                             </span>
                           </span>
-                        </button>
+                        </Link>
                       </li>
                     ))}
                   </ul>

@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
+import { FaixaDemonstracao } from "@/components/painel/faixa-demonstracao";
 import { Botao } from "@/components/ui/botao";
 import { PainelTurismo } from "@/components/turismo/painel-turismo";
 import { useSessao } from "@/lib/sessao";
@@ -230,12 +231,12 @@ export function Fontes() {
   };
 
   return (
-    <div className="flex flex-col gap-5 px-10">
+    <div className="flex flex-col gap-5 px-4 sm:px-10">
       <section className="flex flex-wrap items-center gap-4 rounded-2xl bg-tinta px-5 py-4">
         <span className="flex size-9 items-center justify-center rounded-[18px] bg-[#7FBF8A]/20">
           <RefreshCw className="size-4 text-[#9FD3A8]" aria-hidden />
         </span>
-        <div className="flex min-w-[240px] flex-1 flex-col gap-0.5">
+        <div className="flex min-w-0 flex-1 basis-[240px] flex-col gap-0.5">
           <p className="text-[15px] font-bold text-white">Lemos o portal e os regulamentos automaticamente</p>
           <p className="text-[13px] text-white/70">
             {i
@@ -281,8 +282,15 @@ export function Fontes() {
         ))}
       </div>
 
+      {itens.some((f) => f.demonstracao) && (
+        <FaixaDemonstracao>
+          {itens.filter((f) => f.demonstracao).length} destas fontes têm textos de exemplo, escritos para a
+          demonstração; as outras são lidas dos sites oficiais.
+        </FaixaDemonstracao>
+      )}
+
       <Estado aCarregar={fontes.aCarregar} erro={fontes.erro} vazio={!itens.length} textoVazio="Sem fontes neste filtro.">
-        <ul className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <ul className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
           {itens.map((f) => {
             const t = TIPOS[f.tipo] ?? { rotulo: f.tipo, icone: FileText };
             // Nunca lida (acabada de criar ou descoberta num site): ainda não está "em dia".
@@ -291,7 +299,7 @@ export function Fontes() {
             const Icone = t.icone;
             return (
               <li key={f.id} className={`flex flex-col gap-3 rounded-2xl border bg-papel p-5 ${e.borda}`}>
-                <div className="flex items-center justify-between gap-2">
+                <div className="flex flex-wrap items-center justify-between gap-2">
                   <span className="flex items-center gap-2">
                     <span className="flex size-[34px] items-center justify-center rounded-[10px] bg-creme">
                       <Icone className="size-4 text-tinta-2" aria-hidden />
@@ -318,7 +326,7 @@ export function Fontes() {
                   {f.arquivada_em ? (
                     <p className="text-xs text-tinta-3">Arquivada {quando(f.arquivada_em)}: já não é lida</p>
                   ) : !f.leitura_automatica ? (
-                    <p className="text-xs text-tinta-3">Leitura manual (texto colado)</p>
+                    <p className="text-xs text-tinta-3">Texto copiado à mão</p>
                   ) : (
                     <p className="text-xs text-tinta-3">
                       {periodicidade(f.ler_a_cada_horas)} · próxima {proximaVez(f.proxima_leitura_em)}
@@ -328,10 +336,9 @@ export function Fontes() {
                     </p>
                   )}
                   {f.site && <p className="text-xs text-tinta-3">Do site «{f.site}»</p>}
-                  {(f.demonstracao || (f.lingua && f.lingua !== "pt")) && (
+                  {f.lingua && f.lingua !== "pt" && (
                     <span className="flex flex-wrap gap-1.5">
-                      {f.lingua && f.lingua !== "pt" && <Pilula tom="neutro">{f.lingua.toUpperCase()}</Pilula>}
-                      {f.demonstracao && <Pilula tom="ambar">valores de demonstração</Pilula>}
+                      <Pilula tom="neutro">{f.lingua.toUpperCase()}</Pilula>
                     </span>
                   )}
                 </div>

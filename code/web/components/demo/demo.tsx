@@ -14,6 +14,7 @@ import {
   quando,
   useAcao,
   useDados,
+  useEquipaInterna,
 } from "@/components/conhecimento/comum";
 import { Aviso, CabecalhoPagina } from "@/components/painel/cabecalho";
 import { Botao } from "@/components/ui/botao";
@@ -98,6 +99,7 @@ function textoContas(c: Contas): string {
 
 export function PaginaDemo() {
   const { pode, pedido } = useSessao();
+  const interno = useEquipaInterna();
   const estado = useDados<EstadoDemo>(pode("demo") ? "/v1/painel/demo/estado" : null);
   const acao = useAcao();
   const [limpar, setLimpar] = useState(true);
@@ -320,9 +322,11 @@ export function PaginaDemo() {
                     </li>
                   ))}
                 </ul>
-                <p className="text-xs text-tinta-3">
-                  Também na linha de comandos: <code>npm run demo:preparar -- --limpar --confirmar</code>
-                </p>
+                {interno && (
+                  <p className="text-xs text-tinta-3">
+                    Também na linha de comandos: <code>npm run demo:preparar -- --limpar --confirmar</code>
+                  </p>
+                )}
               </Cartao>
             </div>
           )
