@@ -3,7 +3,7 @@ import 'package:flutter/foundation.dart';
 /// Valores de arranque vindos de `--dart-define` (ver README).
 ///
 /// `API_URL` é o endereço da API central sem o `/v1` (ex.:
-/// `https://api.toucamara.pt`). Pode mudar-se depois no ecrã escondido de
+/// `https://api.toucamara.descortina.pt`). Pode mudar-se depois no ecrã escondido de
 /// definições ("Servidor").
 class ConfigApp {
   const ConfigApp._();

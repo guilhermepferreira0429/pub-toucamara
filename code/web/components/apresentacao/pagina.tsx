@@ -219,7 +219,7 @@ const TECNOLOGIA: { peca: string; como: string; icone: LucideIcon }[] = [
   { peca: "Voz", como: "ElevenLabs, ligado às ferramentas da API: 48 ações no assistente que atende.", icone: Mic },
   {
     peca: "Inteligência artificial",
-    como: "Claude, da Anthropic. Na demonstração, pela API da Anthropic; em produção, no Amazon Bedrock, com processamento na UE.",
+    como: "Claude, da Anthropic. Na demonstração, pela API da Anthropic; em produção passaria para o Amazon Bedrock, com processamento na UE (ainda não está feito).",
     icone: Sparkles,
   },
   { peca: "API central", como: "NestJS (TypeScript): as ações do assistente, os webhooks, o painel e as páginas públicas.", icone: Server },
@@ -232,7 +232,7 @@ const TECNOLOGIA: { peca: string; como: string; icone: LucideIcon }[] = [
 const CONFIANCA: { titulo: string; texto: string; icone: LucideIcon }[] = [
   {
     titulo: "Testes",
-    texto: "Cerca de 1 660 testes unitários e 75 conjuntos de testes de ponta a ponta na API, além das 180 perguntas do avaliador.",
+    texto: "Cerca de 1 660 testes unitários e 78 conjuntos de testes de ponta a ponta na API, além das 180 perguntas do avaliador.",
     icone: CircleCheck,
   },
   {

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { PaginaAvaliacao } from "@/components/apresentacao/avaliacao";
 
 export const metadata: Metadata = {
-  title: "Avaliação · Tou, Câmara?",
+  title: "Avaliação",
   description:
     "As perguntas de teste, a resposta do assistente, a resposta certa com a fonte e o veredicto do juiz, uma a uma.",
 };
