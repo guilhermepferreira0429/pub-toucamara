@@ -139,6 +139,16 @@ const VERBOS: Record<string, string> = {
   apagar_evento: 'apagou',
   subscrever_agora: 'pediu avisos de',
   aceitar_avisos: 'voltou a aceitar avisos em',
+  confirmar_entrega: 'confirmou ao agente',
+  pedir_autorizacao_entrega: 'pediu autorização para',
+  consentir_entrega: 'consentiu',
+  autenticacao_recusada: 'falhou a autenticação de',
+  autorizar_entrega: 'autorizou',
+  entregar_em_nome: 'fez',
+  entrega_falhou: 'não conseguiu fazer',
+  tentar_entrega_de_novo: 'tentou de novo',
+  cancelar_entrega: 'cancelou',
+  expirar_entrega: 'deixou expirar o link de',
 };
 
 const OBJETOS: Record<string, string> = {
@@ -194,6 +204,7 @@ const OBJETOS: Record<string, string> = {
   comunicado: 'um comunicado ou notícia',
   evento: 'um evento',
   agora_subscricao: 'uma zona (o que se passa perto de mim)',
+  entrega_em_nome: 'uma entrega em nome do munícipe',
 };
 
 export function frase(acao: string, objetoTipo: string): string {
@@ -221,6 +232,8 @@ export function ligacao(objetoTipo: string, objetoId: string): string | null {
       return `/painel/reclamacoes?id=${objetoId}`;
     case 'emergencia':
       return `/painel/emergencias?id=${objetoId}`;
+    case 'entrega_em_nome':
+      return `/painel/entregas?id=${objetoId}`;
     case 'entrevista':
       return `/painel/procedimentos/entrevistas/${objetoId}`;
     default:

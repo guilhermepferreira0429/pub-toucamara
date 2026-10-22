@@ -19,7 +19,8 @@ export type TipoCartao =
   | 'apoios'
   | 'consulta'
   | 'reclamacao'
-  | 'agora';
+  | 'agora'
+  | 'entrega';
 
 export interface FonteCartao {
   titulo: string;
@@ -68,6 +69,8 @@ const POR_FERRAMENTA: Record<
   // subscrição "avise-me" (zona, tipos).
   o_que_se_passa: 'agora',
   avisar_me: 'agora',
+  // Entregar em nome da pessoa: o resumo por confirmar ou o link/estado.
+  entregar_pedido: 'entrega',
 };
 
 function objeto(v: unknown): Record<string, unknown> {
