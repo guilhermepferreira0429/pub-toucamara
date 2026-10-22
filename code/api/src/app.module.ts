@@ -60,6 +60,8 @@ import { EquipaCampoModule } from './modules/equipa-campo/equipa-campo.module.js
 import { PushModule } from './modules/app-municipe/push.module.js';
 import { ArquivoModule } from './modules/arquivo/arquivo.module.js';
 import { OrdenamentoModule } from './modules/ordenamento/ordenamento.module.js';
+import { EstacionamentoModule } from './modules/estacionamento/estacionamento.module.js';
+import { ReservasModule } from './modules/reservas/reservas.module.js';
 import { TurismoModule } from './modules/turismo/turismo.module.js';
 import { EscolasModule } from './modules/escolas/escolas.module.js';
 import { HabitacaoModule } from './modules/habitacao/habitacao.module.js';
@@ -143,6 +145,8 @@ import { PesquisaModule } from './modules/pesquisa/pesquisa.module.js';
     EscolasModule,
     HabitacaoModule,
     JuntasModule,
+    EstacionamentoModule,
+    ReservasModule,
     EmpresasModule,
     // Regras públicas e verificáveis (histórico das regras, verificador)
     RegrasVersoesModule,

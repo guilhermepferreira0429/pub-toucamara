@@ -43,7 +43,9 @@ export type Recurso =
   | "demo"
   | "escolas"
   | "habitacao"
-  | "atestados";
+  | "atestados"
+  | "estacionamento"
+  | "reservas";
 
 export type Perfil =
   | "atendimento"

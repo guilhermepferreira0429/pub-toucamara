@@ -38,11 +38,14 @@ import { LinguagemSimplesService } from '../linguagem-simples/linguagem-simples.
 import { seccoesDoOriginal } from '../linguagem-simples/regras.js';
 import { MarcacoesService } from '../marcacoes/marcacoes.service.js';
 import {
+  diaDaSemana,
   diaLocal,
   diasSeguintes,
   horaLocal,
   instanteLocal,
 } from '../marcacoes/vagas.js';
+import { EstacionamentoService } from '../estacionamento/estacionamento.service.js';
+import { ReservasService } from '../reservas/reservas.service.js';
 import { MunicipesService } from '../municipes/municipes.service.js';
 import {
   Municipio,
@@ -221,6 +224,22 @@ export function passosDemo(): Passo[] {
       rotulo:
         'Junta de Freguesia de Azurém (demonstração): agente, utilizadores do painel, conhecimento e atestados por emitir',
       chaves: ['junta'],
+    },
+    {
+      passo: 'estacionamento',
+      rotulo:
+        'Estacionamento: parques e zona tarifada, multas, uma defesa por analisar e um pedido de lugar reservado',
+      chaves: [
+        'estacionamento',
+        'estacionamento:defesa',
+        'estacionamento:lugar',
+      ],
+    },
+    {
+      passo: 'reservas',
+      rotulo:
+        'Reservas: pavilhão, piscina, auditório, sala e campo, eventos com bilhete e reservas por aprovar e por pagar',
+      chaves: ['reservas', 'reserva:auditorio', 'reserva:pavilhao'],
     },
     {
       passo: 'balcao',
@@ -571,6 +590,8 @@ export class DemoService {
       ['junta', () => this.junta(ctx)],
       ['balcao', () => this.balcao(ctx)],
       ['antecipacoes', () => this.antecipacoes(ctx)],
+      ['estacionamento', () => this.estacionamento(ctx)],
+      ['reservas', () => this.reservas(ctx)],
     ];
     for (const [nome, correr] of passos) {
       try {
@@ -1622,6 +1643,125 @@ export class DemoService {
       if (r.novos) c.contar('glossario');
       return c.m.id;
     });
+  }
+
+  /**
+   * Estacionamento: parques e multas de demonstração (o mesmo de POST
+   * /painel/estacionamento/demonstracao), uma defesa por analisar e um
+   * pedido de lugar reservado, feitos pelas ações do agente.
+   */
+  private async estacionamento(c: Preparacao) {
+    const est = this.svc(EstacionamentoService);
+    await this.umaVez(c.m, 'estacionamento', 'estacionamento', async () => {
+      const r = await est.carregarDemonstracao(c.m, c.u);
+      if (r.parques) c.contar('parques');
+      if (r.multas) c.contar('multas');
+      return c.m.id;
+    });
+    await this.umaVez(
+      c.m,
+      'estacionamento:defesa',
+      'defesa_multa',
+      async () => {
+        const r = (await est.apresentarDefesa(c.ctx('chat', null, 'rui'), {
+          numero_auto: 'EST-DEMO-0002',
+          motivo:
+            'Tinha o talão do parquímetro no tablier e ainda estava dentro da hora paga. Tenho a fotografia do talão.',
+          nome: 'Rui Fulano',
+          confirmado: true,
+        })) as { defesa_id?: string };
+        if (r.defesa_id) c.contar('defesas');
+        return r.defesa_id ?? null;
+      },
+    );
+    await this.umaVez(
+      c.m,
+      'estacionamento:lugar',
+      'lugar_reservado',
+      async () => {
+        const r = (await est.pedirLugar(c.ctx('telefone', null, 'teresa'), {
+          morada: 'Rua de Santo António 52, Guimarães',
+          tem_cartao: true,
+          matricula: '33-TT-44',
+          nome: 'Teresa Beltrana',
+          observacoes: 'Desloca-se em cadeira de rodas.',
+          confirmado: true,
+        })) as { pedido_id?: string };
+        if (r.pedido_id) c.contar('lugares_reservados');
+        return r.pedido_id ?? null;
+      },
+    );
+  }
+
+  /**
+   * Reservas: equipamentos e sessões de demonstração (o mesmo de POST
+   * /painel/reservas/demonstracao), um auditório por aprovar e um pavilhão
+   * por pagar, feitos pela ação do agente.
+   */
+  private async reservas(c: Preparacao) {
+    const res = this.svc(ReservasService);
+    await this.umaVez(c.m, 'reservas', 'reservas', async () => {
+      const r = await res.carregarDemonstracao(c.m, c.u);
+      if (r.equipamentos) c.contar('equipamentos');
+      if (r.sessoes) c.contar('sessoes_bilhetes');
+      return c.m.id;
+    });
+    const hoje = diaDemo(c.agora, c.m.fuso, 0);
+    const proximo = (desde: number, dias: string[]) =>
+      diasSeguintes(hoje, desde + 14)
+        .slice(desde)
+        .find((d) => dias.includes(diaDaSemana(d)))!;
+    const pedidos: [
+      string,
+      string,
+      Parameters<ReservasService['reservar']>[1],
+    ][] = [
+      [
+        'auditorio',
+        'helena',
+        {
+          equipamento: 'Auditório Municipal',
+          dia: proximo(6, ['ter', 'qua', 'qui']),
+          hora_inicio: '21:00',
+          duracao_horas: 2,
+          finalidade: 'Sarau de dança da associação cultural',
+          nome: 'Helena Sicrana',
+          confirmado: true,
+        },
+      ],
+      [
+        'pavilhao',
+        'carlos',
+        {
+          equipamento: 'Pavilhão Municipal',
+          dia: proximo(3, ['sab']),
+          hora_inicio: '10:00',
+          duracao_horas: 2,
+          finalidade: 'Jogo de futsal entre amigos',
+          nome: 'Carlos Fulano',
+          metodo: 'multibanco',
+          confirmado: true,
+        },
+      ],
+    ];
+    for (const [chave, pessoa, e] of pedidos) {
+      await this.umaVez(c.m, `reserva:${chave}`, 'reserva', async () => {
+        const r = (await res.reservar(c.ctx('chat', null, pessoa), e)) as {
+          codigo?: string;
+          dizer?: string;
+        };
+        if (!r.codigo) {
+          c.avisos.push(`reserva ${chave}: ${r.dizer ?? 'não ficou feita'}`);
+          return null;
+        }
+        const [l] = await this.db.query<{ id: string }>(
+          'SELECT id FROM reservas WHERE codigo = $1',
+          [r.codigo],
+        );
+        c.contar('reservas');
+        return l?.id ?? null;
+      });
+    }
   }
 
   /** Fontes de turismo de demonstração (o mesmo de POST /painel/turismo/demonstracao). */

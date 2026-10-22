@@ -1,6 +1,8 @@
 "use client";
 
 import {
+  CircleParking,
+  Ticket,
   BookOpen,
   FolderOpen,
   Loader2,
@@ -35,7 +37,9 @@ type Tipo =
   | "ocorrencia"
   | "reclamacao"
   | "fonte"
-  | "resposta";
+  | "resposta"
+  | "multa"
+  | "reserva";
 
 interface Opcao {
   tipo: Tipo;
@@ -60,6 +64,8 @@ const ICONES: Record<Exclude<Tipo, "ecra">, LucideIcon> = {
   reclamacao: NotebookPen,
   fonte: BookOpen,
   resposta: MessageSquareText,
+  multa: CircleParking,
+  reserva: Ticket,
 };
 
 /** Espera entre teclas antes de perguntar à API. */

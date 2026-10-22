@@ -29,7 +29,9 @@ export type TipoResultado =
   | 'ocorrencia'
   | 'reclamacao'
   | 'fonte'
-  | 'resposta';
+  | 'resposta'
+  | 'multa'
+  | 'reserva';
 
 export interface Resultado {
   tipo: TipoResultado;
@@ -153,6 +155,13 @@ export class PesquisaService {
         () => this.respostas(c),
       ],
       ['conhecimento_ver', 'fonte', 'Fontes', () => this.fontes(c)],
+      [
+        'estacionamento',
+        'multa',
+        'Multas de estacionamento',
+        () => this.multas(c),
+      ],
+      ['reservas', 'reserva', 'Reservas e bilhetes', () => this.reservas(c)],
     ];
     const permitidas = areas.filter(([r]) => pode(u.perfil, r));
     const listas = await Promise.all(permitidas.map(([, , , f]) => f()));
@@ -253,6 +262,67 @@ export class PesquisaService {
       titulo: `${l.numero}${l.servico_visado ? ` · ${encurtar(l.servico_visado, 50)}` : ''}`,
       subtitulo: `${ESTADOS_RECLAMACAO[l.estado] ?? l.estado} · ${encurtar(l.descricao, 70)}`,
       href: `/painel/reclamacoes?id=${l.id}`,
+    }));
+  }
+
+  /** Multas de estacionamento pelo número do auto ou pela matrícula (sem hífenes). */
+  private async multas(c: Consulta): Promise<Resultado[]> {
+    const ps = new Params();
+    const mun = ps.p(c.municipio.id);
+    const chave = ps.p(c.texto.toUpperCase().replace(/[^A-Z0-9]/g, ''));
+    const linhas = await this.db.query<{
+      id: string;
+      numero_auto: string;
+      matricula: string;
+      local: string;
+      estado: string;
+    }>(
+      `SELECT m.id, m.numero_auto, m.matricula, m.local, m.estado
+       FROM estacionamento_multas m
+       WHERE m.municipio_id = ${mun} AND length(${chave}) >= 3
+         AND (regexp_replace(upper(m.numero_auto), '[^A-Z0-9]', '', 'g') LIKE '%' || ${chave} || '%'
+              OR replace(m.matricula, '-', '') LIKE '%' || ${chave} || '%')
+       ORDER BY m.verificada_em DESC
+       LIMIT ${POR_GRUPO}`,
+      ps.valores,
+    );
+    return linhas.map((l) => ({
+      tipo: 'multa',
+      id: l.id,
+      titulo: `${l.numero_auto} · ${l.matricula}`,
+      subtitulo: `${l.estado.replace(/_/g, ' ')} · ${encurtar(l.local, 60)}`,
+      href: `/painel/estacionamento?multa=${l.id}`,
+    }));
+  }
+
+  /** Reservas e bilhetes pelo código, pelo nome de quem reservou ou pelo equipamento. */
+  private async reservas(c: Consulta): Promise<Resultado[]> {
+    const ps = new Params();
+    const mun = ps.p(c.municipio.id);
+    const cod = ps.p(c.texto.toUpperCase().replace(/[^A-Z0-9]/g, ''));
+    const txt = condicaoTexto(['r.nome', 'e.nome', 's.titulo'], c, ps);
+    const linhas = await this.db.query<{
+      id: string;
+      codigo: string;
+      nome: string | null;
+      titulo: string;
+      estado: string;
+    }>(
+      `SELECT r.id, r.codigo, r.nome, coalesce(e.nome, s.titulo) AS titulo, r.estado
+       FROM reservas r
+       LEFT JOIN reserva_equipamentos e ON e.id = r.equipamento_id
+       LEFT JOIN reserva_sessoes s ON s.id = r.sessao_id
+       WHERE r.municipio_id = ${mun} AND (r.codigo = ${cod} OR ${txt})
+       ORDER BY (r.codigo = ${cod}) DESC, r.criada_em DESC
+       LIMIT ${POR_GRUPO}`,
+      ps.valores,
+    );
+    return linhas.map((l) => ({
+      tipo: 'reserva',
+      id: l.id,
+      titulo: `${encurtar(l.titulo, 60)} · ${l.codigo}`,
+      subtitulo: `${l.estado.replace(/_/g, ' ')}${l.nome ? ` · ${l.nome}` : ''}`,
+      href: `/painel/reservas?reserva=${l.id}`,
     }));
   }
 

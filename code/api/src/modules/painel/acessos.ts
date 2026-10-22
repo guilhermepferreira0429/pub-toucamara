@@ -208,6 +208,19 @@ const VERBOS: Record<string, string> = {
   atualizar_reparacao_habitacao: 'atualizou',
   pedir_revisao_renda: 'registou',
   carregar_habitacao_demonstracao: 'carregou a habitação de demonstração',
+  aceitar_defesa_multa: 'aceitou (e anulou a multa)',
+  recusar_defesa_multa: 'recusou',
+  aprovar_lugar_reservado: 'aprovou',
+  recusar_lugar_reservado: 'recusou',
+  carregar_estacionamento_demonstracao:
+    'carregou os parques e multas de demonstração',
+  aprovar_reserva: 'aprovou',
+  recusar_reserva: 'recusou',
+  cancelar_reserva: 'cancelou',
+  criar_equipamento: 'criou',
+  editar_equipamento: 'editou',
+  carregar_reservas_demonstracao:
+    'carregou os equipamentos e eventos de demonstração',
 };
 
 const OBJETOS: Record<string, string> = {
@@ -284,6 +297,12 @@ const OBJETOS: Record<string, string> = {
   reparacao_habitacao: 'um pedido de reparação (habitação municipal)',
   revisao_renda: 'um pedido de revisão da renda',
   habitacao: '',
+  defesa_multa: 'a defesa de uma multa de estacionamento',
+  lugar_reservado: 'um pedido de lugar reservado (deficiência)',
+  estacionamento: 'do estacionamento',
+  reserva: 'uma reserva',
+  equipamento: 'um equipamento municipal (reservas)',
+  reservas: 'das reservas',
 };
 
 export function frase(acao: string, objetoTipo: string): string {
