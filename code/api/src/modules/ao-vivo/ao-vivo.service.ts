@@ -933,10 +933,14 @@ export class AoVivoService {
             },
           });
         }
-        const sms = await this.db.query<{ motivo: string; criada: Date }>(
-          `SELECT motivo, max(enviar_em) AS criada FROM mensagens_saida
+        const sms = await this.db.query<{
+          motivo: string;
+          simulado: boolean;
+          criada: Date;
+        }>(
+          `SELECT motivo, simulado, max(enviar_em) AS criada FROM mensagens_saida
            WHERE municipio_id = $1 AND enviar_em > $2 AND enviar_em <= now() AND canal = 'sms'
-           GROUP BY motivo ORDER BY criada LIMIT 10`,
+           GROUP BY motivo, simulado ORDER BY criada LIMIT 10`,
           [m.id, smsDesde],
         );
         for (const s of sms) {
@@ -945,7 +949,7 @@ export class AoVivoService {
             data: {
               tipo: 'evento',
               icone: 'sms',
-              texto: TEXTO_SMS[s.motivo] ?? 'SMS enviado',
+              texto: `${TEXTO_SMS[s.motivo] ?? 'SMS enviado'}${s.simulado ? ' (simulação)' : ''}`,
               em: s.criada,
             },
           });

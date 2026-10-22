@@ -199,7 +199,7 @@ export class AcompanhamentoFamiliarService {
       // Só para a simulação de demonstração (o link nunca vai para o agente).
       ...(sessao.simulada ? { link_simulacao: link } : {}),
       dizer:
-        `Mandei um SMS a ${quem} com um link para acompanhar esta chamada e me escrever. ` +
+        `Mandei um SMS para ${quem} com um link para acompanhar esta chamada e me escrever. ` +
         `Quando ${quem} escrever, eu digo-lhe. Se deixar de precisar, diga "já não preciso".`,
     };
   }

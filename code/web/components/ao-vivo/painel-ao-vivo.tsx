@@ -12,7 +12,7 @@ import {
   Play,
   Radio,
   Send,
-  Square,
+  PhoneOff,
   UserRound,
   Wrench,
 } from "lucide-react";
@@ -277,6 +277,10 @@ function ConversaAoVivo({ id }: { id: string }) {
   const fim = useRef<HTMLLIElement | null>(null);
   const d = detalhe.dados;
   const desde = d ? (d.falas.at(-1)?.seq ?? 0) : null;
+  const simulada = !!d?.conversa.simulada;
+  const temLink = !!d?.link_simulacao;
+  const { recarregar } = detalhe;
+  const recarregou = useRef(false);
 
   useEffect(() => {
     if (!token || desde === null || !d?.conversa.a_decorrer) return;
@@ -288,8 +292,15 @@ function ConversaAoVivo({ id }: { id: string }) {
           { token, municipio: municipioEscolhido(), sinal: ac.signal },
         )) {
           if (ev.evento === "fala") setNovas((n) => [...n, ev.dados as Fala]);
-          else if (ev.evento === "familiar")
-            setFamiliar(ev.dados as Detalhe["familiar"]);
+          else if (ev.evento === "familiar") {
+            const fam = ev.dados as Detalhe["familiar"];
+            setFamiliar(fam);
+            // Simulação: o link do familiar só existe depois de o juntar.
+            if (fam.ativo && simulada && !temLink && !recarregou.current) {
+              recarregou.current = true;
+              recarregar();
+            }
+          }
           else if (ev.evento === "fim") setTerminou(true);
         }
       } catch {
@@ -297,7 +308,7 @@ function ConversaAoVivo({ id }: { id: string }) {
       }
     })();
     return () => ac.abort();
-  }, [id, token, desde, d?.conversa.a_decorrer]);
+  }, [id, token, desde, d?.conversa.a_decorrer, simulada, temLink, recarregar]);
 
   const falas = d ? [...d.falas, ...novas.filter((n) => n.seq > (desde ?? 0))] : [];
   const ultimaDoMunicipe = [...falas].reverse().find((f) => f.quem === "municipe")?.seq ?? null;
@@ -380,7 +391,7 @@ function ConversaAoVivo({ id }: { id: string }) {
             <Botao
               variante="discreto"
               tamanho="pequeno"
-              icone={Square}
+              icone={PhoneOff}
               onClick={() =>
                 void pedido(`/v1/painel/ao-vivo/conversas/${id}/terminar-simulacao`, {
                   metodo: "POST",

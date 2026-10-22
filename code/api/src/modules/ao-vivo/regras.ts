@@ -262,22 +262,16 @@ export function resumirFerramenta(
       };
     }
     case 'juntar_familiar':
-      return r?.juntado === true
-        ? {
-            texto: 'Familiar convidado a acompanhar a chamada (SMS com link)',
-            publico: {
-              tipo: 'familiar',
-              texto: 'Familiar convidado a acompanhar a chamada',
-            },
-            ocorrencia: null,
-          }
-        : {
-            texto:
-              r?.precisa_autorizacao === true
-                ? 'Juntar familiar: a pedir autorização'
-                : base,
-            ...vazio,
-          };
+      // O evento público é publicado pela própria junção (não pelo browser).
+      return {
+        texto:
+          r?.juntado === true
+            ? 'Familiar convidado a acompanhar a chamada (SMS com link)'
+            : r?.precisa_autorizacao === true
+              ? 'Juntar familiar: a pedir autorização'
+              : base,
+        ...vazio,
+      };
     default:
       return {
         texto: base,

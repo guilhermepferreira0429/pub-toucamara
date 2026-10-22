@@ -120,14 +120,17 @@ export function PaginaAcompanhar({ token }: { token: string }) {
     return <Terminado mensagem={estado.mensagem} />;
 
   const d = estado.dados;
-  const deQuem = d.pessoa ?? "a pessoa que lhe pediu ajuda";
 
   return (
     <div className="flex w-full flex-col gap-6">
       <Topo direita={fim ? "terminada" : "em direto"} />
       <Cabecalho
         meta={`Câmara Municipal de ${d.municipio}`}
-        titulo={`Está a acompanhar a chamada de ${deQuem}`}
+        titulo={
+          d.pessoa
+            ? `Está a acompanhar a chamada de ${d.pessoa}`
+            : "Está a acompanhar uma chamada com a câmara"
+        }
         sub="Veja o que se fala com o assistente da câmara e escreva se puder ajudar."
       />
       <Nota icone={ShieldCheck} tom="neutro">
