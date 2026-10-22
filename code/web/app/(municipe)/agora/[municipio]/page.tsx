@@ -17,7 +17,7 @@ async function Conteudo({ params, searchParams }: { params: Params; searchParams
     <FeedAgora
       key={municipio}
       slug={decodeURIComponent(municipio)}
-      inicial={{ freguesia: um(q.freguesia), tipos: um(q.tipos) }}
+      inicial={{ freguesia: um(q.freguesia), tipos: um(q.tipos), ver: um(q.ver) }}
     />
   );
 }

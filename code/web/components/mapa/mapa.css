@@ -1,0 +1,435 @@
+/*
+ * Mapas (components/mapa): o vidro, os botões redondos, os chips, a bolha
+ * dos marcadores e os pontos. Cores da marca (globals.css). Em alto
+ * contraste e sem backdrop-filter, o vidro fica opaco.
+ */
+
+.mapa-motor {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+/* ---------- Vidro ---------- */
+.mapa-vidro {
+  background: rgb(255 251 245 / 0.82);
+  -webkit-backdrop-filter: blur(18px) saturate(170%);
+  backdrop-filter: blur(18px) saturate(170%);
+  border: 1px solid rgb(255 255 255 / 0.7);
+  box-shadow:
+    0 10px 28px -10px rgb(21 38 59 / 0.45),
+    inset 0 1px 0 rgb(255 255 255 / 0.75);
+  color: var(--color-tinta);
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .mapa-vidro {
+    background: rgb(255 251 245 / 0.97);
+  }
+}
+html[data-contraste="alto"] .mapa-vidro {
+  background: #fff;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  border: 2px solid #000;
+}
+
+.mapa-painel {
+  border-radius: 24px;
+}
+
+/* ---------- Botões redondos ---------- */
+.mapa-controlos {
+  position: absolute;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+  pointer-events: none;
+}
+.mapa-controlos > *,
+.mapa-controlos .contents > * {
+  pointer-events: auto;
+}
+.mapa-botao {
+  display: inline-flex;
+  width: 48px;
+  height: 48px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  cursor: pointer;
+  transition:
+    transform 0.15s ease,
+    background-color 0.15s ease;
+}
+.mapa-botao:hover {
+  background: rgb(255 255 255 / 0.95);
+}
+.mapa-botao:active {
+  transform: scale(0.94);
+}
+.mapa-botao[data-ativo] {
+  color: var(--color-terracota-escuro);
+}
+.mapa-botao:disabled {
+  cursor: progress;
+}
+.mapa-botao:disabled svg {
+  animation: mapa-girar 1s linear infinite;
+}
+.mapa-botao-texto {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: 0.2px;
+}
+.mapa-zoom {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  overflow: hidden;
+  border-radius: 9999px;
+}
+.mapa-zoom button {
+  display: flex;
+  width: 48px;
+  height: 48px;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.mapa-zoom button:hover {
+  background: rgb(255 255 255 / 0.95);
+}
+.mapa-zoom-linha {
+  width: 24px;
+  height: 1px;
+  background: var(--color-linha);
+}
+.mapa-aviso {
+  max-width: 220px;
+  border-radius: 14px;
+  padding: 8px 12px;
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+/* ---------- Chips de filtro ---------- */
+.mapa-chip {
+  display: inline-flex;
+  min-height: 44px;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 8px;
+  border-radius: 9999px;
+  padding: 0 14px 0 8px;
+  font-size: 15px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+.mapa-chip:not(:has(.mapa-chip-icone)) {
+  padding-left: 16px;
+}
+.mapa-chip[aria-pressed="true"] {
+  background: rgb(21 38 59 / 0.92);
+  border-color: rgb(21 38 59 / 0.92);
+  color: #fff;
+}
+.mapa-chip-icone {
+  display: inline-flex;
+  width: 28px;
+  height: 28px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  background: var(--cor);
+  color: #fff;
+  box-shadow: inset 0 -2px 0 rgb(0 0 0 / 0.18);
+}
+.mapa-chip-conta {
+  display: inline-flex;
+  min-width: 24px;
+  height: 24px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  padding: 0 7px;
+  background: rgb(21 38 59 / 0.1);
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.mapa-chip[aria-pressed="true"] .mapa-chip-conta {
+  background: rgb(255 255 255 / 0.22);
+}
+
+/* ---------- Marcadores ---------- */
+.mapa-marcador {
+  cursor: pointer;
+  border-radius: 20px;
+}
+.mapa-marcador[role="img"] {
+  cursor: default;
+}
+.mapa-marcador-frente {
+  z-index: 3;
+}
+.mapa-marcador:focus-visible,
+.leaflet-container .mapa-marcador:focus-visible {
+  outline: 3px solid var(--color-tinta);
+  outline-offset: 4px;
+}
+.mapa-marcador-lf {
+  overflow: visible;
+  background: transparent;
+  border: 0;
+}
+.mapa-ancora-centro,
+.mapa-ancora-baixo {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: block;
+  width: max-content;
+}
+.mapa-ancora-centro {
+  transform: translate(-50%, -50%);
+}
+.mapa-ancora-baixo {
+  transform: translate(-50%, -100%);
+}
+
+/* A bolha: ícone grande com volume + título em vidro + pé no sítio. */
+.mapa-bolha {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transform-origin: 50% 100%;
+  transition: transform 0.2s ease;
+  font-family: var(--font-body);
+}
+.mapa-marcador:hover .mapa-bolha,
+.mapa-bolha[data-selecionada] {
+  transform: scale(1.08);
+}
+.mapa-bolha-icone {
+  position: relative;
+  display: flex;
+  width: 54px;
+  height: 54px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 30% 22%, rgb(255 255 255 / 0.55), transparent 46%),
+    linear-gradient(
+      160deg,
+      color-mix(in srgb, var(--cor) 62%, #fff) 0%,
+      var(--cor) 55%,
+      color-mix(in srgb, var(--cor) 72%, #000) 100%
+    );
+  box-shadow:
+    inset 0 -4px 0 rgb(0 0 0 / 0.2),
+    inset 0 2px 0 rgb(255 255 255 / 0.4),
+    0 12px 20px -8px rgb(21 38 59 / 0.6);
+  transform: rotate(-4deg);
+}
+.mapa-bolha-icone svg {
+  filter: drop-shadow(0 1.5px 0 rgb(0 0 0 / 0.25));
+  transform: rotate(4deg);
+}
+.mapa-bolha[data-selecionada] .mapa-bolha-icone {
+  box-shadow:
+    0 0 0 3px #fff,
+    0 0 0 7px color-mix(in srgb, var(--cor) 45%, transparent),
+    inset 0 -4px 0 rgb(0 0 0 / 0.2),
+    0 14px 24px -8px rgb(21 38 59 / 0.65);
+}
+.mapa-bolha-conta {
+  position: absolute;
+  right: -8px;
+  top: -8px;
+  display: flex;
+  min-width: 24px;
+  height: 24px;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #fff;
+  border-radius: 9999px;
+  padding: 0 5px;
+  background: var(--color-tinta);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+  transform: rotate(4deg);
+}
+.mapa-bolha-texto {
+  margin-top: 6px;
+  display: flex;
+  max-width: 200px;
+  flex-direction: column;
+  align-items: center;
+  border-radius: 14px;
+  padding: 5px 11px 6px;
+  text-align: center;
+}
+.mapa-bolha[data-compacta] .mapa-bolha-texto {
+  display: none;
+}
+.mapa-marcador:hover .mapa-bolha[data-compacta] .mapa-bolha-texto,
+.mapa-marcador:focus-visible .mapa-bolha[data-compacta] .mapa-bolha-texto {
+  display: flex;
+}
+.mapa-bolha-titulo {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  font-size: 13.5px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+.mapa-bolha-meta {
+  margin-top: 1px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-tinta-2);
+  white-space: nowrap;
+}
+.mapa-bolha-pe {
+  margin-top: 4px;
+  width: 12px;
+  height: 12px;
+  border: 2.5px solid #fff;
+  border-radius: 9999px;
+  background: var(--cor);
+  box-shadow: 0 2px 6px rgb(21 38 59 / 0.5);
+}
+
+/* Emergências: anel a pulsar (parado para quem pediu menos movimento). */
+.mapa-pulso {
+  position: absolute;
+  inset: -4px;
+  border: 3px solid var(--cor);
+  border-radius: 22px;
+  animation: mapa-pulsar 1.6s ease-out infinite;
+  pointer-events: none;
+}
+@keyframes mapa-pulsar {
+  0% {
+    opacity: 0.85;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.55);
+  }
+}
+@keyframes mapa-girar {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mapa-pulso {
+    animation: none;
+    opacity: 0.6;
+    transform: scale(1.12);
+  }
+}
+
+/* Ponto simples, pino e "está aqui". */
+.mapa-ponto {
+  display: block;
+  width: 20px;
+  height: 20px;
+  border: 3px solid #fff;
+  border-radius: 9999px;
+  background: var(--cor);
+  box-shadow: 0 2px 6px rgb(0 0 0 / 0.35);
+}
+.mapa-pino {
+  display: block;
+  width: 30px;
+  height: 30px;
+  border: 3px solid #fff;
+  border-radius: 15px 15px 15px 3px;
+  background: var(--cor);
+  box-shadow: 0 2px 6px rgb(0 0 0 / 0.35);
+  transform: rotate(-45deg);
+}
+.mapa-aqui {
+  position: relative;
+  display: block;
+  width: 22px;
+  height: 22px;
+}
+.mapa-aqui-ponto {
+  position: absolute;
+  inset: 0;
+  border: 3.5px solid #fff;
+  border-radius: 9999px;
+  background: #1f5fbf;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.35);
+}
+.mapa-aqui-halo {
+  position: absolute;
+  inset: -14px;
+  border-radius: 9999px;
+  background: rgb(31 95 191 / 0.22);
+  animation: mapa-pulsar 2.2s ease-out infinite;
+}
+
+/* ---------- Créditos e balões ---------- */
+.mapa-motor .mapboxgl-ctrl-bottom-left,
+.mapa-motor .mapboxgl-ctrl-bottom-right,
+.mapa-motor .leaflet-bottom {
+  bottom: var(--mapa-baixo, 0px);
+}
+.mapa-motor .mapboxgl-ctrl-bottom-right,
+.mapa-motor .leaflet-right {
+  right: var(--mapa-direita, 0px);
+}
+.mapa-balao .mapboxgl-popup-content {
+  border-radius: 10px;
+  padding: 6px 10px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-tinta);
+}
+
+/* ---------- Barra de navegação em vidro (em baixo) ---------- */
+.mapa-nav-item {
+  display: flex;
+  min-height: 54px;
+  min-width: 64px;
+  flex: 1 1 0;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  border-radius: 9999px;
+  padding: 4px 8px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--color-tinta);
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+.mapa-nav-item:hover {
+  background: rgb(21 38 59 / 0.07);
+}
+.mapa-nav-item[aria-pressed="true"] {
+  color: var(--color-terracota-escuro);
+  background: var(--color-terracota-suave);
+}
+.mapa-nav-atual,
+.mapa-nav-atual:hover {
+  background: rgb(21 38 59 / 0.92);
+  color: #fff;
+  cursor: default;
+}

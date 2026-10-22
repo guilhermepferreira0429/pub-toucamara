@@ -1,15 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
-import 'package:flutter_map/flutter_map.dart';
-import 'package:latlong2/latlong.dart';
 
 import '../../comum/componentes/componentes.dart';
+import '../../comum/localizacao/localizacao.dart';
+import '../../comum/mapa/mapa_cidade.dart';
 import '../../comum/tema.dart';
 import '../modelos.dart';
 import '../servicos.dart';
 import 'hoje.dart';
 
-/// As tarefas de hoje no mapa (OpenStreetMap). Tocar num ponto mostra a
+/// As tarefas de hoje no mapa (MapaCidade: 2D por omissão, 3D nativo com
+/// MAPA_NATIVO no Android). Tocar num ponto mostra a
 /// tarefa por baixo, com "Navegar".
 class MapaTarefas extends StatefulWidget {
   const MapaTarefas({super.key, required this.aCarregar});
@@ -22,9 +23,6 @@ class MapaTarefas extends StatefulWidget {
 class _MapaTarefasState extends State<MapaTarefas> {
   Tarefa? _escolhida;
   bool _semFundo = false;
-
-  /// Paços do Concelho de Guimarães (só para centrar sem tarefas).
-  static const _centroPorOmissao = LatLng(41.4425, -8.2918);
 
   void _falhouMosaico() {
     if (_semFundo) return;
@@ -43,80 +41,41 @@ class _MapaTarefasState extends State<MapaTarefas> {
             .where((t) => t.temLocal)
             .toList();
         final eu = s.repositorio.ondeEstou;
-        final pontos = [
-          for (final t in tarefas) LatLng(t.lat!, t.lng!),
-          if (eu != null) LatLng(eu.lat, eu.lng),
-        ];
         final semLocal =
             (s.repositorio.dia?.tarefas.length ?? 0) - tarefas.length;
         return Stack(
           children: [
-            FlutterMap(
-              key: ValueKey(pontos.length),
-              options: MapOptions(
-                initialCenter: pontos.length == 1
-                    ? pontos.first
-                    : _centroPorOmissao,
-                initialZoom: 15,
-                initialCameraFit: pontos.length > 1
-                    ? CameraFit.bounds(
-                        bounds: LatLngBounds.fromPoints(pontos),
-                        padding: const EdgeInsets.fromLTRB(48, 48, 48, 220),
-                        maxZoom: 17,
-                      )
-                    : null,
-                backgroundColor: Cores.creme2,
-                onTap: (_, _) => setState(() => _escolhida = null),
-              ),
-              children: [
-                TileLayer(
-                  urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                  userAgentPackageName: 'pt.toucamara.equipa',
-                  maxZoom: 19,
-                  errorTileCallback: (_, _, _) => _falhouMosaico(),
-                ),
-                MarkerLayer(
-                  markers: [
-                    if (eu != null)
-                      Marker(
-                        point: LatLng(eu.lat, eu.lng),
-                        width: 28,
-                        height: 28,
-                        child: Semantics(
-                          label: 'Estou aqui',
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF1E6FD9),
-                              shape: BoxShape.circle,
-                              border: Border.all(color: Colors.white, width: 4),
-                              boxShadow: const [
-                                BoxShadow(blurRadius: 6, color: Colors.black26),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    for (final (i, t) in tarefas.indexed)
-                      Marker(
-                        point: LatLng(t.lat!, t.lng!),
-                        width: 52,
-                        height: 52,
-                        child: _Alfinete(
-                          numero: i + 1,
-                          tarefa: t,
-                          escolhida: _escolhida?.id == t.id,
-                          aoTocar: () => setState(() => _escolhida = t),
-                        ),
-                      ),
-                  ],
-                ),
-                const RichAttributionWidget(
-                  alignment: AttributionAlignment.bottomLeft,
-                  attributions: [
-                    TextSourceAttribution('Contribuidores do OpenStreetMap'),
-                  ],
-                ),
+            MapaCidade(
+              rotulo:
+                  'Mapa das tarefas de hoje (a lista tem a mesma informação)',
+              marcadores: [
+                for (final (i, t) in tarefas.indexed)
+                  MarcadorMapa(
+                    id: t.id,
+                    ponto: Ponto(t.lat!, t.lng!),
+                    nome: '${i + 1}: ${t.titulo}, ${t.morada}',
+                    cor: _corDe(t),
+                    texto: t.feita ? null : '${i + 1}',
+                    icone: t.feita ? Icons.check_rounded : null,
+                    titulo: _escolhida?.id == t.id ? t.titulo : null,
+                  ),
               ],
+              enquadrar: [for (final t in tarefas) Ponto(t.lat!, t.lng!), ?eu],
+              zoom: 15,
+              zoomMaximo: 17,
+              selecionado: _escolhida?.id,
+              aoTocarMarcador: (id) => setState(
+                () => _escolhida = tarefas.where((t) => t.id == id).firstOrNull,
+              ),
+              aoTocarMapa: () => setState(() => _escolhida = null),
+              eu: eu,
+              margens: EdgeInsets.fromLTRB(
+                48,
+                72,
+                48,
+                _escolhida != null ? 240 : 48,
+              ),
+              aoFalharFundo: _falhouMosaico,
             ),
             Positioned(
               left: 12,
@@ -154,54 +113,9 @@ class _MapaTarefasState extends State<MapaTarefas> {
   }
 }
 
-class _Alfinete extends StatelessWidget {
-  const _Alfinete({
-    required this.numero,
-    required this.tarefa,
-    required this.escolhida,
-    required this.aoTocar,
-  });
-  final int numero;
-  final Tarefa tarefa;
-  final bool escolhida;
-  final VoidCallback aoTocar;
-
-  @override
-  Widget build(BuildContext context) {
-    final visita = tarefa.tipo == TipoTarefa.visita;
-    final cor = tarefa.feita
-        ? Cores.verde
-        : visita
-        ? Cores.tinta
-        : Cores.terracota;
-    return Semantics(
-      button: true,
-      label: '$numero: ${tarefa.titulo}, ${tarefa.morada}',
-      child: GestureDetector(
-        onTap: aoTocar,
-        child: Container(
-          decoration: BoxDecoration(
-            color: cor,
-            shape: BoxShape.circle,
-            border: Border.all(
-              color: escolhida ? Cores.ambarSuave : Colors.white,
-              width: escolhida ? 5 : 3,
-            ),
-            boxShadow: const [BoxShadow(blurRadius: 6, color: Colors.black38)],
-          ),
-          alignment: Alignment.center,
-          child: tarefa.feita
-              ? const Icon(Icons.check_rounded, color: Colors.white, size: 26)
-              : Text(
-                  '$numero',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 20,
-                  ),
-                ),
-        ),
-      ),
-    );
-  }
-}
+/// Feita: verde; visita: tinta; o resto: terracota.
+Color _corDe(Tarefa t) => t.feita
+    ? Cores.verde
+    : t.tipo == TipoTarefa.visita
+    ? Cores.tinta
+    : Cores.terracota;
