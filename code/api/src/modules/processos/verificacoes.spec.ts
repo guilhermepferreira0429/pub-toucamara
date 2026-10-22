@@ -279,6 +279,8 @@ describe('leitura do projeto pela IA', () => {
       referencia: { documento: 9, pagina: 1, folha: null },
     },
     contradicoes: [],
+    medicoes: [],
+    elementos: [],
     tecnico_autor: {
       nome: 'Joana Lima',
       ordem: 'OA',

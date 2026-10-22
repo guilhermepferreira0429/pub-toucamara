@@ -52,6 +52,7 @@ import { OrdenamentoService } from '../ordenamento/ordenamento.service.js';
 import { PagamentosService } from '../pagamentos/pagamentos.service.js';
 import { ProcessosDemonstracaoService } from '../processos/processos-demonstracao.service.js';
 import { TurismoService } from '../turismo/turismo.service.js';
+import { PROCESSOS_PERFIS } from '../processos/projetos-perfis-pdf.js';
 import {
   CONVERSAS,
   ConversaDemo,
@@ -119,8 +120,12 @@ export function passosDemo(): Passo[] {
     },
     {
       passo: 'processo_apoio',
-      rotulo: 'Processo CP "Porta na cozinha" (apoio ao técnico)',
-      chaves: ['processo:porta_cozinha'],
+      rotulo:
+        'Processo CP "Porta na cozinha" e a análise por tipo de operação (ampliação, piscina, muro)',
+      chaves: [
+        'processo:porta_cozinha',
+        ...PROCESSOS_PERFIS.map((p) => `processo:analise_${p.chave}`),
+      ],
     },
     {
       passo: 'processos',
@@ -861,6 +866,24 @@ export class DemoService {
       c.contar('processos');
       return r.processo_id;
     });
+    // A análise por tipo de operação: ampliação acima do índice, piscina
+    // perto da extrema, muro em ordem (mesmo serviço da rota do painel).
+    for (const p of PROCESSOS_PERFIS) {
+      await this.umaVez(
+        c.m,
+        `processo:analise_${p.chave}`,
+        'processo',
+        async () => {
+          const r = await this.svc(ProcessosDemonstracaoService).carregarPerfil(
+            c.m,
+            c.u,
+            p.chave,
+          );
+          c.contar('processos'); // como o "Porta na cozinha": conta ao registar
+          return r.processo_id;
+        },
+      );
+    }
   }
 
   /**

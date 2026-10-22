@@ -12,6 +12,11 @@ import {
   gerarProjetoDemonstracao,
   gerarTermoDemonstracao,
 } from './projeto-demonstracao-pdf.js';
+import {
+  ChaveProcessoPerfil,
+  ficheiroProjetoPerfil,
+  PROCESSOS_PERFIS,
+} from './projetos-perfis-pdf.js';
 
 /** O processo do design (V2 · Apoio ao técnico). Tudo fictício. */
 export const PROCESSO_DEMONSTRACAO = {
@@ -231,6 +236,180 @@ export class ProcessosDemonstracaoService {
       criado: true,
       tem_zonas_pdm,
       demonstracao: true,
+    };
+  }
+
+  /**
+   * Os processos de demonstração da análise por tipo de operação (V4 #2):
+   * ampliação que excede o índice da zona, piscina a 1,5 m da extrema e
+   * muro em ordem. Idempotente, como o "Porta na cozinha".
+   */
+  async carregarPerfis(m: Municipio, u: UtilizadorPainel) {
+    const r: {
+      chave: ChaveProcessoPerfil;
+      processo_id: string;
+      numero: string;
+      criado: boolean;
+      resultado: string;
+    }[] = [];
+    for (const p of PROCESSOS_PERFIS) {
+      r.push(await this.carregarPerfil(m, u, p.chave));
+    }
+    return r;
+  }
+
+  /** Um dos processos da análise por tipo de operação (o "preparar demo" usa-o um a um). */
+  async carregarPerfil(
+    m: Municipio,
+    u: UtilizadorPainel,
+    chave: ChaveProcessoPerfil,
+  ) {
+    const def = PROCESSOS_PERFIS.find((x) => x.chave === chave)!;
+    const [ja] = await this.db.query<{ id: string; numero: string }>(
+      `SELECT id, numero FROM processos
+       WHERE municipio_id = $1 AND demonstracao AND assunto = $2
+       ORDER BY criado_em LIMIT 1`,
+      [m.id, def.assunto],
+    );
+    if (ja) {
+      return {
+        chave,
+        processo_id: ja.id,
+        numero: ja.numero,
+        criado: false,
+        resultado: def.resultado,
+      };
+    }
+    const [tipo] = await this.db.query<{
+      id: string;
+      prazo_dias_uteis: number;
+    }>(
+      `SELECT id, prazo_dias_uteis FROM tipos_processo
+       WHERE municipio_id = $1 AND codigo = 'CP' ORDER BY ativo DESC LIMIT 1`,
+      [m.id],
+    );
+    if (!tipo) {
+      throw new ErroApi(
+        HttpStatus.CONFLICT,
+        'sem_tipo_cp',
+        'Falta o tipo de processo "CP" (comunicação prévia) para criar os processos de demonstração.',
+      );
+    }
+    const tiposDoc = await this.db.query<{ id: string; nome: string }>(
+      'SELECT id, nome FROM tipo_processo_documentos WHERE tipo_processo_id = $1 ORDER BY ordem',
+      [tipo.id],
+    );
+    const ficheiros = await Promise.all(
+      def.documentos.map(async (d) => ({
+        d,
+        tamanho: (await ficheiroProjetoPerfil(d.ficheiro))?.length ?? null,
+        tipo: d.tipo
+          ? (tiposDoc.find((x) => d.tipo!.test(x.nome))?.id ?? null)
+          : null,
+      })),
+    );
+    const hoje = hojeLisboa();
+    const ano = Number(hoje.slice(0, 4));
+    const feriados = await this.municipios.feriados(m.id);
+    const fim = somarDiasUteis(hoje, tipo.prazo_dias_uteis, feriados);
+
+    const r = await this.db.transaction(async (tx) => {
+      let numero = `CP ${def.numero}/${ano}`;
+      const [ocupado] = await tx.query(
+        'SELECT 1 FROM processos WHERE municipio_id = $1 AND numero = $2',
+        [m.id, numero],
+      );
+      if (ocupado) numero = `CP DEMO-${def.numero}/${ano}`;
+      const [mun] = await tx.query<{ id: string }>(
+        'INSERT INTO municipes (municipio_id, nome) VALUES ($1, $2) RETURNING id',
+        [m.id, def.requerente],
+      );
+      const [p] = await tx.query<{ id: string }>(
+        `INSERT INTO processos (municipio_id, numero, tipo_processo_id, municipe_id, assunto, morada,
+           freguesia, lat, lng, fase, prazo_inicio, prazo_fim, demonstracao)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'apreciacao', $10, $11, true) RETURNING id`,
+        [
+          m.id,
+          numero,
+          tipo.id,
+          mun.id,
+          def.assunto,
+          def.morada,
+          def.freguesia,
+          def.lat,
+          def.lng,
+          hoje,
+          fim,
+        ],
+      );
+      await tx.query(
+        `INSERT INTO requerimentos (municipio_id, municipe_id, tipo_processo_id, dados, estado,
+           assinatura, assinado_em, processo_id)
+         VALUES ($1, $2, $3, $4, 'entregue', 'simulada', now(), $5)`,
+        [
+          m.id,
+          mun.id,
+          tipo.id,
+          JSON.stringify({
+            morada_obra: `${def.morada}, ${def.freguesia}`,
+            descricao: def.descricao,
+            ...def.dados,
+          }),
+          p.id,
+        ],
+      );
+      // Pela ordem de entrega (a IA refere os documentos pelo número).
+      const n = ficheiros.length;
+      for (const [i, f] of ficheiros.entries()) {
+        await tx.query(
+          `INSERT INTO documentos (municipio_id, processo_id, tipo_documento_id, ficheiro_key, mime,
+             tamanho, origem, verificacao_estado, verificacao, emitido_em, descricao, recebido_em)
+           VALUES ($1, $2, $3, $4, 'application/pdf', $5, 'upload', $6, $7, $8, $9,
+                   now() - make_interval(secs => $10))`,
+          [
+            m.id,
+            p.id,
+            f.tipo,
+            f.d.ficheiro,
+            f.tamanho,
+            f.d.verificacao ? 'valido' : 'por_verificar',
+            f.d.verificacao ? JSON.stringify(f.d.verificacao) : null,
+            f.d.emitido,
+            f.tipo ? null : `${f.d.nome}`,
+            n - i,
+          ],
+        );
+      }
+      await tx.query(
+        `INSERT INTO processo_eventos (processo_id, tipo, descricao, ator_tipo, ator_id, interno, dados)
+         VALUES ($1, 'criado', $2, 'utilizador', $3, true, $4)`,
+        [
+          p.id,
+          'Processo de demonstração criado no painel (dados fictícios: requerente, morada, projeto e termo).',
+          u.id,
+          JSON.stringify({ demonstracao: true, analise: chave }),
+        ],
+      );
+      await this.auditoria.registar(
+        {
+          municipioId: m.id,
+          atorTipo: 'utilizador',
+          atorId: u.id,
+          acao: 'carregar_processo_demonstracao',
+          objetoTipo: 'processo',
+          objetoId: p.id,
+          dados: { numero, analise: chave },
+        },
+        tx,
+      );
+      return { id: p.id, numero };
+    });
+    return {
+      chave,
+      processo_id: r.id,
+      numero: r.numero,
+      criado: true,
+      resultado: def.resultado,
     };
   }
 }

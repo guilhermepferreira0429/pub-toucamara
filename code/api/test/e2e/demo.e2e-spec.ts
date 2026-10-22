@@ -161,8 +161,8 @@ describe('Preparar demo (e2e)', () => {
     expect(r.body.criados).toMatchObject({
       conversas: 45,
       licencas: 3,
-      // 4 dos processos noutras fases + 3 das antecipações.
-      processos: 7,
+      // 4 noutras fases + 3 das antecipações + 3 da análise por tipo de operação.
+      processos: 10,
     });
     const antecipacoes = await linhas(
       ctx.db,

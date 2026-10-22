@@ -17,6 +17,17 @@
  */
 import { z } from 'zod';
 import {
+  CODIGOS_ELEMENTO,
+  CODIGOS_GRANDEZA,
+  Elemento,
+  ELEMENTOS,
+  Grandeza,
+  GRANDEZAS,
+  medicaoPlausivel,
+  numeroPt,
+  UNIDADES_LIDAS,
+} from './medidas.js';
+import {
   avaliarObra,
   Controlo,
   CONTROLO_DITO,
@@ -34,7 +45,7 @@ function diaPt(iso: string): string {
 }
 
 /** Sobe quando as regras deste ficheiro mudam (a cache deixa de servir). */
-export const VERSAO_VERIFICACOES = '1';
+export const VERSAO_VERIFICACOES = '2';
 
 export const ESTADOS_VERIFICACAO = [
   'ok',
@@ -59,8 +70,30 @@ export interface Evidencia {
   url?: string | null;
 }
 
+/** Os grupos do bloco: documentos, PDM, desenhos (IA). */
+export const GRUPOS_VERIFICACAO = ['documentos', 'pdm', 'desenhos'] as const;
+export type GrupoVerificacao = (typeof GRUPOS_VERIFICACAO)[number];
+
+/** Uma linha da tabela lido × declarado × permitido. */
+export interface ValorComparado {
+  grandeza: Grandeza;
+  rotulo: string;
+  /** 'm²', 'm', 'pisos', 'lugares'. */
+  unidade: string;
+  /** O que a IA leu nos desenhos (a confirmar), com a folha. */
+  lido: { valor: number; evidencia: Evidencia | null } | null;
+  /** O que o requerente declarou no requerimento. */
+  declarado: number | null;
+  /** O que o PDM permite (valores de demonstração enquanto a câmara não carrega os seus). */
+  permitido: { valor: number; sentido: 'max' | 'min'; origem: string } | null;
+}
+
 export interface Verificacao {
   codigo: string;
+  /** Sem grupo (verificações antigas): deduz-se do código. */
+  grupo?: GrupoVerificacao;
+  /** Só nas verificações com números. */
+  valor?: ValorComparado | null;
   estado: EstadoVerificacao;
   titulo: string;
   detalhe: string;
@@ -73,7 +106,7 @@ export interface Verificacao {
   notas: string[];
 }
 
-function v(
+export function novaVerificacao(
   x: Omit<
     Verificacao,
     'evidencias' | 'a_confirmar' | 'demonstracao' | 'notas'
@@ -170,6 +203,8 @@ export interface EntradaPdm {
   zonas: ZonaParaVerificar[];
   obra: Obra | null;
   tipo: { codigo: string; nome: string };
+  /** As medidas da obra (do requerimento), para os degraus do PDM. */
+  medidas?: { area_m2?: number; altura_m?: number };
 }
 
 const CATEGORIAS_COM_CONDICIONANTES = ['protecao', 'agricola', 'florestal'];
@@ -178,7 +213,7 @@ export function verificarPdm(e: EntradaPdm): Verificacao {
   const base = { codigo: 'pdm', origem: 'regra' as const };
   const titulo = 'PDM no local: por verificar';
   if (!e.zonas.length) {
-    return v({
+    return novaVerificacao({
       ...base,
       estado: 'nao_verificavel',
       titulo,
@@ -186,7 +221,7 @@ export function verificarPdm(e: EntradaPdm): Verificacao {
     });
   }
   if (!e.ponto) {
-    return v({
+    return novaVerificacao({
       ...base,
       estado: 'nao_verificavel',
       titulo,
@@ -195,7 +230,7 @@ export function verificarPdm(e: EntradaPdm): Verificacao {
   }
   const zona = zonaDe(e.ponto, e.zonas);
   if (!zona) {
-    return v({
+    return novaVerificacao({
       ...base,
       estado: 'nao_verificavel',
       titulo,
@@ -216,13 +251,13 @@ export function verificarPdm(e: EntradaPdm): Verificacao {
     evidencias,
     demonstracao: zona.demonstracao,
   };
-  const a = e.obra ? avaliarObra(zona.regras[e.obra], {}) : null;
+  const a = e.obra ? avaliarObra(zona.regras[e.obra], e.medidas ?? {}) : null;
   const notas = [...(a?.notas ?? [])];
   const pedido = controloDoTipo(e.tipo);
   const obraDita = e.obra ? minuscula(OBRAS[e.obra]) : null;
 
   if (zona.categoria === 'protecao') {
-    return v({
+    return novaVerificacao({
       ...comum,
       estado: 'atencao',
       titulo: `Condicionantes no local: ${zona.nome}`,
@@ -233,7 +268,7 @@ export function verificarPdm(e: EntradaPdm): Verificacao {
     });
   }
   if (a?.controlo === 'nao_permitido') {
-    return v({
+    return novaVerificacao({
       ...comum,
       estado: 'falha',
       titulo: 'O PDM não admite esta obra no local',
@@ -246,7 +281,7 @@ export function verificarPdm(e: EntradaPdm): Verificacao {
     pedido &&
     ORDEM_CONTROLO[a.controlo] > ORDEM_CONTROLO[pedido]
   ) {
-    return v({
+    return novaVerificacao({
       ...comum,
       estado: 'atencao',
       titulo: `O PDM pede ${a.controlo === 'licenca' ? 'licença' : 'mais'} no local`,
@@ -255,7 +290,7 @@ export function verificarPdm(e: EntradaPdm): Verificacao {
     });
   }
   if (a?.em_falta.length) {
-    return v({
+    return novaVerificacao({
       ...comum,
       estado: 'atencao',
       titulo: 'PDM: faltam medidas para decidir',
@@ -264,7 +299,7 @@ export function verificarPdm(e: EntradaPdm): Verificacao {
     });
   }
   if (CATEGORIAS_COM_CONDICIONANTES.includes(zona.categoria)) {
-    return v({
+    return novaVerificacao({
       ...comum,
       estado: 'atencao',
       titulo: `Condicionantes no local: ${zona.nome}`,
@@ -287,7 +322,7 @@ export function verificarPdm(e: EntradaPdm): Verificacao {
       `O PDM carregado não tem regra para ${obraDita} nesta zona: confirmar.`,
     );
   }
-  return v({
+  return novaVerificacao({
     ...comum,
     estado: 'ok',
     titulo: 'Sem condicionantes do PDM no local',
@@ -323,7 +358,7 @@ export function verificarInstrucao(e: EntradaInstrucao): Verificacao {
     ],
   };
   if (e.exigidos === 0 && e.faltam.length === 0) {
-    return v({
+    return novaVerificacao({
       ...base,
       estado: 'nao_verificavel',
       titulo: 'Instrução do processo: por verificar',
@@ -332,7 +367,7 @@ export function verificarInstrucao(e: EntradaInstrucao): Verificacao {
     });
   }
   if (e.faltam.length === 0) {
-    return v({
+    return novaVerificacao({
       ...base,
       estado: 'ok',
       titulo: 'Processo instruído com todos os elementos',
@@ -340,7 +375,7 @@ export function verificarInstrucao(e: EntradaInstrucao): Verificacao {
     });
   }
   const n = e.faltam.length;
-  return v({
+  return novaVerificacao({
     ...base,
     estado: 'falha',
     titulo: n === 1 ? 'Falta 1 elemento' : `Faltam ${n} elementos`,
@@ -409,7 +444,7 @@ export function verificarTermo(e: {
   const d = e.documento;
   const base = { codigo: 'termo', origem: 'regra' as const };
   if (!d) {
-    return v({
+    return novaVerificacao({
       ...base,
       estado: 'falha',
       titulo: 'Termo de responsabilidade em falta',
@@ -424,7 +459,7 @@ export function verificarTermo(e: {
   const emitido = d.emitido_em ? `emitido a ${diaPt(d.emitido_em)}` : null;
 
   if (d.verificacao_estado === 'documento_errado') {
-    return v({
+    return novaVerificacao({
       ...comum,
       estado: 'falha',
       titulo: 'O termo entregue não é o documento certo',
@@ -432,7 +467,7 @@ export function verificarTermo(e: {
     });
   }
   if (d.verificacao_estado === 'ilegivel') {
-    return v({
+    return novaVerificacao({
       ...comum,
       estado: 'falha',
       titulo: 'Termo de responsabilidade ilegível',
@@ -447,7 +482,7 @@ export function verificarTermo(e: {
     d.verificacao_estado === 'fora_de_prazo' ||
     (caducaEm !== null && caducaEm < e.hoje)
   ) {
-    return v({
+    return novaVerificacao({
       ...comum,
       estado: 'falha',
       titulo: 'Termo de responsabilidade caducado',
@@ -462,7 +497,7 @@ export function verificarTermo(e: {
   const regras = regrasDaVerificacao(d.verificacao);
   const falhas = regras.filter((r) => !r.ok);
   if (falhas.length) {
-    return v({
+    return novaVerificacao({
       ...comum,
       estado: 'atencao',
       titulo: 'Termo de responsabilidade: confirmar',
@@ -477,7 +512,7 @@ export function verificarTermo(e: {
     if (assinaturaOk) partes.push('assinatura verificada');
     else if (e.assinado_ia) partes.push('assinatura visível (IA, a confirmar)');
     if (caducaEm) partes.push(`válido até ${diaPt(caducaEm)}`);
-    return v({
+    return novaVerificacao({
       ...comum,
       estado: 'ok',
       titulo: 'Termo de responsabilidade válido',
@@ -488,7 +523,7 @@ export function verificarTermo(e: {
   if (e.assinado_ia === false) {
     partes.push('a IA não viu assinatura');
   }
-  return v({
+  return novaVerificacao({
     ...comum,
     estado: 'atencao',
     titulo: 'Termo de responsabilidade por verificar',
@@ -562,7 +597,7 @@ export function verificarOrdem(
     evidencias,
   };
   if (!t || !t.numero_inscricao || !r) {
-    return v({
+    return novaVerificacao({
       ...base,
       origem: 'regra',
       a_confirmar: false,
@@ -585,14 +620,14 @@ export function verificarOrdem(
   };
   switch (r.estado) {
     case 'inscrito':
-      return v({
+      return novaVerificacao({
         ...comum,
         estado: 'ok',
         titulo: 'Técnico inscrito na Ordem',
         detalhe: quem,
       });
     case 'numero_invalido':
-      return v({
+      return novaVerificacao({
         ...comum,
         estado: 'atencao',
         titulo: 'N.º de inscrição na Ordem por confirmar',
@@ -600,7 +635,7 @@ export function verificarOrdem(
       });
     case 'suspenso':
     case 'nao_inscrito':
-      return v({
+      return novaVerificacao({
         ...comum,
         estado: r.simulado ? 'atencao' : 'falha',
         titulo:
@@ -714,6 +749,40 @@ export const esquemaLeituraProjeto = z.object({
     .describe(
       'Contradições entre peças escritas e desenhadas. Lista vazia se não há.',
     ),
+  medicoes: z
+    .array(
+      z.object({
+        grandeza: z
+          .enum(CODIGOS_GRANDEZA)
+          .describe('Qual das medidas pedidas é.'),
+        valor: z
+          .number()
+          .describe('O número como está escrito ou cotado no desenho.'),
+        unidade: z
+          .enum(UNIDADES_LIDAS)
+          .describe('A unidade como está no desenho (m2 para m²).'),
+        referencia: referencia.nullable(),
+      }),
+    )
+    .describe(
+      'Só as medidas pedidas no pedido, quando estão escritas ou cotadas nos desenhos ou quadros. Lista vazia se não há.',
+    ),
+  elementos: z
+    .array(
+      z.object({
+        elemento: z
+          .enum(CODIGOS_ELEMENTO)
+          .describe('Qual dos elementos pedidos é.'),
+        resposta: z.enum(['sim', 'nao', 'incerto']),
+        descricao: z
+          .string()
+          .describe('Uma frase: o que se vê (ou porque não se sabe).'),
+        referencia: referencia.nullable(),
+      }),
+    )
+    .describe(
+      'Só os elementos pedidos no pedido, um por elemento. Lista vazia se não se pede nenhum.',
+    ),
   tecnico_autor: z
     .object({
       nome: z.string().nullable(),
@@ -748,6 +817,8 @@ Regras:
 - Não inventes: se algo não aparece, diz "incerto", "sem_dados" ou null. Não deduzas o que não está desenhado nem escrito.
 - Uma parede só é "não estrutural" se o projeto o disser. Uma planta de estruturas é uma peça própria (estabilidade, betão, vigas); não confundas com a planta de arquitetura.
 - Em cada referência, indica o documento, a página do PDF e a folha como está escrita no desenho.
+- Em "medicoes", só as medidas que o pedido lista, e só números escritos ou cotados nos desenhos ou nos quadros de áreas. Não meças à escala, não somes nem calcules. Se a memória e o desenho dão números diferentes, usa o do desenho e regista a diferença em "contradicoes".
+- Em "elementos", responde a cada elemento que o pedido lista (e só a esses), com "incerto" se não se vê.
 - As descrições são para o técnico: português de Portugal, frases curtas e concretas.
 - Não dês pareceres nem digas se a obra é legal: só o que os documentos mostram.`;
 
@@ -784,7 +855,7 @@ const limpar = (s: string) => s.replace(/\s+/g, ' ').trim();
 
 /** Sem leitura (sem IA, sem documento, resposta inválida): uma linha a dizer porquê. */
 export function leituraNaoVerificavel(motivo: string): Verificacao {
-  return v({
+  return novaVerificacao({
     codigo: 'ia_leitura',
     origem: 'ia',
     a_confirmar: false,
@@ -794,6 +865,21 @@ export function leituraNaoVerificavel(motivo: string): Verificacao {
   });
 }
 
+/** Um número lido pela IA, já validado (unidade e plausibilidade). */
+export interface MedicaoLida {
+  grandeza: Grandeza;
+  valor: number;
+  evidencia: Evidencia | null;
+}
+
+/** A resposta da IA sobre um elemento pedido (casa das máquinas, amianto...). */
+export interface ElementoLido {
+  elemento: Elemento;
+  resposta: 'sim' | 'nao' | 'incerto';
+  descricao: string;
+  evidencias: Evidencia[];
+}
+
 export interface ResultadoLeitura {
   /** Pela ordem do design: fachada primeiro, paredes e o resto no fim. */
   antes: Verificacao[];
@@ -801,6 +887,12 @@ export interface ResultadoLeitura {
   tecnico: DadosTecnico | null;
   tecnico_evidencias: Evidencia[];
   termo_assinado: boolean | null;
+  /** A IA leu o projeto (há resposta válida). */
+  lida?: boolean;
+  medicoes?: MedicaoLida[];
+  elementos?: ElementoLido[];
+  /** Números da IA postos de parte (unidade errada, implausíveis, repetidos). */
+  descartadas?: string[];
 }
 
 const SEM_LEITURA = (motivo: string): ResultadoLeitura => ({
@@ -809,18 +901,41 @@ const SEM_LEITURA = (motivo: string): ResultadoLeitura => ({
   tecnico: null,
   tecnico_evidencias: [],
   termo_assinado: null,
+  lida: false,
+  medicoes: [],
+  elementos: [],
+  descartadas: [],
 });
+
+/** O que o tipo de operação muda na leitura (ver `perfis-verificacao.ts`). */
+export interface OpcoesLeitura {
+  /** A operação mexe no exterior de propósito (ampliação, fachada...): a alteração não é um aviso. */
+  fachada_esperada?: boolean;
+  /** Ver aberturas e demolições de paredes (não em piscinas nem muros). */
+  paredes?: boolean;
+  /** Há a tabela de números: a linha geral "áreas e cérceas" não se mostra. */
+  com_medidas?: boolean;
+}
+
+/** As leituras guardadas antes da V4 não tinham medições nem elementos. */
+function comListas(bruto: unknown): unknown {
+  if (!bruto || typeof bruto !== 'object' || Array.isArray(bruto)) return bruto;
+  const b = bruto as Record<string, unknown>;
+  return { ...b, medicoes: b.medicoes ?? [], elementos: b.elementos ?? [] };
+}
 
 /**
  * A resposta da IA validada e passada a verificações. Nunca um "ok" legal:
  * o melhor que a IA dá é "sem alterações detetadas", a confirmar. Uma
- * resposta fora do esquema dá uma linha não verificável.
+ * resposta fora do esquema dá uma linha não verificável. Os números lidos
+ * passam pela plausibilidade antes de se compararem.
  */
 export function interpretarLeitura(
   bruto: unknown,
   docs: DocumentoLido[],
+  opcoes: OpcoesLeitura = {},
 ): ResultadoLeitura {
-  const p = esquemaLeituraProjeto.safeParse(bruto);
+  const p = esquemaLeituraProjeto.safeParse(comListas(bruto));
   if (!p.success) {
     return SEM_LEITURA(
       'A resposta da IA não veio no formato pedido: tente gerar outra vez.',
@@ -843,7 +958,7 @@ export function interpretarLeitura(
   const evF = evidenciaDe(f.referencia, docs);
   if (f.alteracoes === 'nao') {
     antes.push(
-      v({
+      novaVerificacao({
         ...ia,
         codigo: 'ia_fachada',
         estado: 'ok',
@@ -855,9 +970,21 @@ export function interpretarLeitura(
         ],
       }),
     );
+  } else if (f.alteracoes === 'sim' && opcoes.fachada_esperada) {
+    antes.push(
+      novaVerificacao({
+        ...ia,
+        codigo: 'ia_fachada',
+        estado: 'ok',
+        titulo: 'Alterações no exterior próprias da operação',
+        detalhe: limpar(f.descricao),
+        evidencias: evF,
+        notas: ['Detetado pela IA: a confirmar.'],
+      }),
+    );
   } else {
     antes.push(
-      v({
+      novaVerificacao({
         ...ia,
         codigo: 'ia_fachada',
         estado: 'atencao',
@@ -871,15 +998,20 @@ export function interpretarLeitura(
     );
   }
 
-  // Paredes a abrir e estrutura.
+  // Paredes a abrir e estrutura (não em piscinas nem muros).
   const pa = l.paredes;
   const evP = [
     ...evidenciaDe(pa.referencia, docs),
     ...evidenciaDe(l.planta_estruturas.referencia, docs),
   ];
-  if (pa.abertura_ou_demolicao === 'sim' && !l.planta_estruturas.existe) {
+  const verParedes = opcoes.paredes ?? true;
+  if (
+    verParedes &&
+    pa.abertura_ou_demolicao === 'sim' &&
+    !l.planta_estruturas.existe
+  ) {
     depois.push(
-      v({
+      novaVerificacao({
         ...ia,
         codigo: 'ia_paredes',
         estado: 'atencao',
@@ -891,9 +1023,9 @@ export function interpretarLeitura(
         notas: [limpar(pa.descricao)],
       }),
     );
-  } else if (pa.abertura_ou_demolicao === 'sim') {
+  } else if (verParedes && pa.abertura_ou_demolicao === 'sim') {
     depois.push(
-      v({
+      novaVerificacao({
         ...ia,
         codigo: 'ia_paredes',
         estado: 'ok',
@@ -903,9 +1035,9 @@ export function interpretarLeitura(
         notas: ['Detetado pela IA: a confirmar.'],
       }),
     );
-  } else if (pa.abertura_ou_demolicao === 'incerto') {
+  } else if (verParedes && pa.abertura_ou_demolicao === 'incerto') {
     depois.push(
-      v({
+      novaVerificacao({
         ...ia,
         codigo: 'ia_paredes',
         estado: 'atencao',
@@ -916,11 +1048,11 @@ export function interpretarLeitura(
     );
   }
 
-  // Áreas e cérceas (só se o projeto as indica).
+  // Áreas e cérceas (só se o projeto as indica e não há a tabela de números).
   const ac = l.areas_cerceas;
-  if (ac.coerentes !== 'sem_dados') {
+  if (ac.coerentes !== 'sem_dados' && !opcoes.com_medidas) {
     depois.push(
-      v({
+      novaVerificacao({
         ...ia,
         codigo: 'ia_areas',
         estado: ac.coerentes === 'sim' ? 'ok' : 'atencao',
@@ -936,7 +1068,7 @@ export function interpretarLeitura(
 
   l.contradicoes.slice(0, 3).forEach((c, i) => {
     depois.push(
-      v({
+      novaVerificacao({
         ...ia,
         codigo: `ia_contradicao_${i + 1}`,
         estado: 'atencao',
@@ -946,6 +1078,41 @@ export function interpretarLeitura(
       }),
     );
   });
+
+  // Números lidos: plausibilidade e um por grandeza (o primeiro).
+  const medicoes: MedicaoLida[] = [];
+  const descartadas: string[] = [];
+  for (const m of l.medicoes) {
+    const pl = medicaoPlausivel(m.grandeza, m.valor, m.unidade);
+    if (!pl.ok) {
+      descartadas.push(pl.motivo);
+      continue;
+    }
+    const ja = medicoes.find((x) => x.grandeza === m.grandeza);
+    if (ja) {
+      if (Math.abs(ja.valor - pl.valor) > 1e-6) {
+        descartadas.push(
+          `${GRANDEZAS[m.grandeza].rotulo}: a IA leu dois valores (${numeroPt(ja.valor)} e ${numeroPt(pl.valor)}); ficou o primeiro`,
+        );
+      }
+      continue;
+    }
+    medicoes.push({
+      grandeza: m.grandeza,
+      valor: pl.valor,
+      evidencia: evidenciaDe(m.referencia, docs)[0] ?? null,
+    });
+  }
+  const elementos: ElementoLido[] = [];
+  for (const e of l.elementos) {
+    if (elementos.some((x) => x.elemento === e.elemento)) continue;
+    elementos.push({
+      elemento: e.elemento,
+      resposta: e.resposta,
+      descricao: limpar(e.descricao),
+      evidencias: evidenciaDe(e.referencia, docs),
+    });
+  }
 
   const t = l.tecnico_autor;
   return {
@@ -963,7 +1130,19 @@ export function interpretarLeitura(
         : null,
     tecnico_evidencias: evidenciaDe(t?.referencia, docs),
     termo_assinado: t?.termo_assinado ?? null,
+    lida: true,
+    medicoes,
+    elementos,
+    descartadas,
   };
+}
+
+/** O que o tipo de operação pede à IA (vai no pedido, não no texto de sistema). */
+export interface PedidoPerfil {
+  nome: string;
+  procurar: string[];
+  grandezas: Grandeza[];
+  elementos: Elemento[];
 }
 
 /** O que vai ao Claude com os ficheiros: a lista numerada e o caso. */
@@ -972,7 +1151,9 @@ export function conteudoLeitura(d: {
   assunto: string;
   descricao: string;
   documentos: { nome: string; mime: string }[];
+  perfil?: PedidoPerfil | null;
 }): string {
+  const p = d.perfil;
   return [
     `Tipo de operação: ${d.tipo}`,
     `Assunto: ${d.assunto}`,
@@ -983,6 +1164,28 @@ export function conteudoLeitura(d: {
       (x, i) =>
         `${i + 1}. ${x.nome} (${x.mime === 'application/pdf' ? 'PDF' : 'imagem'})`,
     ),
+    ...(p
+      ? [
+          '',
+          `Operação a analisar: ${p.nome}.`,
+          ...(p.procurar.length
+            ? [
+                'O que procurar nos desenhos:',
+                ...p.procurar.map((x) => `- ${x}`),
+              ]
+            : []),
+          p.grandezas.length
+            ? `Medidas a ler (em "medicoes", pelo código): ${p.grandezas
+                .map((g) => `${g} (${GRANDEZAS[g].rotulo.toLowerCase()})`)
+                .join('; ')}.`
+            : 'Medidas a ler: nenhuma (deixa "medicoes" vazia).',
+          p.elementos.length
+            ? `Elementos a responder (em "elementos", pelo código): ${p.elementos
+                .map((e) => `${e} (${ELEMENTOS[e].pergunta})`)
+                .join('; ')}`
+            : 'Elementos a responder: nenhum (deixa "elementos" vazia).',
+        ]
+      : []),
   ]
     .filter((x) => x !== '')
     .join('\n');
@@ -992,22 +1195,43 @@ export function conteudoLeitura(d: {
 // Juntar e usar
 // ---------------------------------------------------------------------------
 
-/** A ordem do design: fachada (IA), instrução, termo, Ordem, PDM, o resto da IA. */
+/** O grupo de uma verificação pelo código (as antigas não o traziam). */
+export function grupoDe(
+  x: Pick<Verificacao, 'codigo' | 'grupo'>,
+): GrupoVerificacao {
+  if (x.grupo) return x.grupo;
+  if (['instrucao', 'termo', 'ordem', 'perfil_documentos'].includes(x.codigo))
+    return 'documentos';
+  if (x.codigo === 'pdm' || x.codigo.startsWith('pdm_')) return 'pdm';
+  return 'desenhos';
+}
+
+/**
+ * A ordem do design: fachada (IA), instrução, termo, Ordem, PDM, o resto da
+ * IA. As do tipo de operação entram no seu sítio: documentos a seguir à
+ * instrução, PDM e números a seguir ao PDM, elementos no fim.
+ */
 export function juntarVerificacoes(p: {
   leitura: ResultadoLeitura;
   instrucao: Verificacao;
   termo: Verificacao;
   ordem: Verificacao;
   pdm: Verificacao;
+  documentos_perfil?: Verificacao[];
+  pdm_perfil?: Verificacao[];
+  desenhos_perfil?: Verificacao[];
 }): Verificacao[] {
   return [
     ...p.leitura.antes,
     p.instrucao,
+    ...(p.documentos_perfil ?? []),
     p.termo,
     p.ordem,
     p.pdm,
+    ...(p.pdm_perfil ?? []),
     ...p.leitura.depois,
-  ];
+    ...(p.desenhos_perfil ?? []),
+  ].map((x) => ({ ...x, grupo: grupoDe(x) }));
 }
 
 export function contagem(vs: Verificacao[]): Record<EstadoVerificacao, number> {

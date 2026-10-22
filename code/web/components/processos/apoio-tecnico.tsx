@@ -33,6 +33,7 @@ import {
   type ResumoProcesso,
   type TipoRascunho,
   type TrechoDestacado,
+  type PerfilVerificacao,
   type Verificacoes,
 } from "./tipos";
 import {
@@ -358,12 +359,16 @@ export function ApoioTecnico() {
     setEscolhido((e) => ({ ...e, [r.tipo]: r.id }));
   }
 
-  async function verificarOutraVez(): Promise<boolean> {
+  async function verificarOutraVez(perfil?: PerfilVerificacao): Promise<boolean> {
     setAVerificar(true);
     setErroVerificar(null);
     try {
       verif.definir(
-        await pedido<Verificacoes>(`/v1/painel/processos/${id}/verificacoes?atualizar=true`),
+        await pedido<Verificacoes>(
+          perfil
+            ? `/v1/painel/processos/${id}/verificacoes?perfil=${perfil}`
+            : `/v1/painel/processos/${id}/verificacoes?atualizar=true`,
+        ),
       );
       return true;
     } catch (e) {
@@ -381,6 +386,9 @@ export function ApoioTecnico() {
     aAtualizar: aVerificar,
     atualizar: async () => {
       await verificarOutraVez();
+    },
+    escolherPerfil: async (perfil) => {
+      await verificarOutraVez(perfil);
     },
     erroAtualizar: erroVerificar,
   };

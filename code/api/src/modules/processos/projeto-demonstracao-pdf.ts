@@ -1,4 +1,14 @@
-import PDFDocument from 'pdfkit';
+import {
+  Carimbo,
+  CINZA,
+  MARCA,
+  novoPdf,
+  paginaPdf,
+  terminarPdf,
+  TINTA,
+  tituloFolhaPdf,
+} from './pdf-demonstracao.js';
+import { ficheiroProjetoPerfil } from './projetos-perfis-pdf.js';
 
 /*
  * Documentos de DEMONSTRAÇÃO do processo "Porta na cozinha" (V2 · Apoio ao
@@ -26,104 +36,21 @@ export const TECNICO_DEMONSTRACAO = {
   numero: '12345',
 };
 
-const AVISO =
-  'DEMONSTRAÇÃO · documento fictício gerado pelo Tou, Câmara? · sem valor legal';
-const TINTA = '#1F2A37';
-const CINZA = '#6B7280';
-const MARCA = '#C2410C';
-// Data fixa: o mesmo PDF sai sempre igual.
-const CRIADO = new Date(Date.UTC(2026, 9, 5, 9, 0, 0));
+const CARIMBO: Carimbo = {
+  local: 'Moradia · Rua de Camões, 85 · Creixomil',
+  autor: `Autora: Arq. ${TECNICO_DEMONSTRACAO.nome}`,
+};
+const novo = novoPdf;
+const terminar = terminarPdf;
+const tituloFolha = tituloFolhaPdf;
 
-function novo(titulo: string, layout: 'portrait' | 'landscape') {
-  return new PDFDocument({
-    size: 'A4',
-    layout,
-    margin: 48,
-    autoFirstPage: false,
-    info: {
-      Title: `${titulo} (demonstração)`,
-      Author: 'Tou, Câmara? · demonstração',
-      CreationDate: CRIADO,
-      ModDate: CRIADO,
-    },
-  });
-}
-
-function terminar(doc: PDFKit.PDFDocument): Promise<Buffer> {
-  return new Promise((resolve, reject) => {
-    const partes: Buffer[] = [];
-    doc.on('data', (p: Buffer) => partes.push(p));
-    doc.on('end', () => resolve(Buffer.concat(partes)));
-    doc.on('error', reject);
-    doc.end();
-  });
-}
-
-/** Página com o aviso de demonstração em cima e a legenda da folha em baixo. */
 function pagina(
   doc: PDFKit.PDFDocument,
   layout: 'portrait' | 'landscape',
   folha: string | null,
   titulo: string,
 ) {
-  // Margem de baixo pequena: o carimbo fica no fundo sem abrir outra página.
-  doc.addPage({
-    size: 'A4',
-    layout,
-    margins: { top: 48, left: 48, right: 48, bottom: 12 },
-  });
-  const w = doc.page.width;
-  const h = doc.page.height;
-  doc
-    .save()
-    .rect(0, 0, w, 22)
-    .fill('#FDE7D9')
-    .fillColor(MARCA)
-    .font('Helvetica-Bold')
-    .fontSize(8)
-    .text(AVISO, 0, 7, { width: w, align: 'center', lineBreak: false })
-    .restore();
-  if (folha) {
-    // Legenda (carimbo) no canto inferior direito, como nos desenhos.
-    const cw = 230;
-    const ch = 58;
-    const x = w - cw - 30;
-    const y = h - ch - 26;
-    doc.save().lineWidth(0.8).strokeColor(TINTA).rect(x, y, cw, ch).stroke();
-    doc
-      .font('Helvetica-Bold')
-      .fontSize(9)
-      .fillColor(TINTA)
-      .text('Moradia · Rua de Camões, 85 · Creixomil', x + 8, y + 7, {
-        width: cw - 16,
-        lineBreak: false,
-      })
-      .font('Helvetica')
-      .fontSize(8)
-      .text(titulo, x + 8, y + 21, { width: cw - 70, lineBreak: false })
-      .text(`Autora: Arq. ${TECNICO_DEMONSTRACAO.nome}`, x + 8, y + 34, {
-        width: cw - 70,
-        lineBreak: false,
-      })
-      .font('Helvetica-Bold')
-      .fontSize(16)
-      .text(`Folha ${folha}`, x + cw - 70, y + 22, {
-        width: 62,
-        align: 'right',
-        lineBreak: false,
-      });
-    doc.restore();
-  }
-  doc.x = 48;
-  doc.y = 40;
-}
-
-function tituloFolha(doc: PDFKit.PDFDocument, t: string, sub?: string) {
-  doc.font('Helvetica-Bold').fontSize(15).fillColor(TINTA).text(t, 48, 40);
-  if (sub) {
-    doc.font('Helvetica').fontSize(9).fillColor(CINZA).text(sub);
-  }
-  doc.moveDown(0.8).fillColor(TINTA);
+  paginaPdf(doc, layout, folha, titulo, CARIMBO);
 }
 
 /** Planta simples da cozinha e da sala; `proposta` marca o vão a abrir. */
@@ -377,6 +304,7 @@ export async function ficheiroDemonstracao(
     case FICHEIROS_DEMONSTRACAO.certidao:
       return gerarCertidaoDemonstracao();
     default:
-      return null;
+      // Os processos da análise por tipo de operação (ampliação, piscina, muro).
+      return ficheiroProjetoPerfil(chave);
   }
 }
