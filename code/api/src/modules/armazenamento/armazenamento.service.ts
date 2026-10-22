@@ -1,6 +1,9 @@
 import {
+  DeleteObjectCommand,
   DeleteObjectsCommand,
+  DeleteObjectsCommandOutput,
   GetObjectCommand,
+  PutBucketCorsCommand,
   PutObjectCommand,
   S3Client,
 } from '@aws-sdk/client-s3';
@@ -40,6 +43,11 @@ export class ArmazenamentoService {
           region: cfg.region,
           endpoint: cfg.endpoint || undefined,
           forcePathStyle: !!cfg.endpoint,
+          // O SDK põe checksums CRC32 em tudo por omissão (também nos URLs
+          // assinados); o Wasabi e outros S3 compatíveis nem sempre os
+          // aceitam. Só quando a operação os exige.
+          requestChecksumCalculation: 'WHEN_REQUIRED',
+          responseChecksumValidation: 'WHEN_REQUIRED',
           credentials: cfg.accessKey
             ? { accessKeyId: cfg.accessKey, secretAccessKey: cfg.secretKey }
             : undefined,
@@ -101,16 +109,63 @@ export class ArmazenamentoService {
     const apagadas: string[] = [];
     for (let i = 0; i < chaves.length; i += 1000) {
       const lote = chaves.slice(i, i + 1000);
-      const r = await this.s3().send(
-        new DeleteObjectsCommand({
-          Bucket: this.bucket,
-          Delete: { Objects: lote.map((Key) => ({ Key })), Quiet: false },
-        }),
-      );
+      let r: DeleteObjectsCommandOutput;
+      try {
+        r = await this.s3().send(
+          new DeleteObjectsCommand({
+            Bucket: this.bucket,
+            Delete: { Objects: lote.map((Key) => ({ Key })), Quiet: false },
+          }),
+        );
+      } catch {
+        // Há S3 compatíveis que recusam o checksum do apagar em lote
+        // (pedem Content-MD5): apaga-se um a um.
+        apagadas.push(...(await this.apagarUmAUm(lote)));
+        continue;
+      }
       const falharam = new Set((r.Errors ?? []).map((e) => e.Key));
       apagadas.push(...lote.filter((k) => !falharam.has(k)));
     }
     return apagadas;
+  }
+
+  private async apagarUmAUm(chaves: string[]): Promise<string[]> {
+    const apagadas: string[] = [];
+    for (const Key of chaves) {
+      try {
+        await this.s3().send(
+          new DeleteObjectCommand({ Bucket: this.bucket, Key }),
+        );
+        apagadas.push(Key);
+      } catch {
+        // Fica para a próxima noite.
+      }
+    }
+    return apagadas;
+  }
+
+  /**
+   * O browser envia e lê diretamente do bucket (URLs assinados), por isso o
+   * bucket tem de aceitar pedidos da web (CORS). Corre-se uma vez por bucket
+   * (`npm run armazenamento -- cors`).
+   */
+  async configurarCors(origens: string[]): Promise<void> {
+    await this.s3().send(
+      new PutBucketCorsCommand({
+        Bucket: this.bucket,
+        CORSConfiguration: {
+          CORSRules: [
+            {
+              AllowedOrigins: origens,
+              AllowedMethods: ['GET', 'PUT', 'HEAD'],
+              AllowedHeaders: ['*'],
+              ExposeHeaders: ['ETag'],
+              MaxAgeSeconds: 3600,
+            },
+          ],
+        },
+      }),
+    );
   }
 
   async ler(chave: string): Promise<Buffer> {

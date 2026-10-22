@@ -103,8 +103,9 @@ describe('Verificações automáticas (apoio ao técnico)', () => {
       .post('/v1/painel/processos/demonstracao')
       .set(chefe)
       .expect(201);
+    // Pode já existir (o "preparar demo" usa o mesmo processo).
     expect(r.body).toMatchObject({
-      criado: true,
+      criado: expect.any(Boolean),
       demonstracao: true,
       tem_zonas_pdm: true,
     });

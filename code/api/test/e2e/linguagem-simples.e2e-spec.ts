@@ -525,9 +525,12 @@ describe('Linguagem simples e glossário (e2e)', () => {
         pergunta: `Quanto custa a taxa dos ${palavra}?`,
       }).expect(200);
       expect(k.body.sem_fonte).toBe(false);
-      expect(k.body.documentos_simples).toEqual([
-        expect.objectContaining({ link: `${WEB_URL}/documento/${codigo}` }),
-      ]);
+      // A demo (BD partilhada) pode ter publicado outro regulamento.
+      expect(k.body.documentos_simples).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ link: `${WEB_URL}/documento/${codigo}` }),
+        ]),
+      );
     });
 
     it('a fonte muda: a versão simples fica desatualizada e o rascunho antigo não se publica', async () => {

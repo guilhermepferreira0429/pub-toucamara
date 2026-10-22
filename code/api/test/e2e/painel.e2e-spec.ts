@@ -1181,9 +1181,13 @@ describe('Painel (e2e)', () => {
       }).expect(200);
       expect(r.body.sem_fonte).toBe(false);
       expect(r.body.trechos.length).toBeGreaterThan(0);
+      // Outras fontes da BD partilhada (ex.: a demo) podem também aparecer.
       const ids = new Set(trechos.map((t) => t.id));
-      for (const t of r.body.trechos) {
-        expect(ids.has(t.trecho_id)).toBe(true);
+      const nossos = (r.body.trechos as { trecho_id: string }[]).filter((t) =>
+        ids.has(t.trecho_id),
+      );
+      expect(nossos.length).toBeGreaterThan(0);
+      for (const t of nossos) {
         expect(t).toMatchObject({
           titulo: `Regulamento de ${palavra}`,
           url,
