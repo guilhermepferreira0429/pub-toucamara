@@ -229,7 +229,7 @@ function CartaoLicenca({ l, onMudou }: { l: Licenca; onMudou: () => void }) {
 
   return (
     <Cartao className={l.estado === "por_aprovar" ? "border-terracota" : ""}>
-      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-4 border-b border-linha px-5 py-4">
+      <div className="grid grid-cols-1 items-start gap-4 border-b border-linha px-4 py-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:px-5">
         <div className="flex min-w-0 flex-col gap-1">
           <div className="flex flex-wrap items-center gap-2">
             <span className="font-mono text-sm font-semibold text-tinta">{l.numero}</span>
@@ -273,7 +273,7 @@ function CartaoLicenca({ l, onMudou }: { l: Licenca; onMudou: () => void }) {
             {l.telefone ? ` · ${l.telefone}` : ""} · pedido {quando(l.criada_em)}
           </span>
         </div>
-        <div className="flex flex-col items-end gap-1 text-right">
+        <div className="flex flex-col items-start gap-1 sm:items-end sm:text-right">
           {l.estado === "para_tecnico" ? (
             <span className="text-xs text-tinta-3">
               taxa de {euros(l.taxa_se_aprovada_cent)}
@@ -315,7 +315,7 @@ function CartaoLicenca({ l, onMudou }: { l: Licenca; onMudou: () => void }) {
         </div>
       )}
 
-      <div className="grid gap-4 px-5 py-4 md:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 px-4 py-4 sm:px-5 md:grid-cols-2">
         <div>
           <Rotulo>Verificado pelo agente</Rotulo>
           <ul className="mt-2 flex flex-col gap-1.5">
