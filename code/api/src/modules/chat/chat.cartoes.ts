@@ -23,7 +23,8 @@ export type TipoCartao =
   | 'empresa'
   | 'entrega'
   | 'documento'
-  | 'termo';
+  | 'termo'
+  | 'momento';
 
 export interface FonteCartao {
   titulo: string;
@@ -82,6 +83,8 @@ const POR_FERRAMENTA: Record<
   documento_simples: 'documento',
   // Glossário: o termo e a explicação simples.
   explicar_termo: 'termo',
+  // Antecipações: a data que está a chegar e o que a pessoa pode fazer.
+  explicar_momento: 'momento',
 };
 
 function objeto(v: unknown): Record<string, unknown> {

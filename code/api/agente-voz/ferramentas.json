@@ -655,6 +655,43 @@
     },
     {
       "type": "webhook",
+      "name": "explicar_momento",
+      "description": "Explica à pessoa uma data importante que está a chegar nos assuntos dela: um prazo dela a acabar (documento pedido), a audiência prévia (pode responder antes de a câmara indeferir), o prazo da câmara para decidir, a obra que tem de começar antes de a licença caducar ou a taxa por pagar. Usa numa chamada da câmara com motivo de aviso antecipado, ou quando a pessoa diz que recebeu um aviso ou uma chamada sobre um prazo. Precisa de saber quem é a pessoa. Diz o que vem em \"dizer\" e depois o que pode fazer. Se confirmar_com_a_camara for true, não garantas o efeito legal: diz que a câmara confirma.",
+      "response_timeout_secs": 20,
+      "tool_error_handling_mode": "passthrough",
+      "api_schema": {
+        "url": "${API_URL}/v1/agent/tools/explicar_momento",
+        "method": "POST",
+        "content_type": "application/json",
+        "request_headers": {
+          "X-Agente-Segredo": {
+            "secret_id": "${SEGREDO:toucamara_agente_segredo}"
+          },
+          "X-Municipio": "${MUNICIPIO}",
+          "X-Conversa-Id": {
+            "variable_name": "system__conversation_id"
+          },
+          "X-Telefone": {
+            "variable_name": "system__caller_id"
+          },
+          "X-Telefone-Web": {
+            "variable_name": "telefone"
+          }
+        },
+        "request_body_schema": {
+          "type": "object",
+          "properties": {
+            "numero": {
+              "type": "string",
+              "description": "O número do processo (ex.: \"CP 412/2026\"), se a pessoa tiver mais de um assunto com datas."
+            }
+          },
+          "description": "Parâmetros de explicar_momento."
+        }
+      }
+    },
+    {
+      "type": "webhook",
       "name": "explicar_termo",
       "description": "Explica em linguagem simples um termo administrativo ou jurídico (\"o que é a comunicação prévia?\", \"o que quer dizer deferimento tácito?\", \"o que é um alvará?\"), pelo glossário da câmara. Usa quando a pessoa pergunta o que é ou o que quer dizer uma palavra, ou quando tens de usar um termo técnico. Diz a explicação por palavras simples, curta, como vem em \"dizer\"; se vier valores_de_demonstracao, diz que a explicação ainda está por validar pela câmara. Se vier encontrado: false, segue o \"dizer\" (não inventes a definição).",
       "response_timeout_secs": 20,

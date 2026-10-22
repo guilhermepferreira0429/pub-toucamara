@@ -161,8 +161,15 @@ describe('Preparar demo (e2e)', () => {
     expect(r.body.criados).toMatchObject({
       conversas: 45,
       licencas: 3,
-      processos: 4,
+      // 4 dos processos noutras fases + 3 das antecipações.
+      processos: 7,
     });
+    const antecipacoes = await linhas(
+      ctx.db,
+      `SELECT chave FROM demo_registos WHERE municipio_id = $1 AND chave LIKE 'antecipacao:%'`,
+      [MUNICIPIO_ID],
+    );
+    expect(antecipacoes).toHaveLength(3);
 
     const depois1 = await numeros();
     const r2 = await preparar({ limpar_testes: true, confirmar: true }).expect(

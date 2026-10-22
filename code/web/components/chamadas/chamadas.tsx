@@ -37,7 +37,8 @@ type MotivoChamada =
   | "lembrete_prazo"
   | "manual"
   | "campanha"
-  | "renovacao_licenca";
+  | "renovacao_licenca"
+  | "antecipacao";
 
 interface Chamada {
   id: string;
@@ -87,6 +88,10 @@ const MOTIVOS: Record<MotivoChamada, { rotulo: string; dito: string }> = {
   renovacao_licenca: {
     rotulo: "Licença a expirar",
     dito: "a sua licença está quase a expirar e pode renová-la já nesta chamada",
+  },
+  antecipacao: {
+    rotulo: "Antecipação",
+    dito: "a câmara quer avisá-lo de uma data importante antes que seja tarde",
   },
 };
 

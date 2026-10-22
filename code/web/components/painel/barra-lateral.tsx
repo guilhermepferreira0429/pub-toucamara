@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  AlarmClock,
   BadgeCheck,
   BookOpen,
   Bot,
@@ -21,6 +22,7 @@ import {
   MapPin,
   Megaphone,
   MonitorPlay,
+  MessageSquareHeart,
   MessagesSquare,
   Newspaper,
   NotebookPen,
@@ -170,6 +172,12 @@ const SECCOES: Seccao[] = [
         recurso: "processos",
       },
       {
+        rotulo: "Antecipações",
+        href: "/painel/antecipacoes",
+        icone: AlarmClock,
+        recurso: "processos",
+      },
+      {
         rotulo: "Balcão para empresas",
         href: "/painel/empresas",
         icone: Store,
@@ -196,6 +204,12 @@ const SECCOES: Seccao[] = [
         rotulo: "Indicadores",
         href: "/painel/indicadores",
         icone: ChartColumn,
+        recurso: "indicadores",
+      },
+      {
+        rotulo: "O que sentem os munícipes",
+        href: "/painel/concelho",
+        icone: MessageSquareHeart,
         recurso: "indicadores",
       },
       {

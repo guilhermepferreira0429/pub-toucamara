@@ -51,6 +51,7 @@ import { CampanhasModule } from './modules/campanhas/campanhas.module.js';
 import { ConsultasPublicasModule } from './modules/consultas-publicas/consultas-publicas.module.js';
 import { LicencasModule } from './modules/licencas/licencas.module.js';
 import { DemoModule } from './modules/demo/demo.module.js';
+import { AntecipacoesModule } from './modules/antecipacoes/antecipacoes.module.js';
 import { LinguagemSimplesModule } from './modules/linguagem-simples/linguagem-simples.module.js';
 import { ApoiosModule } from './modules/apoios/apoios.module.js';
 import { AppMunicipeModule } from './modules/app-municipe/app-municipe.module.js';
@@ -66,6 +67,7 @@ import { ReunioesModule } from './modules/reunioes/reunioes.module.js';
 import { ContratacaoModule } from './modules/contratacao/contratacao.module.js';
 import { PortaIasModule } from './modules/porta-ias/porta-ias.module.js';
 import { PerguntasChefiaModule } from './modules/perguntas-chefia/perguntas-chefia.module.js';
+import { ConcelhoModule } from './modules/concelho/concelho.module.js';
 import { ProcedimentosModule } from './modules/procedimentos/procedimentos.module.js';
 import { ProcessosModule } from './modules/processos/processos.module.js';
 import { RelatoriosModule } from './modules/relatorios/relatorios.module.js';
@@ -120,6 +122,7 @@ import { EntregasModule } from './modules/entregas/entregas.module.js';
     PainelModule,
     RelatoriosModule,
     PerguntasChefiaModule,
+    ConcelhoModule,
     ChamadasSaidaModule,
     DocsModule,
     SmsEntradaModule,
@@ -158,6 +161,8 @@ import { EntregasModule } from './modules/entregas/entregas.module.js';
     EquipaCampoModule,
     // Editais e regulamentos em linguagem simples e glossário administrativo
     LinguagemSimplesModule,
+    // "A câmara liga-lhe antes de o problema existir": prazos antecipados
+    AntecipacoesModule,
     // Preparar a câmara de demonstração (botão no painel e npm run demo:preparar)
     DemoModule,
   ],

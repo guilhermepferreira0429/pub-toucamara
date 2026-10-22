@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  AlarmClock,
   ArrowRight,
   ArrowUp,
   BellRing,
@@ -18,6 +19,7 @@ import {
   MessageSquareText,
   Phone,
   Send,
+  ShieldAlert,
   StickyNote,
   Timer,
   UserRoundCheck,
@@ -76,6 +78,12 @@ function estiloDe(e: EventoProcesso): Estilo {
       return { icone: BellRing, fundo: NEUTRO, cor: "text-tinta-2", titulo: "Munícipe avisado" };
     case "pagamento":
       return { icone: CreditCard, fundo: "bg-verde", cor: "text-white", titulo: "Pagamento" };
+    case "antecipacao":
+      return { icone: AlarmClock, fundo: "bg-terracota-suave", cor: "text-terracota-escuro", titulo: "Antecipação" };
+    case "alerta_prazo_camara":
+      return { icone: ShieldAlert, fundo: "bg-ambar-suave", cor: "text-ambar", titulo: "Alerta à chefia" };
+    case "audiencia_previa":
+      return { icone: Gavel, fundo: "bg-ambar-suave", cor: "text-ambar", titulo: "Audiência prévia" };
     case "sync_erro":
       return { icone: CloudOff, fundo: "bg-[#C62F1F]", cor: "text-white", titulo: "Não chegou à gestão documental" };
     default:

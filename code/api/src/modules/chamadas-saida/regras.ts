@@ -9,8 +9,8 @@
  *   válido; nunca números de tarifa especial (7…, 8…).
  * - `aceita_chamadas = false` nunca é ligado (nem à mão).
  * - Canal preferido: 'telefone' liga sempre; sem preferência só liga para
- *   pedido de documento e lembrete de prazo (há algo a fazer da parte dele e
- *   uma chamada ajuda); uma mudança de fase sem preferência vai por SMS.
+ *   pedido de documento, lembrete de prazo e antecipação (há algo a fazer
+ *   da parte dele e uma chamada ajuda); uma mudança de fase sem preferência vai por SMS.
  *   Quem prefere SMS ou email nunca é ligado automaticamente. A chamada
  *   manual ("ligar agora") é decisão do técnico: ignora a preferência.
  * - Só em dias úteis (feriados do município incluídos) das 10h às 19h no
@@ -34,6 +34,9 @@ export const MOTIVOS_CHAMADA = [
   'campanha',
   // Licença a expirar (módulo licencas): só a quem prefere telefone.
   'renovacao_licenca',
+  // Um momento antecipado (módulo antecipacoes): prazo a acabar, audiência
+  // prévia, caducidade... só nos importantes ou a quem não tem a app.
+  'antecipacao',
 ] as const;
 export type MotivoChamada = (typeof MOTIVOS_CHAMADA)[number];
 
@@ -208,6 +211,7 @@ export const TEXTO_SEM_CHAMADA: Record<MotivoSemChamada, string> = {
 const LIGA_SEM_PREFERENCIA: readonly MotivoChamada[] = [
   'pedido_documento',
   'lembrete_prazo',
+  'antecipacao',
 ];
 
 export function decidirChamada(e: {
@@ -318,6 +322,8 @@ export const MOTIVO_FALADO: Record<MotivoChamada, string> = {
     'a câmara está a ligar às pessoas inscritas para saber se está tudo bem',
   renovacao_licenca:
     'a sua licença está quase a expirar e pode renová-la já nesta chamada',
+  antecipacao:
+    'a câmara quer avisá-lo de uma data importante antes que seja tarde',
 };
 
 export function variaveisSaida(
