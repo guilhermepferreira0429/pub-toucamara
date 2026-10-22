@@ -177,7 +177,7 @@ export function Glossario() {
   const itens = lista.dados?.itens ?? [];
 
   return (
-    <div className="flex flex-col gap-5 px-10">
+    <div className="flex flex-col gap-5 px-4 sm:px-10">
       <Cartao className="flex flex-wrap items-center gap-3 p-5">
         <p className="min-w-0 flex-1 text-sm text-tinta-2">
           Palavras da linguagem administrativa explicadas por palavras simples. Aparecem

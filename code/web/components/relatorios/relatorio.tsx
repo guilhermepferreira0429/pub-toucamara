@@ -370,7 +370,7 @@ export function DetalheRelatorio() {
   if (!ver) return <div className="pt-8"><SemAcesso /></div>;
   const dados = r.dados;
   return (
-    <div className="flex flex-col gap-5 px-10 pt-8 pb-12">
+    <div className="flex flex-col gap-5 px-4 sm:px-10 pt-8 pb-12">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Link href="/painel/relatorios" className="flex items-center gap-1.5 text-sm font-semibold text-tinta-2 hover:text-tinta">
           <ArrowLeft className="size-4" aria-hidden />

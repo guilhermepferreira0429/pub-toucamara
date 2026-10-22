@@ -124,7 +124,7 @@ export function PaginaPagamentos() {
         titulo="Pagamentos e taxas"
         descricao="As guias que o agente emite na conversa, por Multibanco ou MB WAY, e a tabela de taxas de onde saem os valores."
       />
-      <div className="flex gap-1 px-10 pb-5" role="tablist">
+      <div className="flex gap-1 px-4 sm:px-10 pb-5" role="tablist">
         {(
           [
             ["pagamentos", "Pagamentos"],
@@ -145,7 +145,7 @@ export function PaginaPagamentos() {
           </button>
         ))}
       </div>
-      <div className="px-10">{separador === "pagamentos" ? <ListaPagamentos /> : <Taxas />}</div>
+      <div className="px-4 sm:px-10">{separador === "pagamentos" ? <ListaPagamentos /> : <Taxas />}</div>
     </div>
   );
 }

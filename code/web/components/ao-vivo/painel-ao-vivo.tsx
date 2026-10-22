@@ -36,7 +36,7 @@ import { sse } from "@/lib/api";
 import { municipioEscolhido, useSessao } from "@/lib/sessao";
 
 /*
- * "Chamadas a decorrer": as chamadas web e os chats de agora. Ao abrir uma,
+ * "Ao vivo": as chamadas web e os chats de agora. Ao abrir uma,
  * a conversa aparece em direto (SSE), com as ferramentas que o agente
  * chamou, a ficha da pessoa e sugestões para o funcionário a cada fala do
  * munícipe (regra, o que falta perguntar, alertas). "Assumir a conversa":
@@ -156,7 +156,7 @@ export function PainelAoVivo() {
     <div className="pb-16">
       <CabecalhoPagina
         migalhas={["Atendimento", "Ao vivo"]}
-        titulo="Chamadas a decorrer"
+        titulo="Ao vivo"
         descricao="As chamadas web e os chats de agora. Abra uma para acompanhar em direto, ver sugestões e escrever ao agente."
         acoes={
           lista.dados?.simulacao_disponivel ? (
@@ -181,8 +181,8 @@ export function PainelAoVivo() {
           ) : undefined
         }
       />
-      <ErroLinha erro={simular.erro} className="mx-10 mb-4" />
-      <div className="grid gap-5 px-10 lg:grid-cols-[320px_minmax(0,1fr)]">
+      <ErroLinha erro={simular.erro} className="mx-4 sm:mx-10 mb-4" />
+      <div className="grid gap-5 px-4 sm:px-10 lg:grid-cols-[320px_minmax(0,1fr)]">
         <Cartao className="h-fit overflow-hidden">
           <div className="flex items-center gap-2 border-b border-linha px-4 py-3">
             <Radio className="size-4 text-terracota" aria-hidden />

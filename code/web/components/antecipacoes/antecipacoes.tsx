@@ -231,7 +231,7 @@ export function PaginaAntecipacoes() {
           </div>
         }
       />
-      <div className="flex flex-col gap-3 px-10 pb-5">
+      <div className="flex flex-col gap-3 px-4 sm:px-10 pb-5">
         {demonstracao && (
           <FaixaDemonstracao>
             Os prazos e as antecedências de cada aviso são de exemplo, a confirmar pelo jurista da câmara. O que
@@ -265,7 +265,7 @@ export function PaginaAntecipacoes() {
         )}
       </div>
 
-      <div className="flex flex-col gap-6 px-10">
+      <div className="flex flex-col gap-6 px-4 sm:px-10">
         <Estado aCarregar={lista.aCarregar} erro={lista.erro} vazio={!d}>
           {d && (
             <>

@@ -504,9 +504,9 @@ export function ModelosResposta() {
           {lista.erro.message}
         </Aviso>
       ) : !lista.dados ? (
-        <ACarregar className="px-10" />
+        <ACarregar className="px-4 sm:px-10" />
       ) : (
-        <div className="flex flex-col gap-4 px-10">
+        <div className="flex flex-col gap-4 px-4 sm:px-10">
           {mensagem && (
             <Nota onFechar={() => setMensagem(null)}>{mensagem}</Nota>
           )}

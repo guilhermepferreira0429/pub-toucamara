@@ -129,7 +129,7 @@ export function PaginaCemiterios() {
         acoes={r?.cemiterios.some((c) => c.demonstracao) ? <PilulaDemonstracao texto="dados de demonstração" /> : null}
       />
       {r && (
-        <div className="grid gap-3 px-10 pb-5 sm:grid-cols-3">
+        <div className="grid gap-3 px-4 sm:px-10 pb-5 sm:grid-cols-3">
           <Numero rotulo="Pedidos por tratar" valor={(r.pedidos.recebido ?? 0) + (r.pedidos.em_analise ?? 0)} />
           <Numero rotulo="Concessões a terminar (180 dias)" valor={r.concessoes.a_terminar + r.concessoes.terminadas} />
           <Numero rotulo="Sepulturas com taxas por pagar" valor={r.concessoes.com_divida} />
@@ -145,7 +145,7 @@ export function PaginaCemiterios() {
           ["taxas", "Taxas e horários"],
         ]}
       />
-      <div className="px-10">
+      <div className="px-4 sm:px-10">
         {vista === "pedidos" && <Pedidos contagens={r?.pedidos} onMudou={resumo.recarregar} />}
         {vista === "sepulturas" && <Sepulturas />}
         {vista === "taxas" && (

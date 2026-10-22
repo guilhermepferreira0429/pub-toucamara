@@ -135,7 +135,7 @@ export function PaginaAssistente() {
       />
       <AvisoInterno />
 
-      <div className="grid gap-6 px-10 lg:grid-cols-[1fr_340px]">
+      <div className="grid gap-6 px-4 sm:px-10 lg:grid-cols-[1fr_340px]">
         <div className="flex min-w-0 flex-col gap-4">
           <Estado aCarregar={historico.aCarregar} erro={historico.erro} vazio={false}>
             {conversa.length + novas.length === 0 && (

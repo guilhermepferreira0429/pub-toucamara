@@ -259,13 +259,13 @@ export function PaginaConcelho() {
         acoes={
           o && (
             <Pilula tom={o.ia_disponivel ? "verde" : "ambar"} icone={Sparkles}>
-              {o.ia_disponivel ? "Análise por IA ligada" : "Sem IA: só contagens"}
+              {o.ia_disponivel ? "Análise por IA ligada" : "Números contados, não estimados"}
             </Pilula>
           )
         }
       />
 
-      <div className="flex flex-col gap-6 px-10">
+      <div className="flex flex-col gap-6 px-4 sm:px-10">
         <section
           aria-labelledby="concelho-pergunta"
           className="flex flex-col gap-4 rounded-2xl bg-tinta p-6 text-white"

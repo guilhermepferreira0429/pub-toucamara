@@ -463,7 +463,7 @@ export function TiposProcesso() {
           {r.erro.message}
         </Aviso>
       ) : !r.dados ? (
-        <ACarregar className="px-10" />
+        <ACarregar className="px-4 sm:px-10" />
       ) : itens.length === 0 ? (
         <Aviso titulo="Ainda não há tipos de processo.">
           A equipa Tou, Câmara? configura-os com a câmara.

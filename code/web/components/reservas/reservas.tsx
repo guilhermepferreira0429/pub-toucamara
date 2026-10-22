@@ -182,7 +182,7 @@ export function PaginaReservas() {
           ) : undefined
         }
       />
-      <ErroLinha erro={demo.erro} className="mx-10 mb-4" />
+      <ErroLinha erro={demo.erro} className="mx-4 sm:mx-10 mb-4" />
       <div className="flex gap-1 overflow-x-auto px-4 pb-4 sm:px-10 [&>*]:shrink-0 [&>*]:whitespace-nowrap" role="tablist" aria-label="Vista">
         {separadores.map(([v, rotulo, n]) => (
           <button
@@ -201,7 +201,7 @@ export function PaginaReservas() {
         ))}
       </div>
 
-      <div className="flex flex-col gap-4 px-10">
+      <div className="flex flex-col gap-4 px-4 sm:px-10">
         <Estado aCarregar={d.aCarregar} erro={d.erro} vazio={!d.dados}>
           {vista === "calendario" && (
             <>

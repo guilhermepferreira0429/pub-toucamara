@@ -71,7 +71,7 @@ const FILTROS: (EstadoProc | "todos")[] = ["todos", "publicado", "rascunho", "ar
 
 export function AvisoInterno() {
   return (
-    <p className="mx-10 mb-5 flex items-center gap-2 rounded-xl border border-linha bg-creme-2/60 px-4 py-2.5 text-[13px] text-tinta-2">
+    <p className="mx-4 sm:mx-10 mb-5 flex items-center gap-2 rounded-xl border border-linha bg-creme-2/60 px-4 py-2.5 text-[13px] text-tinta-2">
       <Lock className="size-4 shrink-0 text-tinta-3" aria-hidden />
       Só para funcionários: os procedimentos internos nunca aparecem ao munícipe nem entram nas respostas do agente.
     </p>
@@ -140,7 +140,7 @@ export function PaginaProcedimentos() {
       />
       <AvisoInterno />
 
-      <div className="grid gap-6 px-10 lg:grid-cols-[1fr_320px]">
+      <div className="grid gap-6 px-4 sm:px-10 lg:grid-cols-[1fr_320px]">
         <div className="flex min-w-0 flex-col gap-4">
           <div className="flex flex-wrap items-center gap-2">
             {FILTROS.map((f) => {

@@ -56,7 +56,7 @@ export function PrimeiroDia({ qualidade }: { qualidade?: Qualidade }) {
   ];
 
   return (
-    <div className="flex min-h-dvh items-center justify-center px-10 py-8">
+    <div className="flex min-h-dvh items-center justify-center px-4 sm:px-10 py-8">
       <div className="flex w-full max-w-[680px] flex-col items-center gap-7 text-center">
         <AvatarAgente tamanho={88} />
         <div className="flex flex-col gap-2.5">

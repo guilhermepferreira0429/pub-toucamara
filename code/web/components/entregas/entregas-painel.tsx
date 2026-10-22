@@ -365,7 +365,7 @@ export function PaginaEntregas() {
         titulo="Entregas em nome do munícipe"
         descricao="O agente entrega o pedido no balcão online depois de a pessoa confirmar o resumo e autorizar com a Chave Móvel Digital."
       />
-      <div className="flex flex-col gap-6 px-10">
+      <div className="flex flex-col gap-6 px-4 sm:px-10">
         {lista.dados && <CartaoModo modo={lista.dados.modo} />}
 
         <Cartao>

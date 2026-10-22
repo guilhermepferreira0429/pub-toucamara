@@ -86,7 +86,7 @@ function formDe(v: VersaoSimples | null, tituloFonte: string): Formulario {
 export function EditorDocumento({ id }: { id: string }) {
   const doc = useDados<Documento>(`/v1/painel/linguagem-simples/${id}`);
   return (
-    <div className="flex flex-col gap-4 px-10">
+    <div className="flex flex-col gap-4 px-4 sm:px-10">
       <Link
         href="/painel/conhecimento/linguagem-simples"
         className="inline-flex items-center gap-1.5 self-start text-[13px] font-semibold text-tinta-2 hover:text-tinta"

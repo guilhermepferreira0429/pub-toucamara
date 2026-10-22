@@ -154,7 +154,7 @@ export function PaginaAnimais() {
           ["reportados", `Perdidos e encontrados${r?.contagens.reportados_abertos ? ` · ${r.contagens.reportados_abertos}` : ""}`],
         ]}
       />
-      <div className="px-10">
+      <div className="px-4 sm:px-10">
         {vista === "animais" && (
           <Estado aCarregar={resumo.aCarregar} erro={resumo.erro}>
             {r && <Animais r={r} onMudou={resumo.recarregar} />}

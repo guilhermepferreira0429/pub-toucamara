@@ -7,7 +7,7 @@ import {
   Bot,
   CalendarDays,
   ChartColumn,
-  ChevronsUpDown,
+  Landmark,
   CircleParking,
   Droplets,
   Flower2,
@@ -416,11 +416,12 @@ export function BarraLateral({ contagens = {} }: { contagens?: Contagens }) {
         <Link href="/painel" className="w-fit">
           <Logo tamanho={21} />
         </Link>
+        {/* Só mostra o município da sessão: não abre nada, por isso sem seta de menu. */}
         <div className="flex items-center gap-2 rounded-lg bg-creme px-2 py-1.5">
+          <Landmark className="size-3.5 shrink-0 text-tinta-3" aria-hidden />
           <span className="flex-1 truncate text-xs font-semibold text-tinta-2">
             {eu?.municipio.nome ?? "—"}
           </span>
-          <ChevronsUpDown className="size-3.5 text-tinta-3" aria-hidden />
         </div>
       </div>
 
@@ -461,6 +462,7 @@ export function BarraLateral({ contagens = {} }: { contagens?: Contagens }) {
                   {trancada && (
                     <Lock
                       className="size-3 text-tinta-3"
+                      role="img"
                       aria-label="Sem acesso"
                     />
                   )}
@@ -480,6 +482,7 @@ export function BarraLateral({ contagens = {} }: { contagens?: Contagens }) {
                     ) : (
                       <Lock
                         className="size-3.5 text-tinta-3"
+                        role="img"
                         aria-label="Sem acesso"
                       />
                     )}

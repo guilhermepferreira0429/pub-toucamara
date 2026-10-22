@@ -281,7 +281,7 @@ export function Estado({
 /** Página sem permissão (o perfil não tem o recurso). */
 export function SemAcesso({ texto }: { texto?: string }) {
   return (
-    <div className="mx-10 flex items-start gap-3 rounded-2xl border border-linha bg-papel p-5 text-sm text-tinta-2">
+    <div className="mx-4 sm:mx-10 flex items-start gap-3 rounded-2xl border border-linha bg-papel p-5 text-sm text-tinta-2">
       <Lock className="mt-0.5 size-4 shrink-0 text-tinta-3" aria-hidden />
       <div>
         <p className="font-semibold text-tinta">O seu perfil não tem acesso a esta área.</p>

@@ -234,7 +234,7 @@ export function PaginaReclamacoes() {
       />
 
       {ind && (
-        <div className="grid gap-3 px-10 pb-5 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-3 px-4 sm:px-10 pb-5 sm:grid-cols-2 xl:grid-cols-4">
           <Indicador rotulo="Por responder" valor={numero(ind.abertas)} />
           <Indicador
             rotulo="Em atraso"
@@ -253,7 +253,7 @@ export function PaginaReclamacoes() {
         </div>
       )}
 
-      <div className="flex flex-wrap gap-2 px-10 pb-5" role="group" aria-label="Estado">
+      <div className="flex flex-wrap gap-2 px-4 sm:px-10 pb-5" role="group" aria-label="Estado">
         {FILTROS.map((f) => {
           const n =
             f === "todas"
@@ -278,7 +278,7 @@ export function PaginaReclamacoes() {
         })}
       </div>
 
-      <div className="grid gap-6 px-10 xl:grid-cols-[minmax(0,1fr)_420px]">
+      <div className="grid gap-6 px-4 sm:px-10 xl:grid-cols-[minmax(0,1fr)_420px]">
         <div className="flex min-w-0 flex-col gap-3">
           <Estado
             aCarregar={d.aCarregar}

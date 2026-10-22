@@ -115,7 +115,7 @@ export function PaginaAtestados() {
         titulo="Atestados e prova de vida"
         descricao="O agente recolhe os dados ao telefone ou no chat, lê-os de volta e a pessoa confirma. Aqui verifica o texto, emite o atestado (PDF com QR) e a pessoa recebe o link por SMS."
       />
-      <div className="flex flex-wrap items-center gap-2 px-10 pb-5" role="group" aria-label="Estado">
+      <div className="flex flex-wrap items-center gap-2 px-4 sm:px-10 pb-5" role="group" aria-label="Estado">
         {(["pedido", "emitido", "recusado", "todos"] as const).map((f) => {
           const n = f === "todos" ? null : d.dados?.contagens[f];
           return (
@@ -137,7 +137,7 @@ export function PaginaAtestados() {
           valores de demonstração
         </Pilula>
       </div>
-      <div className="flex flex-col gap-4 px-10">
+      <div className="flex flex-col gap-4 px-4 sm:px-10">
         <Estado
           aCarregar={d.aCarregar}
           erro={d.erro}

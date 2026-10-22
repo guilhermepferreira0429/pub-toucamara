@@ -161,7 +161,7 @@ export function PaginaMarcacoes() {
         descricao="O que o agente marcou nas agendas dos serviços, hora a hora. Registe quem veio e quem faltou; se cancelar, a pessoa é avisada por SMS."
       />
 
-      <div className="flex flex-wrap items-center gap-3 px-10 pb-5">
+      <div className="flex flex-wrap items-center gap-3 px-4 sm:px-10 pb-5">
         <div className="flex items-center gap-1" role="group" aria-label="Dia">
           <button
             type="button"
@@ -219,7 +219,7 @@ export function PaginaMarcacoes() {
       </div>
 
       {itens.length > 0 && (
-        <div className="flex flex-wrap gap-2 px-10 pb-4">
+        <div className="flex flex-wrap gap-2 px-4 sm:px-10 pb-4">
           {(Object.keys(ESTADOS) as EstadoMarcacao[]).map((e) => (
             <Pilula key={e} tom={contagem(e) ? ESTADOS[e].tom : "neutro"}>
               {contagem(e)} {contagem(e) === 1 ? CONTAGENS[e][0] : CONTAGENS[e][1]}
@@ -228,7 +228,7 @@ export function PaginaMarcacoes() {
         </div>
       )}
 
-      <div className="px-10">
+      <div className="px-4 sm:px-10">
         <Cartao>
           <Estado
             aCarregar={d.aCarregar}

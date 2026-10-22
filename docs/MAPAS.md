@@ -14,7 +14,7 @@ A lista ao lado (ou o texto da página) continua a ser a alternativa acessível 
 ### Token público (web e apps)
 
 1. Em <https://account.mapbox.com/access-tokens/>, criar um token **público** (começa por `pk.`), só com os *scopes* públicos por omissão.
-2. **Restringir o token por URL** (secção "URL restrictions"): os domínios da demo (ex.: `https://toucamara.pt`, `https://*.toucamara.pt`) e, para desenvolvimento, `http://localhost:3000`. Um token público vai no código que chega ao browser: a restrição impede que outros sites o usem à nossa conta. As restrições por URL não se aplicam às apps Android (não mandam *Referer*); para as apps, usar um token próprio e vigiar o uso no dashboard.
+2. **Restringir o token por URL** (secção "URL restrictions"): o domínio da demo (`https://toucamara.descortina.pt`) e, para desenvolvimento, `http://localhost:3000`. Um token público vai no código que chega ao browser: a restrição impede que outros sites o usem à nossa conta. As restrições por URL não se aplicam às apps Android (não mandam *Referer*); para as apps, usar um token próprio e vigiar o uso no dashboard.
 3. Pôr o token só em variáveis de ambiente, **nunca no repositório**:
    - web: `NEXT_PUBLIC_MAPBOX_TOKEN=pk.…` no `.env` da web (documentado no `code/web/.env.example`). É lido no build (`next build`): mudar o token obriga a voltar a construir;
    - apps: `--dart-define=MAPBOX_TOKEN=pk.…` no `flutter run`/`flutter build`.
@@ -53,6 +53,7 @@ O `mapbox_maps_flutter` 3.x descarrega o SDK Android do repositório Maven públ
 | Comunicados/eventos — escolher o ponto (clicar, arrastar) | `components/publicacoes/mapa-ponto.tsx` | 2D |
 | `/zona/[codigo]`, regras das zonas, ordenamento no painel | `components/ordenamento/mapa-zonas.tsx` | inclinada (+3D) |
 | Ficha do processo no painel | `components/processos/mapa-processo.tsx` | inclinada |
+| `/visitar` — pontos turísticos por categoria e os eventos | `components/turismo/mapa-visitar.tsx` | 2D (+3D) |
 
 `/ocorrencia/[token]` não tem mapa: a resposta pública da ocorrência não traz coordenadas (de propósito, para não expor a morada).
 

@@ -187,7 +187,7 @@ export function RequerimentoAoVivo() {
         }
       />
 
-      <div className="px-10">
+      <div className="px-4 sm:px-10">
         {erro && !dados ? (
           <Aviso titulo="Não foi possível abrir o requerimento." tom="erro">
             {erro}

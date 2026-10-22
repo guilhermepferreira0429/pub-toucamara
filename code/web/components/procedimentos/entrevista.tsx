@@ -122,7 +122,7 @@ export function PaginaEntrevista() {
 
   return (
     <div className="flex flex-col pb-12">
-      <div className="px-10 pt-6">
+      <div className="px-4 sm:px-10 pt-6">
         <Link href="/painel/procedimentos" className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-tinta-2">
           <ArrowLeft className="size-4" aria-hidden /> Procedimentos
         </Link>
@@ -168,7 +168,7 @@ export function PaginaEntrevista() {
             />
             <AvisoInterno />
 
-            <div className="mx-10 flex max-w-3xl flex-col gap-4">
+            <div className="mx-4 sm:mx-10 flex max-w-3xl flex-col gap-4">
               {fim && (
                 <Cartao className="flex flex-col gap-2 border-verde/40 bg-verde-suave/40 p-5">
                   <p className="font-semibold text-tinta">Obrigado! O rascunho está escrito.</p>

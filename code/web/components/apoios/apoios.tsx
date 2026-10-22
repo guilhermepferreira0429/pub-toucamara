@@ -155,7 +155,7 @@ export function PaginaApoios() {
       />
       <Estado aCarregar={d.aCarregar} erro={d.erro} vazio={false}>
         {dados && dados.apoios.length === 0 ? (
-          <Cartao className="mx-10 flex flex-col items-start gap-3 p-6">
+          <Cartao className="mx-4 sm:mx-10 flex flex-col items-start gap-3 p-6">
             <HandCoins className="size-6 text-terracota" aria-hidden />
             <p className="font-display text-lg font-bold text-tinta">Ainda não há apoios no catálogo.</p>
             <p className="max-w-2xl text-sm text-tinta-2">
@@ -184,7 +184,7 @@ export function PaginaApoios() {
           </Cartao>
         ) : (
           dados && (
-            <div className="flex flex-col gap-6 px-10">
+            <div className="flex flex-col gap-6 px-4 sm:px-10">
               <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                 <Numero rotulo="Consultas ao agente" valor={dados.totais.consultas} />
                 <Numero rotulo="Pessoas diferentes" valor={dados.totais.pessoas} />

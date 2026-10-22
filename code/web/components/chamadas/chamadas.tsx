@@ -142,7 +142,7 @@ export function PaginaChamadas() {
         titulo="Chamadas do agente"
         descricao="O agente liga às pessoas quando o processo avança, quando falta um documento ou o prazo está a acabar, e nas campanhas de ação social. Se ninguém atender, segue um SMS."
       />
-      <div className="flex flex-col gap-3 px-10 pb-5">
+      <div className="flex flex-col gap-3 px-4 sm:px-10 pb-5">
         <Filtro
           rotulo="Estado"
           valor={estado}
@@ -163,7 +163,7 @@ export function PaginaChamadas() {
         />
       </div>
 
-      <div className="flex flex-col gap-4 px-10">
+      <div className="flex flex-col gap-4 px-4 sm:px-10">
         <Cartao>
           <Estado
             aCarregar={lista.aCarregar}

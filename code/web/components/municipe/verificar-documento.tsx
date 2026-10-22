@@ -273,7 +273,7 @@ export function VerificarDocumento({
         </div>
 
         {/* A fotografia (ou as instruções), com os cantos de enquadrar. */}
-        <div className="relative flex min-h-[180px] flex-1 items-center justify-center overflow-hidden px-10 py-6">
+        <div className="relative flex min-h-[180px] flex-1 items-center justify-center overflow-hidden px-4 sm:px-10 py-6">
           {previa ? (
             // eslint-disable-next-line @next/next/no-img-element -- blob: local, sem otimização
             <img

@@ -96,20 +96,23 @@ export function Documentos() {
   const { pode } = useSessao();
   const lista = useDados<Lista>("/v1/painel/linguagem-simples");
   const [comecar, setComecar] = useState<ItemLista | null>(null);
-  const [filtro, setFiltro] = useState<"todos" | "com" | "atencao">("todos");
+  const [escolhido, setFiltro] = useState<"todos" | "com" | "atencao" | null>(null);
   const escrever = pode("conhecimento");
   const r = lista.dados?.resumo;
+  const precisaAtencao = (i: ItemLista) => i.estado === "desatualizada" || i.estado === "rascunho";
+  // Abre no que precisa de atenção; se não houver nada, em todas.
+  const filtro = escolhido ?? ((lista.dados?.itens ?? []).some(precisaAtencao) ? "atencao" : "todos");
 
   const itens = (lista.dados?.itens ?? []).filter((i) =>
     filtro === "todos"
       ? true
       : filtro === "com"
         ? i.documento_id !== null
-        : i.estado === "desatualizada" || i.estado === "rascunho",
+        : precisaAtencao(i),
   );
 
   return (
-    <div className="flex flex-col gap-5 px-10">
+    <div className="flex flex-col gap-5 px-4 sm:px-10">
       <Cartao className="flex flex-col gap-3 p-5">
         <p className="text-sm text-tinta-2">
           Editais, regulamentos e avisos reescritos em português claro, com o texto oficial

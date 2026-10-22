@@ -489,7 +489,7 @@ export function PaginaPublicacoes({ inicial = "comunicados" }: { inicial?: Separ
           )
         }
       />
-      <div className="flex flex-col gap-4 px-10">
+      <div className="flex flex-col gap-4 px-4 sm:px-10">
         <div role="tablist" aria-label="O que publicar" className="flex gap-1 border-b border-linha">
           {SEPARADORES.map((s, i) => {
             const ativo = separador === s.id;

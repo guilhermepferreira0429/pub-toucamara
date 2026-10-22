@@ -155,7 +155,7 @@ export function PaginaBalcaoEmpresas() {
         }
       />
 
-      <div className="grid gap-6 px-10 xl:grid-cols-[minmax(0,1fr)_400px]">
+      <div className="grid gap-6 px-4 sm:px-10 xl:grid-cols-[minmax(0,1fr)_400px]">
         <div className="flex min-w-0 flex-col gap-4">
           {p && p.itens.some((i) => i.demonstracao) && (
             <FaixaDemonstracao>

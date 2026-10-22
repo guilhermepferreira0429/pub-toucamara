@@ -134,7 +134,7 @@ export function PainelIas() {
         }
       />
 
-      <div className="grid grid-cols-2 gap-4 px-10 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 px-4 sm:px-10 lg:grid-cols-4">
         <Numero rotulo="Assistentes ligados" valor={r?.ligacoes_ativas} icone={KeyRound} />
         <Numero rotulo="Pedidos hoje" valor={r?.pedidos_hoje} icone={Bot} />
         <Numero
@@ -151,7 +151,7 @@ export function PainelIas() {
         />
       </div>
 
-      <div className="mt-6 grid gap-6 px-10 xl:grid-cols-[minmax(0,1fr)_360px]">
+      <div className="mt-6 grid gap-6 px-4 sm:px-10 xl:grid-cols-[minmax(0,1fr)_360px]">
         <Cartao className="min-w-0">
           <div className="flex items-center justify-between border-b border-linha px-5 py-4">
             <div>
@@ -189,7 +189,7 @@ export function PainelIas() {
         </div>
       </div>
 
-      <div className="mt-6 px-10">
+      <div className="mt-6 px-4 sm:px-10">
         <Ligacoes
           ligacoes={ligacoes.dados?.ligacoes}
           aCarregar={ligacoes.aCarregar}

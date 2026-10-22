@@ -903,13 +903,13 @@ export function PaginaAgente() {
         acoes={!d?.pode_editar && d ? <Pilula>Só a equipa Tou, Câmara? altera</Pilula> : undefined}
       />
       {!d ? (
-        <div className="px-10">
+        <div className="px-4 sm:px-10">
           <Cartao>
             <Estado aCarregar={a.aCarregar} erro={a.erro} />
           </Cartao>
         </div>
       ) : (
-        <div className="flex flex-col gap-5 px-10">
+        <div className="flex flex-col gap-5 px-4 sm:px-10">
           <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,692fr)_minmax(0,400fr)]">
             <Identidade key={d.config?.versao ?? "x"} config={d.config} podeEditar={d.pode_editar} onGuardado={mudarConfig} />
             <Pronuncias

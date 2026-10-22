@@ -125,7 +125,7 @@ export function ListaRelatorios() {
           </Botao>
         }
       />
-      <div className="flex flex-col gap-4 px-10">
+      <div className="flex flex-col gap-4 px-4 sm:px-10">
         <div className="flex flex-wrap gap-1.5" role="group" aria-label="Tipo">
           {(["", "semanal", "mensal", "executivo", "diario"] as const).map((t) => (
             <button

@@ -158,9 +158,9 @@ export function PaginaEscolas() {
           </>
         }
       />
-      <ErroLinha erro={demo.erro} className="mx-10 mb-4" />
+      <ErroLinha erro={demo.erro} className="mx-4 sm:mx-10 mb-4" />
       {d.dados && (
-        <div className="grid gap-3 px-10 pb-5 sm:grid-cols-4">
+        <div className="grid gap-3 px-4 sm:px-10 pb-5 sm:grid-cols-4">
           <Numero rotulo="Escolas" valor={d.dados.escolas.length} />
           <Numero rotulo="Alunos registados" valor={d.dados.contagens.alunos} />
           <Numero rotulo="Transporte por decidir" valor={d.dados.contagens.transporte_pendentes} destaque />
@@ -190,7 +190,7 @@ export function PaginaEscolas() {
           </button>
         ))}
       </div>
-      <div className="grid gap-6 px-10 xl:grid-cols-[minmax(0,1fr)_320px]">
+      <div className="grid gap-6 px-4 sm:px-10 xl:grid-cols-[minmax(0,1fr)_320px]">
         <div className="min-w-0">
           <Estado aCarregar={d.aCarregar} erro={d.erro} vazio={!d.dados}>
             {d.dados && vista === "refeicoes" && <RefeicoesDoDia hoje={d.dados.hoje} />}

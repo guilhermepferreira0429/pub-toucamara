@@ -163,9 +163,9 @@ export function PaginaHabitacao() {
           </>
         }
       />
-      <ErroLinha erro={demo.erro} className="mx-10 mb-4" />
+      <ErroLinha erro={demo.erro} className="mx-4 sm:mx-10 mb-4" />
       {c && (
-        <div className="grid gap-3 px-10 pb-5 sm:grid-cols-4">
+        <div className="grid gap-3 px-4 sm:px-10 pb-5 sm:grid-cols-4">
           <Numero rotulo="Candidaturas por analisar" valor={c.candidaturas_por_analisar} />
           <Numero rotulo="Reparações abertas" valor={c.reparacoes_abertas} />
           <Numero rotulo="Reparações urgentes" valor={c.reparacoes_urgentes} destaque />
@@ -194,7 +194,7 @@ export function PaginaHabitacao() {
           </button>
         ))}
       </div>
-      <div className="grid gap-6 px-10 xl:grid-cols-[minmax(0,1fr)_320px]">
+      <div className="grid gap-6 px-4 sm:px-10 xl:grid-cols-[minmax(0,1fr)_320px]">
         <div className="flex min-w-0 flex-col gap-4">
           {vista === "candidaturas" && <Candidaturas onMudou={d.recarregar} />}
           {vista === "reparacoes" && <Reparacoes onMudou={d.recarregar} />}

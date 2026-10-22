@@ -14,16 +14,16 @@ export const SITUACOES: Record<
   { rotulo: string; tom: "verde" | "ambar" | "terracota" | "neutro"; explicacao: string }
 > = {
   rascunho: { rotulo: "Rascunho", tom: "neutro", explicacao: "Ainda não foi publicado." },
-  publicado: { rotulo: "Publicado", tom: "verde", explicacao: "Está no /agora." },
+  publicado: { rotulo: "Publicado", tom: "verde", explicacao: "Está na página pública «O que se passa perto de mim»." },
   despublicado: {
     rotulo: "Despublicado",
     tom: "ambar",
-    explicacao: "Esteve publicado e foi tirado do /agora.",
+    explicacao: "Esteve publicado e foi tirado da página pública «O que se passa perto de mim».",
   },
   expirado: {
     rotulo: "Expirado",
     tom: "terracota",
-    explicacao: "Continua publicado, mas já saiu do /agora pelo prazo.",
+    explicacao: "Continua publicado, mas já saiu da página pública «O que se passa perto de mim» pelo prazo.",
   },
 };
 
@@ -99,7 +99,7 @@ export const TIPOS_COMUNICADO = {
   },
   noticia: {
     rotulo: "Notícia",
-    ajuda: "Novidades do concelho. Aparece no /agora, mas nunca envia avisos por SMS.",
+    ajuda: "Novidades do concelho. Aparece na página pública «O que se passa perto de mim», mas nunca envia avisos por SMS.",
   },
 } as const;
 

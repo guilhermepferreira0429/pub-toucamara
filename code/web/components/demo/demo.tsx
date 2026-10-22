@@ -164,7 +164,7 @@ export function PaginaDemo() {
           </Aviso>
         ) : (
           e && (
-            <div className="grid gap-6 px-10 xl:grid-cols-[minmax(0,1fr)_380px]">
+            <div className="grid gap-6 px-4 sm:px-10 xl:grid-cols-[minmax(0,1fr)_380px]">
               <div className="flex flex-col gap-6">
                 <Cartao className="flex flex-col gap-4 p-6">
                   <div className="flex items-center gap-2">
@@ -192,7 +192,7 @@ export function PaginaDemo() {
                   {!ensaio && (
                     <div>
                       <Botao onClick={verEnsaio} disabled={acao.aCorrer}>
-                        {acao.aCorrer ? "A ver…" : "Ver o que vai acontecer"}
+                        {acao.aCorrer ? "A ver…" : "Preparar a demonstração"}
                       </Botao>
                     </div>
                   )}

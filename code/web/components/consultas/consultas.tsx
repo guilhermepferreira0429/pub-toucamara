@@ -53,7 +53,7 @@ export function PaginaConsultas() {
           )
         }
       />
-      <div className="flex flex-col gap-3 px-10">
+      <div className="flex flex-col gap-3 px-4 sm:px-10">
         <Cartao>
           <Estado
             aCarregar={d.aCarregar}

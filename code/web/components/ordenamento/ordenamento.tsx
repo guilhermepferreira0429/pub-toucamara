@@ -75,7 +75,7 @@ function ConsultarMorada({ r, onResultado }: { r: PorMorada | null; onResultado:
   const [morada, setMorada] = useState("");
   const acao = useAcao();
   return (
-    <Cartao className="mx-10 flex flex-col gap-4 p-5">
+    <Cartao className="mx-4 sm:mx-10 flex flex-col gap-4 p-5">
       <form
         className="flex flex-col gap-2 sm:flex-row"
         onSubmit={async (e) => {
@@ -189,7 +189,7 @@ export function PaginaOrdenamento() {
       />
       <Estado aCarregar={d.aCarregar} erro={d.erro} vazio={false}>
         {dados && dados.zonas.length === 0 ? (
-          <Cartao className="mx-10 flex flex-col items-start gap-3 p-6">
+          <Cartao className="mx-4 sm:mx-10 flex flex-col items-start gap-3 p-6">
             <IconeMapa className="size-6 text-terracota" aria-hidden />
             <p className="font-display text-lg font-bold text-tinta">Ainda não há zonas do PDM carregadas.</p>
             <p className="max-w-2xl text-sm text-tinta-2">
@@ -217,7 +217,7 @@ export function PaginaOrdenamento() {
           dados && (
             <div className="flex flex-col gap-6">
             <ConsultarMorada r={procurada} onResultado={setProcurada} />
-            <div className="grid gap-6 px-10 xl:grid-cols-[minmax(0,1fr)_420px]">
+            <div className="grid gap-6 px-4 sm:px-10 xl:grid-cols-[minmax(0,1fr)_420px]">
               {/* isolate: as camadas do Leaflet (z-index 400+) não passam por cima do diálogo. */}
               <Cartao className="isolate h-fit overflow-hidden xl:sticky xl:top-6">
                 <Mapa

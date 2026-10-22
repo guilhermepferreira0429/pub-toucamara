@@ -530,7 +530,8 @@ function inicial(c: Config | undefined, tipo: Tipo = "cheia"): Formulario {
     dizer: g?.dizer ?? "",
     perguntas: g?.perguntas.join("\n") ?? "",
     numero: "112",
-    zonaTipo: "poligono",
+    // Freguesias por omissão: ninguém escreve latitudes à mão numa emergência.
+    zonaTipo: "freguesias",
     pontos: "",
     lat: "",
     lng: "",
@@ -675,9 +676,9 @@ function NovaEmergencia({ config, onCriada }: { config: Config | undefined; onCr
         <div className="flex flex-wrap gap-1.5" role="radiogroup" aria-label="Como indicar a zona">
           {(
             [
-              ["poligono", "Polígono"],
-              ["ponto", "Ponto e raio"],
               ["freguesias", "Freguesias"],
+              ["ponto", "Ponto e raio"],
+              ["poligono", "Polígono"],
             ] as const
           ).map(([k, r]) => (
             <button
@@ -1355,7 +1356,7 @@ export function PaginaEmergencias() {
           </div>
         }
       />
-      <div className="grid items-start gap-6 px-10 xl:grid-cols-[minmax(0,420px)_minmax(0,1fr)]">
+      <div className="grid items-start gap-6 px-4 sm:px-10 xl:grid-cols-[minmax(0,420px)_minmax(0,1fr)]">
         <Cartao className="flex flex-col p-6">
           <h2 className="pb-3 font-display text-[19px] font-bold text-tinta">Avisos</h2>
           <Estado aCarregar={lista.aCarregar} erro={lista.erro} vazio={!lista.dados?.emergencias.length} textoVazio="Ainda não há avisos de emergência.">

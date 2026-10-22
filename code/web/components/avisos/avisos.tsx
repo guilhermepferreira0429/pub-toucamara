@@ -435,7 +435,7 @@ export function PaginaAvisos() {
         titulo="Avisos por zona"
         descricao="Um SMS só para quem é afetado: quem tem processos, ocorrências ou pedidos com morada na zona."
       />
-      <div className="grid items-start gap-6 px-10 xl:grid-cols-[minmax(0,1fr)_minmax(0,520px)]">
+      <div className="grid items-start gap-6 px-4 sm:px-10 xl:grid-cols-[minmax(0,1fr)_minmax(0,520px)]">
         <Cartao className="flex flex-col p-6">
           <div className="flex flex-wrap items-center justify-between gap-3 pb-3">
             <h2 className="font-display text-[19px] font-bold text-tinta">Avisos</h2>

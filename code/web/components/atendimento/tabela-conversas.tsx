@@ -157,8 +157,12 @@ export function TabelaConversas({
                               ? `${c.fonte.titulo}, ${c.fonte.referencia}`
                               : c.fonte.titulo}
                           </span>
-                        ) : (
+                        ) : c.resultado === "resolvida" ? (
+                          // Só se assinala quando o agente resolveu sem citar: nas passadas,
+                          // nas marcações ou nas chamadas que caíram não há fonte a citar.
                           <span className="text-tinta-3">Sem fonte citada</span>
+                        ) : (
+                          <span className="text-tinta-3">—</span>
                         )}
                       </span>
                       {c.tema?.nome && (

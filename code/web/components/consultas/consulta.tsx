@@ -83,7 +83,7 @@ export function DetalheConsultaPublica({ id }: { id: string }) {
 
   return (
     <div className="flex flex-col pb-12">
-      <div className="px-10 pt-6">
+      <div className="px-4 sm:px-10 pt-6">
         <Link href="/painel/consultas" className="inline-flex items-center gap-1 text-[13px] font-semibold text-tinta-2 hover:text-tinta">
           <ArrowLeft className="size-4" aria-hidden /> Consultas públicas
         </Link>
@@ -137,7 +137,7 @@ export function DetalheConsultaPublica({ id }: { id: string }) {
               </>
             }
           />
-          <div className="flex flex-col gap-6 px-10">
+          <div className="flex flex-col gap-6 px-4 sm:px-10">
             <ErroLinha erro={acao.erro} />
             <Numeros c={c} />
             <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">

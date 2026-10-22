@@ -100,7 +100,7 @@ export function PaginaCartas() {
         titulo="Cartas que as pessoas não perceberam"
         descricao="Os ofícios e notificações que os munícipes mandaram ao agente para explicar. Os que mais confundem são os primeiros a reescrever em linguagem simples."
       />
-      <div className="flex flex-col gap-6 px-10">
+      <div className="flex flex-col gap-6 px-4 sm:px-10">
         <Cartao aria-labelledby="confundem">
           <div className="flex flex-wrap items-end justify-between gap-3 px-5 pt-4">
             <div>

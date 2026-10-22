@@ -103,7 +103,7 @@ export function PaginaAgua() {
         descricao={`Quem trata da água é ${r?.entidade.nome ?? "a entidade gestora"}, não a câmara. O agente recolhe a leitura, o pedido sobre a fatura ou a avaria, dá sempre o contacto deles e envia o pedido. Roturas com água na rua passam também a ocorrência.`}
         acoes={r?.integracao.simulado ? <PilulaDemonstracao texto="envio simulado" /> : null}
       />
-      <div className="grid gap-6 px-10 xl:grid-cols-[minmax(0,1fr)_320px]">
+      <div className="grid gap-6 px-4 sm:px-10 xl:grid-cols-[minmax(0,1fr)_320px]">
         <div className="min-w-0">
           <Filtros
             rotulo="Estado do envio"

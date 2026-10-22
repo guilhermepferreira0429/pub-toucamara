@@ -168,9 +168,9 @@ export function PaginaEstacionamento() {
           ) : undefined
         }
       />
-      <ErroLinha erro={demo.erro} className="mx-10 mb-4" />
+      <ErroLinha erro={demo.erro} className="mx-4 sm:mx-10 mb-4" />
       {c && (
-        <div className="grid grid-cols-2 gap-3 px-10 pb-5 md:grid-cols-5">
+        <div className="grid grid-cols-2 gap-3 px-4 sm:px-10 pb-5 md:grid-cols-5">
           <Numero rotulo="Por pagar" valor={c.multas_por_pagar} />
           <Numero rotulo="Em defesa" valor={c.multas_em_defesa} />
           <Numero rotulo="Pagas" valor={c.multas_pagas} />
@@ -195,7 +195,7 @@ export function PaginaEstacionamento() {
           </button>
         ))}
       </div>
-      <div className="flex flex-col gap-4 px-10">
+      <div className="flex flex-col gap-4 px-4 sm:px-10">
         <Estado aCarregar={d.aCarregar} erro={d.erro} vazio={!d.dados}>
           {d.dados && vista === "defesas" && (
             <Estado vazio={d.dados.defesas.length === 0} textoVazio="Ainda não há defesas. O agente regista-as quando alguém diz que a multa está errada.">

@@ -127,7 +127,7 @@ export function DetalheProcedimento() {
 
   return (
     <div className="flex flex-col pb-12">
-      <div className="px-10 pt-6">
+      <div className="px-4 sm:px-10 pt-6">
         <Link href="/painel/procedimentos" className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-tinta-2">
           <ArrowLeft className="size-4" aria-hidden /> Procedimentos
         </Link>
@@ -198,14 +198,14 @@ export function DetalheProcedimento() {
             />
             <AvisoInterno />
             {p.estado === "rascunho" && !edicao && (
-              <p className="mx-10 mb-5 rounded-xl bg-ambar-suave px-4 py-2.5 text-[13px] text-ambar">
+              <p className="mx-4 sm:mx-10 mb-5 rounded-xl bg-ambar-suave px-4 py-2.5 text-[13px] text-ambar">
                 Rascunho: ainda não aparece no assistente interno.{" "}
                 {chefia ? "Reveja e publique quando estiver certo." : "A chefia de divisão revê e publica."}
               </p>
             )}
-            <ErroLinha erro={acao.erro} className="mx-10 mb-4" />
+            <ErroLinha erro={acao.erro} className="mx-4 sm:mx-10 mb-4" />
 
-            <div className="grid gap-6 px-10 lg:grid-cols-[1fr_300px]">
+            <div className="grid gap-6 px-4 sm:px-10 lg:grid-cols-[1fr_300px]">
               {edicao ? (
                 <Editor valor={edicao} mudar={(v) => setRascunho(v)} />
               ) : (
