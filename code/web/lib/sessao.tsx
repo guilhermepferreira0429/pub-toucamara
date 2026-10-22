@@ -40,7 +40,9 @@ export type Recurso =
   | "fiscalizacao"
   | "arquivo"
   | "comunicados"
-  | "demo";
+  | "demo"
+  | "escolas"
+  | "habitacao";
 
 export type Perfil =
   | "atendimento"

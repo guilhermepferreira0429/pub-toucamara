@@ -190,6 +190,19 @@ const VERBOS: Record<string, string> = {
   definir_rececao_carta: 'disse quando recebeu',
   preparar_resposta_carta: 'preparou a resposta a',
   entregar_resposta_carta: 'entregou a resposta a',
+  inscrever_cantina: 'inscreveu na cantina',
+  pedir_transporte_escolar: 'registou',
+  aprovar_transporte_escolar: 'aprovou',
+  recusar_transporte_escolar: 'recusou',
+  inscrever_atividade_escolar: 'registou',
+  pre_inscricao_escolar: 'registou',
+  carregar_escolas_demonstracao: 'carregou as escolas de demonstração',
+  registar_candidatura_habitacao: 'registou',
+  mudar_estado_candidatura_habitacao: 'mudou o estado de',
+  pedir_reparacao_habitacao: 'registou',
+  atualizar_reparacao_habitacao: 'atualizou',
+  pedir_revisao_renda: 'registou',
+  carregar_habitacao_demonstracao: 'carregou a habitação de demonstração',
 };
 
 const OBJETOS: Record<string, string> = {
@@ -256,6 +269,14 @@ const OBJETOS: Record<string, string> = {
   antecipacao_config: 'das antecipações',
   turismo: 'do turismo',
   carta: 'uma carta da câmara',
+  aluno_escola: 'um aluno',
+  transporte_escolar: 'um pedido de transporte escolar',
+  inscricao_escolar: 'uma inscrição escolar',
+  escolas: '',
+  candidatura_habitacao: 'uma candidatura a habitação municipal',
+  reparacao_habitacao: 'um pedido de reparação (habitação municipal)',
+  revisao_renda: 'um pedido de revisão da renda',
+  habitacao: '',
 };
 
 export function frase(acao: string, objetoTipo: string): string {
