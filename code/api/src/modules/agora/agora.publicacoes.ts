@@ -6,6 +6,7 @@ import type { UtilizadorPainel } from '../../common/pedido.js';
 import { DatabaseService, Tx } from '../../database/database.service.js';
 import { AuditoriaService } from '../auditoria/auditoria.service.js';
 import type { Municipio } from '../municipios/municipios.service.js';
+import { PARAMETROS } from './agora.regras.js';
 
 const url = z
   .string()
@@ -76,10 +77,36 @@ export const esquemaEditarEvento = coerente(
   esquemaEventoBase.omit({ publicar: true }).partial(),
 ).refine((e) => Object.keys(e).length > 0, 'Nada para mudar.');
 
+/** Como está para o feed (o `estado` da BD só tem rascunho/publicado). */
+export const SITUACOES = [
+  'rascunho',
+  'publicado',
+  'despublicado',
+  'expirado',
+] as const;
+export type Situacao = (typeof SITUACOES)[number];
+
 export const esquemaListaPublicacoes = esquemaPaginacao.extend({
   estado: z.enum(['rascunho', 'publicado']).optional(),
   tipo: z.enum(['comunicado', 'noticia']).optional(),
+  /**
+   * rascunho (nunca publicado), publicado (está no feed), despublicado
+   * (esteve e foi tirado), expirado (publicado mas já saiu do feed).
+   */
+  situacao: z.enum(SITUACOES).optional(),
+  /** Pesquisa no título e no texto. */
+  q: z
+    .string()
+    .trim()
+    .max(100)
+    .optional()
+    .transform((v) => (v ? v : undefined)),
 });
+
+/** Para um ILIKE com o que a pessoa escreveu (sem curingas dela). */
+function padrao(q: string | undefined): string | null {
+  return q ? `%${q.replace(/[\\%_]/g, (c) => `\\${c}`)}%` : null;
+}
 
 export interface LinhaComunicado {
   id: string;
@@ -89,7 +116,10 @@ export interface LinhaComunicado {
   imagem_url: string | null;
   freguesias: string[] | null;
   estado: 'rascunho' | 'publicado';
+  situacao: Situacao;
   publicado_em: Date | null;
+  /** Até quando fica no feed (null: nunca publicado). */
+  visivel_ate: Date | null;
   criado_por: string | null;
   criado_em: Date;
   atualizado_em: Date;
@@ -107,16 +137,37 @@ export interface LinhaEvento {
   freguesia: string | null;
   link: string | null;
   estado: 'rascunho' | 'publicado';
+  situacao: Situacao;
   publicado_em: Date | null;
+  /** Até quando fica no feed (o feed mostra o que acabou há poucos dias). */
+  visivel_ate: Date;
   criado_por: string | null;
   criado_em: Date;
   atualizado_em: Date;
 }
 
+// O feed (agora.service.ts › itens) mostra os comunicados publicados há
+// menos de N dias e os eventos que acabaram há menos de N dias: "expirado" é
+// o que já saiu do feed por isso.
+const DIAS_COMUNICADO = Number(PARAMETROS.comunicado_visivel_dias);
+const DIAS_EVENTO = Number(PARAMETROS.janela_passado_dias);
+
+const SITUACAO = (fimVisivel: string) => `CASE
+    WHEN estado = 'publicado' AND ${fimVisivel} <= now() THEN 'expirado'
+    WHEN estado = 'publicado' THEN 'publicado'
+    WHEN publicado_em IS NOT NULL THEN 'despublicado'
+    ELSE 'rascunho' END`;
+
+const VISIVEL_COMUNICADO = `publicado_em + make_interval(days => ${DIAS_COMUNICADO})`;
+const VISIVEL_EVENTO = `coalesce(fim, inicio) + make_interval(days => ${DIAS_EVENTO})`;
+
 const COLUNAS_COMUNICADO = `id, tipo, titulo, texto, imagem_url, freguesias, estado,
-  publicado_em, criado_por, criado_em, atualizado_em`;
+  ${SITUACAO(VISIVEL_COMUNICADO)} AS situacao, publicado_em,
+  CASE WHEN publicado_em IS NOT NULL THEN ${VISIVEL_COMUNICADO} END AS visivel_ate,
+  criado_por, criado_em, atualizado_em`;
 const COLUNAS_EVENTO = `id, titulo, descricao, local, lat, lng, inicio, fim, freguesia,
-  link, estado, publicado_em, criado_por, criado_em, atualizado_em`;
+  link, estado, ${SITUACAO(VISIVEL_EVENTO)} AS situacao, publicado_em,
+  ${VISIVEL_EVENTO} AS visivel_ate, criado_por, criado_em, atualizado_em`;
 
 type Qual = 'comunicado' | 'evento';
 
@@ -174,10 +225,13 @@ export class AgoraPublicacoesService {
     f: z.output<typeof esquemaListaPublicacoes>,
   ) {
     const linhas = await this.db.query<LinhaComunicado>(
-      `SELECT ${COLUNAS_COMUNICADO} FROM comunicados
-       WHERE municipio_id = $1
-         AND ($2::text IS NULL OR estado = $2) AND ($3::text IS NULL OR tipo = $3)
-         AND ($4::timestamptz IS NULL OR (criado_em, id) < ($4, $5))
+      `SELECT * FROM (
+         SELECT ${COLUNAS_COMUNICADO} FROM comunicados
+         WHERE municipio_id = $1
+           AND ($2::text IS NULL OR estado = $2) AND ($3::text IS NULL OR tipo = $3)
+           AND ($4::timestamptz IS NULL OR (criado_em, id) < ($4, $5))
+           AND ($7::text IS NULL OR titulo ILIKE $7 OR texto ILIKE $7)
+       ) c WHERE ($8::text IS NULL OR situacao = $8)
        ORDER BY criado_em DESC, id DESC LIMIT $6`,
       [
         m.id,
@@ -186,6 +240,8 @@ export class AgoraPublicacoesService {
         f.cursor?.em ?? null,
         f.cursor?.id ?? null,
         f.limite + 1,
+        padrao(f.q),
+        f.situacao ?? null,
       ],
     );
     return pagina(linhas, f.limite, (l) => ({ em: l.criado_em, id: l.id }));
@@ -343,9 +399,12 @@ export class AgoraPublicacoesService {
     f: z.output<typeof esquemaListaPublicacoes>,
   ) {
     const linhas = await this.db.query<LinhaEvento>(
-      `SELECT ${COLUNAS_EVENTO} FROM eventos
-       WHERE municipio_id = $1 AND ($2::text IS NULL OR estado = $2)
-         AND ($3::timestamptz IS NULL OR (criado_em, id) < ($3, $4))
+      `SELECT * FROM (
+         SELECT ${COLUNAS_EVENTO} FROM eventos
+         WHERE municipio_id = $1 AND ($2::text IS NULL OR estado = $2)
+           AND ($3::timestamptz IS NULL OR (criado_em, id) < ($3, $4))
+           AND ($6::text IS NULL OR titulo ILIKE $6 OR descricao ILIKE $6 OR local ILIKE $6)
+       ) e WHERE ($7::text IS NULL OR situacao = $7)
        ORDER BY criado_em DESC, id DESC LIMIT $5`,
       [
         m.id,
@@ -353,6 +412,8 @@ export class AgoraPublicacoesService {
         f.cursor?.em ?? null,
         f.cursor?.id ?? null,
         f.limite + 1,
+        padrao(f.q),
+        f.situacao ?? null,
       ],
     );
     return pagina(linhas, f.limite, (l) => ({ em: l.criado_em, id: l.id }));

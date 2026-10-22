@@ -4,6 +4,7 @@ import {
   Contexto,
   criarUtilizador,
   entrarPainel,
+  MUNICIPIO_ID,
   ferramenta,
   novaChamada,
   smsPara,
@@ -25,6 +26,16 @@ describe('Ordenamento: o que posso fazer nesta morada (e2e)', () => {
   beforeAll(async () => {
     ctx = await arrancarApp();
     chefe = await entrarPainel(ctx);
+    // Começa sem PDM: outro ficheiro (ex.: verificacoes) pode já ter
+    // carregado as zonas de demonstração, e a BD é partilhada.
+    await ctx.db.query(
+      `UPDATE consultas_pdm SET zona_id = NULL
+       WHERE zona_id IN (SELECT id FROM zonas_pdm WHERE municipio_id = $1)`,
+      [MUNICIPIO_ID],
+    );
+    await ctx.db.query(`DELETE FROM zonas_pdm WHERE municipio_id = $1`, [
+      MUNICIPIO_ID,
+    ]);
     ctx.geo.moradas.set(RESIDENCIAL, { lat: 41.45, lng: -8.305 });
     ctx.geo.moradas.set(CENTRO, { lat: 41.4432, lng: -8.2947 });
     ctx.geo.moradas.set(LONGE, { lat: 41.3, lng: -8.1 });

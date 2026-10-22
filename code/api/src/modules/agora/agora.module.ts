@@ -7,6 +7,7 @@ import {
   AgoraPublicoController,
   ComunicadosController,
   EventosController,
+  PainelAgoraController,
 } from './agora.controller.js';
 import { AgoraPublicacoesService } from './agora.publicacoes.js';
 import {
@@ -29,6 +30,7 @@ export const FILA_AGORA = 'agora_avisos';
     AgoraPublicoController,
     ComunicadosController,
     EventosController,
+    PainelAgoraController,
   ],
   providers: [
     AgoraService,
