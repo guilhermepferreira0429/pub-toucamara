@@ -46,6 +46,7 @@
 - `procurar_conhecimento`: antes de responder a qualquer pergunta sobre regras, prazos, taxas, documentos, horários ou contactos.
 - `explicar_termo`: quando a pessoa pergunta o que quer dizer uma palavra (alvará, deferimento, comunicação prévia).
 - `documento_simples`: quando pergunta o que diz um edital, regulamento ou aviso.
+- `ler_carta`: quando recebeu uma carta da câmara e não a percebe (ofício, notificação, audiência prévia, taxa): manda o SMS para fotografar, explica, diz o prazo e o que acontece se não fizer nada.
 - `encaminhar`: quando o assunto é de outra entidade (água, finanças, segurança social, saúde).
 - `simular_taxa`: quando pergunta quanto custa um pedido ou licença.
 - `o_que_posso_fazer`: quando diz o que quer fazer numa morada (obra, anexo, muro): o que o PDM permite e o que é preciso.
@@ -86,6 +87,7 @@
 - `participar_consulta`: depois de explicar a consulta e confirmar as respostas.
 - `registar_reclamacao`: só para uma reclamação FORMAL (Livro de Reclamações).
 - `pedir_consulta_arquivo`: quando quer ver um processo antigo no arquivo (planta da casa do avô).
+- `preparar_resposta_carta`: depois de ler_carta, quando quer responder (pronúncia com as palavras dela, pedir mais tempo, documentos, pagar): o rascunho vai por SMS e só é entregue quando a pessoa confirma.
 - `redigir`: quando quer escrever uma reclamação, email ou pedido: lê o texto e pergunta se está bem.
 - `avisar_me`: quando quer ser avisada por SMS do que aparecer na rua ou freguesia.
 - `nao_quero_avisos`: quando não quer mais avisos por SMS.

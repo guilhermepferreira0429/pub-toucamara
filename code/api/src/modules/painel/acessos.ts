@@ -178,6 +178,10 @@ const VERBOS: Record<string, string> = {
   editar_termo_glossario: 'editou',
   apagar_termo_glossario: 'apagou',
   carregar_glossario_demonstracao: 'carregou os termos de demonstração',
+  ler_carta: 'pediu ajuda para perceber',
+  definir_rececao_carta: 'disse quando recebeu',
+  preparar_resposta_carta: 'preparou a resposta a',
+  entregar_resposta_carta: 'entregou a resposta a',
 };
 
 const OBJETOS: Record<string, string> = {
@@ -240,6 +244,7 @@ const OBJETOS: Record<string, string> = {
   documento_simples: 'um documento oficial (linguagem simples)',
   termo_glossario: 'um termo do glossário',
   glossario: 'do glossário',
+  carta: 'uma carta da câmara',
 };
 
 export function frase(acao: string, objetoTipo: string): string {
