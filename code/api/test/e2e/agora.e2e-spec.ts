@@ -434,6 +434,201 @@ describe('O que se passa perto de mim (e2e)', () => {
         .set(chefe)
         .expect(404);
     });
+
+    it('situação, pesquisa, contexto e quantas subscrições um item abrangeria', async () => {
+      const tecnico = await entrarPainel(
+        ctx,
+        await criarUtilizador(ctx, 'tecnico'),
+      );
+      const fregA = `Abrangida ${randomInt(1, 999_999)}`;
+      const longe = { lat: 39.5, lng: -8.05 };
+      const sub = async (
+        x: { freguesia?: string; lat?: number; lng?: number },
+        tipos: string[],
+        aceita = true,
+      ) => {
+        const mu = await municipe(null, novoTelefone());
+        if (!aceita)
+          await ctx.db.query(
+            'UPDATE municipes SET aceita_avisos = false WHERE id = $1',
+            [mu],
+          );
+        await ctx.db.query(
+          `INSERT INTO agora_subscricoes (municipio_id, municipe_id, tipos, lat, lng, raio_m, freguesia, canal)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, 'sms')`,
+          [
+            MUNICIPIO_ID,
+            mu,
+            tipos,
+            x.lat ?? null,
+            x.lng ?? null,
+            x.lat !== undefined ? 300 : null,
+            x.freguesia ?? null,
+          ],
+        );
+      };
+      await sub({ freguesia: fregA }, ['avisos']);
+      await sub({ freguesia: fregA }, ['avisos', 'eventos'], false);
+      await sub({ freguesia: fregA }, ['obras']);
+      await sub(longe, ['eventos']);
+
+      const abr = (b: Record<string, unknown>) =>
+        ctx
+          .http()
+          .post('/v1/painel/agora/abrangidos')
+          .set(tecnico)
+          .send(b)
+          .expect(200);
+      expect(
+        (
+          await abr({
+            fonte: 'comunicado',
+            tipo: 'comunicado',
+            freguesias: [fregA],
+          })
+        ).body,
+      ).toMatchObject({ subscricoes: 2, pessoas: 1, motivo: 'zona' });
+      expect(
+        (
+          await abr({
+            fonte: 'comunicado',
+            tipo: 'noticia',
+            freguesias: [fregA],
+          })
+        ).body,
+      ).toMatchObject({ subscricoes: 0, motivo: 'noticia' });
+      expect(
+        (await abr({ fonte: 'comunicado', tipo: 'comunicado', freguesias: [] }))
+          .body,
+      ).toMatchObject({ subscricoes: 0, motivo: 'todo_concelho' });
+      // Evento a 200 m da subscrição pela rua (raio 300 m): conta; a 1 km não.
+      const evento = (metros: number) => ({
+        fonte: 'evento',
+        lat: longe.lat + metros / 111_195,
+        lng: longe.lng,
+      });
+      expect((await abr(evento(200))).body).toMatchObject({
+        subscricoes: 1,
+        pessoas: 1,
+        motivo: 'zona',
+        parametros: { raio_subscricao_m: 300, demonstracao: true },
+      });
+      expect((await abr(evento(1_000))).body.subscricoes).toBe(0);
+      expect(
+        (await abr({ fonte: 'evento', freguesia: fregA })).body,
+      ).toMatchObject({ subscricoes: 1, pessoas: 0 });
+      await ctx
+        .http()
+        .post('/v1/painel/agora/abrangidos')
+        .set(tecnico)
+        .send({ fonte: 'evento', lat: 39 })
+        .expect(400);
+
+      const c = await ctx
+        .http()
+        .get('/v1/painel/agora/contexto')
+        .set(tecnico)
+        .expect(200);
+      expect(c.body).toMatchObject({
+        municipio: { slug: MUNICIPIO },
+        parametros: { comunicado_visivel_dias: 30, demonstracao: true },
+      });
+      expect(Array.isArray(c.body.freguesias)).toBe(true);
+
+      // Situação: rascunho → publicado → despublicado; expirado (30 dias).
+      const marca = `Pesquisável ${randomInt(1, 999_999)}`;
+      const novo = await ctx
+        .http()
+        .post('/v1/painel/comunicados')
+        .set(chefe)
+        .send({ tipo: 'noticia', titulo: `${marca} 100%`, texto: 'Texto.' })
+        .expect(201);
+      expect(novo.body).toMatchObject({
+        situacao: 'rascunho',
+        visivel_ate: null,
+      });
+      const pub = await ctx
+        .http()
+        .post(`/v1/painel/comunicados/${novo.body.id}/publicar`)
+        .set(chefe)
+        .expect(200);
+      expect(pub.body.situacao).toBe('publicado');
+      expect(
+        Date.parse(pub.body.visivel_ate) - Date.parse(pub.body.publicado_em),
+      ).toBe(30 * 86_400_000);
+      const desp = await ctx
+        .http()
+        .post(`/v1/painel/comunicados/${novo.body.id}/despublicar`)
+        .set(chefe)
+        .expect(200);
+      expect(desp.body).toMatchObject({
+        estado: 'rascunho',
+        situacao: 'despublicado',
+      });
+      const velho = await ctx
+        .http()
+        .post('/v1/painel/comunicados')
+        .set(chefe)
+        .send({
+          tipo: 'comunicado',
+          titulo: `${marca} antigo`,
+          texto: 'Já passou.',
+          publicar: true,
+        })
+        .expect(201);
+      await ctx.db.query(
+        `UPDATE comunicados SET publicado_em = now() - interval '31 days' WHERE id = $1`,
+        [velho.body.id],
+      );
+      const lista = (q: string) =>
+        ctx.http().get(`/v1/painel/comunicados?${q}`).set(tecnico).expect(200);
+      const todos = await lista(`q=${encodeURIComponent(marca)}`);
+      expect(
+        todos.body.itens.map((i: { id: string; situacao: string }) => [
+          i.id,
+          i.situacao,
+        ]),
+      ).toEqual([
+        [velho.body.id, 'expirado'],
+        [novo.body.id, 'despublicado'],
+      ]);
+      // O % de quem pesquisa é texto, não curinga.
+      expect(
+        (await lista(`q=${encodeURIComponent(`${marca} 100%`)}`)).body.itens,
+      ).toHaveLength(1);
+      expect(
+        (await lista(`q=${encodeURIComponent(marca)}&situacao=expirado`)).body
+          .itens,
+      ).toHaveLength(1);
+      expect((await lista('q=xyz-nada-disto-existe')).body.itens).toHaveLength(
+        0,
+      );
+
+      // Eventos: pesquisa no local; expirado 7 dias depois do fim.
+      const ev = await ctx
+        .http()
+        .post('/v1/painel/eventos')
+        .set(chefe)
+        .send({
+          titulo: 'Feira antiga',
+          descricao: 'Já foi.',
+          local: `${marca} largo`,
+          inicio: new Date(Date.now() - 10 * 86_400_000).toISOString(),
+          publicar: true,
+        })
+        .expect(201);
+      expect(ev.body.situacao).toBe('expirado');
+      const evs = await ctx
+        .http()
+        .get(
+          `/v1/painel/eventos?q=${encodeURIComponent(marca)}&situacao=expirado`,
+        )
+        .set(tecnico)
+        .expect(200);
+      expect(evs.body.itens.map((i: { id: string }) => i.id)).toEqual([
+        ev.body.id,
+      ]);
+    });
   });
 
   describe('feed público', () => {

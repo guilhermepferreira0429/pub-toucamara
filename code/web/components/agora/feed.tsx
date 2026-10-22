@@ -89,7 +89,7 @@ function plural(n: number, um: string, varios: string) {
 }
 
 /** O cartão de cada item: tudo é um link para o detalhe. */
-function CartaoItem({ item, slug, novoHoras }: { item: ItemAgora; slug: string; novoHoras: number }) {
+export function CartaoItem({ item, slug, novoHoras }: { item: ItemAgora; slug: string; novoHoras: number }) {
   const e = estiloDe(item);
   const Icone = e.icone;
   const quando = quandoDito(item);

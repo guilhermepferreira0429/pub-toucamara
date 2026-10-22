@@ -17,7 +17,7 @@ import type { UtilizadorPainel } from '../../common/pedido.js';
 import { validar } from '../../common/validacao.js';
 import { Painel } from '../auth/painel.guard.js';
 import type { Municipio } from '../municipios/municipios.service.js';
-import { esquemaFeed } from './agora.regras.js';
+import { esquemaFeed, PARAMETROS } from './agora.regras.js';
 import {
   AgoraPublicacoesService,
   esquemaComunicado,
@@ -27,6 +27,10 @@ import {
   esquemaListaPublicacoes,
 } from './agora.publicacoes.js';
 import { AgoraService } from './agora.service.js';
+import {
+  AgoraSubscricoesService,
+  esquemaAbrangidos,
+} from './agora.subscricoes.js';
 
 /** Cache curta: o feed muda (avisos, ocorrências), mas não a cada segundo. */
 function cache(res: Response): void {
@@ -219,5 +223,41 @@ export class EventosController {
     @Param('id', ParseUUIDPipe) id: string,
   ) {
     return this.p.apagarEvento(m, u, id);
+  }
+}
+
+/**
+ * Apoio aos ecrãs de comunicados e eventos: as freguesias conhecidas, os
+ * prazos do feed e quantas subscrições "avise-me" um item abrangeria.
+ */
+@Controller('painel/agora')
+@Painel('visao_geral')
+export class PainelAgoraController {
+  constructor(
+    private readonly agora: AgoraService,
+    private readonly subscricoes: AgoraSubscricoesService,
+  ) {}
+
+  @Get('contexto')
+  async contexto(@MunicipioAtual() m: Municipio) {
+    return {
+      municipio: { slug: m.slug, nome: m.nome },
+      freguesias: await this.agora.freguesias(m.id),
+      parametros: {
+        comunicado_visivel_dias: PARAMETROS.comunicado_visivel_dias,
+        evento_visivel_dias_depois: PARAMETROS.janela_passado_dias,
+        novos_horas: PARAMETROS.novos_horas,
+        raio_subscricao_m: PARAMETROS.raio_subscricao_m,
+        demonstracao: PARAMETROS.demonstracao,
+        nota: PARAMETROS.nota,
+      },
+    };
+  }
+
+  /** { fonte: 'comunicado', tipo, freguesias } | { fonte: 'evento', lat, lng, freguesia } */
+  @Post('abrangidos')
+  @HttpCode(200)
+  abrangidos(@MunicipioAtual() m: Municipio, @Body() body: unknown) {
+    return this.subscricoes.abrangidos(m, validar(esquemaAbrangidos, body));
   }
 }
