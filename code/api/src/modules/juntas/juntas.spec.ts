@@ -77,9 +77,9 @@ describe('funcionalidades por tipo de município', () => {
     expect(
       decidirFerramenta('camara', 'pedir_servico', { area: 'escolas' }),
     ).toBe('seguir');
-    expect(decidirFerramenta('camara', 'pedir_servico', { area: 'junta' })).toBe(
-      'area_junta',
-    );
+    expect(
+      decidirFerramenta('camara', 'pedir_servico', { area: 'junta' }),
+    ).toBe('area_junta');
     expect(decidirFerramenta('junta', 'outros_servicos', {})).toBe(
       'catalogo_junta',
     );
@@ -122,8 +122,12 @@ describe('freguesias', () => {
 
   it('pela morada, quando não diz a freguesia', () => {
     expect(
-      resolverFreguesia(undefined, 'Rua Direita, 45, Azurém', juntas, conhecidas)
-        ?.junta?.id,
+      resolverFreguesia(
+        undefined,
+        'Rua Direita, 45, Azurém',
+        juntas,
+        conhecidas,
+      )?.junta?.id,
     ).toBe('j1');
     expect(
       resolverFreguesia('', 'Largo da Igreja, São Torcato', juntas, conhecidas),
@@ -176,9 +180,13 @@ describe('atestados', () => {
     expect(r[0]).toBe(
       'A Junta de Freguesia de Azurém atesta, para os devidos efeitos, que Maria Costa reside em Rua Direita, 45, na freguesia de Azurém.',
     );
-    expect(r).toContain('O presente atestado destina-se a apresentar na escola.');
+    expect(r).toContain(
+      'O presente atestado destina-se a apresentar na escola.',
+    );
     expect(r.join(' ')).toMatch(/Decreto-Lei n\.º 135\/99/);
-    expect(r[r.length - 1]).toBe('Azurém, quinta-feira, 22 de outubro de 2026.');
+    expect(r[r.length - 1]).toBe(
+      'Azurém, quinta-feira, 22 de outubro de 2026.',
+    );
 
     const ag = textoAtestado({
       ...base,
@@ -203,7 +211,9 @@ describe('atestados', () => {
       entidadePensao: 'Segurança Social',
       nota: 'Verificado presencialmente',
     });
-    expect(pv[0]).toContain('se encontra vivo(a) nesta data, para efeitos de Segurança Social.');
+    expect(pv[0]).toContain(
+      'se encontra vivo(a) nesta data, para efeitos de Segurança Social.',
+    );
     expect(pv).toContain('Verificado presencialmente.');
   });
 });

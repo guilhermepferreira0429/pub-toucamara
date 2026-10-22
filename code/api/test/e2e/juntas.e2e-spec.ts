@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument -- os corpos do supertest são `any`; as asserções do jest verificam a forma. */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call -- os corpos do supertest são `any`; as asserções do jest verificam a forma. */
 import { randomInt, randomUUID } from 'crypto';
 import { JuntasDemoService } from '../../src/modules/juntas/juntas.demo';
 import { MunicipiosService } from '../../src/modules/municipios/municipios.service';
@@ -57,7 +57,13 @@ describe('Juntas de freguesia (e2e)', () => {
     await ctx.db.query(
       `INSERT INTO utilizadores (id, municipio_id, email, nome, perfil)
        VALUES ($1, $2, $3, $4, $5)`,
-      [id, municipioId, `${perfil}-${id.slice(0, 8)}@junta.pt`, `Junta ${perfil}`, perfil],
+      [
+        id,
+        municipioId,
+        `${perfil}-${id.slice(0, 8)}@junta.pt`,
+        `Junta ${perfil}`,
+        perfil,
+      ],
     );
     return entrarPainel(ctx, id);
   };
@@ -144,7 +150,9 @@ describe('Juntas de freguesia (e2e)', () => {
     });
 
     const pub = await ctx.http().get(`/v1/public/juntas/${SLUG}`).expect(200);
-    expect(pub.body).toMatchObject({ nome: `Junta de Freguesia de ${FREGUESIA}` });
+    expect(pub.body).toMatchObject({
+      nome: `Junta de Freguesia de ${FREGUESIA}`,
+    });
     await ctx.http().get(`/v1/public/juntas/${MUNICIPIO}`).expect(404);
   });
 
@@ -195,7 +203,11 @@ describe('Juntas de freguesia (e2e)', () => {
       area: 'junta',
     }).expect(200);
     expect(campos.body.acoes.map((a: { acao: string }) => a.acao)).toEqual(
-      expect.arrayContaining(['pedir_atestado', 'prova_de_vida', 'estado_atestado']),
+      expect.arrayContaining([
+        'pedir_atestado',
+        'prova_de_vida',
+        'estado_atestado',
+      ]),
     );
 
     // O atendimento geral continua.
@@ -207,10 +219,15 @@ describe('Juntas de freguesia (e2e)', () => {
   });
 
   it('agente da câmara: a área da junta aparece no catálogo da câmara', async () => {
-    const r = await ferramenta(ctx, novaChamada('cat'), 'outros_servicos', {}).expect(
-      200,
+    const r = await ferramenta(
+      ctx,
+      novaChamada('cat'),
+      'outros_servicos',
+      {},
+    ).expect(200);
+    expect(r.body.areas.map((a: { area: string }) => a.area)).toContain(
+      'junta',
     );
-    expect(r.body.areas.map((a: { area: string }) => a.area)).toContain('junta');
   });
 
   let atestadoId: string;
@@ -230,7 +247,9 @@ describe('Juntas de freguesia (e2e)', () => {
       }),
     };
     // Sem identificação: pede o NIF.
-    const sem = await ferramenta(ctx, chamada, 'pedir_servico', pedido).expect(200);
+    const sem = await ferramenta(ctx, chamada, 'pedir_servico', pedido).expect(
+      200,
+    );
     expect(sem.body).toMatchObject({
       feito: false,
       precisa_identificacao: true,
@@ -253,7 +272,9 @@ describe('Juntas de freguesia (e2e)', () => {
     }).expect(200);
     expect(errada.body.motivo).toBe('freguesia_desconhecida');
 
-    const r = await ferramenta(ctx, chamada, 'pedir_servico', pedido).expect(200);
+    const r = await ferramenta(ctx, chamada, 'pedir_servico', pedido).expect(
+      200,
+    );
     expect(r.body).toMatchObject({
       feito: true,
       encaminhado: true,
@@ -369,7 +390,9 @@ describe('Juntas de freguesia (e2e)', () => {
       .expect(200);
     expect(det.body.texto[0]).toContain('reside em Rua Direita, 45');
     // Ainda não há PDF.
-    await pdf(`/v1/painel/atestados/${atestadoId}/pdf`, funcionario).expect(404);
+    await pdf(`/v1/painel/atestados/${atestadoId}/pdf`, funcionario).expect(
+      404,
+    );
 
     const r = await ctx
       .http()
