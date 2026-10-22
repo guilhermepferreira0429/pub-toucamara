@@ -32,6 +32,25 @@ import {
 import { PedidoAntigo, simular } from './simulacao.js';
 import { diasDeAviso } from './avisos-validade.js';
 import { avisosDe, decisaoDita, DEFS, TipoLicenca, TIPOS } from './tipos.js';
+import {
+  Decisao,
+  decidir,
+  MotivoExcecao,
+  podeEmitirSozinha,
+  rotuloRegra,
+  ViaDecisao,
+} from './decisao.js';
+import {
+  alteracoesLicenca,
+  frasesCondicoes,
+  frasesRegras,
+  frasesTaxas,
+  valoresRegras,
+} from './explicar.js';
+import {
+  CARGOS,
+  RegrasVersoesService,
+} from '../regras-publicas/versoes.service.js';
 
 const hora = z
   .string()
@@ -138,9 +157,16 @@ export interface Linha {
   codigo_verificacao: string;
   decidida_por: string | null;
   decidida_por_nome: string | null;
+  decidida_por_perfil: UtilizadorPainel['perfil'] | null;
+  decidida_por_servico: string | null;
   decidida_em: Date | null;
   motivo_recusa: string | null;
   criada_em: Date;
+  /** Como foi decidida (null só em licenças de antes da migração 0068). */
+  decisao: ViaDecisao | null;
+  /** Os motivos concretos da exceção (regra que falhou, dado que falta). */
+  excecao: MotivoExcecao[] | null;
+  regras_versao: number | null;
   telefone: string | null;
   titular: string | null;
   pagamento: {
@@ -156,8 +182,11 @@ export interface Linha {
 const SELECT = `
   SELECT l.id, l.municipio_id, l.processo_id, p.numero, l.tipo, l.municipe_id, l.conversa_id,
          l.dados, l.avaliacao, l.config_usada, l.proposta, l.estado, l.taxa_cent,
-         l.codigo_verificacao, l.decidida_por, u.nome AS decidida_por_nome, l.decidida_em,
-         l.motivo_recusa, l.criada_em, mu.telefone_e164 AS telefone,
+         l.codigo_verificacao, l.decidida_por, u.nome AS decidida_por_nome,
+         u.perfil::text AS decidida_por_perfil,
+         (SELECT s.nome FROM servicos s WHERE s.id = u.servico_id) AS decidida_por_servico,
+         l.decidida_em, l.motivo_recusa, l.criada_em, l.decisao, l.excecao, l.regras_versao,
+         mu.telefone_e164 AS telefone,
          coalesce(l.dados->>'nome', mu.nome) AS titular,
          (SELECT jsonb_build_object('id', pg.id, 'estado', pg.estado, 'metodo', pg.metodo,
                    'valor_cent', pg.valor_cent, 'pago_em', pg.pago_em, 'modo_teste', pg.modo_teste)
@@ -192,6 +221,7 @@ export class LicencasService {
     private readonly conversas: ConversasService,
     private readonly pagamentos: PagamentosService,
     private readonly auditoria: AuditoriaService,
+    private readonly versoes: RegrasVersoesService,
   ) {}
 
   // ------------------------------------------------------------------
@@ -215,29 +245,91 @@ export class LicencasService {
     return validar(DEFS[tipo].esquemaConfig, body);
   }
 
+  /**
+   * Grava as regras de um tipo: fica uma versão nova no histórico público
+   * (o que mudou, quando, o cargo de quem mudou) e o registo na auditoria.
+   */
   async guardarConfig(
     m: Municipio,
     u: UtilizadorPainel,
     c: unknown,
     tipo: TipoLicenca = 'ruido',
+    acao:
+      | 'mudar_regras_licenca'
+      | 'mudar_aprovacao_licenca' = 'mudar_regras_licenca',
   ) {
-    await this.db.query(
-      `INSERT INTO licenca_regras (municipio_id, tipo, config, atualizado_por)
-       VALUES ($1, $2, $3, $4)
-       ON CONFLICT (municipio_id, tipo) DO UPDATE
-         SET config = EXCLUDED.config, atualizado_por = EXCLUDED.atualizado_por, atualizado_em = now()`,
-      [m.id, tipo, JSON.stringify(c), u.id],
-    );
-    await this.auditoria.registar({
-      municipioId: m.id,
-      atorTipo: 'utilizador',
-      atorId: u.id,
-      acao: 'mudar_regras_licenca',
-      objetoTipo: 'licenca_regras',
-      objetoId: m.id,
-      dados: { tipo },
+    const antes = await this.configDe(m.id, tipo);
+    const alteracoes = alteracoesLicenca(tipo, antes, c);
+    const versao = await this.db.transaction(async (tx) => {
+      await tx.query(
+        `INSERT INTO licenca_regras (municipio_id, tipo, config, atualizado_por)
+         VALUES ($1, $2, $3, $4)
+         ON CONFLICT (municipio_id, tipo) DO UPDATE
+           SET config = EXCLUDED.config, atualizado_por = EXCLUDED.atualizado_por, atualizado_em = now()`,
+        [m.id, tipo, JSON.stringify(c), u.id],
+      );
+      const v = await this.versoes.registar(tx, {
+        municipioId: m.id,
+        ambito: 'licenca',
+        chave: tipo,
+        antes,
+        depois: c,
+        alteracoes,
+        utilizador: u,
+        inicialDesde: await this.inicioMunicipio(tx, m.id),
+      });
+      await this.auditoria.registar(
+        {
+          municipioId: m.id,
+          atorTipo: 'utilizador',
+          atorId: u.id,
+          acao,
+          objetoTipo: 'licenca_regras',
+          objetoId: m.id,
+          dados: { tipo, versao: v, alteracoes },
+        },
+        tx,
+      );
+      return v;
     });
-    return { config: c };
+    return { config: c, versao, alteracoes };
+  }
+
+  /**
+   * "Os humanos só tratam das exceções": a câmara escolhe, por tipo, se os
+   * pedidos dentro das regras se decidem sozinhos ou se um funcionário
+   * confirma. Fica no histórico público e na auditoria.
+   */
+  async mudarAprovacao(
+    m: Municipio,
+    u: UtilizadorPainel,
+    tipo: TipoLicenca,
+    aprovacao: 'automatica' | 'funcionario',
+  ) {
+    const atual = (await this.configDe(m.id, tipo)) as ConfigComum;
+    if (atual.aprovacao === aprovacao) {
+      return { tipo, aprovacao, mudou: false, versao: null };
+    }
+    const r = await this.guardarConfig(
+      m,
+      u,
+      { ...atual, aprovacao },
+      tipo,
+      'mudar_aprovacao_licenca',
+    );
+    return { tipo, aprovacao, mudou: true, versao: r.versao };
+  }
+
+  /** Desde quando valem os valores iniciais (o dia em que o município entrou). */
+  async inicioMunicipio(
+    q: Pick<Tx, 'query'>,
+    municipioId: string,
+  ): Promise<Date> {
+    const [r] = await q.query<{ criado_em: Date }>(
+      'SELECT criado_em FROM municipios WHERE id = $1',
+      [municipioId],
+    );
+    return r?.criado_em ?? new Date(0);
   }
 
   /** Os tipos, com as regras em vigor e os campos que o painel edita. */
@@ -280,6 +372,119 @@ export class LicencasService {
         renovavel: d.renovavel,
       };
     });
+  }
+
+  // ------------------------------------------------------------------
+  // O motor: o mesmo para os pedidos reais e para o verificador público
+  // ------------------------------------------------------------------
+
+  /**
+   * Corre as regras em vigor de um tipo sobre um pedido e decide quem o
+   * fecha. É o que `pedir` usa e o que o verificador público usa: a mesma
+   * função, para o resultado ser exatamente o mesmo.
+   */
+  async avaliarPedido(
+    municipioId: string,
+    tipo: TipoLicenca,
+    dados: DadosComuns,
+    hoje: string = hojeLisboa(),
+  ): Promise<{
+    config: ConfigComum;
+    avaliacao: AvaliacaoLicenca;
+    decisao: Decisao;
+    versao: number;
+  }> {
+    const config = (await this.configDe(municipioId, tipo)) as ConfigComum;
+    const feriados = await this.municipios.feriados(municipioId);
+    const avaliacao = DEFS[tipo].avaliar(dados, config, hoje, feriados);
+    const decisao = decidir(
+      tipo,
+      dados,
+      config as ConfigComum & Record<string, unknown>,
+      avaliacao,
+    );
+    const versao = await this.versoes.atual(
+      this.db,
+      municipioId,
+      'licenca',
+      tipo,
+    );
+    return { config, avaliacao, decisao, versao };
+  }
+
+  /**
+   * Indicador "os humanos só tratam das exceções": nos últimos `dias`,
+   * quantos pedidos se decidiram sozinhos e quantos foram exceções (e
+   * porquê), por tipo.
+   */
+  async indicador(m: Municipio, dias = 30) {
+    const porVia = await this.db.query<{
+      tipo: TipoLicenca;
+      decisao: ViaDecisao | null;
+      n: number;
+    }>(
+      `SELECT tipo, decisao, count(*)::int AS n FROM licencas
+       WHERE municipio_id = $1 AND criada_em >= now() - make_interval(days => $2)
+       GROUP BY 1, 2`,
+      [m.id, dias],
+    );
+    const motivos = await this.db.query<{
+      tipo: TipoLicenca;
+      motivo_tipo: MotivoExcecao['tipo'];
+      id: string;
+      rotulo: string;
+      n: number;
+    }>(
+      `SELECT l.tipo, x->>'tipo' AS motivo_tipo, x->>'id' AS id, max(x->>'rotulo') AS rotulo,
+              count(*)::int AS n
+       FROM licencas l, jsonb_array_elements(coalesce(l.excecao, '[]'::jsonb)) x
+       WHERE l.municipio_id = $1 AND l.decisao = 'excecao'
+         AND l.criada_em >= now() - make_interval(days => $2)
+       GROUP BY 1, 2, 3 ORDER BY n DESC, 3`,
+      [m.id, dias],
+    );
+    const regras = await this.db.query<{ tipo: TipoLicenca; config: unknown }>(
+      `SELECT tipo, config FROM licenca_regras WHERE municipio_id = $1`,
+      [m.id],
+    );
+    const conta = (t: TipoLicenca | null, via: ViaDecisao) =>
+      porVia
+        .filter((x) => (t === null || x.tipo === t) && x.decisao === via)
+        .reduce((s, x) => s + x.n, 0);
+    const bloco = (t: TipoLicenca | null) => {
+      const automatica = conta(t, 'automatica');
+      const excecao = conta(t, 'excecao');
+      const funcionario = conta(t, 'funcionario');
+      const total = automatica + excecao + funcionario;
+      return {
+        total,
+        automatica,
+        excecao,
+        funcionario,
+        pct_automatica: total ? Math.round((automatica / total) * 100) : null,
+        pct_excecao: total ? Math.round((excecao / total) * 100) : null,
+      };
+    };
+    return {
+      dias,
+      ...bloco(null),
+      por_tipo: TIPOS.map((t) => ({
+        tipo: t,
+        nome: DEFS[t].nome,
+        aprovacao: (
+          DEFS[t].ler(regras.find((r) => r.tipo === t)?.config) as ConfigComum
+        ).aprovacao,
+        ...bloco(t),
+        motivos: motivos
+          .filter((x) => x.tipo === t)
+          .map((x) => ({
+            tipo: x.motivo_tipo,
+            id: x.id,
+            rotulo: x.motivo_tipo === 'regra' ? rotuloRegra(t, x.id) : x.rotulo,
+            n: x.n,
+          })),
+      })),
+    };
   }
 
   // ------------------------------------------------------------------
@@ -401,11 +606,14 @@ export class LicencasService {
             : `Não há um número para onde mandar ${def.feminino ? 'a' : 'o'} ${def.curto}. Pede o número de telemóvel e usa identificar_municipe, ou passa a um funcionário.`,
       };
     }
-    const config = (await this.configDe(m.id, tipo)) as ConfigComum;
-    const feriados = await this.municipios.feriados(m.id);
-    const avaliacao = def.avaliar(e, config, hojeLisboa(), feriados);
+    const { config, avaliacao, decisao, versao } = await this.avaliarPedido(
+      m.id,
+      tipo,
+      e,
+    );
     const resumo = def.resumo(e, config, null);
     const aprovar = avaliacao.proposta === 'aprovar';
+    const automatica = decisao.via === 'automatica';
     const taxa = avaliacao.taxa.total_cent;
     const comTaxa = aprovar && taxa > 0;
 
@@ -464,8 +672,9 @@ export class LicencasService {
           : 'por_aprovar';
       const [l] = await tx.query<{ id: string }>(
         `INSERT INTO licencas (municipio_id, processo_id, tipo, municipe_id, conversa_id, dados,
-           avaliacao, config_usada, proposta, estado, taxa_cent, codigo_verificacao, renova_licenca_id)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING id`,
+           avaliacao, config_usada, proposta, estado, taxa_cent, codigo_verificacao, renova_licenca_id,
+           decisao, excecao, regras_versao)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16) RETURNING id`,
         [
           m.id,
           p.id,
@@ -480,8 +689,15 @@ export class LicencasService {
           aprovar ? taxa : 0,
           codigo,
           opcoes.renova?.id ?? null,
+          decisao.via,
+          decisao.motivos.length ? JSON.stringify(decisao.motivos) : null,
+          versao,
         ],
       );
+      // Dentro das regras, sem taxa e com a câmara a deixar decidir sozinho:
+      // emite-se já (ex.: o anúncio pequeno do próprio estabelecimento).
+      const emitida = estado === 'por_aprovar' && automatica;
+      if (emitida) await this.emitir(tx, l.id, null, 'regras');
       await this.conversas.momento(
         ctx.conversaId,
         'requerimento',
@@ -502,7 +718,7 @@ export class LicencasService {
           tx,
         );
       }
-      return { licencaId: l.id, processoId: p.id, numero };
+      return { licencaId: l.id, processoId: p.id, numero, emitida };
     });
 
     let pagamento: Awaited<ReturnType<PagamentosService['criar']>> | null =
@@ -521,12 +737,28 @@ export class LicencasService {
     }
 
     const seguePorSms = `${def.feminino ? 'a' : 'o'} ${def.curto} segue por SMS, com um código QR.`;
+    const faltas = decisao.motivos
+      .filter((x) => x.tipo === 'dado_em_falta')
+      .map((x) => x.rotulo.toLowerCase());
+    const quandoPaga = comTaxa ? 'Assim que estiver paga, ' : '';
+    const depois = r.emitida
+      ? `Como cumpre as regras, ${def.feminino ? 'ficou emitida' : 'ficou emitido'} já: ${seguePorSms}`
+      : automatica
+        ? `${quandoPaga}${seguePorSms}`
+        : faltas.length
+          ? `Como não sei ${faltas.join(' nem ')}, um funcionário confirma. ${quandoPaga}${seguePorSms}`
+          : `${quandoPaga}um funcionário confirma e ${seguePorSms}`;
     return {
       pedida: true,
       tipo,
       numero: r.numero,
       ...(opcoes.renova ? { renova: opcoes.renova.numero } : {}),
       proposta: avaliacao.proposta,
+      decisao: decisao.via,
+      ...(decisao.motivos.length
+        ? { motivos: decisao.motivos.map((x) => x.texto) }
+        : {}),
+      emitida: r.emitida,
       regras: avaliacao.regras.map((x) => `${x.ok ? '✓' : '✗'} ${x.texto}`),
       condicoes: avaliacao.condicoes,
       taxa: aprovar ? formatarEuros(taxa) : null,
@@ -538,9 +770,7 @@ export class LicencasService {
           (comTaxa
             ? `A taxa é de ${formatarEuros(taxa)}. ${pagamento?.dizer ?? ''} `
             : '') +
-          (config.aprovacao === 'automatica'
-            ? `Assim que estiver paga, ${seguePorSms}`
-            : `Assim que estiver paga, um funcionário confirma e ${seguePorSms}`)
+          maiuscula(depois)
         : `O pedido ficou registado com o número ${r.numero}, mas não cabe nas regras automáticas: ${avaliacao.regras
             .filter((x) => !x.ok)
             .map((x) => x.texto)
@@ -563,11 +793,13 @@ export class LicencasService {
     const pagas = await this.db.query<{
       id: string;
       municipio_id: string;
-      automatica: boolean;
+      decisao: ViaDecisao | null;
+      proposta: 'aprovar' | 'tecnico';
+      avaliacao: Linha['avaliacao'];
+      excecao: MotivoExcecao[] | null;
       decidida_por: string | null;
     }>(
-      `SELECT l.id, l.municipio_id, (l.config_usada->>'aprovacao') = 'automatica' AS automatica,
-              l.decidida_por
+      `SELECT l.id, l.municipio_id, l.decisao, l.proposta, l.avaliacao, l.excecao, l.decidida_por
        FROM licencas l
        WHERE l.estado = 'a_pagar' AND ($1::uuid IS NULL OR l.municipio_id = $1)
          AND EXISTS (SELECT 1 FROM pagamentos pg WHERE pg.processo_id = l.processo_id AND pg.estado = 'pago')`,
@@ -580,7 +812,9 @@ export class LicencasService {
           [l.id],
         );
         if (!mudou) return;
-        if (l.automatica || l.decidida_por) {
+        // Sem ninguém, só se a decisão foi automática e as regras guardadas
+        // passam todas; um técnico que aprovou antes do pagamento também conta.
+        if (l.decidida_por || podeEmitirSozinha(l)) {
           await this.emitir(
             tx,
             l.id,
@@ -790,6 +1024,7 @@ export class LicencasService {
       detalhes: r.detalhes,
       condicoes: l.avaliacao.condicoes,
       emitida_em: emitida ? (l.decidida_em?.toISOString() ?? null) : null,
+      decidida_automaticamente: emitida && !l.decidida_por,
       fonte: l.config_usada.fonte.titulo,
       modo_teste: l.pagamento?.modo_teste ?? true,
       regras_de_demonstracao: l.config_usada.demonstracao,
@@ -799,6 +1034,80 @@ export class LicencasService {
         emitida && r.valida_ate && r.valida_ate >= hoje
           ? avisoMaisCedo(l.tipo, await this.configDe(l.municipio_id, l.tipo))
           : null,
+    };
+  }
+
+  /**
+   * "Porque foi aprovada": as regras que o motor aplicou a esta licença (as
+   * guardadas no dia do pedido, não as de hoje), como foi decidida e a
+   * versão das regras em vigor nesse dia. Pública, como a página do QR.
+   */
+  async porque(codigo: string) {
+    const l = await this.porCodigo(codigo);
+    const municipio = await this.municipios.porId(l.municipio_id);
+    const def = DEFS[l.tipo];
+    const atual = await this.versoes.atual(
+      this.db,
+      l.municipio_id,
+      'licenca',
+      l.tipo,
+    );
+    const numero = l.regras_versao;
+    const [v] = numero
+      ? await this.db.query<{
+          vigor_desde: Date;
+          cargo: string | null;
+          alteracoes: unknown[];
+        }>(
+          `SELECT vigor_desde, cargo, alteracoes FROM regras_versoes
+           WHERE municipio_id = $1 AND ambito = 'licenca' AND chave = $2 AND versao = $3`,
+          [l.municipio_id, l.tipo, numero],
+        )
+      : [];
+    const inicio = await this.inicioMunicipio(this.db, l.municipio_id);
+    const c = l.config_usada;
+    const decidida = l.estado === 'emitida' || l.estado === 'recusada';
+    return {
+      numero: l.numero,
+      tipo: l.tipo,
+      titulo: def.nome,
+      feminino: def.feminino,
+      municipio: municipio.nome,
+      municipio_slug: municipio.slug,
+      estado: l.estado,
+      pedida_em: l.criada_em.toISOString(),
+      decidida_em: decidida ? (l.decidida_em?.toISOString() ?? null) : null,
+      decisao: l.decisao,
+      // Quem decidiu: as regras, ou o cargo de quem aprovou (o nome não é público).
+      decidida_por: !decidida
+        ? null
+        : l.decidida_por_perfil
+          ? `${CARGOS[l.decidida_por_perfil]}${l.decidida_por_servico ? ` · ${l.decidida_por_servico}` : ''}`
+          : 'Regras automáticas da câmara',
+      regras: l.avaliacao.regras.map((r) => ({
+        ...r,
+        rotulo: rotuloRegra(l.tipo, r.id),
+      })),
+      excecao: (l.excecao ?? []).map((x) => ({
+        ...x,
+        rotulo: x.tipo === 'regra' ? rotuloRegra(l.tipo, x.id) : x.rotulo,
+      })),
+      condicoes: l.avaliacao.condicoes,
+      versao: {
+        numero,
+        atual,
+        em_vigor_hoje: numero !== null && numero === atual,
+        vigor_desde: numero ? (v?.vigor_desde ?? inicio).toISOString() : null,
+        cargo: v?.cargo ?? null,
+        // As regras exatamente como estavam nesse dia (guardadas no pedido).
+        frases: frasesRegras(l.tipo, c),
+        valores: valoresRegras(l.tipo, c),
+        taxas: frasesTaxas(l.tipo, c),
+        condicoes: frasesCondicoes(l.tipo, c),
+        fonte: c.fonte,
+        demonstracao: c.demonstracao,
+      },
+      modo_teste: l.pagamento?.modo_teste ?? true,
     };
   }
 
@@ -1031,6 +1340,13 @@ export class LicencasService {
       decidida_em: l.decidida_em?.toISOString() ?? null,
       motivo_recusa: l.motivo_recusa,
       criada_em: l.criada_em.toISOString(),
+      decisao: l.decisao,
+      // O motivo concreto da exceção (o que a pessoa tem de ver).
+      excecao: (l.excecao ?? []).map((x) => ({
+        ...x,
+        rotulo: x.tipo === 'regra' ? rotuloRegra(l.tipo, x.id) : x.rotulo,
+      })),
+      regras_versao: l.regras_versao,
     };
   }
 }
@@ -1063,6 +1379,10 @@ function taxaDe(l: Linha): { linhas: LinhaTaxa[]; total_cent: number } {
 function avisoMaisCedo(tipo: TipoLicenca, config: unknown): number | null {
   const a = avisosDe(tipo, config);
   return a ? (diasDeAviso(a)[0] ?? null) : null;
+}
+
+function maiuscula(s: string): string {
+  return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
 /** "Maria Silva" → "Maria S." (a página do QR é pública). */

@@ -1,6 +1,6 @@
 "use client";
 
-import { BadgeCheck, Check, ExternalLink, FileText, MessageSquareText, X } from "lucide-react";
+import { BadgeCheck, Bot, Check, CircleHelp, ExternalLink, FileText, MessageSquareText, TriangleAlert, X } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import {
@@ -17,6 +17,7 @@ import {
   useDados,
 } from "@/components/conhecimento/comum";
 import { AExpirar } from "@/components/licencas/a-expirar";
+import { IndicadorExcecoes } from "@/components/licencas/excecoes";
 import { InfoTipo, RegrasTipo, TipoLicenca } from "@/components/licencas/regras-tipo";
 import { CabecalhoPagina } from "@/components/painel/cabecalho";
 import { Botao } from "@/components/ui/botao";
@@ -64,6 +65,9 @@ interface Licenca {
   decidida_em: string | null;
   motivo_recusa: string | null;
   criada_em: string;
+  /** Como foi decidida: sozinha, exceção (com motivos) ou funcionário por escolha da câmara. */
+  decisao?: "automatica" | "excecao" | "funcionario" | null;
+  excecao?: { tipo: "regra" | "dado_em_falta"; id: string; rotulo: string; texto: string }[];
 }
 
 interface Lista {
@@ -191,7 +195,10 @@ export function PaginaLicencas() {
             </Estado>
           </div>
         )}
-        {regras && <RegrasTipo key={`${regras.tipo}:${regras.atualizado_em}`} info={regras} onMudou={d.recarregar} />}
+        <div className="flex min-w-0 flex-col gap-6">
+          <IndicadorExcecoes onMudou={d.recarregar} />
+          {regras && <RegrasTipo key={`${regras.tipo}:${regras.atualizado_em}`} info={regras} onMudou={d.recarregar} />}
+        </div>
       </div>
     </div>
   );
@@ -228,6 +235,17 @@ function CartaoLicenca({ l, onMudou }: { l: Licenca; onMudou: () => void }) {
                 fora das regras
               </Pilula>
             )}
+            {l.decisao === "automatica" && (
+              <Pilula tom="verde" icone={Bot}>
+                decidida automaticamente
+              </Pilula>
+            )}
+            {l.decisao === "excecao" && (
+              <Pilula tom="ambar" icone={TriangleAlert}>
+                exceção
+              </Pilula>
+            )}
+            {l.decisao === "funcionario" && <Pilula tom="neutro">funcionário confirma (escolha da câmara)</Pilula>}
           </div>
           <span className="font-display text-lg font-bold text-tinta">
             {l.tipo === "ruido" ? l.resumo.descricao : l.resumo.atividade}
@@ -265,6 +283,28 @@ function CartaoLicenca({ l, onMudou }: { l: Licenca; onMudou: () => void }) {
           )}
         </div>
       </div>
+
+      {(l.excecao ?? []).length > 0 && (
+        <div className="flex flex-col gap-1.5 border-b border-linha bg-ambar-suave/40 px-5 py-3">
+          <Rotulo>{l.decisao === "excecao" ? "Porque é uma exceção" : "O que falta saber"}</Rotulo>
+          <ul className="flex flex-col gap-1">
+            {(l.excecao ?? []).map((m) => (
+              <li key={`${m.tipo}:${m.id}`} className="flex items-start gap-2 text-[13px] text-tinta">
+                {m.tipo === "regra" ? (
+                  <X className="mt-0.5 size-4 shrink-0 text-terracota" aria-hidden />
+                ) : (
+                  <CircleHelp className="mt-0.5 size-4 shrink-0 text-ambar" aria-hidden />
+                )}
+                <span>
+                  <span className="font-semibold">{m.tipo === "regra" ? m.rotulo : `Falta: ${m.rotulo.toLowerCase()}`}</span>
+                  {" · "}
+                  {m.texto}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <div className="grid gap-4 px-5 py-4 md:grid-cols-2">
         <div>

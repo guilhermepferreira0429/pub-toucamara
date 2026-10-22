@@ -39,6 +39,7 @@ const VERBOS: Record<string, string> = {
   recusar_licenca: 'recusou',
   aprovar_licenca: 'aprovou',
   mudar_regras_licenca: 'mudou as regras de',
+  mudar_aprovacao_licenca: 'mudou quem decide os pedidos de',
   carregar_historico_licencas_demonstracao:
     'carregou pedidos antigos de demonstração de',
   ligou_assistente_ia: 'ligou um assistente de IA',

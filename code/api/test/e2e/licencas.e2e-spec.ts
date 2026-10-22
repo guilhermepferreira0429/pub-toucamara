@@ -40,8 +40,22 @@ describe('Licenças decididas na chamada (e2e)', () => {
   beforeAll(async () => {
     ctx = await arrancarApp();
     chefe = await entrarPainel(ctx);
+    // Estes testes são do fluxo "um funcionário aprova com um clique".
+    await ctx
+      .http()
+      .put('/v1/painel/licencas/aprovacao/ruido')
+      .set(chefe)
+      .send({ aprovacao: 'funcionario' })
+      .expect(200);
   });
-  afterAll(() => ctx.fechar());
+  afterAll(async () => {
+    await ctx
+      .http()
+      .put('/v1/painel/licencas/aprovacao/ruido')
+      .set(chefe)
+      .send({ aprovacao: 'automatica' });
+    await ctx.fechar();
+  });
 
   const festa = (data = sabadoDistante()) => ({
     atividade: 'festa_privada',

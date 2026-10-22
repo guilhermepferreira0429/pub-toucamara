@@ -29,6 +29,8 @@ export const FILA_AVISOS_LICENCAS = 'licencas_avisos';
   imports: [PagamentosModule],
   controllers: [LicencasPainelController, LicencasPublicoController],
   providers: [LicencasService, LicencasAvisosService],
+  // As regras públicas e o verificador usam o mesmo motor.
+  exports: [LicencasService],
 })
 export class LicencasModule implements OnModuleInit {
   constructor(

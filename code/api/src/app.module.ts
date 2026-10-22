@@ -55,6 +55,8 @@ import { AppMunicipeModule } from './modules/app-municipe/app-municipe.module.js
 import { PushModule } from './modules/app-municipe/push.module.js';
 import { ArquivoModule } from './modules/arquivo/arquivo.module.js';
 import { OrdenamentoModule } from './modules/ordenamento/ordenamento.module.js';
+import { RegrasPublicasModule } from './modules/regras-publicas/regras-publicas.module.js';
+import { RegrasVersoesModule } from './modules/regras-publicas/versoes.service.js';
 import { FiscalizacaoModule } from './modules/fiscalizacao/fiscalizacao.module.js';
 import { ReclamacoesModule } from './modules/reclamacoes/reclamacoes.module.js';
 import { ReunioesModule } from './modules/reunioes/reunioes.module.js';
@@ -122,6 +124,9 @@ import { EntregasModule } from './modules/entregas/entregas.module.js';
     LicencasModule,
     OrdenamentoModule,
     EmpresasModule,
+    // Regras públicas e verificáveis (histórico das regras, verificador)
+    RegrasVersoesModule,
+    RegrasPublicasModule,
     ApoiosModule,
     // V2
     EntradaModule,
