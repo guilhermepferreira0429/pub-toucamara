@@ -65,10 +65,12 @@ export function ChatNoSite({ contexto }: { contexto?: string }) {
         className="flex flex-col gap-4 rounded-2xl border border-[#e5e7eb] bg-[#f9fafb] p-6"
       >
         <div className="flex flex-col gap-1">
-          <h2 className="text-lg font-bold text-[#111827]">Tem dúvidas sobre o seu caso?</h2>
+          <h2 className="text-lg font-bold text-[#111827]">
+            Tem dúvidas sobre o seu caso?
+          </h2>
           <p className="text-sm leading-relaxed text-[#374151]">
-            O atendimento da câmara responde a qualquer hora, com base nos regulamentos
-            oficiais. Por telefone ou por escrito.
+            O atendimento da câmara responde a qualquer hora, com base nos
+            regulamentos oficiais. Por telefone ou por escrito.
           </p>
         </div>
         <div className="flex flex-wrap gap-3">
@@ -101,7 +103,11 @@ export function ChatNoSite({ contexto }: { contexto?: string }) {
             variante="janela"
             contexto={contexto}
             aoFechar={fechar}
-            sugestoes={["Posso trocar as janelas?", "Preciso de licença?", "Quanto custa?"]}
+            sugestoes={[
+              "Posso trocar as janelas?",
+              "Preciso de licença?",
+              "Quanto custa?",
+            ]}
           />
         </div>
       )}

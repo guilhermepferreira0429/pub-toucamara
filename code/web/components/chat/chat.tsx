@@ -95,7 +95,9 @@ interface ReconhecimentoFala {
   continuous: boolean;
   start(): void;
   stop(): void;
-  onresult: ((e: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void) | null;
+  onresult:
+    | ((e: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void)
+    | null;
   onend: (() => void) | null;
   onerror: (() => void) | null;
 }
@@ -132,7 +134,8 @@ function useDitado(lingua: string, aoTexto: (t: string) => void) {
     r.continuous = false;
     r.onresult = (e) => {
       let t = "";
-      for (let i = 0; i < e.results.length; i++) t += e.results[i][0].transcript;
+      for (let i = 0; i < e.results.length; i++)
+        t += e.results[i][0].transcript;
       aoTexto(t);
     };
     r.onend = r.onerror = () => {
@@ -253,7 +256,9 @@ export function Chat({
       (m) =>
         m.papel === "agente" &&
         m.estado === "feita" &&
-        (m.usadas ?? []).some((u) => u === "estado_processo" || u === "identificar_municipe"),
+        (m.usadas ?? []).some(
+          (u) => u === "estado_processo" || u === "identificar_municipe",
+        ),
     )?.id;
   const passouAPessoa = chat.mensagens.some((m) =>
     (m.usadas ?? []).includes("passar_a_humano"),
@@ -312,7 +317,10 @@ export function Chat({
           aria-label="Falar com uma pessoa"
           className={`inline-flex shrink-0 items-center gap-1.5 rounded-full bg-terracota-suave font-semibold text-terracota-escuro transition-colors hover:bg-terracota-suave/70 disabled:opacity-60 ${janela ? "min-h-9 px-[11px] py-[7px] text-xs" : "min-h-11 px-3.5 py-2 text-[14px]"}`}
         >
-          <UserRound className={janela ? "size-3.5" : "size-[15px]"} aria-hidden />
+          <UserRound
+            className={janela ? "size-3.5" : "size-[15px]"}
+            aria-hidden
+          />
           Pessoa
         </button>
         {janela && aoFechar && (
@@ -336,7 +344,9 @@ export function Chat({
           <WifiOff className="size-4 shrink-0 text-ambar" aria-hidden />
           <div className="flex min-w-0 flex-1 flex-col gap-px">
             <p className="text-[13px] font-bold text-ambar">
-              {chat.ligacao === "sem_ligacao" ? "Está sem ligação" : "O chat não está disponível"}
+              {chat.ligacao === "sem_ligacao"
+                ? "Está sem ligação"
+                : "O chat não está disponível"}
             </p>
             <p className="text-xs text-tinta-2">
               {chat.ligacao === "sem_ligacao"
@@ -360,7 +370,8 @@ export function Chat({
         ref={scroller}
         onScroll={(e) => {
           const el = e.currentTarget;
-          colado.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+          colado.current =
+            el.scrollHeight - el.scrollTop - el.clientHeight < 80;
         }}
         className="min-h-0 flex-1 overflow-y-auto overscroll-contain"
       >
@@ -402,10 +413,7 @@ export function Chat({
                 />
                 {m.id === idIdentificar && (
                   <div className={janela ? "w-full" : "w-full max-w-[310px]"}>
-                    <IdentificacaoSms
-                      chat={chat}
-                      aoConfirmar={() => focar()}
-                    />
+                    <IdentificacaoSms chat={chat} aoConfirmar={() => focar()} />
                   </div>
                 )}
               </div>
@@ -455,7 +463,11 @@ export function Chat({
             value={rascunho}
             onChange={(e) => setRascunho(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
+              if (
+                e.key === "Enter" &&
+                !e.shiftKey &&
+                !e.nativeEvent.isComposing
+              ) {
                 e.preventDefault();
                 submeter();
               }
@@ -482,7 +494,10 @@ export function Chat({
             disabled={!rascunho.trim() || chat.ocupado}
             className={`flex shrink-0 items-center justify-center rounded-full bg-terracota text-white transition-colors hover:bg-terracota-escuro disabled:bg-terracota/50 ${janela ? "size-[42px]" : "size-[46px]"}`}
           >
-            <ArrowUp className={janela ? "size-[18px]" : "size-5"} aria-hidden />
+            <ArrowUp
+              className={janela ? "size-[18px]" : "size-5"}
+              aria-hidden
+            />
           </button>
         </div>
         {janela && (
@@ -555,7 +570,9 @@ function RespostaAgente({
       {m.cartoes.map((c, i) => (
         <CartaoChat key={`${c.tipo}-${i}`} cartao={c} acoes={acoes} />
       ))}
-      {aCorrer && (!m.texto || m.ferramenta) && <IndicadorAEscrever rotulo={rotulo} />}
+      {aCorrer && (!m.texto || m.ferramenta) && (
+        <IndicadorAEscrever rotulo={rotulo} />
+      )}
       {(m.estado === "interrompida" || m.estado === "erro") && (
         <p className="flex flex-wrap items-center gap-x-2 text-xs text-tinta-2">
           <span>

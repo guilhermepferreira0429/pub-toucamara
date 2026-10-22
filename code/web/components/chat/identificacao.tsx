@@ -29,7 +29,10 @@ export function IdentificacaoSms({
   if (chat.identificado) {
     return (
       <div className="flex w-full items-center gap-2 rounded-[4px_18px_18px_18px] border border-verde bg-papel px-4 py-3 text-sm text-tinta">
-        <span className="flex size-6 items-center justify-center rounded-full bg-verde" aria-hidden>
+        <span
+          className="flex size-6 items-center justify-center rounded-full bg-verde"
+          aria-hidden
+        >
           <Check className="size-3.5 text-white" />
         </span>
         Identificado pelo número {chat.identificado}.
@@ -47,7 +50,9 @@ export function IdentificacaoSms({
       setPasso("codigo");
       requestAnimationFrame(() => campoCodigo.current?.focus());
     } catch (e) {
-      setErro(e instanceof ErroApi ? e.message : "Não foi possível enviar o código.");
+      setErro(
+        e instanceof ErroApi ? e.message : "Não foi possível enviar o código.",
+      );
     } finally {
       setAEnviar(false);
     }
@@ -62,14 +67,18 @@ export function IdentificacaoSms({
       aoConfirmar();
     } catch (e) {
       if (e instanceof ErroApi) {
-        const restantes = (e.detalhes as { tentativas_restantes?: number } | undefined)
-          ?.tentativas_restantes;
+        const restantes = (
+          e.detalhes as { tentativas_restantes?: number } | undefined
+        )?.tentativas_restantes;
         setErro(
           typeof restantes === "number"
             ? `${e.message} Restam ${restantes} tentativas.`
             : e.message,
         );
-        if (e.codigo === "codigo_expirado" || e.codigo === "demasiadas_tentativas") {
+        if (
+          e.codigo === "codigo_expirado" ||
+          e.codigo === "demasiadas_tentativas"
+        ) {
           setPasso("telefone");
           setCodigo("");
         }
@@ -87,11 +96,16 @@ export function IdentificacaoSms({
   return (
     <div className="flex w-full flex-col gap-3 rounded-[4px_18px_18px_18px] border border-linha bg-papel p-4">
       <p className="flex items-center gap-2.5">
-        <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-tinta" aria-hidden>
+        <span
+          className="flex size-8 shrink-0 items-center justify-center rounded-full bg-tinta"
+          aria-hidden
+        >
           <ShieldCheck className="size-4 text-white" />
         </span>
         <span className="flex flex-col">
-          <span className="text-[15px] font-bold text-tinta">Identificar-me</span>
+          <span className="text-[15px] font-bold text-tinta">
+            Identificar-me
+          </span>
           <span className="text-xs text-tinta-2">
             Para ver os seus processos, enviamos um código por SMS.
           </span>
@@ -115,7 +129,11 @@ export function IdentificacaoSms({
             minLength={6}
             maxLength={25}
           />
-          <button type="submit" className={botao} disabled={aEnviar || telefone.trim().length < 6}>
+          <button
+            type="submit"
+            className={botao}
+            disabled={aEnviar || telefone.trim().length < 6}
+          >
             {aEnviar ? "A enviar…" : "Enviar código"}
           </button>
         </form>
@@ -151,7 +169,11 @@ export function IdentificacaoSms({
               className={`${campo} font-mono tracking-[0.3em]`}
               required
             />
-            <button type="submit" className={botao} disabled={aEnviar || codigo.length !== 6}>
+            <button
+              type="submit"
+              className={botao}
+              disabled={aEnviar || codigo.length !== 6}
+            >
               {aEnviar ? "A confirmar…" : "Confirmar"}
             </button>
           </div>

@@ -48,11 +48,16 @@ function useTextoSuave(texto: string, aCorrer: boolean) {
   useEffect(() => {
     if (n >= texto.length) return;
     const id = requestAnimationFrame(() => {
-      const reduzir = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      const reduzir = window.matchMedia(
+        "(prefers-reduced-motion: reduce)",
+      ).matches;
       setN((v) =>
         reduzir
           ? texto.length
-          : Math.min(texto.length, v + Math.max(2, Math.ceil((texto.length - v) / 6))),
+          : Math.min(
+              texto.length,
+              v + Math.max(2, Math.ceil((texto.length - v) / 6)),
+            ),
       );
     });
     return () => cancelAnimationFrame(id);
