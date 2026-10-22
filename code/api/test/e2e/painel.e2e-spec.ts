@@ -250,6 +250,7 @@ describe('Painel (e2e)', () => {
         transparencia: true,
         fiscalizacao: true,
         arquivo: true,
+        comunicados: true,
       });
 
       const a = await ctx

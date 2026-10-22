@@ -5,16 +5,41 @@ import { DatabaseService } from '../../database/database.service.js';
 import type { ContextoFerramenta } from '../../ferramentas/ferramenta.js';
 import { RegistoFerramentas } from '../../ferramentas/registo-ferramentas.service.js';
 import { MensagensService } from '../comunicacao/mensagens.service.js';
-import { normalizarTelefone } from '../municipes/municipes.service.js';
 import {
+  MunicipesService,
+  normalizarTelefone,
+} from '../municipes/municipes.service.js';
+import {
+  eIntencaoAgora,
   intencao,
   MAXIMO_POR_HORA,
   numeroNoSms,
+  pareceMorada,
+  respostaAgora,
   respostaAjuda,
+  respostaAvisar,
   respostaEstado,
+  respostaMoradaNaoEncontrada,
+  respostaPedirMorada,
+  tiposAvisar,
   type Intencao,
+  type IntencaoAgora,
+  type ResultadoAgora,
+  type ResultadoAvisar,
   type ResultadoEstado,
 } from './regras.js';
+
+/** O que se grava em `sms_recebidos.intencao`. */
+export type IntencaoSms = Intencao | 'morada';
+
+/** Quanto tempo esperamos pela rua/freguesia depois de a pedir. */
+const ESPERA_MORADA_HORAS = 24;
+
+interface ResultadoFerramentaAgora extends ResultadoAgora, ResultadoAvisar {
+  precisa_morada?: boolean;
+  morada_nao_encontrada?: boolean;
+  precisa_identificacao?: boolean;
+}
 
 export interface MunicipioSms {
   id: string;
@@ -39,6 +64,7 @@ export class SmsEntradaService {
     private readonly config: ConfigService,
     private readonly registo: RegistoFerramentas,
     private readonly mensagens: MensagensService,
+    private readonly municipes: MunicipesService,
   ) {}
 
   urlWebhook(): string {
@@ -53,7 +79,7 @@ export class SmsEntradaService {
   }
 
   /** Trata um SMS recebido. Devolve a intenção (ou 'ignorado'). */
-  async receber(p: Record<string, string>): Promise<Intencao | 'ignorado'> {
+  async receber(p: Record<string, string>): Promise<IntencaoSms | 'ignorado'> {
     const de = normalizarTelefone(p['From']);
     const para = normalizarTelefone(p['To']);
     const corpo = (p['Body'] ?? '').slice(0, 1000);
@@ -82,7 +108,7 @@ export class SmsEntradaService {
        WHERE municipio_id = $1 AND de = $2 AND recebido_em > now() - interval '1 hour'`,
       [m.id, de],
     );
-    const qual = intencao(corpo);
+    const qual = await this.classificar(municipe?.id ?? null, corpo);
     const responder = (recentes?.n ?? 0) < MAXIMO_POR_HORA;
 
     const [registo] = await this.db.query<{ id: string }>(
@@ -127,10 +153,106 @@ export class SmsEntradaService {
     return qual;
   }
 
+  /** O que estamos à espera que a pessoa diga ('obras', 'avisar:obras'...). */
+  private async espera(municipeId: string | null): Promise<string | null> {
+    if (!municipeId) return null;
+    const [r] = await this.db.query<{ sms_espera: string | null }>(
+      `SELECT sms_espera FROM municipes
+       WHERE id = $1 AND sms_espera_em > now() - make_interval(hours => $2)`,
+      [municipeId, ESPERA_MORADA_HORAS],
+    );
+    return r?.sms_espera ?? null;
+  }
+
+  /**
+   * A intenção, contando com a conversa: depois de "Responda com o nome da
+   * sua rua ou freguesia", o que vier (que não seja uma palavra-chave) é a
+   * morada.
+   */
+  async classificar(
+    municipeId: string | null,
+    corpo: string,
+  ): Promise<IntencaoSms> {
+    const qual = intencao(corpo);
+    if (
+      (qual === 'ajuda' || qual === 'estado') &&
+      pareceMorada(corpo) &&
+      (await this.espera(municipeId))
+    ) {
+      return 'morada';
+    }
+    return qual;
+  }
+
+  private async esperarMorada(
+    municipeId: string,
+    espera: string,
+  ): Promise<void> {
+    await this.db.query(
+      `UPDATE municipes SET sms_espera = $2, sms_espera_em = now() WHERE id = $1`,
+      [municipeId, espera],
+    );
+  }
+
+  /**
+   * OBRAS, AVISOS, EVENTOS, INCIDENTES, AVISAR ... e a resposta com a rua:
+   * pelas ferramentas o_que_se_passa e avisar_me (as mesmas do agente).
+   */
+  private async responderAgora(
+    m: MunicipioSms,
+    ctx: ContextoFerramenta,
+    qual: IntencaoAgora | 'avisar' | 'morada',
+    corpo: string,
+  ): Promise<string> {
+    let espera: string | null = null;
+    let morada: string | undefined;
+    if (qual === 'morada') {
+      espera = await this.espera(ctx.municipeId);
+      morada = corpo.trim();
+    } else if (qual === 'avisar') {
+      espera = `avisar:${tiposAvisar(corpo).join(',')}`;
+    } else {
+      espera = qual;
+    }
+    if (!espera) return respostaAjuda(m.nome, m.telefone_linha);
+
+    const avisar = espera.startsWith('avisar:');
+    const tipos = (avisar ? espera.slice(7) : espera)
+      .split(',')
+      .filter(Boolean) as IntencaoAgora[];
+    const r = (await this.registo.executar(
+      avisar ? 'avisar_me' : 'o_que_se_passa',
+      ctx,
+      avisar ? { tipos, morada } : { tipos, morada, limite: 3 },
+    )) as ResultadoFerramentaAgora;
+
+    if (r?.morada_nao_encontrada && morada) {
+      if (ctx.municipeId) await this.esperarMorada(ctx.municipeId, espera);
+      return respostaMoradaNaoEncontrada(m.nome, morada);
+    }
+    if (r?.precisa_morada) {
+      // Guardamos o pedido para quando a pessoa responder com a rua.
+      const municipeId =
+        ctx.municipeId ??
+        (await this.municipes.porTelefone(m.id, ctx.telefone))?.id ??
+        null;
+      if (!municipeId) return respostaAjuda(m.nome, m.telefone_linha);
+      await this.esperarMorada(municipeId, espera);
+      return respostaPedirMorada(m.nome);
+    }
+    if (avisar) {
+      return r?.subscrito
+        ? respostaAvisar(m.nome, r)
+        : respostaAjuda(m.nome, m.telefone_linha);
+    }
+    return respostaAgora(m.nome, tipos[0] ?? 'obras', r ?? {});
+  }
+
   /**
    * A resposta sem IA, pelas ferramentas do agente: estado do processo (só
-   * os associados ao número), PARAR (avisos por zona) ou ajuda. Também a
-   * usa o WhatsApp quando não há IA.
+   * os associados ao número), PARAR (avisos por zona), o que se passa perto
+   * (OBRAS, AVISOS, EVENTOS, INCIDENTES, AVISAR ...) ou ajuda. Também a usa
+   * o WhatsApp quando não há IA.
    */
   async respostaSemIa(
     m: MunicipioSms,
@@ -146,7 +268,10 @@ export class SmsEntradaService {
       municipeId,
       telefone: de,
     };
-    const qual = intencao(corpo);
+    const qual = await this.classificar(municipeId, corpo);
+    if (qual === 'morada' || qual === 'avisar' || eIntencaoAgora(qual)) {
+      return this.responderAgora(m, ctx, qual, corpo);
+    }
     if (qual === 'parar') {
       const r = (await this.registo.executar('nao_quero_avisos', ctx, {})) as {
         dizer?: string;

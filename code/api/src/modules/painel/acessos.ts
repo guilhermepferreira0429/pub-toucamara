@@ -124,6 +124,18 @@ const VERBOS: Record<string, string> = {
     'alertou as chefias e a proteção civil de um pedido de ajuda em',
   tratar_pedido_ajuda_emergencia: 'tratou um pedido de ajuda de',
   mudar_config_emergencias: 'mudou o ritmo de envio e os contactos de',
+  criar_comunicado: 'escreveu',
+  editar_comunicado: 'editou',
+  publicar_comunicado: 'publicou',
+  despublicar_comunicado: 'tirou do feed',
+  apagar_comunicado: 'apagou',
+  criar_evento: 'criou',
+  editar_evento: 'editou',
+  publicar_evento: 'publicou',
+  despublicar_evento: 'tirou do feed',
+  apagar_evento: 'apagou',
+  subscrever_agora: 'pediu avisos de',
+  aceitar_avisos: 'voltou a aceitar avisos em',
 };
 
 const OBJETOS: Record<string, string> = {
@@ -175,6 +187,9 @@ const OBJETOS: Record<string, string> = {
   pedido_arquivo: 'um pedido de consulta ao arquivo',
   emergencia: 'um aviso de emergência',
   emergencias_config: 'os avisos de emergência',
+  comunicado: 'um comunicado ou notícia',
+  evento: 'um evento',
+  agora_subscricao: 'uma zona (o que se passa perto de mim)',
 };
 
 export function frase(acao: string, objetoTipo: string): string {

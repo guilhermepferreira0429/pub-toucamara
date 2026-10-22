@@ -19,6 +19,8 @@ import { FerramentasModule } from './ferramentas/ferramentas.module.js';
 import { IaModule } from './ia/ia.module.js';
 import { JobsModule } from './jobs/jobs.module.js';
 import { AgentToolsModule } from './modules/agent-tools/agent-tools.module.js';
+import { AgoraModule } from './modules/agora/agora.module.js';
+import { NotificacoesModule } from './modules/notificacoes/notificacoes.module.js';
 import { ArmazenamentoModule } from './modules/armazenamento/armazenamento.module.js';
 import { AtendimentoModule } from './modules/atendimento/atendimento.module.js';
 import { AuditoriaModule } from './modules/auditoria/auditoria.service.js';
@@ -88,6 +90,7 @@ import { TransparenciaModule } from './modules/transparencia/transparencia.modul
     MunicipesModule,
     ConversasModule,
     ComunicacaoModule,
+    NotificacoesModule,
     ArmazenamentoModule,
     AuthModule,
     AgentToolsModule,
@@ -118,6 +121,7 @@ import { TransparenciaModule } from './modules/transparencia/transparencia.modul
     IntegracoesModule,
     AvisosZonaModule,
     EmergenciasModule,
+    AgoraModule,
     // Memória da câmara: procedimentos internos, entrevistas e assistente
     ProcedimentosModule,
     ConsultasPublicasModule,
