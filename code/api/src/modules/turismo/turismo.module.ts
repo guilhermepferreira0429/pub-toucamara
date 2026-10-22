@@ -140,9 +140,8 @@ export class TurismoModule implements OnModuleInit {
       ferramenta({
         nome: 'o_que_visitar',
         descricao:
-          'Sugere um roteiro de visita ao concelho para um turista ou visitante: com o tempo que tem, o que gosta e se tem mobilidade reduzida, devolve os sítios por ordem a pé, os eventos dos próximos dias e um link com o mapa. ' +
-          'Usa quando a pessoa pergunta o que visitar, o que ver em X horas ou por onde começar. Para perguntas sobre um sítio concreto (o que é, como chegar) usa procurar_conhecimento. ' +
-          'Responde na língua da pessoa, diz que os tempos são estimativas e que horários e preços se confirmam no local ou no site oficial; não inventes horários nem preços.',
+          'Quando um turista pergunta o que visitar ou o que ver em X horas (um sítio concreto: procurar_conhecimento): roteiro a pé, eventos dos próximos dias e link do mapa. ' +
+          'Os tempos são estimativas; horários e preços confirmam-se no local.',
         entrada: entradaOQueVisitar,
         executar: (ctx, e) => this.turismo.oQueVisitar(ctx, e),
       }),

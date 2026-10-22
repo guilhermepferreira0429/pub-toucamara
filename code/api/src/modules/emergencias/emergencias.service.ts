@@ -165,24 +165,18 @@ export const esquemaConfig = z
 export const entradaResposta = z.object({
   estado: z
     .enum(['em_seguranca', 'precisa_ajuda'])
-    .describe(
-      '"em_seguranca" se a pessoa está bem e em segurança; "precisa_ajuda" se precisa de ajuda (para sair de casa, de saúde, de água...) ou se ficaste preocupado.',
-    ),
+    .describe('precisa_ajuda também se ficaste preocupado.'),
   ajuda: z
     .array(z.enum(AJUDAS))
     .max(AJUDAS.length)
     .default([])
-    .describe(
-      'Que ajuda precisa: sair_de_casa, transporte, saude, agua, abrigo, medicamentos, outro.',
-    ),
+    .describe('Que ajuda precisa.'),
   nota: z
     .string()
     .trim()
     .max(500)
     .optional()
-    .describe(
-      'O que a pessoa disse, em poucas palavras (ex.: "água a entrar em casa, mora sozinha, não consegue descer").',
-    ),
+    .describe('O que a pessoa disse, em poucas palavras.'),
 });
 
 export interface ConfigEmergencias extends Ritmo {

@@ -59,9 +59,7 @@ export const entradaOQueAEmpresaPrecisa = esquemaPerfil.extend({
   fim: z
     .boolean()
     .optional()
-    .describe(
-      'true se a pessoa não quiser responder a mais perguntas: faz a lista com o que já sabes.',
-    ),
+    .describe('true se não quer responder a mais perguntas.'),
 });
 
 export const entradaObrigacoes = z.object({});
@@ -125,7 +123,10 @@ function itemResumido(i: ItemLista) {
     porque: i.porque[0] ?? null,
     prazo: i.prazo,
     taxa: i.taxa?.texto ?? null,
-    pedir_com: i.como.tipo === 'agente' ? i.como.ferramenta : null,
+    pedir_com:
+      i.como.tipo === 'agente'
+        ? `${i.como.ferramenta} (tipo ${i.como.tipo_licenca})`
+        : null,
     estado: i.estado,
   };
 }

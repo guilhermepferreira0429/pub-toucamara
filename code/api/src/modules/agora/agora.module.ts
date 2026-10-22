@@ -53,10 +53,7 @@ export class AgoraModule implements OnModuleInit {
       ferramenta({
         nome: 'o_que_se_passa',
         descricao:
-          'O que se passa no concelho perto da pessoa: obras e ruas cortadas, incidentes, avisos e comunicados da câmara, eventos e consultas públicas. ' +
-          'Usa para "há obras na minha rua?", "o que há este fim de semana na minha freguesia?", "porque é que a rua está fechada?". ' +
-          'Usa a morada que já conhecemos da pessoa; se vier precisa_morada, pergunta UMA vez a rua ou a freguesia (sem número de porta) e chama outra vez com morada. ' +
-          'Devolve os itens mais relevantes (perto, a decorrer, mais graves primeiro) e um "dizer" curto. Só leitura.',
+          'Quando pergunta por obras, ruas cortadas, avisos ou eventos perto dela: os itens mais relevantes. Usa a morada que conhecemos; precisa_morada → pergunta UMA vez a rua ou a freguesia (sem número de porta).',
         entrada: entradaOQueSePassa,
         executar: (ctx, e) => this.agora.oQueSePassa(ctx, e),
       }),
@@ -65,9 +62,7 @@ export class AgoraModule implements OnModuleInit {
       ferramenta({
         nome: 'avisar_me',
         descricao:
-          'Subscreve avisos por SMS quando aparecer algo novo na rua ou na freguesia da pessoa: obras e cortes, incidentes, eventos ou avisos da câmara ("avise-me quando houver obras na minha rua"). ' +
-          'Confirma com a pessoa o que quer e onde (rua sem número de porta, ou freguesia). Se vier precisa_morada, pergunta a rua ou a freguesia e chama outra vez. ' +
-          'No fim diz o "dizer".',
+          'Quando quer ser avisada por SMS do que aparecer na rua ou freguesia (obras, incidentes, eventos, avisos). Confirma o quê e onde (rua sem número de porta, ou freguesia).',
         entrada: entradaAvisarMe,
         executar: (ctx, e) => this.agora.avisarMe(ctx, e),
       }),

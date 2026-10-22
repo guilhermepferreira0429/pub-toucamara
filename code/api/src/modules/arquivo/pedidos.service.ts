@@ -56,47 +56,39 @@ export const entradaPedir = z.object({
     .min(3)
     .max(200)
     .optional()
-    .describe(
-      'A morada do prédio ou da obra (ex.: "Rua de Santo António, 45").',
-    ),
+    .describe('A morada do prédio ou da obra.'),
   ano: z.coerce
     .number()
     .int()
     .min(1850)
     .max(2100)
     .optional()
-    .describe('O ano do processo, mesmo que aproximado (ex.: 1987).'),
+    .describe('O ano, mesmo aproximado.'),
   requerente: z
     .string()
     .trim()
     .min(2)
     .max(120)
     .optional()
-    .describe(
-      'O nome de quem pediu o processo na altura (ex.: o pai ou o antigo dono).',
-    ),
+    .describe('Quem pediu na altura.'),
   numero_antigo: z
     .string()
     .trim()
     .min(1)
     .max(40)
     .optional()
-    .describe(
-      'O número do processo antigo, se a pessoa o souber (ex.: "123/87").',
-    ),
+    .describe('O número antigo, se o souber.'),
   descricao: z
     .string()
     .trim()
     .max(500)
     .optional()
-    .describe(
-      'O que procura e para quê, nas palavras da pessoa (ex.: "a planta da casa para vender").',
-    ),
+    .describe('O que procura e para quê.'),
   qualidade: z
     .enum(QUALIDADES)
     .optional()
     .describe(
-      'titular: é quem pediu o processo, o proprietário ou herdeiro. interesse_legitimo: outra pessoa com um interesse direto (comprador, advogado, autorização do titular).',
+      'titular = quem pediu, dono ou herdeiro; interesse_legitimo = outra pessoa com interesse direto.',
     ),
   interesse: z
     .string()
@@ -104,19 +96,15 @@ export const entradaPedir = z.object({
     .min(5)
     .max(500)
     .optional()
-    .describe('Só para interesse_legitimo: porque precisa do documento.'),
+    .describe('Com interesse_legitimo: porque precisa.'),
   modalidade: z
     .enum(MODALIDADES)
     .optional()
-    .describe(
-      'presencial (consulta no arquivo, com marcação) ou copia_certificada (com taxa).',
-    ),
+    .describe('presencial (com marcação) ou copia_certificada (com taxa).'),
   confirmado: z
     .boolean()
     .default(false)
-    .describe(
-      'false na primeira vez (devolve o texto para ler à pessoa). true depois de ela confirmar.',
-    ),
+    .describe('true só depois de a pessoa confirmar ler_a_pessoa.'),
 });
 
 export const esquemaFiltroPedidos = z.object({

@@ -11,6 +11,7 @@ import {
   linhas,
   MUNICIPIO_ID,
   novaChamada,
+  pedirLicenca,
   smsPara,
 } from './app';
 
@@ -67,7 +68,7 @@ describe('Licenças: avisos antes de expirar e renovação (e2e)', () => {
 
   /** Uma esplanada de 1 mês, paga e emitida; devolve a licença. */
   async function esplanadaEmitida(chamada: Chamada) {
-    const r = await ferramenta(ctx, chamada, 'pedir_licenca_esplanada', {
+    const r = await pedirLicenca(ctx, chamada, 'esplanada', {
       estabelecimento: 'Café Avenida',
       morada: 'Avenida Conde Margaride 20, Guimarães',
       data_inicio: daquiA(),

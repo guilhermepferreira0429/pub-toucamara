@@ -542,12 +542,13 @@ export class ChatService {
   }
 
   /**
-   * Todas as ferramentas do registo, já ordenadas (definições estáveis para
-   * a cache). Calculadas uma vez, depois de os módulos as registarem.
+   * As ferramentas do chat (`agentes` com 'chat': sem as das chamadas da
+   * câmara), já ordenadas (definições estáveis para a cache). Calculadas uma
+   * vez, depois de os módulos as registarem.
    */
   private ferramentas(): Anthropic.Beta.BetaToolUnion[] {
     if (!this.ferramentasApi) {
-      this.ferramentasApi = this.registo.catalogo().map((f) => {
+      this.ferramentasApi = this.registo.catalogo('chat').map((f) => {
         // O "$schema" do zod não faz falta à API.
         const esquema = { ...f.entrada };
         delete esquema.$schema;

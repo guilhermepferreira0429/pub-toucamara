@@ -5,9 +5,9 @@ import {
   Contexto,
   criarUtilizador,
   entrarPainel,
-  ferramenta,
   linha,
   novaChamada,
+  pedirLicenca,
   smsPara,
   MUNICIPIO_ID,
 } from './app';
@@ -98,10 +98,10 @@ describe('Licenças: outros tipos e simulação de regras (e2e)', () => {
 
   it('ocupação da via pública: andaime dentro das regras → MB WAY de teste → aprovar → página e PDF', async () => {
     const chamada = novaChamada('ovp');
-    const r = await ferramenta(
+    const r = await pedirLicenca(
       ctx,
       chamada,
-      'pedir_licenca_ocupacao_via',
+      'ocupacao_via',
       andaime(),
     ).expect(200);
     expect(r.body).toMatchObject({
@@ -175,10 +175,10 @@ describe('Licenças: outros tipos e simulação de regras (e2e)', () => {
   });
 
   it('ocupação fora das regras (passeio estreito e estrada) → técnico, sem pagamento', async () => {
-    const r = await ferramenta(
+    const r = await pedirLicenca(
       ctx,
       novaChamada('ovp'),
-      'pedir_licenca_ocupacao_via',
+      'ocupacao_via',
       andaime({ passeio_livre_m: 0.8, ocupa_estrada: true }),
     ).expect(200);
     expect(r.body).toMatchObject({
@@ -210,7 +210,7 @@ describe('Licenças: outros tipos e simulação de regras (e2e)', () => {
       .expect(200);
 
     const chamada = novaChamada('esp');
-    const r = await ferramenta(ctx, chamada, 'pedir_licenca_esplanada', {
+    const r = await pedirLicenca(ctx, chamada, 'esplanada', {
       estabelecimento: 'Café Central',
       morada: 'Largo do Toural 5, Guimarães',
       data_inicio: daquiA(),
@@ -261,7 +261,7 @@ describe('Licenças: outros tipos e simulação de regras (e2e)', () => {
 
   it('dístico de residente: 3.º da casa vai a técnico → técnico aprova → paga → emitido, válido 12 meses', async () => {
     const chamada = novaChamada('dre');
-    const r = await ferramenta(ctx, chamada, 'pedir_distico_residente', {
+    const r = await pedirLicenca(ctx, chamada, 'distico_residente', {
       morada: 'Rua da Rainha 20, Guimarães',
       matricula: 'aa12bb',
       disticos_ja_tem: 2,
@@ -317,7 +317,7 @@ describe('Licenças: outros tipos e simulação de regras (e2e)', () => {
 
   it('publicidade: placa de 2 m² no próprio estabelecimento → paga → aprovar → página e PDF', async () => {
     const chamada = novaChamada('pub');
-    const r = await ferramenta(ctx, chamada, 'pedir_licenca_publicidade', {
+    const r = await pedirLicenca(ctx, chamada, 'publicidade', {
       suporte: 'placa',
       estabelecimento: 'Sapataria Moderna',
       mensagem: 'Nome e logótipo da loja',
@@ -381,22 +381,21 @@ describe('Licenças: outros tipos e simulação de regras (e2e)', () => {
       data_inicio: daquiA(),
       meses: 12,
     };
-    const r = await ferramenta(
+    const r = await pedirLicenca(
       ctx,
       novaChamada('pub'),
-      'pedir_licenca_publicidade',
+      'publicidade',
       base,
     ).expect(200);
     expect(r.body).toMatchObject({ proposta: 'aprovar', pagamento: null });
     expect(r.body.regras.join(' ')).toContain('mera comunicação');
     expect((await licencaDe(r.body.numero)).estado).toBe('por_aprovar');
 
-    const t = await ferramenta(
-      ctx,
-      novaChamada('pub'),
-      'pedir_licenca_publicidade',
-      { ...base, no_proprio_estabelecimento: false, centro_historico: true },
-    ).expect(200);
+    const t = await pedirLicenca(ctx, novaChamada('pub'), 'publicidade', {
+      ...base,
+      no_proprio_estabelecimento: false,
+      centro_historico: true,
+    }).expect(200);
     expect(t.body).toMatchObject({ proposta: 'tecnico', pagamento: null });
     expect(t.body.regras.filter((x: string) => x.startsWith('✗'))).toHaveLength(
       2,
@@ -415,10 +414,10 @@ describe('Licenças: outros tipos e simulação de regras (e2e)', () => {
       musica: true,
       nome: 'Associação Recreativa',
     };
-    const r = await ferramenta(
+    const r = await pedirLicenca(
       ctx,
       chamada,
-      'pedir_licenca_recinto_improvisado',
+      'recinto_improvisado',
       arraial,
     ).expect(200);
     expect(r.body).toMatchObject({
@@ -457,10 +456,10 @@ describe('Licenças: outros tipos e simulação de regras (e2e)', () => {
     expect(pub.body.condicoes.join(' ')).toContain('licença especial de ruído');
     await pdfDe(ap.body.codigo_verificacao);
 
-    const v = await ferramenta(
+    const v = await pedirLicenca(
       ctx,
       novaChamada('lri'),
-      'pedir_licenca_recinto_improvisado',
+      'recinto_improvisado',
       {
         ...arraial,
         lotacao: 900,

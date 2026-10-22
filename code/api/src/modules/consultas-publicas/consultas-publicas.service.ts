@@ -100,24 +100,14 @@ const resposta = z.object({
     .trim()
     .max(200)
     .optional()
-    .describe('O id da pergunta (p1, p2…) que vem em consultas_abertas.'),
-  opcao: z
-    .string()
-    .trim()
-    .min(1)
-    .max(60)
-    .describe('O id ou o texto da opção escolhida (ex.: "concordo").'),
+    .describe('O id da pergunta (p1, p2…).'),
+  opcao: z.string().trim().min(1).max(60).describe('O id ou o texto da opção.'),
 });
 
 export const entradaConsultasAbertas = z.object({});
 
 export const entradaParticipar = z.object({
-  consulta: z
-    .string()
-    .trim()
-    .min(3)
-    .max(140)
-    .describe('O código da consulta que vem em consultas_abertas.'),
+  consulta: z.string().trim().min(3).max(140).describe('O código da consulta.'),
   respostas: z
     .array(resposta)
     .max(3)
@@ -128,23 +118,14 @@ export const entradaParticipar = z.object({
     .trim()
     .max(2000)
     .optional()
-    .describe(
-      'A opinião livre, nas palavras da pessoa (resumida se for longa). Sem nomes nem contactos.',
-    ),
-  freguesia: z
-    .string()
-    .trim()
-    .max(120)
-    .optional()
-    .describe('A freguesia onde a pessoa mora, se a disse.'),
+    .describe('Nas palavras da pessoa, sem nomes nem contactos.'),
+  freguesia: z.string().trim().max(120).optional().describe('Onde mora.'),
   morada: z
     .string()
     .trim()
     .max(300)
     .optional()
-    .describe(
-      'A morada (rua e localidade), se a pessoa não souber dizer a freguesia.',
-    ),
+    .describe('Se não souber a freguesia.'),
 });
 
 /** O resumo das opiniões livres pela IA. */

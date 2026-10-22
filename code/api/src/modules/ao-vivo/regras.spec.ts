@@ -42,10 +42,15 @@ describe('ao vivo: regras', () => {
 
   it('licença emitida → evento público sem número nem dados', () => {
     const r = resumirFerramenta(
-      'pedir_licenca_ruido',
+      'pedir_licenca',
       'resposta',
       false,
-      JSON.stringify({ pedida: true, emitida: true, numero: 'LR-0007' }),
+      JSON.stringify({
+        pedida: true,
+        tipo: 'ruido',
+        emitida: true,
+        numero: 'LR-0007',
+      }),
     );
     expect(r.texto).toBe('Licença de ruído emitida (LR-0007)');
     expect(r.publico).toEqual({

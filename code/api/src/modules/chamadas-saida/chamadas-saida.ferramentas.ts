@@ -7,9 +7,8 @@ export function ferramentasChamadasSaida(chamadas: ChamadasSaidaService) {
     ferramenta({
       nome: 'motivo_da_chamada',
       descricao:
-        'Numa chamada feita por nós (tipo_chamada = saida): porque ligámos, o que mudou no processo, o que falta e até quando. ' +
-        'Usa no início se as variáveis da chamada vierem vazias, ou se a pessoa perguntar outra vez porque lhe ligaram. ' +
-        'Se vier chamada_de_saida: false, foi a pessoa que ligou: segue o atendimento normal.',
+        'Se as variáveis da chamada vierem vazias ou a pessoa perguntar porque lhe ligámos: o motivo, o que mudou, o que falta e até quando. chamada_de_saida: false → foi a pessoa que ligou.',
+      agentes: ['saida'],
       entrada: z.object({}),
       async executar(ctx) {
         return chamadas.motivoDaChamada(ctx);
@@ -18,9 +17,9 @@ export function ferramentasChamadasSaida(chamadas: ChamadasSaidaService) {
     ferramenta({
       nome: 'nao_quero_chamadas',
       descricao:
-        'A pessoa diz que não quer ser ligada pela câmara ("não me liguem", "prefiro SMS"). ' +
-        'Grava a recusa: não voltamos a ligar para avisos (continuam por SMS). ' +
-        'Confirma antes de usar se não for claro; depois diz o que vier em dizer.',
+        'Quando não quer que a câmara lhe ligue ("prefiro SMS"; confirma se não for claro): os avisos passam a ir só por SMS.',
+      // Também quando a pessoa liga (ou escreve) depois de uma chamada nossa.
+      agentes: ['entrada', 'saida', 'chat'],
       entrada: z.object({}),
       async executar(ctx) {
         return chamadas.naoQueroChamadas(ctx);

@@ -48,28 +48,17 @@ export const entradaOQueVisitar = z.object({
     .min(30)
     .max(720)
     .optional()
-    .describe(
-      'Tempo que a pessoa tem, em minutos (2 horas = 120, meio dia = 240, o dia todo = 420). Se não disser, não perguntes: usa 180.',
-    ),
+    .describe('Minutos que tem (meio dia = 240); se não disser, 180.'),
   interesses: z
     .array(z.enum(INTERESSES))
     .max(5)
     .optional()
-    .describe(
-      'O que a pessoa gosta: historia, museus, natureza, gastronomia, eventos. Vazio = um pouco de tudo.',
-    ),
+    .describe('Vazio = um pouco de tudo.'),
   mobilidade_reduzida: z
     .boolean()
     .optional()
-    .describe(
-      'true se a pessoa disser que anda com dificuldade, em cadeira de rodas ou com carrinho de bebé.',
-    ),
-  lingua: z
-    .enum(LINGUAS)
-    .optional()
-    .describe(
-      'A língua da conversa (pt, en, es, fr): os nomes e o link vêm nessa língua.',
-    ),
+    .describe('Dificuldade a andar, cadeira de rodas ou carrinho.'),
+  lingua: z.enum(LINGUAS).optional().describe('A língua da conversa.'),
 });
 
 interface LinhaFonte {

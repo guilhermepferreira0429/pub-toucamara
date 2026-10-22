@@ -30,6 +30,18 @@ export type MotivoMensagem =
   | 'apoio'
   | 'carta';
 
+/**
+ * Confirmações que, numa chamada em curso, esperam pelo SMS do fim (que já as
+ * resume e cuja página as mostra): um SMS por chamada, não dois.
+ */
+const RETIDAS_NA_CHAMADA: ReadonlySet<MotivoMensagem> = new Set([
+  'recolha',
+  'marcacao',
+]);
+
+/** Rede de segurança: a retida sai sozinha se o fim da chamada não tratar dela. */
+export const RETER_NA_CHAMADA_MIN = 20;
+
 export interface NovoSms {
   municipioId: string;
   municipeId?: string | null;
@@ -182,13 +194,18 @@ export class MensagensService implements OnModuleInit {
       : infoSms(corpo);
     // Sem data é para já: 'pendente'. (Dentro de uma transação o now() é a
     // hora do BEGIN, por isso não se compara com a hora da aplicação.)
-    const enviarEm = novo.enviarEm ?? null;
     const q = tx ?? this.db;
+    const retida = await this.reterNaChamada(novo, q);
+    const enviarEm = retida
+      ? new Date(Date.now() + RETER_NA_CHAMADA_MIN * 60_000)
+      : (novo.enviarEm ?? null);
     const [criada] = await q.query<{ id: string }>(
       `INSERT INTO mensagens_saida (municipio_id, municipe_id, canal, destino, motivo, corpo,
-         codificacao, segmentos, relacionado, enviar_em, estado, chave_idempotencia, simulado)
+         codificacao, segmentos, relacionado, enviar_em, estado, chave_idempotencia, simulado,
+         retida_fim_chamada)
        VALUES ($1, $2, $11, $3, $4, $5, $6, $7, $8, coalesce($9::timestamptz, now()),
-         CASE WHEN $9::timestamptz > clock_timestamp() THEN 'agendada' ELSE 'pendente' END::estado_msg, $10, $12)
+         CASE WHEN $9::timestamptz > clock_timestamp() THEN 'agendada' ELSE 'pendente' END::estado_msg, $10, $12,
+         $13)
        ON CONFLICT (chave_idempotencia) DO NOTHING
        RETURNING id`,
       [
@@ -204,6 +221,7 @@ export class MensagensService implements OnModuleInit {
         novo.chave ?? null,
         whatsapp ? 'whatsapp' : 'sms',
         novo.simulado === true,
+        retida,
       ],
     );
     if (!criada) {
@@ -221,6 +239,66 @@ export class MensagensService implements OnModuleInit {
       { startAfter: enviarEm ?? undefined, singletonKey: criada.id },
     );
     return criada.id;
+  }
+
+  /**
+   * Uma confirmação (RETIDAS_NA_CHAMADA) de uma chamada de voz ainda em
+   * curso espera pelo SMS do fim. No WhatsApp e no chat não há SMS do fim:
+   * sai logo.
+   */
+  private async reterNaChamada(novo: NovoSms, q: Tx | DatabaseService) {
+    const conversaId = novo.relacionado?.conversa_id;
+    if (
+      !conversaId ||
+      novo.enviarEm ||
+      novo.canal === 'whatsapp' ||
+      !RETIDAS_NA_CHAMADA.has(novo.motivo)
+    ) {
+      return false;
+    }
+    const [c] = await q.query<{ id: string }>(
+      `SELECT id FROM conversas
+       WHERE id = $1 AND canal = 'telefone' AND resultado = 'em_curso'`,
+      [conversaId],
+    );
+    return !!c;
+  }
+
+  /**
+   * No fim da chamada: com o SMS do fim enviado, as retidas ficam
+   * 'cancelada' (estão no resumo); sem ele, saem já.
+   */
+  async fecharRetidas(
+    conversaId: string,
+    fimEnviado: boolean,
+    tx?: Tx,
+  ): Promise<string[]> {
+    const q = tx ?? this.db;
+    if (fimEnviado) {
+      await q.query(
+        `UPDATE mensagens_saida
+         SET estado = 'cancelada', erro = 'Incluída no SMS do fim da chamada.'
+         WHERE retida_fim_chamada AND estado = 'agendada'
+           AND relacionado->>'conversa_id' = $1`,
+        [conversaId],
+      );
+      return [];
+    }
+    const soltas = await q.query<{ id: string }>(
+      `UPDATE mensagens_saida SET estado = 'pendente', enviar_em = now()
+       WHERE retida_fim_chamada AND estado = 'agendada'
+         AND relacionado->>'conversa_id' = $1
+       RETURNING id`,
+      [conversaId],
+    );
+    for (const m of soltas) {
+      await this.jobs.enviar(
+        FILA_SMS,
+        { mensagemId: m.id },
+        { singletonKey: `${m.id}:solta` },
+      );
+    }
+    return soltas.map((m) => m.id);
   }
 
   /** O trabalho da fila `sms_enviar`. */

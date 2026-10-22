@@ -121,10 +121,8 @@ export class OrdenamentoModule implements OnModuleInit {
       ferramenta({
         nome: 'o_que_posso_fazer',
         descricao:
-          'Diz o que é preciso para uma obra numa morada concreta, pelo plano diretor municipal (PDM): isento, comunicação prévia, licença ou não permitido. ' +
-          'Usa quando a pessoa diz o que quer fazer e onde ("quero fazer um anexo no quintal, na Rua X"). ' +
-          'Se vier em_falta, pergunta a área ou a altura e chama outra vez. Diz o "dizer", os limites e os passos; a planta e os passos seguem por SMS. ' +
-          'Se a pessoa quiser avançar com comunicação prévia, podes preencher o requerimento com iniciar_requerimento.',
+          'Quando diz que obra quer fazer e onde (anexo, muro, piscina): pelo PDM, se é isento, comunicação prévia, licença ou não permitido, com os limites e os passos (a planta segue por SMS). ' +
+          'Para avançar com a comunicação prévia: iniciar_requerimento.',
         entrada: entradaOQuePossoFazer,
         executar: (ctx, e) => this.ordenamento.oQuePossoFazer(ctx, e),
       }),

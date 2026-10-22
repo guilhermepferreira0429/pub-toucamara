@@ -12,6 +12,7 @@ import {
   ferramenta,
   linha,
   linhas,
+  MUNICIPIO_ID,
   novaChamada,
   novoTelefone,
   seguirLink,
@@ -359,6 +360,49 @@ describe('Conversas (e2e)', () => {
         [chamada.conversa],
       );
       expect(c).toBeUndefined();
+    });
+
+    it('o agente de saída é do mesmo município: início e fim da chamada reconhecem-no', async () => {
+      const SAIDA = 'agente-e2e-saida';
+      await ctx.db.query(
+        `UPDATE agente_config SET elevenlabs_agent_id_saida = $2 WHERE municipio_id = $1`,
+        [MUNICIPIO_ID, SAIDA],
+      );
+      try {
+        const chamada = novaChamada();
+        await ferramenta(ctx, chamada, 'identificar_municipe', {
+          nif: novoNif(),
+          nome: 'Rui Saída Pinto',
+        }).expect(200);
+        // Sem a linha da câmara no número chamado: só o agente diz o município.
+        const ini = await ctx
+          .http()
+          .post('/v1/webhooks/elevenlabs/inicio-chamada')
+          .set('X-Agente-Segredo', SEGREDO_AGENTE)
+          .send({
+            caller_id: chamada.telefone,
+            agent_id: SAIDA,
+            called_number: '+351210000000',
+          })
+          .expect(200);
+        expect(ini.body.dynamic_variables).toMatchObject({
+          nome_municipe: 'Rui',
+        });
+
+        const nova = novaChamada();
+        await webhookFim(ctx, transcricao(nova, { agente: SAIDA })).expect(200);
+        const c = await linha<{ municipio_id: string }>(
+          ctx.db,
+          'SELECT municipio_id FROM conversas WHERE provider_id = $1',
+          [nova.conversa],
+        );
+        expect(c?.municipio_id).toBe(MUNICIPIO_ID);
+      } finally {
+        await ctx.db.query(
+          'UPDATE agente_config SET elevenlabs_agent_id_saida = NULL WHERE municipio_id = $1',
+          [MUNICIPIO_ID],
+        );
+      }
     });
 
     it('agente sem município → 422 municipio_desconhecido', async () => {

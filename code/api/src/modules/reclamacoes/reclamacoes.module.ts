@@ -31,12 +31,8 @@ export class ReclamacoesModule implements OnModuleInit {
       ferramenta({
         nome: 'registar_reclamacao',
         descricao:
-          'Regista uma reclamação FORMAL no Livro de Reclamações da câmara: fica com número (REC n/ano) e a câmara tem um prazo legal para responder por escrito. ' +
-          'Usa só quando a pessoa quer apresentar uma reclamação ou queixa formal sobre um serviço, um funcionário ou o atendimento da câmara ("quero reclamar", "livro de reclamações", "quero fazer queixa"). ' +
-          'NÃO é para um problema na rua (buraco, lixo, iluminação: usa registar_ocorrencia), nem para um pedido, uma dúvida ou o estado de um processo; se não for claro, pergunta se quer apresentar uma reclamação formal. ' +
-          'Antes, pergunta o nome, de que serviço se queixa, o que aconteceu (quando e onde) e o que pede à câmara. ' +
-          'Chama primeiro com confirmado: false: vem o texto em "ler_a_pessoa"; lê-o à pessoa e, depois de ela confirmar (ou corrigir), chama outra vez com confirmado: true. ' +
-          'No fim diz o "dizer" tal como vem (o número e a data-limite de resposta) e não prometas outro prazo. Se vier precisa_identificacao, segue a instrução.',
+          'Só para uma reclamação FORMAL (Livro de Reclamações) sobre um serviço, funcionário ou atendimento da câmara; não para problemas na rua (registar_ocorrencia), pedidos ou dúvidas. Se não for claro, pergunta. ' +
+          'Pergunta o nome, o serviço, o que aconteceu e o que pede. Fica com número e prazo legal de resposta.',
         entrada: entradaRegistar,
         executar: (ctx, e) => this.reclamacoes.registarPeloAgente(ctx, e),
       }),

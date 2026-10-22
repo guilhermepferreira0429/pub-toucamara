@@ -54,7 +54,7 @@ export const esquemaResumo = z.object({
   sms: z
     .string()
     .describe(
-      'Resumo para SMS ao munícipe: no máximo 140 caracteres, sem saudações, sem link (é acrescentado depois).',
+      'Resumo para SMS ao munícipe: no máximo 110 caracteres, sem saudações, sem link (é acrescentado depois).',
     ),
 });
 
@@ -73,7 +73,7 @@ Regras:
 - O tema: prefere um tema da lista, escrito exatamente como lá está. Só propões um novo se nenhum servir.
 - Perguntas sem resposta: as que o agente disse não saber, não ter fonte ou passou a um funcionário por falta de informação. Escreve-as na forma canónica, como uma pergunta geral que outros munícipes também fariam. Se não houver, devolve lista vazia.
 - Próximos passos: só o que o munícipe tem mesmo de fazer (ex.: "Assine o requerimento no link", "Leve o Cartão de Cidadão"). Se não tiver de fazer nada, lista vazia.
-- SMS: curto (no máximo 140 caracteres), diz o essencial do que ficou feito ou do que falta; o link para os detalhes é acrescentado depois. Evita abreviaturas que se percebam mal.`;
+- SMS: curto (no máximo 110 caracteres), diz o essencial do que ficou feito ou do que falta; o link para os detalhes é acrescentado depois. Evita abreviaturas que se percebam mal.`;
 
 export interface TurnoParaResumo {
   ordem: number;

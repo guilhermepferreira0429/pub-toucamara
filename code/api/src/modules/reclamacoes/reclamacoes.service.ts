@@ -53,45 +53,34 @@ export const entradaRegistar = z.object({
     .trim()
     .min(2)
     .max(120)
-    .describe('Nome completo de quem reclama (a reclamação formal exige-o).'),
+    .describe('Nome completo (obrigatório na formal).'),
   servico_visado: z
     .string()
     .trim()
     .max(200)
     .optional()
-    .describe(
-      'O serviço, o balcão ou o funcionário da câmara de que se queixa (ex.: "balcão de urbanismo", "recolha do lixo").',
-    ),
+    .describe('O serviço, balcão ou funcionário.'),
   descricao: z
     .string()
     .trim()
     .min(10)
     .max(4000)
-    .describe(
-      'O que aconteceu, com as palavras da pessoa: o quê, quando e onde.',
-    ),
+    .describe('O quê, quando e onde, com as palavras da pessoa.'),
   pedido: z
     .string()
     .trim()
     .max(1000)
     .optional()
-    .describe(
-      'O que a pessoa pede à câmara (explicação, correção, devolução…).',
-    ),
+    .describe('O que pede à câmara.'),
   resposta_por: z
     .enum(['sms', 'email'])
     .optional()
-    .describe('Como quer receber a resposta. Por defeito SMS.'),
-  email: z
-    .email()
-    .optional()
-    .describe('O email, se quer a resposta por email.'),
+    .describe('Por omissão SMS.'),
+  email: z.email().optional().describe('Se quer a resposta por email.'),
   confirmado: z
     .boolean()
     .default(false)
-    .describe(
-      'false na primeira chamada (devolve o texto para ler à pessoa). true só depois de a pessoa ouvir e confirmar.',
-    ),
+    .describe('true só depois de a pessoa confirmar ler_a_pessoa.'),
 });
 
 const data = z.iso.date();

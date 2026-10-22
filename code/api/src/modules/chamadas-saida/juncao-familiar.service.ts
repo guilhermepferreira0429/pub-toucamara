@@ -35,33 +35,26 @@ export const entradaJuntarFamiliar = z.object({
     .trim()
     .min(9)
     .max(20)
-    .describe('Número do familiar, como a pessoa o disse (ex.: 912 345 678).'),
-  nome: z
-    .string()
-    .trim()
-    .max(60)
-    .nullish()
-    .describe('Nome do familiar, se o disse.'),
+    .describe('Número do familiar, como o disse.'),
+  nome: z.string().trim().max(60).nullish().describe('Nome, se o disse.'),
   relacao: z
     .string()
     .trim()
     .max(40)
     .nullish()
-    .describe('Como a pessoa lhe chama: "a minha filha", "o meu vizinho".'),
+    .describe('Ex.: "a minha filha".'),
   resumo: z
     .string()
     .trim()
     .min(10)
     .max(800)
     .describe(
-      'O que já falaram e o que vais explicar aos dois, em 2 a 4 frases. É o que vais dizer quando voltares à chamada.',
+      'O que já falaram e vais explicar aos dois, em 2 a 4 frases (dizes ao voltar).',
     ),
   autorizou: z
     .boolean()
     .nullish()
-    .describe(
-      'Numa chamada pelo browser: true só depois de a pessoa dizer que sim a "o seu familiar vai ver o que falamos e pode escrever-me; concorda?". Sem isto, a ferramenta pede-te para perguntar.',
-    ),
+    .describe('Pelo browser: true só depois do sim à pergunta do "dizer".'),
   call_sid: z
     .string()
     .trim()

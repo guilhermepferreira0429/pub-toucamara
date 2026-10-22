@@ -76,13 +76,14 @@ const GUIAO: Passo[] = [
   { s: 23, juntar: true },
   { s: 24, dizerResultado: true },
   { s: 32, fala: 'municipe', texto: 'E quanto é que isso custa?' },
-  { s: 34, ferramenta: 'pedir_licenca_ruido', fase: 'pedido' },
+  { s: 34, ferramenta: 'pedir_licenca', fase: 'pedido' },
   {
     s: 36,
-    ferramenta: 'pedir_licenca_ruido',
+    ferramenta: 'pedir_licenca',
     fase: 'resposta',
     resultado: {
       pedida: true,
+      tipo: 'ruido',
       emitida: true,
       numero: 'LR-SIMULACAO',
       simulado: true,

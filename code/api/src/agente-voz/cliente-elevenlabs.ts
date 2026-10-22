@@ -248,6 +248,11 @@ export interface Desejado {
   prompt: string;
   /** conversation_config e platform_settings já resolvidos (sem null). */
   agente: { conversation_config: Obj; platform_settings: Obj };
+  /**
+   * Nossas que o outro agente de voz usa (entrada/saída): não são obsoletas,
+   * mas saem deste agente se lá estiverem.
+   */
+  doOutroAgente?: string[];
 }
 
 function idsDoAgente(a: AgenteRemoto | null): string[] {
@@ -330,9 +335,10 @@ export function planear(
     plano.criar.push(f);
     if (agente) plano.porLigar.push(f.name);
   }
+  const doOutro = new Set(desejado.doOutroAgente ?? []);
   for (const [nome, r] of nossas) {
     if (!desejadas.has(nome)) {
-      plano.obsoletas.push({ nome, id: r.id });
+      if (!doOutro.has(nome)) plano.obsoletas.push({ nome, id: r.id });
       if (ids.has(r.id)) plano.porDesligar.push(nome);
     }
   }

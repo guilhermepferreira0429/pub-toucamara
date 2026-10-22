@@ -154,12 +154,8 @@ export class EmpresasModule implements OnModuleInit {
       ferramenta({
         nome: 'o_que_a_empresa_precisa',
         descricao:
-          'Diz o que uma empresa precisa para abrir ou funcionar no concelho (registo da atividade, licenças da câmara, obras, publicidade, esplanada, eventos, ocupação da via pública, horário) e onde se trata cada coisa. ' +
-          'Usa quando alguém diz que vai abrir um negócio ou pergunta que licenças precisa (café, loja, cabeleireiro, alojamento local, oficina, escritório, eventos). ' +
-          'Chama logo com o que já sabes; se vier perguntar_a_seguir, faz essas perguntas (uma ou duas de cada vez) e chama outra vez só com as respostas novas (o resto fica guardado). Se a pessoa não quiser responder a mais, chama com fim: true. ' +
-          'Diz o "dizer" (3 a 6 pontos); a lista completa, com prazos, taxas e calendário, segue por SMS. ' +
-          'Se a pessoa quiser tratar já de um pedido da câmara, usa a ferramenta em pedir_com (ex.: pedir_licenca_esplanada). Para obras, usa o_que_posso_fazer com a morada. ' +
-          'É uma orientação: alguns valores são de demonstração.',
+          'Quando vai abrir ou mudar um negócio, ou pergunta que licenças precisa: o que a empresa precisa e onde se trata. Chama logo com o que sabes e depois só com as respostas novas. ' +
+          'A lista completa segue por SMS. Para tratar já de um item, a ferramenta em pedir_com; para obras, o_que_posso_fazer.',
         entrada: entradaOQueAEmpresaPrecisa,
         executar: (ctx, e) => this.empresas.oQueAEmpresaPrecisa(ctx, e),
       }),
@@ -168,9 +164,7 @@ export class EmpresasModule implements OnModuleInit {
       ferramenta({
         nome: 'obrigacoes_da_empresa',
         descricao:
-          'Diz as próximas obrigações da empresa da pessoa identificada: renovações e fim das licenças que já tem (com a validade real) e as taxas, e manda por SMS o calendário para pôr no telemóvel. ' +
-          'Usa quando perguntarem "quando tenho de renovar?" ou "que prazos tenho?". ' +
-          'Se vier precisa_identificacao, segue a instrução. Para renovar uma licença, usa renovar_licenca.',
+          'Quando a empresa pergunta que prazos tem ou quando renovar: as renovações e taxas das licenças que já tem (e o calendário por SMS). Para renovar: renovar_licenca.',
         entrada: entradaObrigacoes,
         executar: (ctx) => this.empresas.obrigacoesDaEmpresa(ctx),
       }),

@@ -87,9 +87,7 @@ export const entradaExplicar = z.object({
     .trim()
     .max(40)
     .optional()
-    .describe(
-      'O número do processo (ex.: "CP 412/2026"), se a pessoa tiver mais de um assunto com datas.',
-    ),
+    .describe('O número do processo, se tiver mais de um.'),
 });
 
 export interface ResultadoCorrida {

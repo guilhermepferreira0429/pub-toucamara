@@ -16,20 +16,18 @@ const quantidades = z
     mesa: z.number().int().positive().optional().describe('Mesas.'),
   })
   .optional()
-  .describe(
-    'Quantidades ditas pelo munícipe, por unidade; aplicam-se a todas as taxas dessa unidade.',
-  );
+  .describe('Quantidades ditas, por unidade.');
 
 const taxas = z
   .array(
     z.object({
-      codigo: z.string().trim().min(1).describe('Código da taxa na tabela.'),
-      quantidade: z.number().positive().optional(),
+      codigo: z.string().trim().min(1).describe('Código na tabela.'),
+      quantidade: z.number().positive().optional().describe('Quantidade.'),
     }),
   )
   .max(30)
   .optional()
-  .describe('Taxas soltas pelo código, se não for um tipo de processo.');
+  .describe('Taxas soltas, se não for um tipo de processo.');
 
 const tipoProcesso = z
   .string()
@@ -37,17 +35,15 @@ const tipoProcesso = z
   .min(1)
   .max(60)
   .optional()
-  .describe('Código do tipo de processo (ex.: "CP") ou o seu id.');
+  .describe('Código do tipo de processo (ex.: "CP").');
 
 export function ferramentasPagamentos(pagamentos: PagamentosService) {
   return [
     ferramenta({
       nome: 'simular_taxa',
       descricao:
-        'Calcula quanto o munícipe vai pagar de taxas, pela tabela de taxas em vigor hoje. ' +
-        'Usa quando perguntarem "quanto custa" um pedido ou licença. Diz o total_por_extenso e a fonte (tabela e ano). ' +
-        'Se vier em_falta, faz a pergunta que lá vem (ex.: quantos metros quadrados) e chama outra vez com a quantidade. ' +
-        'É uma estimativa: o valor final é o da guia. Se der sem_tabela_taxas, diz que não tens a tabela e passa a um funcionário.',
+        'Quando pergunta quanto custa um pedido ou licença: as taxas pela tabela em vigor. Diz o total_por_extenso e a fonte (tabela e ano); é uma estimativa (vale a guia). ' +
+        'sem_tabela_taxas → passa a um funcionário.',
       entrada: z.object({
         tipo_processo: tipoProcesso,
         taxas,
@@ -77,15 +73,8 @@ export function ferramentasPagamentos(pagamentos: PagamentosService) {
     ferramenta({
       nome: 'criar_pagamento',
       descricao:
-        'Gera a referência Multibanco para pagar as taxas de um requerimento ou processo e manda-a por SMS. ' +
-        'Se o munícipe preferir MB WAY, usa metodo "mbway": serve o telemóvel de onde liga; se não for um telemóvel português ' +
-        '(dá falta_telemovel ou telemovel_invalido), pergunta o número do MB WAY e passa-o em telemovel. ' +
-        'Com MB WAY diz a frase em "dizer" (o pedido de teste aceita-se no link do SMS em poucos minutos; a referência MB fica como alternativa). ' +
-        'Usa depois de o requerimento estar entregue e de o munícipe aceitar pagar; sem ids, usa o requerimento desta conversa. ' +
-        'O valor é recalculado aqui (passa as mesmas quantidades da simulação). ' +
-        'Diz o valor_por_extenso, que a referência seguiu por SMS e o prazo (pagar_ate_dito). ' +
-        'Diz SEMPRE que está em modo de teste e nada é cobrado (frase em "dizer"). ' +
-        'Se der faltam_quantidades, pergunta o que falta; se der sem_objeto_a_pagar, preenche primeiro o requerimento.',
+        'Quando aceita pagar as taxas de um requerimento entregue ou processo: referência Multibanco (ou MB WAY para o telemóvel de onde liga) por SMS. Passa as mesmas quantidades da simulação. ' +
+        'Diz o valor_por_extenso e o prazo (pagar_ate_dito). falta_telemovel/telemovel_invalido → pergunta o número do MB WAY; sem_objeto_a_pagar → preenche primeiro o requerimento.',
       entrada: z.object({
         requerimento_id: z.uuid().optional().describe('Id do requerimento.'),
         processo_id: z.uuid().optional().describe('Id do processo.'),
@@ -95,16 +84,14 @@ export function ferramentasPagamentos(pagamentos: PagamentosService) {
         metodo: z
           .enum(['multibanco', 'mbway'])
           .optional()
-          .describe('Como quer pagar; por omissão multibanco.'),
+          .describe('Por omissão multibanco.'),
         telemovel: z
           .string()
           .trim()
           .min(9)
           .max(20)
           .optional()
-          .describe(
-            'Telemóvel do MB WAY dito pelo munícipe (ex.: "912345678"), se não for o número de onde liga.',
-          ),
+          .describe('Do MB WAY, se não for o de onde liga.'),
       }),
       executar: (ctx, entrada) => pagamentos.criar(ctx, entrada),
     }),

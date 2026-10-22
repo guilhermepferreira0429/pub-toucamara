@@ -5,9 +5,9 @@ import {
   Contexto,
   criarUtilizador,
   entrarPainel,
-  ferramenta,
   linha,
   novaChamada,
+  pedirLicenca,
   smsPara,
   MUNICIPIO_ID,
 } from './app';
@@ -87,12 +87,7 @@ describe('Licenças decididas na chamada (e2e)', () => {
 
   it('dentro das regras: MB WAY de teste → pago → aprovar → SMS com o QR → página e PDF', async () => {
     const chamada = novaChamada('ler');
-    const r = await ferramenta(
-      ctx,
-      chamada,
-      'pedir_licenca_ruido',
-      festa(),
-    ).expect(200);
+    const r = await pedirLicenca(ctx, chamada, 'ruido', festa()).expect(200);
     expect(r.body).toMatchObject({
       pedida: true,
       numero: expect.stringMatching(/^LER \d+\/\d{4}$/),
@@ -192,10 +187,10 @@ describe('Licenças decididas na chamada (e2e)', () => {
 
   it('fora das regras (terça até à 1h): vai para um técnico, que pode aprovar ou recusar', async () => {
     const chamada = novaChamada('ler');
-    const r = await ferramenta(
+    const r = await pedirLicenca(
       ctx,
       chamada,
-      'pedir_licenca_ruido',
+      'ruido',
       festa(tercaDistante()),
     ).expect(200);
     expect(r.body).toMatchObject({
@@ -228,10 +223,10 @@ describe('Licenças decididas na chamada (e2e)', () => {
 
   it('técnico aprova fora das regras: falta pagar e emite sozinha quando chega o pagamento', async () => {
     const chamada = novaChamada('ler');
-    const r = await ferramenta(
+    const r = await pedirLicenca(
       ctx,
       chamada,
-      'pedir_licenca_ruido',
+      'ruido',
       festa(tercaDistante()),
     ).expect(200);
     const l = await linha(
@@ -281,10 +276,10 @@ describe('Licenças decididas na chamada (e2e)', () => {
         taxa_cent: 0,
       })
       .expect(200);
-    const r = await ferramenta(
+    const r = await pedirLicenca(
       ctx,
       novaChamada('ler'),
-      'pedir_licenca_ruido',
+      'ruido',
       festa(tercaDistante()),
     ).expect(200);
     expect(r.body).toMatchObject({ proposta: 'aprovar', pagamento: null });
@@ -303,10 +298,10 @@ describe('Licenças decididas na chamada (e2e)', () => {
   });
 
   it('sem número de telefone (chat anónimo) → precisa_identificacao', async () => {
-    const r = await ferramenta(
+    const r = await pedirLicenca(
       ctx,
       { conversa: novaChamada().conversa, telefone: '' },
-      'pedir_licenca_ruido',
+      'ruido',
       festa(),
     ).expect(200);
     expect(r.body).toMatchObject({

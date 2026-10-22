@@ -52,13 +52,14 @@ export class FimChamadaService {
     const [r] = await this.db.query<{ municipio_id: string }>(
       `SELECT municipio_id FROM conversas WHERE provider_id = $1
        UNION ALL
-       SELECT municipio_id FROM agente_config WHERE elevenlabs_agent_id = $2
+       SELECT municipio_id FROM agente_config
+       WHERE $2 IN (elevenlabs_agent_id, elevenlabs_agent_id_saida)
        LIMIT 1`,
       [conversationId, agentId],
     );
     if (!r) {
       this.logger.error(
-        `Fim de chamada ${conversationId}: agente ${agentId} sem município (agente_config.elevenlabs_agent_id).`,
+        `Fim de chamada ${conversationId}: agente ${agentId} sem município (agente_config.elevenlabs_agent_id ou elevenlabs_agent_id_saida).`,
       );
       throw new ErroApi(
         HttpStatus.UNPROCESSABLE_ENTITY,

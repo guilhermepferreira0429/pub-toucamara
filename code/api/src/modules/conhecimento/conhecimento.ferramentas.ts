@@ -13,32 +13,29 @@ export function ferramentasConhecimento(
     ferramenta({
       nome: 'procurar_conhecimento',
       descricao:
-        'Procura a resposta nas fontes oficiais do concelho (câmara, empresas municipais, juntas, leis e regulamentos). ' +
-        'Usa sempre antes de responder a uma pergunta sobre regras, prazos, taxas, documentos ou contactos. ' +
-        'Responde só com o que vem nos resultados e diz a fonte. Se vier sem_fonte: true, não inventes: passa a um funcionário. ' +
-        'Se vier documentos_simples, há uma versão em linguagem simples revista pela câmara: explica com base nela (sem contradizer os trechos oficiais) e manda o link, que tem o resumo e o texto oficial completo.',
+        'Antes de responder sobre regras, prazos, taxas, documentos, horários ou contactos: procura nas fontes oficiais (câmara, empresas municipais, juntas, leis). ' +
+        'Se vier documentos_simples, explica com base nesse resumo revisto (sem contradizer os trechos) e manda o link.',
+      agentes: ['entrada', 'saida', 'chat'],
       entrada: z.object({
         pergunta: z
           .string()
           .trim()
           .min(2)
           .max(500)
-          .describe(
-            'A pergunta do munícipe, por palavras dele ou resumida (ex.: "preciso de licença para abrir uma porta na sala?").',
-          ),
+          .describe('A pergunta, por palavras da pessoa ou resumida.'),
         limite: z
           .number()
           .int()
           .min(1)
           .max(10)
           .optional()
-          .describe('Quantos resultados no máximo (por defeito 5).'),
+          .describe('Máximo de resultados (5).'),
         em_data: z
           .string()
           .regex(/^\d{4}-\d{2}-\d{2}$/, 'AAAA-MM-DD')
           .optional()
           .describe(
-            'Só quando a pessoa pergunta pela regra numa data passada (ex.: "quando entreguei o pedido, em março de 2025, que regra valia?"). Devolve as versões em vigor nesse dia; se vier mudou_desde: true, diz que a regra entretanto mudou.',
+            'Só para a regra numa data passada (AAAA-MM-DD). mudou_desde: true → diz que entretanto mudou.',
           ),
       }),
       async executar(ctx, { pergunta, limite, em_data }) {

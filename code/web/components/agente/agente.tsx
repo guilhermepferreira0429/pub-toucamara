@@ -69,6 +69,8 @@ interface ConfigChamadas {
   numero_id: string | null;
   via: "twilio" | "sip_trunk";
   agente_configurado: boolean;
+  /** false: as chamadas usam o agente de entrada (sem as ferramentas das campanhas). */
+  agente_saida_configurado?: boolean;
   elevenlabs_disponivel: boolean;
 }
 
@@ -739,6 +741,12 @@ function ChamadasSaida() {
                 {!v.agente_configurado
                   ? "O agente de voz deste município ainda não está ligado: as chamadas não saem."
                   : "O serviço de voz não está configurado no servidor: as chamadas não saem."}
+              </p>
+            )}
+            {v.agente_configurado && v.agente_saida_configurado === false && (
+              <p className="rounded-xl bg-ambar-suave px-3 py-2 text-xs text-ambar">
+                Falta o agente de voz das chamadas da câmara: por agora as chamadas usam o agente que atende quem liga,
+                sem as perguntas das campanhas, emergências e avisos antecipados.
               </p>
             )}
             <label className="flex items-center gap-2.5 text-[13px] font-semibold text-tinta">

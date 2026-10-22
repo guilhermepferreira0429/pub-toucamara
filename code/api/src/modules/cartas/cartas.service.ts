@@ -106,14 +106,12 @@ export const entradaLerCarta = z.object({
     .toUpperCase()
     .optional()
     .describe(
-      'O código da carta: vem na mensagem do chat como [carta XXXXXXXXXX] ou no resultado anterior desta ferramenta. Vazio para começar (na chamada manda o SMS com o link para fotografar).',
+      'Da mensagem [carta …] ou do resultado anterior; vazio para começar.',
     ),
   data_rececao: z
     .string()
     .optional()
-    .describe(
-      'O dia em que a pessoa recebeu a carta, AAAA-MM-DD (quando a ferramenta pediu, ou a pessoa disse).',
-    ),
+    .describe('O dia em que a recebeu, AAAA-MM-DD.'),
 });
 
 export const entradaPrepararResposta = z.object({
@@ -121,23 +119,21 @@ export const entradaPrepararResposta = z.object({
   tipo: z
     .enum(TIPOS_RESPOSTA)
     .describe(
-      'pronuncia (responder a dizer porque não concorda), prorrogacao (pedir mais tempo), elementos (enviar os documentos pedidos), pagamento (referência para pagar).',
+      'pronuncia = não concorda; prorrogacao = mais tempo; elementos = documentos pedidos; pagamento = referência.',
     ),
   argumentos: z
     .string()
     .trim()
     .max(3000)
     .optional()
-    .describe(
-      'Na pronúncia: o que a pessoa disse, por palavras dela (porque não concorda, factos que quer que a câmara saiba). Na prorrogação: porque precisa de mais tempo.',
-    ),
+    .describe('Pronúncia: as palavras da pessoa. Prorrogação: porquê.'),
   dias: z
     .number()
     .int()
     .min(1)
     .max(90)
     .optional()
-    .describe('Na prorrogação: quantos dias úteis a mais (por defeito 10).'),
+    .describe('Prorrogação: dias úteis a mais (10).'),
 });
 
 interface LinhaCarta {

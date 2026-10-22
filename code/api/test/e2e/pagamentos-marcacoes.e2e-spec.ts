@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-call -- os corpos do supertest são `any`; as asserções do jest verificam a forma. */
 import { createHmac, randomUUID } from 'crypto';
 import { SEGREDO_AGENTE, SEGREDO_PAGAMENTOS, WEB_URL } from './ambiente';
+import { ResumoService } from '../../src/modules/conversas/resumo.service';
 import {
   arrancarApp,
   Chamada,
@@ -12,6 +13,7 @@ import {
   novaChamada,
   seguirLink,
   smsPara,
+  soltarRetidas,
 } from './app';
 
 /** `.expect(estado(200))`: como `.expect(200)`, mas com o corpo na mensagem de erro. */
@@ -590,6 +592,10 @@ describe('Pagamentos e marcações (e2e)', () => {
         assunto: 'Dúvidas sobre a obra',
         inicio: new Date(vagas[0].inicio),
       });
+      // Na chamada, a confirmação espera pelo SMS do fim (um SMS por chamada).
+      const [retida] = await smsPara(ctx, a.telefone, 'marcacao');
+      expect(retida.estado).toBe('agendada');
+      await soltarRetidas(ctx, a.telefone);
       const sms = await esperarSmsEnviado(ctx, a.telefone, 'marcacao');
       expect(sms.corpo).toContain('marcação confirmada');
       expect(sms.corpo).toContain(r.body.link);
@@ -711,6 +717,7 @@ describe('Pagamentos e marcações (e2e)', () => {
         [marcacaoA],
       );
       expect(bd).toEqual({ estado: 'cancelada' });
+      await soltarRetidas(ctx, a.telefone);
       const sms = await esperarAte(() =>
         linha<{ corpo: string }>(
           ctx.db,
@@ -794,6 +801,7 @@ describe('Pagamentos e marcações (e2e)', () => {
         itens: corpo.itens,
         futura: true,
       });
+      await soltarRetidas(ctx, c.telefone);
       const sms = await esperarSmsEnviado(ctx, c.telefone, 'recolha');
       expect(sms.corpo).toContain('sofá (1), colchão (2)');
 
@@ -843,6 +851,44 @@ describe('Pagamentos e marcações (e2e)', () => {
         id: randomUUID(),
       }).expect(estado(404));
       expect(inexistente.body.erro.codigo).toBe('marcacao_nao_encontrada');
+    });
+
+    it('um SMS por chamada: a confirmação da recolha fica no SMS do fim; se a chamada cair, sai sozinha', async () => {
+      const resumo = ctx.app.get(ResumoService);
+      const corpo = {
+        itens: [{ item: 'frigorífico', qtd: 1 }],
+        morada: 'Rua do Picoto, 4, Centro',
+        preferencia: 'tarde',
+      };
+      const conversaDe = async (c: Chamada) =>
+        (await linha<{ id: string }>(
+          ctx.db,
+          'SELECT id FROM conversas WHERE provider_id = $1',
+          [c.conversa],
+        ))!.id;
+
+      // Com SMS do fim: a confirmação fica 'cancelada' e só sai o do fim.
+      const c = novaChamada('recolha-fim');
+      await tool(c, 'agendar_recolha', corpo).expect(estado(200));
+      const [retida] = await smsPara(ctx, c.telefone, 'recolha');
+      expect(retida.estado).toBe('agendada');
+      await resumo.smsFimChamada(await conversaDe(c));
+      expect((await smsPara(ctx, c.telefone, 'recolha'))[0].estado).toBe(
+        'cancelada',
+      );
+      await esperarSmsEnviado(ctx, c.telefone, 'fim_chamada');
+
+      // A chamada caiu (sem SMS do fim): a confirmação sai.
+      const d = novaChamada('recolha-caiu');
+      await tool(d, 'agendar_recolha', corpo).expect(estado(200));
+      const id = await conversaDe(d);
+      await ctx.db.query(
+        `UPDATE conversas SET resultado = 'caiu' WHERE id = $1`,
+        [id],
+      );
+      await resumo.smsFimChamada(id);
+      await esperarSmsEnviado(ctx, d.telefone, 'recolha');
+      expect(await smsPara(ctx, d.telefone, 'fim_chamada')).toHaveLength(0);
     });
 
     it('sem empresa de resíduos → 422 sem_entidade_recolha', async () => {
