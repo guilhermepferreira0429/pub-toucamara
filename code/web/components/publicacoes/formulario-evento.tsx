@@ -1,6 +1,6 @@
 "use client";
 
-import type { Map as MapaLeaflet } from "leaflet";
+import type { ApiMapa } from "@/components/mapa/tipos";
 import { Crosshair, Save, Send, Trash2 } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useCallback, useMemo, useRef, useState } from "react";
@@ -66,8 +66,8 @@ export function FormularioEvento({
 }) {
   const { pedido } = useSessao();
   const acao = useAcao();
-  const mapa = useRef<MapaLeaflet | null>(null);
-  const ligarMapa = useCallback((m: MapaLeaflet | null) => {
+  const mapa = useRef<ApiMapa | null>(null);
+  const ligarMapa = useCallback((m: ApiMapa | null) => {
     mapa.current = m;
   }, []);
   const [f, setF] = useState<FormEvento>({
@@ -291,7 +291,7 @@ export function FormularioEvento({
               icone={Crosshair}
               className="min-h-11"
               onClick={() => {
-                const c = mapa.current?.getCenter();
+                const c = mapa.current?.centro();
                 if (c) porPonto({ lat: c.lat, lng: c.lng });
               }}
             >

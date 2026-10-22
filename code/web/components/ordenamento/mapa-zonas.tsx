@@ -1,14 +1,14 @@
 "use client";
 
-import "leaflet/dist/leaflet.css";
-import type { LatLngBoundsExpression } from "leaflet";
-import { useEffect, useRef } from "react";
-import { CircleMarker, MapContainer, Polygon, TileLayer, Tooltip, useMap } from "react-leaflet";
+import { useMemo } from "react";
+import { MapaCidade } from "@/components/mapa/mapa-cidade";
+import type { FormaMapa, PontoMapa as PontoCidade } from "@/components/mapa/tipos";
 import { COR_CATEGORIA, type Ponto } from "./tipos";
 
 /*
- * Mapa das zonas do PDM (Leaflet + OpenStreetMap), com pontos por cima. Só
- * corre no browser: importa-se com next/dynamic e ssr: false.
+ * Mapa das zonas do PDM (MapaCidade: Mapbox com token, com a zona em
+ * destaque levantada no 3D; senão Leaflet + OpenStreetMap), com pontos por
+ * cima. Só corre no browser: importa-se com next/dynamic e ssr: false.
  */
 
 export interface ZonaMapa {
@@ -26,19 +26,6 @@ export interface PontoMapa {
   rotulo: string;
 }
 
-
-function Enquadrar({ pontos }: { pontos: Ponto[] }) {
-  const map = useMap();
-  const feito = useRef(false);
-  useEffect(() => {
-    if (feito.current || pontos.length === 0) return;
-    feito.current = true;
-    if (pontos.length === 1) map.setView(pontos[0], 16);
-    else map.fitBounds(pontos as LatLngBoundsExpression, { padding: [30, 30], maxZoom: 16 });
-  }, [map, pontos]);
-  return null;
-}
-
 export default function MapaZonas({
   zonas,
   pontos = [],
@@ -54,48 +41,36 @@ export default function MapaZonas({
   enquadrar?: Ponto[];
   className?: string;
 }) {
-  const todos = enquadrar ?? zonas.flatMap((z) => z.poligono);
+  const formas = useMemo<FormaMapa[]>(
+    () =>
+      zonas.map((z) => ({
+        id: z.codigo,
+        tipo: "poligono",
+        pontos: z.poligono.map(([lat, lng]) => ({ lat, lng })),
+        cor: COR_CATEGORIA[z.categoria] ?? "#555555",
+        preenchimento: 0.22,
+        esbatida: !!destacar && destacar !== z.codigo,
+        altura_m: destacar === z.codigo || zonas.length === 1 ? 24 : undefined,
+        rotulo: z.nome,
+      })),
+    [zonas, destacar],
+  );
+  const pts = useMemo<PontoCidade[]>(() => pontos.map((p) => ({ ...p })), [pontos]);
+  const todos = useMemo(
+    () => (enquadrar ?? zonas.flatMap((z) => z.poligono)).map(([lat, lng]) => ({ lat, lng })),
+    [enquadrar, zonas],
+  );
   return (
-    <MapContainer
-      center={todos[0] ?? [41.4425, -8.2918]}
-      zoom={14}
-      scrollWheelZoom={false}
+    <MapaCidade
+      rotulo="Mapa das zonas do plano"
       className={className}
-      attributionControl
-    >
-      <TileLayer
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-      />
-      {zonas.map((z) => {
-        const cor = COR_CATEGORIA[z.categoria] ?? "#555";
-        const esbatida = destacar && destacar !== z.codigo;
-        return (
-          <Polygon
-            key={z.codigo}
-            positions={z.poligono}
-            pathOptions={{
-              color: cor,
-              weight: esbatida ? 1 : 2.5,
-              fillOpacity: esbatida ? 0.05 : 0.22,
-              opacity: esbatida ? 0.4 : 1,
-            }}
-          >
-            <Tooltip sticky>{z.nome}</Tooltip>
-          </Polygon>
-        );
-      })}
-      {pontos.map((p) => (
-        <CircleMarker
-          key={p.id}
-          center={[p.lat, p.lng]}
-          radius={7}
-          pathOptions={{ color: "#fff", weight: 2, fillColor: p.cor, fillOpacity: 1 }}
-        >
-          <Tooltip>{p.rotulo}</Tooltip>
-        </CircleMarker>
-      ))}
-      <Enquadrar pontos={todos} />
-    </MapContainer>
+      formas={formas}
+      pontos={pts}
+      enquadrar={todos}
+      enquadrarUmaVez
+      vista="inclinado"
+      rodaRato={false}
+      controlos={{ zoom: true, vista3d: true, posicao: "direita-baixo" }}
+    />
   );
 }
