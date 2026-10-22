@@ -310,7 +310,12 @@ describe('Porta para as IAs (e2e)', () => {
       expect(nomes).not.toContain('motivo_da_chamada');
 
       const morada = 'Rua da Porta das IAs 12, Guimarães';
-      ctx.geo.moradas.set(morada, { lat: 41.4425, lng: -8.2918 });
+      // Um ponto só deste teste: perto de outra ocorrência da BD partilhada
+      // (ex.: o buraco da demo) ficava como duplicado dessa.
+      ctx.geo.moradas.set(morada, {
+        lat: 41.47 + Math.random() * 0.01,
+        lng: -8.34 + Math.random() * 0.01,
+      });
       const r = await rpc(l.caminho_mcp, {
         jsonrpc: '2.0',
         id: 2,
