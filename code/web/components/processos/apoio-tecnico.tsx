@@ -348,7 +348,7 @@ export function ApoioTecnico() {
       </div>
     );
   }
-  if (!p) return <ACarregar className="px-10 pt-10" texto="A abrir o apoio ao técnico…" />;
+  if (!p) return <ACarregar className="px-4 pt-10 sm:px-10" texto="A abrir o apoio ao técnico…" />;
 
   const todos = lista.dados?.itens ?? [];
   const doTipo = todos.filter((r) => r.tipo === tipo);
@@ -436,7 +436,7 @@ export function ApoioTecnico() {
 
   return (
     <div className="flex min-h-dvh flex-col">
-      <header className="flex flex-wrap items-center justify-between gap-4 border-b border-linha bg-papel px-8 py-5">
+      <header className="flex flex-wrap items-center justify-between gap-4 border-b border-linha bg-papel px-4 py-5 sm:px-8">
         <div className="flex min-w-0 items-center gap-3.5">
           <Link
             href={`/painel/processos/${p.id}`}
@@ -452,7 +452,7 @@ export function ApoioTecnico() {
             <p className="truncate text-[13px] text-tinta-2">{sub}</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {p.demonstracao && <Pilula tom="ambar">processo de demonstração</Pilula>}
           <BotaoPainel
             icone={RefreshCw}
@@ -499,30 +499,32 @@ export function ApoioTecnico() {
       <div className="grid flex-1 lg:grid-cols-[400px_minmax(0,1fr)]">
         <aside
           aria-label="Verificações, regulamento e resumo"
-          className="flex flex-col gap-6 border-r border-linha py-6 pl-8 pr-6"
+          className="flex min-w-0 flex-col gap-6 border-b border-linha px-4 py-6 sm:pl-8 sm:pr-6 lg:border-b-0 lg:border-r"
         >
           <BlocoVerificacoes processoId={p.id} v={estadoVerificacoes} />
           <Regras processoId={p.id} r={reg} />
           <Resumo processoId={p.id} />
         </aside>
 
-        <section aria-label="Documento" className="flex flex-col gap-4 bg-creme-2 px-10 py-6">
+        <section aria-label="Documento" className="flex min-w-0 flex-col gap-4 bg-creme-2 px-4 py-6 sm:px-10">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <Segmentado<TipoRascunho>
-              rotulo="Tipo de documento"
-              fundo="bg-white/50"
-              valor={tipo}
-              onChange={(v) => {
-                setTipo(v);
-                setNovo(false);
-              }}
-              opcoes={TIPOS_RASCUNHO.map((t) => ({
-                valor: t,
-                rotulo: TIPO_RASCUNHO_ROTULO[t],
-                contagem: todos.filter((r) => r.tipo === t && r.estado !== "descartado").length || null,
-              }))}
-            />
-            <div className="flex items-center gap-2">
+            <div className="max-w-full overflow-x-auto">
+              <Segmentado<TipoRascunho>
+                rotulo="Tipo de documento"
+                fundo="bg-white/50"
+                valor={tipo}
+                onChange={(v) => {
+                  setTipo(v);
+                  setNovo(false);
+                }}
+                opcoes={TIPOS_RASCUNHO.map((t) => ({
+                  valor: t,
+                  rotulo: TIPO_RASCUNHO_ROTULO[t],
+                  contagem: todos.filter((r) => r.tipo === t && r.estado !== "descartado").length || null,
+                }))}
+              />
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
               {doTipo.length > 1 && !mostrarNovo && (
                 <label className="flex items-center gap-2 text-xs font-semibold text-tinta-2">
                   <FileText className="size-3.5" aria-hidden />

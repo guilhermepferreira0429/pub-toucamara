@@ -268,7 +268,7 @@ function GestaoDocumental() {
   };
 
   return (
-    <Cartao className="flex flex-col gap-3.5 p-6">
+    <Cartao className="flex flex-col gap-3.5 p-4 sm:p-6">
       <div className="flex items-start gap-3">
         <FolderSync className="mt-1 size-5 text-tinta-2" aria-hidden />
         <div className="flex flex-col gap-1">
@@ -502,13 +502,13 @@ export function PaginaEquipa() {
         }
       />
       {aviso && (
-        <p className="mx-10 mb-4 rounded-xl bg-verde-suave px-3 py-2 text-[13px] text-verde" role="status">
+        <p className="mx-4 sm:mx-10 mb-4 rounded-xl bg-verde-suave px-3 py-2 text-[13px] text-verde" role="status">
           {aviso}
         </p>
       )}
-      <div className="flex flex-col gap-6 px-10">
-        <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,568fr)_minmax(0,520fr)]">
-          <Cartao className="flex flex-col p-6">
+      <div className="flex flex-col gap-6 px-4 sm:px-10">
+        <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,568fr)_minmax(0,520fr)]">
+          <Cartao className="flex flex-col p-4 sm:p-6">
             <div className="flex flex-col gap-1 pb-3.5">
               <h2 className="font-display text-[19px] font-bold text-tinta">Equipa</h2>
               <p className="text-[13px] text-tinta-2">Entram com o link enviado por email.</p>
@@ -559,7 +559,7 @@ export function PaginaEquipa() {
             </Estado>
           </Cartao>
 
-          <Cartao className="flex flex-col p-6">
+          <Cartao className="flex flex-col p-4 sm:p-6">
             <h2 className="pb-3.5 font-display text-[19px] font-bold text-tinta">O que cada perfil pode fazer</h2>
             <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="O que cada perfil pode fazer">
               <table className="w-full min-w-[440px]">
@@ -600,7 +600,7 @@ export function PaginaEquipa() {
           </Cartao>
         </div>
 
-        <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,568fr)_minmax(0,520fr)]">
+        <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,568fr)_minmax(0,520fr)]">
           <GestaoDocumental />
           <DadosPessoais />
         </div>

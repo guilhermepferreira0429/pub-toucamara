@@ -365,7 +365,7 @@ export function SemResposta() {
   const porRever = mapa.dados?.resumo.alteracoes_por_rever ?? 0;
 
   return (
-    <div className="flex flex-col gap-5 px-10">
+    <div className="flex flex-col gap-5 px-4 sm:px-10">
       {porRever > 0 && (
         <div className="flex flex-wrap items-center gap-3.5 rounded-[14px] bg-ambar-suave px-[18px] py-3.5">
           <FileDiff className="size-5 text-ambar" aria-hidden />

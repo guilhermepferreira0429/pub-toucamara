@@ -20,6 +20,7 @@ import { AExpirar } from "@/components/licencas/a-expirar";
 import { IndicadorExcecoes } from "@/components/licencas/excecoes";
 import { InfoTipo, RegrasTipo, TipoLicenca } from "@/components/licencas/regras-tipo";
 import { CabecalhoPagina } from "@/components/painel/cabecalho";
+import { FiltrosRecolhiveis } from "@/components/painel/telemovel";
 import { Botao } from "@/components/ui/botao";
 import { API_URL } from "@/lib/api";
 import { useSessao } from "@/lib/sessao";
@@ -115,7 +116,7 @@ export function PaginaLicencas() {
         titulo="Licenças decididas na chamada"
         descricao="O agente verifica as regras enquanto a pessoa está ao telefone. Dentro das regras, a taxa paga-se logo e aqui só falta um clique. Fora das regras, chega ao técnico já analisado."
       />
-      <div className="flex gap-1 px-10 pb-4" role="tablist" aria-label="Vista">
+      <div className="flex gap-1 overflow-x-auto px-4 pb-4 sm:px-10 [&>*]:shrink-0 [&>*]:whitespace-nowrap" role="tablist" aria-label="Vista">
         {(
           [
             ["pedidos", "Pedidos"],
@@ -136,49 +137,57 @@ export function PaginaLicencas() {
           </button>
         ))}
       </div>
-      <div className="flex flex-wrap gap-2 px-10 pb-3" role="group" aria-label="Tipo de licença">
-        {(["todos", ...tipos.map((t) => t.tipo)] as const).map((t) => {
-          const info = tipos.find((x) => x.tipo === t);
-          return (
-            <button
-              key={t}
-              type="button"
-              aria-pressed={tipo === t}
-              onClick={() => setTipo(t)}
-              className={`rounded-[10px] border px-3.5 py-2 text-[13px] font-semibold ${
-                tipo === t ? "border-tinta bg-tinta text-white" : "border-linha bg-papel text-tinta-2"
-              }`}
-            >
-              {info ? info.nome : "Todos os tipos"}
-              {info?.pedidos ? ` · ${info.pedidos}` : ""}
-            </button>
-          );
-        })}
+      {/* No telemóvel, os filtros (tipo e estado) ficam atrás do botão "Filtros". */}
+      <div className="max-md:px-4 max-md:pb-4 md:contents">
+        <FiltrosRecolhiveis
+          ativos={(tipo !== "todos" ? 1 : 0) + (filtro !== "todas" ? 1 : 0)}
+          className="flex flex-col gap-3 max-md:pt-3 md:contents"
+        >
+          <div className="flex flex-wrap gap-2 md:px-10 md:pb-3" role="group" aria-label="Tipo de licença">
+            {(["todos", ...tipos.map((t) => t.tipo)] as const).map((t) => {
+              const info = tipos.find((x) => x.tipo === t);
+              return (
+                <button
+                  key={t}
+                  type="button"
+                  aria-pressed={tipo === t}
+                  onClick={() => setTipo(t)}
+                  className={`rounded-[10px] border px-3.5 py-2 text-[13px] font-semibold ${
+                    tipo === t ? "border-tinta bg-tinta text-white" : "border-linha bg-papel text-tinta-2"
+                  }`}
+                >
+                  {info ? info.nome : "Todos os tipos"}
+                  {info?.pedidos ? ` · ${info.pedidos}` : ""}
+                </button>
+              );
+            })}
+          </div>
+          <div
+            className={`flex flex-wrap gap-2 md:px-10 md:pb-5 ${vista === "a_expirar" ? "hidden" : ""}`}
+            role="group"
+            aria-label="Estado"
+          >
+            {FILTROS.map((f) => {
+              const n = f === "todas" ? null : d.dados?.contagens[f];
+              return (
+                <button
+                  key={f}
+                  type="button"
+                  aria-pressed={filtro === f}
+                  onClick={() => setFiltro(f)}
+                  className={`rounded-full border px-3.5 py-1.5 text-[13px] font-semibold ${
+                    filtro === f ? "border-terracota bg-terracota-suave text-terracota-escuro" : "border-linha text-tinta-2"
+                  }`}
+                >
+                  {f === "todas" ? "Todas" : ESTADOS[f].rotulo}
+                  {n ? ` · ${n}` : ""}
+                </button>
+              );
+            })}
+          </div>
+        </FiltrosRecolhiveis>
       </div>
-      <div
-        className={`flex flex-wrap gap-2 px-10 pb-5 ${vista === "a_expirar" ? "hidden" : ""}`}
-        role="group"
-        aria-label="Estado"
-      >
-        {FILTROS.map((f) => {
-          const n = f === "todas" ? null : d.dados?.contagens[f];
-          return (
-            <button
-              key={f}
-              type="button"
-              aria-pressed={filtro === f}
-              onClick={() => setFiltro(f)}
-              className={`rounded-full border px-3.5 py-1.5 text-[13px] font-semibold ${
-                filtro === f ? "border-terracota bg-terracota-suave text-terracota-escuro" : "border-linha text-tinta-2"
-              }`}
-            >
-              {f === "todas" ? "Todas" : ESTADOS[f].rotulo}
-              {n ? ` · ${n}` : ""}
-            </button>
-          );
-        })}
-      </div>
-      <div className="grid gap-6 px-10 xl:grid-cols-[minmax(0,1fr)_380px]">
+      <div className="grid grid-cols-1 gap-6 px-4 sm:px-10 xl:grid-cols-[minmax(0,1fr)_380px]">
         {vista === "a_expirar" ? (
           <AExpirar tipo={tipo} />
         ) : (
@@ -220,7 +229,7 @@ function CartaoLicenca({ l, onMudou }: { l: Licenca; onMudou: () => void }) {
 
   return (
     <Cartao className={l.estado === "por_aprovar" ? "border-terracota" : ""}>
-      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-4 border-b border-linha px-5 py-4">
+      <div className="grid grid-cols-1 items-start gap-4 border-b border-linha px-4 py-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:px-5">
         <div className="flex min-w-0 flex-col gap-1">
           <div className="flex flex-wrap items-center gap-2">
             <span className="font-mono text-sm font-semibold text-tinta">{l.numero}</span>
@@ -264,7 +273,7 @@ function CartaoLicenca({ l, onMudou }: { l: Licenca; onMudou: () => void }) {
             {l.telefone ? ` · ${l.telefone}` : ""} · pedido {quando(l.criada_em)}
           </span>
         </div>
-        <div className="flex flex-col items-end gap-1 text-right">
+        <div className="flex flex-col items-start gap-1 sm:items-end sm:text-right">
           {l.estado === "para_tecnico" ? (
             <span className="text-xs text-tinta-3">
               taxa de {euros(l.taxa_se_aprovada_cent)}
@@ -306,7 +315,7 @@ function CartaoLicenca({ l, onMudou }: { l: Licenca; onMudou: () => void }) {
         </div>
       )}
 
-      <div className="grid gap-4 px-5 py-4 md:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 px-4 py-4 sm:px-5 md:grid-cols-2">
         <div>
           <Rotulo>Verificado pelo agente</Rotulo>
           <ul className="mt-2 flex flex-col gap-1.5">

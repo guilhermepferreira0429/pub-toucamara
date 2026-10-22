@@ -151,7 +151,7 @@ export function Qualidade() {
 
   if (q.erro || !q.dados) {
     return (
-      <div className="px-10">
+      <div className="px-4 sm:px-10">
         <Cartao>
           <Estado aCarregar={q.aCarregar} erro={q.erro} />
         </Cartao>
@@ -164,7 +164,7 @@ export function Qualidade() {
   const bem = u ? (u.certas ?? 0) + (u.passadas_bem ?? 0) : 0;
 
   return (
-    <div className="flex flex-col gap-5 px-10">
+    <div className="flex flex-col gap-5 px-4 sm:px-10">
       <div className="flex flex-wrap items-center gap-3.5 rounded-[14px] bg-terracota-suave px-[18px] py-3.5">
         <span
           className="flex size-8 shrink-0 items-center justify-center rounded-[16px_16px_16px_4px] bg-terracota font-display text-[17px] font-extrabold text-white"
@@ -196,7 +196,7 @@ export function Qualidade() {
 
       <CorrerTeste d={d} onPedido={q.recarregar} />
 
-      <div className="grid gap-6 lg:grid-cols-[360px_minmax(0,1fr)]">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[360px_minmax(0,1fr)]">
         <section className="flex flex-col gap-3 rounded-2xl bg-tinta p-6">
           <p className="text-[11px] font-bold tracking-[0.4px] text-white/60 uppercase">
             Teste de qualidade · {u ? quando(u.terminada_em) : "ainda sem teste"}

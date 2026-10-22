@@ -25,7 +25,7 @@ function Anel({ valor, rotulo }: { valor: number | null; rotulo: string }) {
   const c = 2 * Math.PI * r;
   const v = valor === null ? 0 : Math.max(0, Math.min(100, valor));
   return (
-    <div className="flex w-24 flex-col items-center gap-2.5">
+    <div className="flex w-24 flex-col items-center gap-2.5 justify-self-center">
       <div className="relative size-24">
         <svg viewBox="0 0 96 96" className="size-24 -rotate-90" aria-hidden>
           <circle cx="48" cy="48" r={r} fill="none" strokeWidth="8" className="stroke-white/15" />
@@ -78,41 +78,65 @@ function Mosaico({ temas }: { temas: TemaMapa[] }) {
     );
   }
   return (
-    <ul className="grid grid-flow-row-dense auto-rows-[104px] grid-cols-6 gap-1.5">
+    // Telemóvel (abaixo de `sm`): uma lista, um tema por linha. A partir de
+    // `sm`: o mosaico de 6 colunas, com o tamanho a seguir as conversas.
+    <ul className="flex flex-col gap-1.5 sm:grid sm:grid-flow-row-dense sm:auto-rows-[104px] sm:grid-cols-6">
       {visiveis.map((t, i) => {
         const p = parteNoAr(t);
         const cor = corDoTema(p);
         const grande = i === 0;
         const medio = i > 0 && i < 3;
         const span = grande
-          ? "col-span-2 row-span-3"
+          ? "sm:col-span-2 sm:row-span-3"
           : medio
-            ? "col-span-2 row-span-2"
+            ? "sm:col-span-2 sm:row-span-2"
             : i < 7
-              ? "col-span-2"
-              : "col-span-1";
+              ? "sm:col-span-2"
+              : "sm:col-span-1";
+        const destaque = grande || medio;
+        // Sem respostas, o mosaico leva a criar a primeira (não há nada para ver).
+        const href =
+          p === null
+            ? `/painel/conhecimento/respostas?tema=${t.tema_id}&nova=1`
+            : `/painel/conhecimento/respostas?tema=${t.tema_id}`;
         return (
           <li key={t.tema_id} className={span}>
             <Link
-              href={`/painel/conhecimento/respostas?tema=${t.tema_id}`}
-              title={`Ver as respostas de ${t.nome}`}
-              className={`flex h-full flex-col justify-between overflow-hidden rounded-[14px] transition-opacity hover:opacity-90 ${grande || medio ? "p-5" : "p-3.5"} ${cor.fundo}`}
+              href={href}
+              title={
+                p === null ? `Criar a primeira resposta de ${t.nome}` : `Ver as respostas de ${t.nome}`
+              }
+              className={`flex h-full items-center justify-between gap-3 overflow-hidden rounded-[14px] px-4 py-3 transition-opacity hover:opacity-90 sm:flex-col sm:items-stretch ${destaque ? "sm:p-5" : "sm:p-3.5"} ${cor.fundo}`}
             >
-            <div className="min-w-0">
-              <p
-                className={`font-display font-bold leading-tight ${cor.texto} ${grande || medio ? "text-2xl" : "text-[15px]"}`}
-              >
-                {t.nome}
-              </p>
-              <p className={`mt-0.5 ${grande || medio ? "text-[13px]" : "text-[11px]"} ${cor.sub}`}>
-                {numero(t.conversas_30d)} {t.conversas_30d === 1 ? "conversa" : "conversas"}
-              </p>
-            </div>
-            <p
-              className={`font-display font-extrabold ${cor.texto} ${grande || medio ? "text-[40px] leading-none" : "text-[22px]"}`}
-            >
-              {p === null ? "sem resposta" : pct(p)}
-            </p>
+              <div className="min-w-0">
+                <p
+                  className={`font-display font-bold leading-tight ${cor.texto} text-base ${destaque ? "sm:text-2xl" : "sm:text-[15px]"}`}
+                >
+                  {t.nome}
+                </p>
+                <p className={`mt-0.5 text-xs ${destaque ? "sm:text-[13px]" : "sm:text-[11px]"} ${cor.sub}`}>
+                  {numero(t.conversas_30d)} {t.conversas_30d === 1 ? "conversa" : "conversas"}
+                </p>
+              </div>
+              {p === null ? (
+                <div className="flex shrink-0 flex-col items-end sm:items-start">
+                  <p
+                    className={`font-display font-extrabold leading-none ${cor.texto} text-[22px] ${destaque ? "sm:text-[40px]" : ""}`}
+                    aria-hidden
+                  >
+                    —
+                  </p>
+                  <p className={`mt-1 truncate text-xs font-semibold ${cor.sub}`}>
+                    Sem resposta · Criar →
+                  </p>
+                </div>
+              ) : (
+                <p
+                  className={`shrink-0 font-display font-extrabold ${cor.texto} text-[22px] ${destaque ? "sm:text-[40px] sm:leading-none" : ""}`}
+                >
+                  {pct(p)}
+                </p>
+              )}
             </Link>
           </li>
         );
@@ -141,7 +165,7 @@ export function MapaConhecimento() {
 
   if (mapa.erro || (mapa.aCarregar && !mapa.dados)) {
     return (
-      <div className="px-10">
+      <div className="px-4 sm:px-10">
         <Cartao>
           <Estado aCarregar={mapa.aCarregar} erro={mapa.erro} />
         </Cartao>
@@ -171,18 +195,18 @@ export function MapaConhecimento() {
   const contradicao = contradicoes.dados?.itens[0];
 
   return (
-    <div className="flex flex-col gap-5 px-10">
+    <div className="flex flex-col gap-5 px-4 sm:px-10">
       {/* Destaque */}
-      <section className="flex flex-wrap items-center justify-between gap-10 rounded-3xl bg-tinta px-8 py-7">
+      <section className="flex flex-wrap items-center justify-between gap-6 rounded-3xl bg-tinta px-5 py-6 sm:gap-10 sm:px-8 sm:py-7">
         <div className="flex max-w-[664px] flex-col gap-1.5">
           <p className="text-[11px] font-bold tracking-[0.4px] text-white/60">
             O AGENTE SABE RESPONDER A
           </p>
           <div className="flex items-center gap-3.5">
-            <span className="font-display text-[80px] leading-none font-extrabold text-white">
+            <span className="font-display text-[56px] leading-none font-extrabold text-white sm:text-[80px]">
               {pct(cobertura)}
             </span>
-            <span className="font-display text-[22px] leading-tight font-semibold whitespace-pre-line text-white/80">
+            <span className="font-display text-lg leading-tight font-semibold whitespace-pre-line text-white/80 sm:text-[22px]">
               {"do que os munícipes\nlhe perguntam"}
             </span>
           </div>
@@ -193,7 +217,7 @@ export function MapaConhecimento() {
             {ingestao ? ` · lidas ${quando(ingestao.iniciada_em)}` : ""}
           </p>
         </div>
-        <div className="flex gap-7">
+        <div className="grid w-full grid-cols-3 gap-3 sm:flex sm:w-auto sm:gap-7">
           <Anel valor={cobertura} rotulo="Cobertura" />
           <Anel valor={qualidade.dados?.ultima?.taxa ?? null} rotulo="Qualidade" />
           <Anel valor={emDia} rotulo="Fontes em dia" />
@@ -201,7 +225,7 @@ export function MapaConhecimento() {
       </section>
 
       {/* Mapa dos temas */}
-      <Cartao className="flex flex-col gap-3.5 rounded-[20px] p-6">
+      <Cartao className="flex flex-col gap-3.5 rounded-[20px] p-4 sm:p-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="flex flex-col gap-1">
             <h2 className="font-display text-xl font-bold text-tinta">
@@ -225,8 +249,8 @@ export function MapaConhecimento() {
       </Cartao>
 
       {/* Fontes e esta noite */}
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,672fr)_minmax(0,420fr)]">
-        <Cartao className="flex flex-col gap-3 rounded-[20px] p-6">
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,672fr)_minmax(0,420fr)]">
+        <Cartao className="flex flex-col gap-3 rounded-[20px] p-4 sm:p-6">
           <h2 className="font-display text-lg font-bold text-tinta">Fontes por entidade</h2>
           <Estado
             aCarregar={fontes.aCarregar}
@@ -254,7 +278,7 @@ export function MapaConhecimento() {
           </Estado>
         </Cartao>
 
-        <section className="flex flex-col gap-3 rounded-[20px] bg-terracota-suave p-6">
+        <section className="flex flex-col gap-3 rounded-[20px] bg-terracota-suave p-4 sm:p-6">
           <div className="flex items-center gap-2">
             <Moon className="size-[18px] text-terracota-escuro" aria-hidden />
             <h2 className="font-display text-lg font-bold text-terracota-escuro">
@@ -279,8 +303,8 @@ export function MapaConhecimento() {
       </div>
 
       {/* Concelho e contradições */}
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,652fr)_minmax(0,440fr)]">
-        <Cartao className="flex flex-col gap-3.5 rounded-[20px] p-6">
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,652fr)_minmax(0,440fr)]">
+        <Cartao className="flex flex-col gap-3.5 rounded-[20px] p-4 sm:p-6">
           <div className="flex flex-col gap-1">
             <h2 className="font-display text-lg font-bold text-tinta">
               O concelho inteiro, não só o site da câmara
@@ -296,7 +320,7 @@ export function MapaConhecimento() {
             vazio={!locais.length}
             textoVazio="Ainda não há entidades configuradas."
           >
-            <ul className="grid gap-2 sm:grid-cols-2">
+            <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               {locais.slice(0, 8).map((e) => {
                 const Icone = ICONE_ENTIDADE[e.tipo] ?? Building2;
                 return (
@@ -326,7 +350,7 @@ export function MapaConhecimento() {
           )}
         </Cartao>
 
-        <Cartao className="flex flex-col gap-3 rounded-[20px] p-6">
+        <Cartao className="flex flex-col gap-3 rounded-[20px] p-4 sm:p-6">
           <div className="flex items-center gap-2">
             <GitCompareArrows className="size-[18px] text-ambar" aria-hidden />
             <h2 className="font-display text-[17px] font-bold text-ambar">
