@@ -240,11 +240,16 @@ function CartaoLicenca({ l, onMudou }: { l: Licenca; onMudou: () => void }) {
                 decidida automaticamente
               </Pilula>
             )}
-            {l.decisao === "excecao" && (
-              <Pilula tom="ambar" icone={TriangleAlert}>
-                exceção
-              </Pilula>
-            )}
+            {l.decisao === "excecao" &&
+              (l.estado === "emitida" ? (
+                <Pilula tom="neutro" icone={Check}>
+                  exceção aprovada{l.decidida_por_nome ? ` por ${l.decidida_por_nome}` : ""}
+                </Pilula>
+              ) : (
+                <Pilula tom="ambar" icone={TriangleAlert}>
+                  exceção
+                </Pilula>
+              ))}
             {l.decisao === "funcionario" && <Pilula tom="neutro">funcionário confirma (escolha da câmara)</Pilula>}
           </div>
           <span className="font-display text-lg font-bold text-tinta">

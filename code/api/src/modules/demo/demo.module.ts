@@ -5,6 +5,8 @@ import type { UtilizadorPainel } from '../../common/pedido.js';
 import { validar } from '../../common/validacao.js';
 import { Painel } from '../auth/painel.guard.js';
 import type { Municipio } from '../municipios/municipios.service.js';
+import { DemoAcertosService } from './demo-acertos.service.js';
+import { DemoConhecimentoService } from './demo-conhecimento.service.js';
 import { DemoService } from './demo.service.js';
 
 const esquemaPreparar = z.object({
@@ -12,6 +14,8 @@ const esquemaPreparar = z.object({
   limpar_testes: z.boolean().optional(),
   /** Sem `true` é só um ensaio: diz o que faria e não muda nada. */
   confirmar: z.boolean().optional(),
+  /** Acertar os dados de base com nomes de teste (por omissão sim). */
+  acertar_base: z.boolean().optional(),
 });
 
 /**
@@ -52,7 +56,7 @@ export class DemoController {
 /** A câmara de demonstração pronta com um botão (e `npm run demo:preparar`). */
 @Module({
   controllers: [DemoController],
-  providers: [DemoService],
+  providers: [DemoService, DemoConhecimentoService, DemoAcertosService],
   exports: [DemoService],
 })
 export class DemoModule {}

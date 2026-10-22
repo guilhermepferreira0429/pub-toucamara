@@ -172,7 +172,7 @@ export function VisaoGeral() {
               </Cartao>
               <SemResposta
                 itens={d.atencao.sem_resposta.itens}
-                total={d.indicadores.sem_resposta.valor ?? 0}
+                total={d.atencao.sem_resposta.total ?? d.atencao.sem_resposta.itens.length}
               />
             </div>
 
@@ -494,7 +494,7 @@ function SemResposta({ itens, total }: { itens: SemRespostaItem[]; total: number
       acao={
         total > 0 ? (
           <span className="shrink-0 rounded-xl bg-ambar-suave px-2.5 py-1 text-xs font-bold text-ambar">
-            {numero(total)} neste período
+            {numero(total)} por responder
           </span>
         ) : undefined
       }

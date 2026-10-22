@@ -97,6 +97,85 @@ export function proximoDiaSemana(
   }
 }
 
+/** O que `escolherResposta` precisa de uma resposta de demonstração. */
+export interface RespostaEscolhivel {
+  chave: string;
+  tema: string;
+  estado: string;
+  trechos: readonly unknown[];
+  palavras?: RegExp;
+}
+
+/**
+ * A resposta (com fonte) que uma conversa do tema citou: a primeira cujas
+ * palavras aparecem na conversa; sem nenhuma, a primeira do tema. Os
+ * rascunhos e as respostas sem trechos não contam.
+ */
+export function escolherResposta<T extends RespostaEscolhivel>(
+  respostas: readonly T[],
+  tema: string,
+  texto: string,
+): T | null {
+  const doTema = respostas.filter(
+    (r) => r.tema === tema && r.estado !== 'rascunho' && r.trechos.length > 0,
+  );
+  return doTema.find((r) => r.palavras?.test(texto)) ?? doTema[0] ?? null;
+}
+
+/**
+ * Nomes de teste trocados por nomes plausíveis (e fictícios) nas
+ * preparações antigas: [antes, depois], do mais comprido para o mais curto.
+ */
+export function trocarNomes(
+  texto: string,
+  trocas: readonly (readonly [string, string])[],
+): string {
+  return trocas.reduce((t, [a, b]) => t.split(a).join(b), texto);
+}
+
+export interface ProcessoNumerado {
+  id: string;
+  /** 'CP 3/2026', 'CP 412/2026', 'CP DEMO-412/2026'. */
+  numero: string;
+  /** Dia da entrada, 'AAAA-MM-DD' (dá o ano do número). */
+  dia: string;
+  /** Criado pela preparação da demo (só estes mudam quando há outros). */
+  registado: boolean;
+}
+
+/**
+ * Os números a mudar para a numeração ficar contínua. Com `todos` (todos os
+ * processos da série são de demonstração): 1, 2, 3… por ano de entrada, pela
+ * ordem dada (a de entrada). Senão, só os da demonstração com número de
+ * design (≥ 400 ou "DEMO-") ou com o ano errado, a numerar com o próximo
+ * livre: devolve-se `CP 0/<ano>` e quem chama pede o número.
+ */
+export function numeracaoContinua(
+  processos: readonly ProcessoNumerado[],
+  todos: boolean,
+): { id: string; numero: string }[] {
+  const mudar: { id: string; numero: string }[] = [];
+  if (todos) {
+    const porAno = new Map<number, number>();
+    for (const p of processos) {
+      const ano = Number(p.dia.slice(0, 4));
+      const n = (porAno.get(ano) ?? 0) + 1;
+      porAno.set(ano, n);
+      const numero = `CP ${n}/${ano}`;
+      if (numero !== p.numero) mudar.push({ id: p.id, numero });
+    }
+    return mudar;
+  }
+  for (const p of processos) {
+    if (!p.registado) continue;
+    const ano = Number(p.dia.slice(0, 4));
+    const m = /^CP (DEMO-)?(\d+)\/(\d{4})$/.exec(p.numero);
+    const fora = !m || !!m[1] || Number(m[2]) >= 400 || Number(m[3]) !== ano;
+    if (fora) mudar.push({ id: p.id, numero: `CP 0/${ano}` });
+  }
+  return mudar;
+}
+
 /** Chaves dos registos de demonstração: minúsculas, dígitos e `_:.-`. */
 export function chaveValida(chave: string): boolean {
   return /^[a-z0-9_:.-]{3,80}$/.test(chave);
