@@ -89,7 +89,7 @@ export function PaginaAgua() {
   if (!ok) {
     return (
       <div className="pb-10">
-        <CabecalhoPagina migalhas={["Serviços", "Água"]} titulo="Água e saneamento" />
+        <CabecalhoPagina migalhas={["Serviços", "Água e saneamento"]} titulo="Água e saneamento" />
         <SemAcesso />
       </div>
     );
@@ -98,7 +98,7 @@ export function PaginaAgua() {
   return (
     <div className="flex flex-col pb-12">
       <CabecalhoPagina
-        migalhas={["Serviços", "Água"]}
+        migalhas={["Serviços", "Água e saneamento"]}
         titulo="Água e saneamento"
         descricao={`Quem trata da água é ${r?.entidade.nome ?? "a entidade gestora"}, não a câmara. O agente recolhe a leitura, o pedido sobre a fatura ou a avaria, dá sempre o contacto deles e envia o pedido. Roturas com água na rua passam também a ocorrência.`}
         acoes={r?.integracao.simulado ? <PilulaDemonstracao texto="envio simulado" /> : null}

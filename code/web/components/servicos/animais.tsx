@@ -128,7 +128,7 @@ export function PaginaAnimais() {
     <div className="flex flex-col pb-12">
       <CabecalhoPagina
         migalhas={["Serviços", "Animais"]}
-        titulo="Canil e animais"
+        titulo="Animais"
         descricao="Os animais para adoção (os mesmos da página pública), as visitas pedidas ao agente e os animais perdidos, encontrados, feridos ou agressivos. O registo e a vacina são do SIAC, nacional: o agente só informa."
         acoes={
           <>

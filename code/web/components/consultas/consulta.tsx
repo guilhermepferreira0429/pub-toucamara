@@ -56,7 +56,7 @@ export function DetalheConsultaPublica({ id }: { id: string }) {
   if (!pode("indicadores")) {
     return (
       <div className="pb-10">
-        <CabecalhoPagina migalhas={["Gestão", "Consultas públicas"]} titulo="Consulta pública" />
+        <CabecalhoPagina migalhas={["Comunidade", "Consultas públicas"]} titulo="Consulta pública" />
         <SemAcesso />
       </div>
     );
@@ -93,7 +93,7 @@ export function DetalheConsultaPublica({ id }: { id: string }) {
       ) : (
         <>
           <CabecalhoPagina
-            migalhas={["Gestão", "Consultas públicas", c.codigo]}
+            migalhas={["Comunidade", "Consultas públicas", c.codigo]}
             titulo={c.titulo}
             descricao={
               <span className="flex flex-wrap items-center gap-2">

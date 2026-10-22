@@ -1329,7 +1329,7 @@ export function PaginaEmergencias() {
   if (!ver) {
     return (
       <>
-        <CabecalhoPagina titulo="Avisos de emergência" />
+        <CabecalhoPagina migalhas={["Comunidade", "Emergências"]} titulo="Emergências" />
         <SemAcesso />
       </>
     );
@@ -1338,8 +1338,8 @@ export function PaginaEmergencias() {
   return (
     <div className="pb-10">
       <CabecalhoPagina
-        migalhas={["Gestão", "Emergências"]}
-        titulo="Avisos de emergência"
+        migalhas={["Comunidade", "Emergências"]}
+        titulo="Emergências"
         descricao="SMS a todos os números conhecidos na zona e chamada do agente a quem mais precisa: está em segurança? precisa de ajuda para sair?"
         acoes={
           <div className="flex gap-2">

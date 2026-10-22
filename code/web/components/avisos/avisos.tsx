@@ -431,7 +431,7 @@ export function PaginaAvisos() {
   return (
     <div className="pb-10">
       <CabecalhoPagina
-        migalhas={["Gestão", "Avisos"]}
+        migalhas={["Comunidade", "Avisos por zona"]}
         titulo="Avisos por zona"
         descricao="Um SMS só para quem é afetado: quem tem processos, ocorrências ou pedidos com morada na zona."
       />

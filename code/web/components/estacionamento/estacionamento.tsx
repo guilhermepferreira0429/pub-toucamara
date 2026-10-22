@@ -130,7 +130,7 @@ export function PaginaEstacionamento() {
   if (!pode("estacionamento")) {
     return (
       <div className="pb-10">
-        <CabecalhoPagina migalhas={["Processos", "Estacionamento"]} titulo="Estacionamento" />
+        <CabecalhoPagina migalhas={["Serviços", "Estacionamento"]} titulo="Estacionamento" />
         <SemAcesso />
       </div>
     );
@@ -147,7 +147,7 @@ export function PaginaEstacionamento() {
   return (
     <div className="flex flex-col pb-12">
       <CabecalhoPagina
-        migalhas={["Processos", "Estacionamento"]}
+        migalhas={["Serviços", "Estacionamento"]}
         titulo="Estacionamento"
         descricao="Multas consultadas e pagas na chamada, defesas por escrito para decidir, pedidos de lugar reservado e os parques que o agente indica. O dístico de residente está nas Licenças."
         acoes={

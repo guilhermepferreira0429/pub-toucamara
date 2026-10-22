@@ -138,7 +138,7 @@ export function PaginaApoios() {
   if (!pode("acao_social")) {
     return (
       <div className="pb-10">
-        <CabecalhoPagina migalhas={["Ação social", "Apoios"]} titulo="Apoios" />
+        <CabecalhoPagina migalhas={["Comunidade", "Apoios"]} titulo="Apoios" />
         <SemAcesso />
       </div>
     );
@@ -149,9 +149,9 @@ export function PaginaApoios() {
   return (
     <div className="flex flex-col pb-12">
       <CabecalhoPagina
-        migalhas={["Ação social", "Apoios"]}
-        titulo="Tem direito e ainda não pediu"
-        descricao="O agente faz duas ou três perguntas, diz a que apoios a pessoa pode ter direito, manda a lista por SMS e faz o pedido logo ali. Aqui vê quem tinha direito e não pediu, e pode pedir ao agente para lhes ligar."
+        migalhas={["Comunidade", "Apoios"]}
+        titulo="Apoios"
+        descricao="Quem tem direito a um apoio e ainda não pediu. O agente faz duas ou três perguntas, diz a que apoios a pessoa pode ter direito, manda a lista por SMS e faz o pedido logo ali. Aqui vê quem tinha direito e não pediu, e pode pedir ao agente para lhes ligar."
       />
       <Estado aCarregar={d.aCarregar} erro={d.erro} vazio={false}>
         {dados && dados.apoios.length === 0 ? (

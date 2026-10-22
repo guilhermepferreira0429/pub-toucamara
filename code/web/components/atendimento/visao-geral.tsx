@@ -84,7 +84,7 @@ export function VisaoGeral() {
   if (!permitido) {
     return (
       <>
-        <CabecalhoPagina migalhas={["Atendimento"]} titulo="Visão geral" />
+        <CabecalhoPagina migalhas={["Visão geral"]} titulo="Visão geral" />
         <Aviso titulo="Sem acesso">
           O seu perfil não tem acesso à visão geral do atendimento.
         </Aviso>
@@ -114,7 +114,7 @@ export function VisaoGeral() {
   return (
     <div className="pb-12">
       <CabecalhoPagina
-        migalhas={["Atendimento", ROTULOS_PERIODO[chave]]}
+        migalhas={["Visão geral", ROTULOS_PERIODO[chave]]}
         titulo="Visão geral"
         acoes={
           <>

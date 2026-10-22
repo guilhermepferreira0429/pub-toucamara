@@ -249,7 +249,7 @@ export function ListaProcessos() {
   return (
     <div className="pb-10">
       <CabecalhoPagina
-        migalhas={["Processos", "Lista"]}
+        migalhas={["Processos"]}
         titulo="Processos"
         descricao={descricao}
         acoes={

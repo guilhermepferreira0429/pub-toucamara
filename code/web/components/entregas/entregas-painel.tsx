@@ -352,7 +352,7 @@ export function PaginaEntregas() {
   if (!permitido) {
     return (
       <div className="pb-10">
-        <CabecalhoPagina migalhas={["Processos", "Entregas"]} titulo="Entregas em nome do munícipe" />
+        <CabecalhoPagina migalhas={["Processos", "Entregas em nome"]} titulo="Entregas em nome" />
         <SemAcesso />
       </div>
     );
@@ -361,9 +361,9 @@ export function PaginaEntregas() {
   return (
     <div className="pb-12">
       <CabecalhoPagina
-        migalhas={["Processos", "Entregas"]}
-        titulo="Entregas em nome do munícipe"
-        descricao="O agente entrega o pedido no balcão online depois de a pessoa confirmar o resumo e autorizar com a Chave Móvel Digital."
+        migalhas={["Processos", "Entregas em nome"]}
+        titulo="Entregas em nome"
+        descricao="Pedidos que o agente entrega no balcão online em nome do munícipe, depois de a pessoa confirmar o resumo e autorizar com a Chave Móvel Digital."
       />
       <div className="flex flex-col gap-6 px-4 sm:px-10">
         {lista.dados && <CartaoModo modo={lista.dados.modo} />}

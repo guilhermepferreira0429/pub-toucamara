@@ -473,7 +473,7 @@ export function PaginaEquipa() {
   if (!pode("equipa")) {
     return (
       <>
-        <CabecalhoPagina titulo="Equipa e acessos" />
+        <CabecalhoPagina migalhas={["Configuração", "Equipa e acessos"]} titulo="Equipa e acessos" />
         <SemAcesso />
       </>
     );
@@ -488,6 +488,7 @@ export function PaginaEquipa() {
   return (
     <div className="pb-10">
       <CabecalhoPagina
+        migalhas={["Configuração", "Equipa e acessos"]}
         titulo="Equipa e acessos"
         descricao="Quem vê o quê. Tudo fica registado."
         acoes={

@@ -945,13 +945,13 @@ function EdicaoPelaCamara() {
 
 /** "O seu agente" (frame V2 · Agente). A câmara vê; grava só a equipa interna. */
 export function PaginaAgente() {
-  const { eu, pode } = useSessao();
+  const { pode } = useSessao();
   const a = useDados<Agente>(pode("agente") ? "/v1/painel/agente" : null);
 
   if (!pode("agente")) {
     return (
       <>
-        <CabecalhoPagina titulo="O seu agente" />
+        <CabecalhoPagina migalhas={["Configuração", "O seu agente"]} titulo="O seu agente" />
         <SemAcesso />
       </>
     );
@@ -962,7 +962,7 @@ export function PaginaAgente() {
   return (
     <div className="pb-10">
       <CabecalhoPagina
-        migalhas={[`Feito para ${eu?.municipio.nome ?? ""}`]}
+        migalhas={["Configuração", "O seu agente"]}
         titulo="O seu agente"
         descricao="Nome, voz, quem trata de quê e as perguntas da câmara. Nenhuma alteração vai para o ar sem passar no teste."
         acoes={!d?.pode_editar && d ? <Pilula>Só a equipa Tou, Câmara? altera</Pilula> : undefined}

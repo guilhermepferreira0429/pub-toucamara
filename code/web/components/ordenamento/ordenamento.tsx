@@ -183,8 +183,8 @@ export function PaginaOrdenamento() {
     <div className="flex flex-col pb-12">
       <CabecalhoPagina
         migalhas={["Gestão", "Ordenamento"]}
-        titulo="O que posso fazer nesta morada"
-        descricao="O agente encontra a morada no mapa, vê a zona do plano diretor municipal e diz se a obra é isenta, precisa de comunicação prévia, de licença ou não é permitida. Os pontos são as perguntas que as pessoas fizeram."
+        titulo="Ordenamento"
+        descricao="O que se pode fazer em cada morada. O agente encontra a morada no mapa, vê a zona do plano diretor municipal e diz se a obra é isenta, precisa de comunicação prévia, de licença ou não é permitida. Os pontos são as perguntas que as pessoas fizeram."
         acoes={demonstracao ? <Pilula tom="ambar">zonas de demonstração</Pilula> : undefined}
       />
       <Estado aCarregar={d.aCarregar} erro={d.erro} vazio={false}>

@@ -113,7 +113,7 @@ export function PaginaLicencas() {
     <div className="flex flex-col pb-12">
       <CabecalhoPagina
         migalhas={["Processos", "Licenças"]}
-        titulo="Licenças decididas na chamada"
+        titulo="Licenças"
         descricao="O agente verifica as regras enquanto a pessoa está ao telefone. Dentro das regras, a taxa paga-se logo e aqui só falta um clique. Fora das regras, chega ao técnico já analisado."
       />
       <div className="flex gap-1 overflow-x-auto px-4 pb-4 sm:px-10 [&>*]:shrink-0 [&>*]:whitespace-nowrap" role="tablist" aria-label="Vista">

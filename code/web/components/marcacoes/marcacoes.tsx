@@ -157,7 +157,7 @@ export function PaginaMarcacoes() {
     <div className="flex flex-col pb-12">
       <CabecalhoPagina
         migalhas={["Atendimento", "Marcações"]}
-        titulo="Agenda de marcações"
+        titulo="Marcações"
         descricao="O que o agente marcou nas agendas dos serviços, hora a hora. Registe quem veio e quem faltou; se cancelar, a pessoa é avisada por SMS."
       />
 

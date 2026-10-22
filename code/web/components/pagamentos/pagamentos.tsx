@@ -111,7 +111,7 @@ export function PaginaPagamentos() {
   if (!permitido) {
     return (
       <div className="pb-10">
-        <CabecalhoPagina migalhas={["Processos", "Pagamentos"]} titulo="Pagamentos e taxas" />
+        <CabecalhoPagina migalhas={["Processos", "Pagamentos"]} titulo="Pagamentos" />
         <SemAcesso />
       </div>
     );
@@ -121,7 +121,7 @@ export function PaginaPagamentos() {
     <div className="flex flex-col pb-12">
       <CabecalhoPagina
         migalhas={["Processos", "Pagamentos"]}
-        titulo="Pagamentos e taxas"
+        titulo="Pagamentos"
         descricao="As guias que o agente emite na conversa, por Multibanco ou MB WAY, e a tabela de taxas de onde saem os valores."
       />
       <div className="flex gap-1 px-4 sm:px-10 pb-5" role="tablist">

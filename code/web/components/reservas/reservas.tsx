@@ -143,7 +143,7 @@ export function PaginaReservas() {
   if (!pode("reservas")) {
     return (
       <div className="pb-10">
-        <CabecalhoPagina migalhas={["Processos", "Reservas"]} titulo="Reservas" />
+        <CabecalhoPagina migalhas={["Serviços", "Reservas"]} titulo="Reservas" />
         <SemAcesso />
       </div>
     );
@@ -163,8 +163,8 @@ export function PaginaReservas() {
   return (
     <div className="flex flex-col pb-12">
       <CabecalhoPagina
-        migalhas={["Processos", "Reservas"]}
-        titulo="Reservas e bilhetes"
+        migalhas={["Serviços", "Reservas"]}
+        titulo="Reservas"
         descricao="Pavilhões, piscinas, auditórios, salas e campos reservados pelo telefone ou pelo chat, e bilhetes para eventos com lugares limitados. O que precisa de um funcionário aparece primeiro."
         acoes={
           pode("agente") && d.dados && equipamentos.length === 0 ? (

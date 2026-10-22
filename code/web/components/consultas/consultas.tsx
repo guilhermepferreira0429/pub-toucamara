@@ -33,7 +33,7 @@ export function PaginaConsultas() {
   if (!pode("indicadores")) {
     return (
       <div className="pb-10">
-        <CabecalhoPagina migalhas={["Gestão", "Consultas públicas"]} titulo="Consultas públicas" />
+        <CabecalhoPagina migalhas={["Comunidade", "Consultas públicas"]} titulo="Consultas públicas" />
         <SemAcesso />
       </div>
     );
@@ -42,7 +42,7 @@ export function PaginaConsultas() {
   return (
     <div className="flex flex-col pb-12">
       <CabecalhoPagina
-        migalhas={["Gestão", "Consultas públicas"]}
+        migalhas={["Comunidade", "Consultas públicas"]}
         titulo="Consultas públicas"
         descricao="A opinião de quem nunca vai a uma sessão pública: o agente explica o que está em causa ao telefone e no chat, regista a resposta e o painel mostra o resultado por freguesia."
         acoes={

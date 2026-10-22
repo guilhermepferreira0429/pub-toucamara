@@ -218,7 +218,7 @@ export function PaginaReclamacoes() {
     <div className="flex flex-col pb-12">
       <CabecalhoPagina
         migalhas={["Atendimento", "Reclamações"]}
-        titulo="Livro de reclamações"
+        titulo="Reclamações"
         descricao="Reclamações formais com número e prazo legal de resposta, contado em dias úteis com os feriados do município. Entram pelo agente (telefone e chat), pelos emails da triagem, ao balcão ou pelo Livro Amarelo em papel."
         acoes={
           <>

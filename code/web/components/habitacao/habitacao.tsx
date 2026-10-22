@@ -134,7 +134,7 @@ export function PaginaHabitacao() {
   if (!permitido) {
     return (
       <div className="pb-10">
-        <CabecalhoPagina migalhas={["Serviços", "Habitação"]} titulo="Habitação municipal" />
+        <CabecalhoPagina migalhas={["Serviços", "Habitação municipal"]} titulo="Habitação municipal" />
         <SemAcesso />
       </div>
     );
@@ -149,7 +149,7 @@ export function PaginaHabitacao() {
   return (
     <div className="flex flex-col pb-12">
       <CabecalhoPagina
-        migalhas={["Serviços", "Habitação"]}
+        migalhas={["Serviços", "Habitação municipal"]}
         titulo="Habitação municipal"
         descricao="Candidaturas com a pontuação provisória que o agente calculou, reparações pedidas pelos inquilinos e os fogos da câmara."
         acoes={

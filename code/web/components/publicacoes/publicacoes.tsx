@@ -454,7 +454,7 @@ export function PaginaPublicacoes({ inicial = "comunicados" }: { inicial?: Separ
   if (!ver) {
     return (
       <div className="pb-10">
-        <CabecalhoPagina migalhas={["Gestão", "Comunicados e eventos"]} titulo="Comunicados e eventos" />
+        <CabecalhoPagina migalhas={["Comunidade", "Comunicados e eventos"]} titulo="Comunicados e eventos" />
         <SemAcesso />
       </div>
     );
@@ -471,7 +471,7 @@ export function PaginaPublicacoes({ inicial = "comunicados" }: { inicial?: Separ
   return (
     <div className="flex flex-col pb-12">
       <CabecalhoPagina
-        migalhas={["Gestão", "Comunicados e eventos"]}
+        migalhas={["Comunidade", "Comunicados e eventos"]}
         titulo="Comunicados e eventos"
         descricao={
           <>

@@ -112,8 +112,8 @@ export function PaginaAtestados() {
     <div className="flex flex-col pb-12">
       <CabecalhoPagina
         migalhas={["Processos", "Atestados"]}
-        titulo="Atestados e prova de vida"
-        descricao="O agente recolhe os dados ao telefone ou no chat, lê-os de volta e a pessoa confirma. Aqui verifica o texto, emite o atestado (PDF com QR) e a pessoa recebe o link por SMS."
+        titulo="Atestados"
+        descricao="Atestados e prova de vida. O agente recolhe os dados ao telefone ou no chat, lê-os de volta e a pessoa confirma. Aqui verifica o texto, emite o atestado (PDF com QR) e a pessoa recebe o link por SMS."
       />
       <div className="flex flex-wrap items-center gap-2 px-4 sm:px-10 pb-5" role="group" aria-label="Estado">
         {(["pedido", "emitido", "recusado", "todos"] as const).map((f) => {

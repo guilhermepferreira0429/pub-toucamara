@@ -50,7 +50,7 @@ export function PaginaCampanhas() {
   if (!permitido) {
     return (
       <div className="pb-10">
-        <CabecalhoPagina migalhas={["Atendimento", "Ação social"]} titulo="Ação social" />
+        <CabecalhoPagina migalhas={["Comunidade", "Ação social"]} titulo="Ação social" />
         <SemAcesso />
       </div>
     );
@@ -62,7 +62,7 @@ export function PaginaCampanhas() {
   return (
     <div className="flex flex-col pb-12">
       <CabecalhoPagina
-        migalhas={["Atendimento", "Ação social"]}
+        migalhas={["Comunidade", "Ação social"]}
         titulo="Ação social"
         descricao="Em ondas de calor, frio ou cortes de água, o agente liga a todas as pessoas inscritas e pergunta se estão bem. Quem precisa de ajuda ou não atende aparece logo aqui."
       />

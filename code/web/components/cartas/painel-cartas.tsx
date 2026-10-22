@@ -96,8 +96,8 @@ export function PaginaCartas() {
   return (
     <div className="pb-12">
       <CabecalhoPagina
-        migalhas={["Processos", "Cartas"]}
-        titulo="Cartas que as pessoas não perceberam"
+        migalhas={["Processos", "Cartas não percebidas"]}
+        titulo="Cartas não percebidas"
         descricao="Os ofícios e notificações que os munícipes mandaram ao agente para explicar. Os que mais confundem são os primeiros a reescrever em linguagem simples."
       />
       <div className="flex flex-col gap-6 px-4 sm:px-10">

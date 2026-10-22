@@ -79,7 +79,7 @@ export function PaginaEntrevista() {
   if (!ver) {
     return (
       <div className="pb-10">
-        <CabecalhoPagina migalhas={["Procedimentos", "Entrevista"]} titulo="Entrevista" />
+        <CabecalhoPagina migalhas={["Gestão", "Procedimentos", "Entrevista"]} titulo="Entrevista" />
         <SemAcesso />
       </div>
     );
@@ -131,7 +131,7 @@ export function PaginaEntrevista() {
         {e && (
           <>
             <CabecalhoPagina
-              migalhas={["Procedimentos", "Entrevista"]}
+              migalhas={["Gestão", "Procedimentos", "Entrevista"]}
               titulo={e.area}
               descricao={
                 <span className="flex flex-wrap items-center gap-2">

@@ -17,7 +17,7 @@ import {
   ClipboardList,
   Inbox,
   LayoutDashboard,
-  Lock,
+  ChevronRight,
   FileText,
   FileSignature,
   FileQuestion,
@@ -48,17 +48,17 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { Logo } from "@/components/ui/marca";
 import { abrirPesquisa, useTeclaAtalho } from "@/lib/pesquisa";
 import { paginaDisponivel } from "@/lib/juntas";
 import { useSessao, type Perfil, type Recurso } from "@/lib/sessao";
 
 /*
- * Barra lateral única de todos os ecrãs da câmara (componente "Barra lateral
- * · unificada" do design). Itens sem permissão aparecem com cadeado e
- * esbatidos; uma secção inteira fica trancada quando o perfil não tem
- * nenhum dos seus itens.
+ * Barra lateral única de todos os ecrãs da câmara. Secções por tarefa que
+ * recolhem (fica guardado no browser; a da página atual abre sozinha). O
+ * nome de cada item é o título da página. O que o perfil não pode usar não
+ * aparece (sem cadeados a ocupar espaço).
  */
 
 export interface Item {
@@ -144,18 +144,6 @@ export const SECCOES: Seccao[] = [
         icone: Sparkles,
         recurso: "conversas",
       },
-      {
-        rotulo: "Ação social",
-        href: "/painel/campanhas",
-        icone: HeartHandshake,
-        recurso: "acao_social",
-      },
-      {
-        rotulo: "Apoios",
-        href: "/painel/apoios",
-        icone: HandCoins,
-        recurso: "acao_social",
-      },
     ],
   },
   {
@@ -169,10 +157,10 @@ export const SECCOES: Seccao[] = [
         contagem: "processos",
       },
       {
-        rotulo: "Atestados",
-        href: "/painel/atestados",
-        icone: FileSignature,
-        recurso: "atestados",
+        rotulo: "Licenças",
+        href: "/painel/licencas",
+        icone: BadgeCheck,
+        recurso: "processos",
       },
       {
         rotulo: "Ocorrências",
@@ -182,9 +170,21 @@ export const SECCOES: Seccao[] = [
         contagem: "ocorrencias",
       },
       {
-        rotulo: "Licenças",
-        href: "/painel/licencas",
-        icone: BadgeCheck,
+        rotulo: "Atestados",
+        href: "/painel/atestados",
+        icone: FileSignature,
+        recurso: "atestados",
+      },
+      {
+        rotulo: "Pagamentos",
+        href: "/painel/pagamentos",
+        icone: Receipt,
+        recurso: "processos",
+      },
+      {
+        rotulo: "Entregas em nome",
+        href: "/painel/entregas",
+        icone: Send,
         recurso: "processos",
       },
       {
@@ -197,18 +197,6 @@ export const SECCOES: Seccao[] = [
         rotulo: "Balcão para empresas",
         href: "/painel/empresas",
         icone: Store,
-        recurso: "processos",
-      },
-      {
-        rotulo: "Pagamentos",
-        href: "/painel/pagamentos",
-        icone: Receipt,
-        recurso: "processos",
-      },
-      {
-        rotulo: "Entregas em nome",
-        href: "/painel/entregas",
-        icone: Send,
         recurso: "processos",
       },
       {
@@ -267,6 +255,47 @@ export const SECCOES: Seccao[] = [
     ],
   },
   {
+    titulo: "Comunidade",
+    itens: [
+      {
+        rotulo: "Ação social",
+        href: "/painel/campanhas",
+        icone: HeartHandshake,
+        recurso: "acao_social",
+      },
+      {
+        rotulo: "Apoios",
+        href: "/painel/apoios",
+        icone: HandCoins,
+        recurso: "acao_social",
+      },
+      {
+        rotulo: "Emergências",
+        href: "/painel/emergencias",
+        icone: Siren,
+        recurso: "acao_social",
+      },
+      {
+        rotulo: "Avisos por zona",
+        href: "/painel/avisos",
+        icone: Megaphone,
+        recurso: "agente",
+      },
+      {
+        rotulo: "Comunicados e eventos",
+        href: "/painel/comunicados",
+        icone: Newspaper,
+        recurso: "visao_geral",
+      },
+      {
+        rotulo: "Consultas públicas",
+        href: "/painel/consultas",
+        icone: Vote,
+        recurso: "indicadores",
+      },
+    ],
+  },
+  {
     titulo: "Gestão",
     itens: [
       {
@@ -279,6 +308,12 @@ export const SECCOES: Seccao[] = [
         rotulo: "O que sentem os munícipes",
         href: "/painel/concelho",
         icone: MessageSquareHeart,
+        recurso: "indicadores",
+      },
+      {
+        rotulo: "Relatórios",
+        href: "/painel/relatorios",
+        icone: FileText,
         recurso: "indicadores",
       },
       {
@@ -306,38 +341,13 @@ export const SECCOES: Seccao[] = [
         icone: IconeMapa,
         recurso: "conhecimento_ver",
       },
+    ],
+  },
+  {
+    titulo: "Configuração",
+    itens: [
       {
-        rotulo: "Relatórios",
-        href: "/painel/relatorios",
-        icone: FileText,
-        recurso: "indicadores",
-      },
-      {
-        rotulo: "Consultas públicas",
-        href: "/painel/consultas",
-        icone: Vote,
-        recurso: "indicadores",
-      },
-      {
-        rotulo: "Comunicados e eventos",
-        href: "/painel/comunicados",
-        icone: Newspaper,
-        recurso: "visao_geral",
-      },
-      {
-        rotulo: "Avisos por zona",
-        href: "/painel/avisos",
-        icone: Megaphone,
-        recurso: "agente",
-      },
-      {
-        rotulo: "Emergências",
-        href: "/painel/emergencias",
-        icone: Siren,
-        recurso: "acao_social",
-      },
-      {
-        rotulo: "Agente",
+        rotulo: "O seu agente",
         href: "/painel/agente",
         icone: Bot,
         recurso: "agente",
@@ -349,7 +359,7 @@ export const SECCOES: Seccao[] = [
         recurso: "equipa",
       },
       {
-        rotulo: "Preparar demo",
+        rotulo: "Demonstração",
         href: "/painel/demo",
         icone: MonitorPlay,
         recurso: "demo",
@@ -388,6 +398,55 @@ function iniciais(nome: string) {
   ).toUpperCase();
 }
 
+const CHAVE_SECCOES = "painel:seccoes-abertas";
+const EVENTO_SECCOES = "painel:seccoes";
+// Sem armazenamento (janela privada), as escolhas ficam só nesta visita.
+let seccoesEmMemoria: string | null = null;
+
+function subscreverSeccoes(avisar: () => void) {
+  window.addEventListener("storage", avisar);
+  window.addEventListener(EVENTO_SECCOES, avisar);
+  return () => {
+    window.removeEventListener("storage", avisar);
+    window.removeEventListener(EVENTO_SECCOES, avisar);
+  };
+}
+
+function lerSeccoes(): string | null {
+  try {
+    return localStorage.getItem(CHAVE_SECCOES) ?? seccoesEmMemoria;
+  } catch {
+    return seccoesEmMemoria;
+  }
+}
+
+function guardarSeccoes(escolhas: Record<string, boolean>) {
+  seccoesEmMemoria = JSON.stringify(escolhas);
+  try {
+    localStorage.setItem(CHAVE_SECCOES, seccoesEmMemoria);
+  } catch {
+    // Fica em memória.
+  }
+  window.dispatchEvent(new Event(EVENTO_SECCOES));
+}
+
+/** { "Processos": true, "Serviços": false, … } a partir do que ficou guardado. */
+function escolhasDe(bruto: string | null): Record<string, boolean> {
+  try {
+    const v = JSON.parse(bruto ?? "{}") as unknown;
+    if (!v || typeof v !== "object" || Array.isArray(v)) return {};
+    return Object.fromEntries(
+      Object.entries(v).filter((e): e is [string, boolean] => typeof e[1] === "boolean"),
+    );
+  } catch {
+    return {};
+  }
+}
+
+function idSeccao(titulo: string) {
+  return `menu-${titulo.normalize("NFD").replace(/[^a-zA-Z]/g, "").toLowerCase()}`;
+}
+
 function Contagem({ n }: { n?: number }) {
   if (!n) return null;
   return (
@@ -409,6 +468,25 @@ export function BarraLateral({ contagens = {} }: { contagens?: Contagens }) {
 
   const ativo = (href: string) =>
     href === "/painel" ? caminho === "/painel" : caminho.startsWith(href);
+
+  // Secções abertas: por omissão só o Atendimento; a da página atual está
+  // sempre aberta (a não ser que a pessoa a feche aqui); o resto fica como a
+  // pessoa deixou, guardado no browser.
+  const seccaoAtual = SECCOES.find((sec) =>
+    sec.itens.some((it) => it.href !== "/painel" && ativo(it.href)),
+  )?.titulo;
+  const bruto = useSyncExternalStore(subscreverSeccoes, lerSeccoes, () => null);
+  const escolhas = useMemo(() => escolhasDe(bruto), [bruto]);
+  const [fechadaAqui, setFechadaAqui] = useState<{ caminho: string; titulo: string } | null>(null);
+  const aberta = (titulo: string) =>
+    (titulo === seccaoAtual &&
+      !(fechadaAqui?.caminho === caminho && fechadaAqui.titulo === titulo)) ||
+    (escolhas[titulo] ?? titulo === "Atendimento");
+  const alternar = (titulo: string) => {
+    const agora = aberta(titulo);
+    if (titulo === seccaoAtual) setFechadaAqui(agora ? { caminho, titulo } : null);
+    guardarSeccoes({ ...escolhas, [titulo]: !agora });
+  };
 
   return (
     <aside className="sticky top-0 flex h-dvh w-62 shrink-0 flex-col gap-4.5 overflow-y-auto border-r border-linha bg-papel px-4 pb-5 pt-7">
@@ -447,72 +525,73 @@ export function BarraLateral({ contagens = {} }: { contagens?: Contagens }) {
         </kbd>
       </button>
 
-      <nav className="flex shrink-0 flex-col gap-4.5" aria-label="Painel">
-        {SECCOES.map((s, i) => {
-          const trancada = s.itens
-            .filter(visivel)
-            .every((it) => !pode(it.recurso));
-          return (
-            <div key={i} className="flex flex-col gap-0.5">
-              {s.titulo && (
-                <div className="flex items-center justify-between px-3 pb-1.5">
-                  <span className="text-[11px] font-bold uppercase text-tinta-3">
-                    {s.titulo}
-                  </span>
-                  {trancada && (
-                    <Lock
-                      className="size-3 text-tinta-3"
-                      role="img"
-                      aria-label="Sem acesso"
-                    />
-                  )}
-                </div>
-              )}
-              {s.itens.filter(visivel).map((it) => {
-                const permitido = pode(it.recurso);
+      <nav className="flex shrink-0 flex-col gap-1" aria-label="Painel">
+        {SECCOES.map((sec) => {
+          const itens = sec.itens.filter(
+            (it) => visivel(it) && pode(it.recurso),
+          );
+          if (!itens.length) return null;
+          const lista = (
+            <ul
+              id={sec.titulo ? idSeccao(sec.titulo) : undefined}
+              className="flex flex-col gap-0.5"
+            >
+              {itens.map((it) => {
                 const Icone = it.icone;
-                const corpo = (
-                  <>
-                    <Icone className="size-[17px]" aria-hidden />
-                    <span className="flex-1 text-sm font-medium">
-                      {it.rotulo}
-                    </span>
-                    {permitido ? (
+                return (
+                  <li key={it.href}>
+                    <Link
+                      href={it.href}
+                      aria-current={ativo(it.href) ? "page" : undefined}
+                      className={`flex h-9 items-center gap-2.5 rounded-[10px] px-3 ${
+                        ativo(it.href)
+                          ? "bg-terracota-suave text-terracota-escuro"
+                          : "text-tinta-2 hover:bg-creme"
+                      }`}
+                    >
+                      <Icone className="size-[17px] shrink-0" aria-hidden />
+                      <span className="flex-1 truncate text-sm font-medium">
+                        {it.rotulo}
+                      </span>
                       <Contagem n={it.contagem && contagens[it.contagem]} />
-                    ) : (
-                      <Lock
-                        className="size-3.5 text-tinta-3"
-                        role="img"
-                        aria-label="Sem acesso"
-                      />
-                    )}
-                  </>
-                );
-                const base =
-                  "flex h-9 items-center gap-2.5 rounded-[10px] px-3";
-                return permitido ? (
-                  <Link
-                    key={it.href}
-                    href={it.href}
-                    aria-current={ativo(it.href) ? "page" : undefined}
-                    className={`${base} ${
-                      ativo(it.href)
-                        ? "bg-terracota-suave text-terracota-escuro"
-                        : "text-tinta-2 hover:bg-creme"
-                    }`}
-                  >
-                    {corpo}
-                  </Link>
-                ) : (
-                  <span
-                    key={it.href}
-                    className={`${base} cursor-not-allowed text-tinta-2 opacity-45`}
-                    title="O seu perfil não tem acesso a esta área"
-                  >
-                    {corpo}
-                  </span>
+                    </Link>
+                  </li>
                 );
               })}
+            </ul>
+          );
+          if (!sec.titulo) return <div key="inicio">{lista}</div>;
+          const estaAberta = aberta(sec.titulo);
+          const pendentes = itens.reduce(
+            (n, it) => n + ((it.contagem && contagens[it.contagem]) || 0),
+            0,
+          );
+          return (
+            <div key={sec.titulo} className="flex flex-col gap-0.5 pt-2">
+              <button
+                type="button"
+                aria-expanded={estaAberta}
+                aria-controls={idSeccao(sec.titulo)}
+                onClick={() => alternar(sec.titulo!)}
+                className="group flex h-8 items-center gap-1.5 rounded-lg px-3 text-left hover:bg-creme focus-visible:outline-2 focus-visible:outline-terracota"
+              >
+                <ChevronRight
+                  className={`size-3.5 shrink-0 text-tinta-3 transition-transform ${estaAberta ? "rotate-90" : ""}`}
+                  aria-hidden
+                />
+                <span className="flex-1 text-[11px] font-bold uppercase tracking-[0.4px] text-tinta-2">
+                  {sec.titulo}
+                </span>
+                {!estaAberta && pendentes > 0 && (
+                  <span
+                    className="rounded-[10px] bg-terracota-suave px-2 py-0.5 text-[11px] font-bold text-terracota-escuro"
+                    aria-label={`${pendentes} por tratar`}
+                  >
+                    {pendentes}
+                  </span>
+                )}
+              </button>
+              {estaAberta && lista}
             </div>
           );
         })}

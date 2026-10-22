@@ -99,7 +99,7 @@ export function PaginaProcedimentos() {
   if (!ver) {
     return (
       <div className="pb-10">
-        <CabecalhoPagina migalhas={["Gestão", "Procedimentos"]} titulo="Procedimentos internos" />
+        <CabecalhoPagina migalhas={["Gestão", "Procedimentos"]} titulo="Procedimentos" />
         <SemAcesso />
       </div>
     );
@@ -125,7 +125,7 @@ export function PaginaProcedimentos() {
     <div className="flex flex-col pb-12">
       <CabecalhoPagina
         migalhas={["Gestão", "Procedimentos"]}
-        titulo="Procedimentos internos"
+        titulo="Procedimentos"
         descricao="O que só os mais antigos sabiam, escrito para quem chega. Quem se vai reformar pode dar uma entrevista: o assistente faz as perguntas e escreve o rascunho."
         acoes={
           <>

@@ -43,6 +43,7 @@ export function MolduraConhecimento({ children }: { children: React.ReactNode })
   return (
     <div className="pb-10">
       <CabecalhoPagina
+        migalhas={["Gestão", "Conhecimento"]}
         titulo="Conhecimento"
         descricao="O que o agente sabe responder, de onde vem, e se está a responder bem."
         acoes={

@@ -136,7 +136,7 @@ export function DetalheProcedimento() {
         {p && (
           <>
             <CabecalhoPagina
-              migalhas={["Procedimentos", p.area]}
+              migalhas={["Gestão", "Procedimentos", p.area]}
               titulo={p.titulo}
               descricao={
                 <span className="flex flex-wrap items-center gap-2">

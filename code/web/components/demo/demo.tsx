@@ -111,7 +111,7 @@ export function PaginaDemo() {
   if (!pode("demo")) {
     return (
       <div className="flex flex-col pb-12">
-        <CabecalhoPagina migalhas={["Gestão", "Preparar demo"]} titulo="Preparar a demonstração" />
+        <CabecalhoPagina migalhas={["Configuração", "Demonstração"]} titulo="Demonstração" />
         <SemAcesso texto="Só a chefia e a administração preparam a demonstração." />
       </div>
     );
@@ -152,8 +152,8 @@ export function PaginaDemo() {
   return (
     <div className="flex flex-col pb-12">
       <CabecalhoPagina
-        migalhas={["Gestão", "Preparar demo"]}
-        titulo="Preparar a demonstração"
+        migalhas={["Configuração", "Demonstração"]}
+        titulo="Demonstração"
         descricao="Deixa a câmara pronta para mostrar: conversas dos últimos 30 dias, processos, ocorrências, licenças e o que se passa perto de mim, com datas a contar de hoje. Correr outra vez não duplica nada."
         acoes={<Pilula tom="ambar">dados de demonstração</Pilula>}
       />

@@ -253,7 +253,7 @@ export function PaginaConcelho() {
   return (
     <div className="pb-12">
       <CabecalhoPagina
-        migalhas={["Gestão", "Pergunte ao concelho"]}
+        migalhas={["Gestão", "O que sentem os munícipes"]}
         titulo="O que sentem os munícipes"
         descricao="Pergunte em linguagem normal. A resposta é lida nas conversas reais, sem dados pessoais, e os números são contados pela câmara."
         acoes={
