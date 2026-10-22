@@ -1074,6 +1074,56 @@ function CartaoAgora({ ferramenta, dados }: { ferramenta: string; dados: Dados }
   );
 }
 
+/* ------------------------------------------------------------------ */
+/* Linguagem simples e glossário                                        */
+/* ------------------------------------------------------------------ */
+
+/** A versão simples revista de um edital ou regulamento, com o link. */
+function CartaoDocumento({ dados }: { dados: Dados }) {
+  const [d] = lista(dados.documentos);
+  if (!d || !txt(d.link)) return null;
+  return (
+    <div className={`${CAIXA} gap-2.5 border-linha p-4`}>
+      <span className="text-[10px] font-bold uppercase tracking-[1px] text-tinta-3">
+        Em linguagem simples · revisto pela câmara
+      </span>
+      <p className="flex items-start gap-2 text-[15px] font-bold text-tinta">
+        <FileText className="mt-0.5 size-4 shrink-0 text-terracota" aria-hidden />
+        {txt(d.titulo)}
+      </p>
+      {txt(d.resumo) && <p className="text-sm leading-[1.45] text-tinta-2">{txt(d.resumo)}</p>}
+      <p className="text-xs text-tinta-3">
+        Este resumo ajuda a perceber; o que vale legalmente é o texto oficial.
+      </p>
+      <LinkCartao href={txt(d.link)!} icone={FileText}>
+        Ler o resumo e o texto oficial
+      </LinkCartao>
+    </div>
+  );
+}
+
+/** Um termo do glossário explicado por palavras simples. */
+function CartaoTermo({ dados }: { dados: Dados }) {
+  if (dados.encontrado !== true || !txt(dados.termo)) return null;
+  return (
+    <div className={`${CAIXA} gap-1.5 border-linha p-4`}>
+      <span className="text-[10px] font-bold uppercase tracking-[1px] text-tinta-3">
+        O que quer dizer
+      </span>
+      <p className="text-[15px] font-bold text-tinta">{txt(dados.termo)}</p>
+      <p className="text-sm leading-[1.45] text-tinta">{txt(dados.explicacao)}</p>
+      {txt(dados.exemplo) && (
+        <p className="text-[13px] text-tinta-2">Por exemplo: {txt(dados.exemplo)}</p>
+      )}
+      {dados.valores_de_demonstracao === true && (
+        <p className="text-[11px] font-semibold text-ambar">
+          Explicação de demonstração, ainda por validar pela câmara.
+        </p>
+      )}
+    </div>
+  );
+}
+
 /** O cartão certo para cada tipo (os desconhecidos não aparecem). */
 export function CartaoChat({ cartao, acoes }: { cartao: Cartao; acoes: AcoesCartao }) {
   switch (cartao.tipo) {
@@ -1109,6 +1159,10 @@ export function CartaoChat({ cartao, acoes }: { cartao: Cartao; acoes: AcoesCart
       return <CartaoReclamacao dados={cartao.dados} />;
     case "agora":
       return <CartaoAgora ferramenta={cartao.ferramenta} dados={cartao.dados} />;
+    case "documento":
+      return <CartaoDocumento dados={cartao.dados} />;
+    case "termo":
+      return <CartaoTermo dados={cartao.dados} />;
     default:
       return null;
   }

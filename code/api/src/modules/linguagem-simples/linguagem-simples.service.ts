@@ -479,7 +479,9 @@ export class LinguagemSimplesService {
       if (atual) {
         await tx.query(
           `UPDATE documento_simples_versoes SET titulo = $2, resumo = $3, partes = $4,
-                  editada_por = $5, editada_em = now()
+                  editada_por = $5, editada_em = now(),
+                  -- Excertos reescritos por uma pessoa passam a escrita à mão.
+                  origem = CASE WHEN origem = 'extrativo' THEN 'manual' ELSE origem END
            WHERE id = $1`,
           [atual.id, r.titulo, r.resumo, JSON.stringify(partes), u.id],
         );

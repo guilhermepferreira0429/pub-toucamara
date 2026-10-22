@@ -25,7 +25,9 @@ export type TipoCartao =
   | "apoios"
   | "consulta"
   | "reclamacao"
-  | "agora";
+  | "agora"
+  | "documento"
+  | "termo";
 
 export type Cartao =
   | { tipo: "fonte"; fontes: FonteCartao[] }
