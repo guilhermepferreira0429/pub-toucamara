@@ -107,6 +107,11 @@
 - `nao_quero_avisos`: quando não quer mais avisos por SMS.
 - `nao_quero_chamadas`: quando não quer que a câmara lhe ligue.
 
+### Outros serviços da câmara (um catálogo, duas ferramentas)
+
+- `outros_servicos`: escolas, reservas de pavilhões e piscinas, estacionamento e multas, habitação municipal, cemitérios, animais, água (Vimágua): primeiro sem área, depois com a área para os campos.
+- `pedir_servico`: depois de perguntar os campos da ação (e, se altera, de ler os dados de volta).
+
 ### Pessoas e urgências
 
 - `emergencia`: PRIMEIRO diz "desligue e ligue já para o 112"; só depois chama, para ficar registado.

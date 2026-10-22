@@ -1405,6 +1405,52 @@
     },
     {
       "type": "webhook",
+      "name": "outros_servicos",
+      "description": "Escolas, reservas, estacionamento, habitação municipal, cemitérios, animais, água. Sem área: as ações de cada área; com área: os campos a perguntar.",
+      "response_timeout_secs": 20,
+      "tool_error_handling_mode": "passthrough",
+      "api_schema": {
+        "url": "${API_URL}/v1/agent/tools/outros_servicos",
+        "method": "POST",
+        "content_type": "application/json",
+        "request_headers": {
+          "X-Agente-Segredo": {
+            "secret_id": "${SEGREDO:toucamara_agente_segredo}"
+          },
+          "X-Municipio": "${MUNICIPIO}",
+          "X-Conversa-Id": {
+            "variable_name": "system__conversation_id"
+          },
+          "X-Telefone": {
+            "variable_name": "system__caller_id"
+          },
+          "X-Telefone-Web": {
+            "variable_name": "telefone"
+          }
+        },
+        "request_body_schema": {
+          "type": "object",
+          "properties": {
+            "area": {
+              "type": "string",
+              "description": "A área.",
+              "enum": [
+                "escolas",
+                "reservas",
+                "estacionamento",
+                "habitacao",
+                "cemiterios",
+                "animais",
+                "agua"
+              ]
+            }
+          },
+          "description": "Parâmetros de outros_servicos."
+        }
+      }
+    },
+    {
+      "type": "webhook",
       "name": "participar_consulta",
       "description": "Depois de explicar a consulta e confirmar as respostas: regista a opção de cada pergunta, a opinião (se der) e a freguesia (ou a morada). Chamar outra vez substitui a anterior. Não digas o que os outros responderam.",
       "response_timeout_secs": 20,
@@ -1886,6 +1932,83 @@
             "dados"
           ],
           "description": "Parâmetros de pedir_licenca."
+        }
+      }
+    },
+    {
+      "type": "webhook",
+      "name": "pedir_servico",
+      "description": "Corre uma ação de outros_servicos. Se faltar ou estiver mal um campo, devolve em_falta/invalidos.",
+      "response_timeout_secs": 20,
+      "tool_error_handling_mode": "passthrough",
+      "api_schema": {
+        "url": "${API_URL}/v1/agent/tools/pedir_servico",
+        "method": "POST",
+        "content_type": "application/json",
+        "request_headers": {
+          "X-Agente-Segredo": {
+            "secret_id": "${SEGREDO:toucamara_agente_segredo}"
+          },
+          "X-Municipio": "${MUNICIPIO}",
+          "X-Conversa-Id": {
+            "variable_name": "system__conversation_id"
+          },
+          "X-Telefone": {
+            "variable_name": "system__caller_id"
+          },
+          "X-Telefone-Web": {
+            "variable_name": "telefone"
+          }
+        },
+        "request_body_schema": {
+          "type": "object",
+          "properties": {
+            "area": {
+              "type": "string",
+              "description": "A área.",
+              "enum": [
+                "escolas",
+                "reservas",
+                "estacionamento",
+                "habitacao",
+                "cemiterios",
+                "animais",
+                "agua"
+              ]
+            },
+            "acao": {
+              "type": "string",
+              "description": "A ação, como em outros_servicos."
+            },
+            "dados": {
+              "type": "array",
+              "description": "Os campos da ação (vazia se não tiver).",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "campo": {
+                    "type": "string",
+                    "description": "Como em outros_servicos."
+                  },
+                  "valor": {
+                    "type": "string",
+                    "description": "Datas AAAA-MM-DD, horas HH:MM, sim/não."
+                  }
+                },
+                "description": "Um elemento de dados.",
+                "required": [
+                  "campo",
+                  "valor"
+                ]
+              }
+            }
+          },
+          "required": [
+            "area",
+            "acao",
+            "dados"
+          ],
+          "description": "Parâmetros de pedir_servico."
         }
       }
     },

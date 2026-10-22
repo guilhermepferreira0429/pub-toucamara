@@ -50,6 +50,7 @@ import { PainelModule } from './modules/painel/painel.module.js';
 import { CampanhasModule } from './modules/campanhas/campanhas.module.js';
 import { ConsultasPublicasModule } from './modules/consultas-publicas/consultas-publicas.module.js';
 import { LicencasModule } from './modules/licencas/licencas.module.js';
+import { ServicosModule } from './modules/servicos/servicos.module.js';
 import { DemoModule } from './modules/demo/demo.module.js';
 import { AntecipacoesModule } from './modules/antecipacoes/antecipacoes.module.js';
 import { LinguagemSimplesModule } from './modules/linguagem-simples/linguagem-simples.module.js';
@@ -133,6 +134,7 @@ import { PesquisaModule } from './modules/pesquisa/pesquisa.module.js';
     WhatsappModule,
     CampanhasModule,
     LicencasModule,
+    ServicosModule,
     OrdenamentoModule,
     TurismoModule,
     EmpresasModule,
