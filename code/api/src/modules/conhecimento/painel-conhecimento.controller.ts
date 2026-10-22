@@ -69,6 +69,7 @@ const TIPOS_FONTE = [
   'formulario',
   'plano',
   'contactos',
+  'turismo',
 ] as const;
 
 const esquemaResponder = z.object({
@@ -523,6 +524,10 @@ export class PainelConhecimentoController {
           .max(24 * 365)
           .default(24),
         leitura_automatica: z.boolean().default(true),
+        lingua: z
+          .string()
+          .regex(/^[a-z]{2}$/, 'Língua com duas letras (pt, en, es, fr).')
+          .optional(),
       }),
       body,
     );

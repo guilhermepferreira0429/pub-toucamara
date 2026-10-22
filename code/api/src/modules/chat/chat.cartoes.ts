@@ -23,7 +23,8 @@ export type TipoCartao =
   | 'empresa'
   | 'entrega'
   | 'documento'
-  | 'termo';
+  | 'termo'
+  | 'turismo';
 
 export interface FonteCartao {
   titulo: string;
@@ -82,6 +83,8 @@ const POR_FERRAMENTA: Record<
   documento_simples: 'documento',
   // Glossário: o termo e a explicação simples.
   explicar_termo: 'termo',
+  // Turistas: o roteiro (paragens, eventos dos próximos dias, link do mapa).
+  o_que_visitar: 'turismo',
 };
 
 function objeto(v: unknown): Record<string, unknown> {

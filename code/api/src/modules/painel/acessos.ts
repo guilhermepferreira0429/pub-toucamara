@@ -178,6 +178,8 @@ const VERBOS: Record<string, string> = {
   editar_termo_glossario: 'editou',
   apagar_termo_glossario: 'apagou',
   carregar_glossario_demonstracao: 'carregou os termos de demonstração',
+  carregar_turismo_demonstracao:
+    'carregou as fontes de turismo de demonstração',
 };
 
 const OBJETOS: Record<string, string> = {
@@ -240,6 +242,7 @@ const OBJETOS: Record<string, string> = {
   documento_simples: 'um documento oficial (linguagem simples)',
   termo_glossario: 'um termo do glossário',
   glossario: 'do glossário',
+  turismo: 'do turismo',
 };
 
 export function frase(acao: string, objetoTipo: string): string {
