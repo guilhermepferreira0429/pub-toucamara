@@ -336,8 +336,9 @@ describe('Porta para as IAs (e2e)', () => {
         ctx.db,
         `SELECT o.municipe_id, c.canal::text AS canal
          FROM ocorrencias o JOIN conversas c ON c.id = o.conversa_id
-         WHERE o.numero = $1`,
-        [saida.numero],
+         WHERE o.numero = $1
+           AND o.municipio_id = (SELECT municipio_id FROM ligacoes_ia WHERE id = $2)`,
+        [saida.numero, l.ligacao_id],
       );
       const municipe = await linha(
         ctx.db,

@@ -322,14 +322,13 @@ describe('Preparar demo (e2e)', () => {
       .set(chefe)
       .expect(200);
     expect(r.body.repostos.conversas).toBeGreaterThanOrEqual(1);
-    const conv = await ctx
-      .http()
-      .get('/v1/painel/conversas?limite=100')
-      .set(chefe)
-      .expect(200);
-    expect(conv.body.itens.map((c: { id: string }) => c.id)).toContain(
-      conversaTeste,
+    // (A lista do painel é paginada e a BD partilhada tem muitas conversas.)
+    const c = await linha(
+      ctx.db,
+      'SELECT oculto_em FROM conversas WHERE id = $1',
+      [conversaTeste],
     );
+    expect(c.oculto_em).toBeNull();
     const o = await linha(
       ctx.db,
       'SELECT oculto_em FROM ocorrencias WHERE id = $1',
