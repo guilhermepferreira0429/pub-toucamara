@@ -120,3 +120,75 @@ Variáveis: `ENTREGA_SUBMISSAO=balcao`, `BALCAO_URL`, `BALCAO_CREDENCIAL`.
   "simulação". **Nós**, com a câmara.
 - Só depois de 1 e 2 estarem testados se muda `ENTREGA_AUTENTICACAO` e
   `ENTREGA_SUBMISSAO`; o painel passa a mostrar "modo real".
+
+---
+
+## Avisos de emergência: números de toda a zona
+
+Fonte: `docs/A_MEIO.md` (linha "Avisos de emergência em massa": falta "a
+fonte externa com os números de toda a zona (operadores / cell broadcast /
+ANEPC-SMPC)" e "acordo com a Proteção Civil ou operadores").
+
+### O que já está pronto
+
+- **Fonte "Todas as pessoas na zona (operadores)"** (`FonteOperadores`, em
+  `code/api/src/modules/emergencias/operadores.ts`): dado o município e a zona
+  do aviso (freguesias, polígono ou ponto + raio) dá primeiro uma estimativa
+  (pessoas e telemóveis na zona, para o plano de tempo e custo) e depois os
+  números por páginas (E.164, zona aproximada, origem), com reenvio das páginas
+  que falham. Junta-se às fontes que já existiam sem duplicar números: se um
+  número também é de um munícipe conhecido, da ação social ou da lista, conta
+  como essa pessoa real e mantém o canal dela.
+- **Cell broadcast** (`CellBroadcast`): pedido por área + texto, sem números,
+  com o estado da difusão (pedida → em difusão → concluída; cancelada ao
+  encerrar), guardado em `emergencia_difusoes` (migração
+  `0072_emergencias_operadores.sql`).
+- **Painel** `/painel/emergencias`: escolher "Todas as pessoas na zona
+  (operadores)" e/ou "Cell broadcast"; o plano mostra quantos números vêm de
+  cada fonte, quantos são novos, o tempo e o custo (também à escala real);
+  o acompanhamento mostra as contagens por fonte e por estado e o estado da
+  difusão.
+- **Esqueletos reais, por configurar**: `EMERGENCIAS_OPERADORES=operadores`
+  (`OPERADORES_URL`, `OPERADORES_CREDENCIAL`) e
+  `EMERGENCIAS_CELL_BROADCAST=cell_broadcast` (`CELL_BROADCAST_URL`,
+  `CELL_BROADCAST_CREDENCIAL`). Sem configuração recusam com "por configurar —
+  falta acordo com a ANEPC / operadores" (o plano diz "por configurar"; o envio
+  com cell broadcast é recusado). Com configuração recusam com "por ligar" até
+  haver a especificação do serviço.
+
+### O que é simulado (e está marcado como tal)
+
+- **Por omissão as duas são simuladas** (`EMERGENCIAS_OPERADORES=simulada`,
+  `EMERGENCIAS_CELL_BROADCAST=simulada`). A fonte simulada gera números falsos
+  no formato `+351 9X 99N NNNN`, sempre os mesmos para a mesma zona, em
+  quantidade proporcional à população da zona × `EMERGENCIAS_SIMULADA_ESCALA`
+  (0,02 por omissão). Latência (`EMERGENCIAS_SIMULADA_LATENCIA_MS`) e falhas de
+  página (`EMERGENCIAS_SIMULADA_TAXA_ERRO`) configuráveis, para mostrar o
+  reenvio. A difusão simulada tem a referência `CB-DEMO-…`.
+- **População por freguesia e densidade no mapa: valores de demonstração**
+  (`POPULACAO_DEMONSTRACAO` em `operadores.regras.ts`, `demonstracao: true`).
+  Não são os Censos 2021; substituir pelos resultados do INE por freguesia.
+- **Regra de segurança**: os números simulados podem coincidir com números
+  reais de pessoas. Nunca saem para o Twilio, o ElevenLabs ou outro
+  fornecedor, em nenhum ambiente, mesmo com `SMS_PROVIDER=twilio`. A barreira
+  está no ponto de envio (`comunicacao/destino-simulado.ts`, usada no
+  `MensagensService` e nas chamadas de saída, a mesma que trava a gama de
+  demonstração `+351 910 000 xxx`): cada mensagem/chamada tem `simulado = true`,
+  fica gravada e aparece como "enviado (simulado)". Os números simulados nunca
+  viram munícipes nem entram na campanha de chamadas; a BD recusa uma linha
+  simulada com a referência de um fornecedor.
+
+### O que falta
+
+| Passo | Quem | Notas |
+|---|---|---|
+| Acordo com a ANEPC (e/ou a proteção civil municipal) e os operadores móveis para a câmara pedir avisos à população de uma zona | **A câmara** | Base legal, termos e prazos: a confirmar com a ANEPC |
+| Decidir o modelo: o operador entrega os números à câmara, ou o operador envia ele próprio (SMS por área / cell broadcast) e a câmara só pede | **A câmara**, com a ANEPC / operadores | Muda o adaptador: no segundo caso a fonte dos operadores não devolve números, só o estado do envio |
+| Acordo de tratamento de dados (RGPD) e retenção dos números recebidos | **A câmara** (encarregado de proteção de dados) | A confirmar |
+| Especificação do serviço (endereço, autenticação, formato da área, contagem, páginas, estados da difusão), ambiente de testes e credenciais | **Operadores / ANEPC**; **nós** integramos | A confirmar |
+| Preencher `FonteOperadoresReal` e `CellBroadcastReal` e testar no ambiente de testes | **Nós** | |
+| Custo por SMS de área e por difusão de cell broadcast | **Operadores / ANEPC** | A confirmar; o painel mostra "a confirmar" e não inventa valores |
+| Trocar a população de demonstração pelos Censos 2021 do INE por freguesia (ou usar a contagem do operador) | **Nós** | |
+
+Só depois de testado no ambiente de testes se muda `EMERGENCIAS_OPERADORES` e
+`EMERGENCIAS_CELL_BROADCAST`; o painel deixa de mostrar a pílula "simulado".
