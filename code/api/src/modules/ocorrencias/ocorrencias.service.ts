@@ -424,7 +424,10 @@ export class OcorrenciasService {
         resolvida_em: resolvida_dia,
       }),
       fotos,
-      pode_juntar_fotos: fotos.length < MAX_FOTOS && aceitaFotos(o.estado),
+      // O limite é das fotografias do munícipe (as "do depois" da equipa não contam).
+      pode_juntar_fotos:
+        fotos.filter((f) => f.origem === 'municipe').length < MAX_FOTOS &&
+        aceitaFotos(o.estado),
       max_fotos: MAX_FOTOS,
     };
   }
@@ -462,7 +465,8 @@ export class OcorrenciasService {
         alvo.id,
       ]);
       const [{ total }] = await tx.query<{ total: number }>(
-        'SELECT count(*)::int AS total FROM ocorrencia_fotos WHERE ocorrencia_id = $1',
+        `SELECT count(*)::int AS total FROM ocorrencia_fotos
+         WHERE ocorrencia_id = $1 AND origem = 'municipe'`,
         [alvo.id],
       );
       if (total >= MAX_FOTOS) {
@@ -496,8 +500,10 @@ export class OcorrenciasService {
       id: string;
       ficheiro_key: string;
       enviada_em: Date;
+      origem: 'municipe' | 'equipa';
+      legenda: string | null;
     }>(
-      `SELECT id, ficheiro_key, enviada_em FROM ocorrencia_fotos
+      `SELECT id, ficheiro_key, enviada_em, origem, legenda FROM ocorrencia_fotos
        WHERE ocorrencia_id = $1 ORDER BY enviada_em`,
       [ocorrenciaId],
     );
@@ -505,6 +511,9 @@ export class OcorrenciasService {
       linhas.map(async (f) => ({
         id: f.id,
         enviada_em: f.enviada_em,
+        // 'equipa': a fotografia "do depois" tirada ao fechar (app de campo).
+        origem: f.origem,
+        legenda: f.legenda,
         url: this.armazenamento.disponivel
           ? await this.armazenamento.urlLeitura(f.ficheiro_key, 15)
           : null,

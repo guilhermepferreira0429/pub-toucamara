@@ -6,6 +6,8 @@ plugins {
 }
 
 android {
+    // O namespace é o do código Kotlin (MainActivity); o applicationId muda
+    // por flavor.
     namespace = "pt.toucamara.mobile"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
@@ -20,20 +22,33 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "pt.toucamara.mobile"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
+        minSdk = maxOf(flutter.minSdkVersion, 23) // flutter_secure_storage
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
 
+    // Uma só codebase, duas apps (ver code/mobile/README.md):
+    //   flutter build apk --flavor equipa   -t lib/main_equipa.dart
+    //   flutter build apk --flavor municipe -t lib/main_municipe.dart
+    flavorDimensions += "app"
+    productFlavors {
+        create("equipa") {
+            dimension = "app"
+            applicationId = "pt.toucamara.equipa"
+            resValue("string", "app_name", "Tou, Câmara · Equipa")
+        }
+        create("municipe") {
+            dimension = "app"
+            applicationId = "pt.toucamara.municipe"
+            resValue("string", "app_name", "Tou, Câmara")
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
+            // Assinatura de produção por configurar (keystore fora do git).
+            // Por agora assina com a chave de debug, para `flutter run --release`.
             signingConfig = signingConfigs.getByName("debug")
         }
     }

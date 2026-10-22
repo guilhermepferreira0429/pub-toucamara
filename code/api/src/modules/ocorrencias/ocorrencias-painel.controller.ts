@@ -1,6 +1,15 @@
-import { Body, Controller, Get, Param, Patch, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Query,
+  UseInterceptors,
+} from '@nestjs/common';
 import { z } from 'zod';
 import { esquemaPaginacao } from '../../common/paginacao.js';
+import { IdempotenciaInterceptor } from '../../common/idempotencia.interceptor.js';
 import { MunicipioAtual, UtilizadorAtual } from '../../common/pedido.js';
 import type { UtilizadorPainel } from '../../common/pedido.js';
 import { validar } from '../../common/validacao.js';
@@ -47,6 +56,8 @@ const esquemaAlteracao = z
 const esquemaId = z.guid();
 
 @Controller('painel/ocorrencias')
+// A app da equipa de campo reenvia o que guardou sem rede com Idempotency-Key.
+@UseInterceptors(IdempotenciaInterceptor)
 export class OcorrenciasPainelController {
   constructor(private readonly ocorrencias: OcorrenciasService) {}
 

@@ -17,6 +17,8 @@ export interface UtilizadorPainel {
   /** NULL = equipa interna, escolhe o município pelo header X-Municipio. */
   municipioId: string | null;
   servicoId: string | null;
+  /** Só na app da equipa de campo: a sessão do dispositivo (para sair). */
+  sessaoAppId?: string;
 }
 
 /** Pedido depois dos guards: o município e o utilizador já resolvidos. */
