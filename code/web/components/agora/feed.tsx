@@ -57,10 +57,8 @@ import {
  * browser só vai no pedido à API: não se guarda em lado nenhum.
  */
 
-const Mapa = dynamic(() => import("./mapa-agora"), {
-  ssr: false,
-  loading: () => <div className="h-[60vh] min-h-[340px] w-full animate-pulse rounded-2xl bg-creme-2" />,
-});
+// O mapa a ecrã inteiro (e o motor do mapa) só se descarrega quando se abre.
+const EcraMapa = dynamic(() => import("./ecra-mapa").then((m) => m.EcraMapaAgora), { ssr: false });
 
 const LIMITE = 20;
 
@@ -156,14 +154,17 @@ function Alternar({
   onClick,
   children,
   cor,
+  refBotao,
 }: {
   ativo: boolean;
   onClick: () => void;
   children: React.ReactNode;
   cor?: string;
+  refBotao?: React.Ref<HTMLButtonElement>;
 }) {
   return (
     <button
+      ref={refBotao}
       type="button"
       aria-pressed={ativo}
       onClick={onClick}
@@ -255,7 +256,7 @@ export function FeedAgora({
   inicial,
 }: {
   slug: string;
-  inicial: { freguesia?: string; tipos?: string };
+  inicial: { freguesia?: string; tipos?: string; ver?: string };
 }) {
   const [tipos, setTipos] = useState<TipoItem[]>(() => lerTipos(inicial.tipos));
   const [freguesia, setFreguesia] = useState<string>(inicial.freguesia ?? "");
@@ -263,7 +264,8 @@ export function FeedAgora({
   const [geo, setGeo] = useState<EstadoGeo>("inativo");
   const [perto, setPerto] = useState<{ lat: number; lng: number } | null>(null);
   const [raio, setRaio] = useState<number>(1000);
-  const [modo, setModo] = useState<"lista" | "mapa">("lista");
+  const [modo, setModo] = useState<"lista" | "mapa">(inicial.ver === "mapa" ? "mapa" : "lista");
+  const refBotaoMapa = useRef<HTMLButtonElement>(null);
   const [lista, setLista] = useState<Lista>({ chave: null, estado: "ok", resposta: null, itens: [], cursor: null });
   const [aCarregarMais, setACarregarMais] = useState(false);
   const [erroMais, setErroMais] = useState<string | null>(null);
@@ -333,9 +335,10 @@ export function FeedAgora({
     const q = new URLSearchParams();
     if (freguesia) q.set("freguesia", freguesia);
     if (tipos.length && tipos.length < TIPOS_ITEM.length) q.set("tipos", tipos.join(","));
+    if (modo === "mapa") q.set("ver", "mapa");
     const s = q.toString();
     window.history.replaceState(window.history.state, "", `${window.location.pathname}${s ? `?${s}` : ""}`);
-  }, [freguesia, tipos]);
+  }, [freguesia, tipos, modo]);
 
   const verMais = useCallback(async () => {
     if (!lista.cursor) return;
@@ -405,7 +408,6 @@ export function FeedAgora({
   const parametros = r?.parametros;
   const idsEmergencia = new Set(emergencias.map((e) => e.id));
   const itensLista = lista.itens.filter((i) => !idsEmergencia.has(i.id));
-  const comLugar = lista.itens.filter((i) => i.lat !== null && i.lng !== null);
   const total = r?.total ?? 0;
   const filtrado = !!(perto || freguesia || tipos.length || periodo.id !== "tudo");
 
@@ -576,7 +578,7 @@ export function FeedAgora({
               <List className="size-4" aria-hidden />
               Lista
             </Alternar>
-            <Alternar ativo={modo === "mapa"} onClick={() => setModo("mapa")}>
+            <Alternar ativo={modo === "mapa"} onClick={() => setModo("mapa")} refBotao={refBotaoMapa}>
               <IconeMapa className="size-4" aria-hidden />
               Mapa
             </Alternar>
@@ -610,52 +612,7 @@ export function FeedAgora({
 
       {lista.resposta && (aCarregar || lista.estado !== "erro") && (
         <div className={`flex flex-col gap-4 ${aCarregar ? "opacity-60" : ""}`}>
-          {modo === "mapa" && (
-            <section aria-labelledby="titulo-mapa" className="flex flex-col gap-2">
-              <h2 id="titulo-mapa" className="sr-only">
-                Mapa
-              </h2>
-              <p className="text-[14px] leading-[1.45] text-tinta-2">
-                {comLugar.length === lista.itens.length
-                  ? "O mapa mostra os resultados desta página."
-                  : `O mapa mostra ${comLugar.length} de ${plural(lista.itens.length, "resultado", "resultados")} (os outros não têm lugar no mapa, como os comunicados para todo o concelho).`}{" "}
-                <button
-                  type="button"
-                  onClick={() => setModo("lista")}
-                  className="inline-flex min-h-11 items-center font-semibold text-terracota-escuro underline"
-                >
-                  Ver tudo em lista
-                </button>
-              </p>
-              <div className="overflow-hidden rounded-2xl border border-linha">
-                <Mapa
-                  itens={lista.itens}
-                  slug={slug}
-                  perto={perto ? { ...perto, raio_m: raio } : null}
-                  className="h-[60vh] min-h-[340px] w-full"
-                />
-              </div>
-              <ul aria-label="Legenda" className="flex flex-wrap gap-x-4 gap-y-1.5 pt-1">
-                {[...TIPOS_ITEM.map((t) => ESTILO_TIPO[t]), ESTILO_EMERGENCIA].map((e) => {
-                  const Icone = e.icone;
-                  return (
-                    <li key={e.nome} className="flex items-center gap-1.5 text-[13px] text-tinta-2">
-                      <span
-                        aria-hidden
-                        className="flex size-5 items-center justify-center rounded-full text-white"
-                        style={{ background: e.cor }}
-                      >
-                        <Icone className="size-3" />
-                      </span>
-                      {e.nome}
-                    </li>
-                  );
-                })}
-              </ul>
-            </section>
-          )}
-
-          {modo === "lista" && total === 0 && (
+          {total === 0 && (
             <div className="flex flex-col gap-3 rounded-2xl border border-dashed border-linha p-5">
               <p className="text-[16px] text-tinta">
                 {filtrado
@@ -670,7 +627,7 @@ export function FeedAgora({
             </div>
           )}
 
-          {modo === "lista" && itensLista.length > 0 && (
+          {itensLista.length > 0 && (
             <ul ref={refLista} aria-label="O que se passa" className="flex flex-col gap-3">
               {itensLista.map((i) => (
                 <CartaoItem key={`${i.fonte}-${i.id}`} item={i} slug={slug} novoHoras={parametros?.novos_horas ?? 48} />
@@ -698,6 +655,20 @@ export function FeedAgora({
             </div>
           )}
         </div>
+      )}
+
+      {modo === "mapa" && (
+        <EcraMapa
+          slug={slug}
+          nomeMunicipio={nome}
+          base={{ freguesia: freguesia || undefined, de: periodo.de, ate: periodo.ate }}
+          emergencias={emergencias}
+          pertoInicial={perto ? { ...perto, raio_m: raio } : null}
+          aoFechar={() => {
+            setModo("lista");
+            requestAnimationFrame(() => refBotaoMapa.current?.focus());
+          }}
+        />
       )}
 
       <ReceberAvisos telefone={telefoneSms} />

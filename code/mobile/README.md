@@ -117,8 +117,25 @@ flutter run --flavor municipe -t lib/main_municipe.dart --dart-define=MUNICIPIO=
 | `WEB_URL`   | Munícipe: o site (o botão "Ligar" abre `<WEB_URL>/ligar`, a chamada pela internet) | `http://localhost:3000` |
 | `TELEFONE`  | Munícipe: se definido, "Ligar" liga para este número em vez de abrir o `/ligar` | vazio |
 | `FCM`       | Munícipe: `true` liga o push do Firebase (ver acima) | `false` |
+| `MAPBOX_TOKEN` | Mapas: token **público** do Mapbox (`pk.…`). Sem ele, OpenStreetMap. Nunca no repositório (ver `docs/MAPAS.md`) | vazio |
+| `MAPA_NATIVO` | Mapas: `true` usa o mapa 3D nativo do Mapbox no Android (precisa de `MAPBOX_TOKEN`) | `false` (flutter_map, 2D) |
+| `MAPBOX_ESTILO_RASTER` | Mapas 2D: estilo dos mosaicos do Mapbox | `streets-v12` |
+| `MAPBOX_ESTILO` | Mapa 3D nativo: `standard`, `standard-satellite` ou `mapbox://styles/…` | `standard` |
 
-Os dois podem mudar-se depois no ecrã "Servidor".
+Os dois primeiros podem mudar-se depois no ecrã "Servidor".
+
+### Mapas (`lib/comum/mapa/`)
+
+Todos os mapas usam o `MapaCidade` (uma API, dois motores; ver `docs/MAPAS.md`):
+
+- **Por omissão** (e sempre no browser e nos testes): `flutter_map` em 2D, com os mosaicos do Mapbox se houver `MAPBOX_TOKEN`, senão OpenStreetMap.
+- **Com `--dart-define=MAPA_NATIVO=true` e `MAPBOX_TOKEN`, no Android**: `mapbox_maps_flutter` (3D oblíquo, edifícios do estilo Standard, marcadores como anotações com a imagem da bolha). Não foi corrido num telemóvel aqui.
+
+```bash
+flutter run --flavor municipe -t lib/main_municipe.dart --dart-define=MAPBOX_TOKEN=pk.… --dart-define=MAPA_NATIVO=true
+```
+
+O plugin v3 descarrega o SDK do repositório Maven público do Mapbox (não precisa do token secreto `MAPBOX_DOWNLOADS_TOKEN`); se uma versão futura o pedir, vai no `~/.gradle/gradle.properties` da máquina de build, nunca no repositório. Nota: na versão web, o plugin carrega o Mapbox GL JS de `api.mapbox.com` ao arrancar, mesmo sem o usar (a web usa o flutter_map).
 
 ### Gerar o APK (numa máquina com o Android SDK)
 
@@ -141,6 +158,7 @@ Permissões Android: internet, câmara, localização (fina e aproximada) e micr
 - **Ligar**: abre a chamada pela internet do site (`/ligar`) ou o número de `TELEFONE`; a app não faz a chamada de voz ela própria.
 - **iOS**: não configurado.
 - **Áudio do ditado para a API**: a app usa o reconhecimento de voz do telemóvel e envia o texto; enviar a gravação para a rota que transcreve (ElevenLabs) fica para depois.
+- **Mapa 3D nativo por testar num telemóvel** (`MAPA_NATIVO=true`): compila (análise e build web), mas sem Android SDK nem rede para o Mapbox não foi corrido nem o APK gerado. Os marcadores do nativo são imagens: não têm nome para o TalkBack (a lista tem tudo).
 - **Mapa sem rede**: os mosaicos do OpenStreetMap não ficam guardados (os pontos e a lista sim). Em produção convém um servidor de mosaicos próprio ou com acordo (a política do OSM não permite uso intensivo).
 - Ícones definitivos (os de agora são provisórios) e assinatura de release.
 - Ver o APK num telemóvel real: aqui só se compilou e testou a versão web (não havia Android SDK).
