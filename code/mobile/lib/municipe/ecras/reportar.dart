@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
-import 'package:flutter_map/flutter_map.dart';
-import 'package:latlong2/latlong.dart';
 
 import '../../comum/componentes/componentes.dart';
 import '../../comum/localizacao/localizacao.dart';
+import '../../comum/mapa/mapa_cidade.dart';
 import '../../comum/plataforma/camara.dart';
 import '../../comum/tema.dart';
 import '../app_municipe.dart';
@@ -350,7 +349,7 @@ class _PassoLocal extends StatefulWidget {
 }
 
 class _PassoLocalState extends State<_PassoLocal> {
-  final _mapa = MapController();
+  final _mapa = ControladorMapa();
   Ponto? _ponto;
   bool _aProcurar = false;
   bool _semFundo = false;
@@ -389,7 +388,7 @@ class _PassoLocalState extends State<_PassoLocal> {
       return;
     }
     _mudar(p);
-    _mapa.move(LatLng(p.lat, p.lng), 17);
+    _mapa.mover(p, zoom: 17);
   }
 
   void _mudar(Ponto p) {
@@ -415,39 +414,21 @@ class _PassoLocalState extends State<_PassoLocal> {
           child: Stack(
             alignment: Alignment.center,
             children: [
-              FlutterMap(
-                mapController: _mapa,
-                options: MapOptions(
-                  initialCenter: LatLng(c.lat, c.lng),
-                  initialZoom: 17,
-                  backgroundColor: Cores.creme2,
-                  onPositionChanged: (cam, doUtilizador) {
-                    if (doUtilizador) {
-                      _mudar(Ponto(cam.center.latitude, cam.center.longitude));
-                      setState(() {});
-                    }
-                  },
-                ),
-                children: [
-                  TileLayer(
-                    urlTemplate:
-                        'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                    userAgentPackageName: 'pt.toucamara.municipe',
-                    maxZoom: 19,
-                    errorTileCallback: (_, _, _) {
-                      if (_semFundo) return;
-                      SchedulerBinding.instance.addPostFrameCallback((_) {
-                        if (mounted) setState(() => _semFundo = true);
-                      });
-                    },
-                  ),
-                  const RichAttributionWidget(
-                    alignment: AttributionAlignment.bottomLeft,
-                    attributions: [
-                      TextSourceAttribution('Contribuidores do OpenStreetMap'),
-                    ],
-                  ),
-                ],
+              MapaCidade(
+                rotulo: 'Mapa para escolher o sítio do problema',
+                controlador: _mapa,
+                centro: c,
+                zoom: 17,
+                aoMoverCentro: (p) {
+                  _mudar(p);
+                  setState(() {});
+                },
+                aoFalharFundo: () {
+                  if (_semFundo) return;
+                  SchedulerBinding.instance.addPostFrameCallback((_) {
+                    if (mounted) setState(() => _semFundo = true);
+                  });
+                },
               ),
               // O alfinete fica no centro; a ponta é o sítio.
               const IgnorePointer(
@@ -515,8 +496,8 @@ class _PassoLocalState extends State<_PassoLocal> {
                   texto: 'É aqui (centro do mapa)',
                   contorno: true,
                   onPressed: () {
-                    final cam = _mapa.camera.center;
-                    setState(() => _mudar(Ponto(cam.latitude, cam.longitude)));
+                    final c = _mapa.centro;
+                    if (c != null) setState(() => _mudar(c));
                   },
                 ),
               ],

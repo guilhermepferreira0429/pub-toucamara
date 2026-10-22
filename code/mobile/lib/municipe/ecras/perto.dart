@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
-import 'package:flutter_map/flutter_map.dart';
-import 'package:latlong2/latlong.dart';
 
 import '../../comum/api/cliente_api.dart';
 import '../../comum/componentes/componentes.dart';
 import '../../comum/localizacao/localizacao.dart';
+import '../../comum/mapa/mapa_cidade.dart';
 import '../../comum/tema.dart';
 import '../componentes.dart';
 import '../modelos.dart';
@@ -107,20 +106,22 @@ class _EcraPertoState extends State<EcraPerto> {
       ),
       body: Column(
         children: [
-          _Filtros(
-            tipos: _tipos,
-            pertoDeMim: _pertoDeMim,
-            raio: _raio,
-            aoMudarTipo: (t, v) {
-              setState(() => v ? _tipos.add(t) : _tipos.remove(t));
-              _carregar();
-            },
-            aoMudarPerto: _mudarPerto,
-            aoMudarRaio: (r) {
-              setState(() => _raio = r);
-              _carregar();
-            },
-          ),
+          // No mapa, os chips em vidro por cima do mapa fazem de filtro.
+          if (!_mapa)
+            _Filtros(
+              tipos: _tipos,
+              pertoDeMim: _pertoDeMim,
+              raio: _raio,
+              aoMudarTipo: (t, v) {
+                setState(() => v ? _tipos.add(t) : _tipos.remove(t));
+                _carregar();
+              },
+              aoMudarPerto: _mudarPerto,
+              aoMudarRaio: (r) {
+                setState(() => _raio = r);
+                _carregar();
+              },
+            ),
           if (_semLocalizacao != null)
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
@@ -146,6 +147,7 @@ class _EcraPertoState extends State<EcraPerto> {
                     ? MapaAgora(
                         itens: l.valor.ordenados,
                         eu: _pertoDeMim ? _eu : null,
+                        aoPertoDeMim: () => _mudarPerto(!_pertoDeMim),
                       )
                     : _Lista(lido: l, aoAtualizar: () async => _carregar());
               },
@@ -274,22 +276,30 @@ class _Lista extends StatelessWidget {
   }
 }
 
-/// Os itens no mapa (OpenStreetMap), com a cor e o ícone do tipo.
+/// Os itens no mapa (MapaCidade: 3D nativo do Mapbox no Android com
+/// MAPA_NATIVO, senão flutter_map com mosaicos do Mapbox ou OpenStreetMap):
+/// chips em vidro por tipo (com contagem), bolhas por item, emergências a
+/// pulsar e o item escolhido num cartão em vidro em baixo.
 class MapaAgora extends StatefulWidget {
-  const MapaAgora({super.key, required this.itens, this.eu});
+  const MapaAgora({super.key, required this.itens, this.eu, this.aoPertoDeMim});
   final List<ItemAgora> itens;
   final Ponto? eu;
+
+  /// O botão "onde estou" do mapa (liga o "perto de mim").
+  final VoidCallback? aoPertoDeMim;
 
   @override
   State<MapaAgora> createState() => _MapaAgoraState();
 }
 
+/// Filtro dos chips: null = tudo; 'emergencias'; ou o nome do tipo.
 class _MapaAgoraState extends State<MapaAgora> {
-  ItemAgora? _escolhido;
+  String? _escolhido;
+  String? _filtro;
   bool _semFundo = false;
 
-  /// Paços do Concelho de Guimarães (só para centrar sem itens).
-  static const _centroPorOmissao = LatLng(41.4425, -8.2918);
+  /// Acima disto, os marcadores ficam só com o ícone.
+  static const _maxBolhas = 6;
 
   void _falhouMosaico() {
     if (_semFundo) return;
@@ -298,150 +308,144 @@ class _MapaAgoraState extends State<MapaAgora> {
     });
   }
 
+  bool _passa(ItemAgora i) => switch (_filtro) {
+    null => true,
+    'emergencias' => i.emergencia,
+    final t => !i.emergencia && i.tipo.name == t,
+  };
+
   @override
   Widget build(BuildContext context) {
     final comLocal = widget.itens.where((i) => i.temLocal).toList();
+    final visiveis = comLocal.where(_passa).toList();
     final eu = widget.eu;
-    final pontos = [
-      for (final i in comLocal) LatLng(i.lat!, i.lng!),
-      if (eu != null) LatLng(eu.lat, eu.lng),
-    ];
     final semLocal = widget.itens.length - comLocal.length;
+    final escolhido = visiveis.where((i) => i.id == _escolhido).firstOrNull;
+    final compacto = visiveis.length > _maxBolhas;
+    final contagem = <String?, int>{null: comLocal.length, 'emergencias': 0};
+    for (final i in comLocal) {
+      final k = i.emergencia ? 'emergencias' : i.tipo.name;
+      contagem[k] = (contagem[k] ?? 0) + 1;
+    }
+    final chips = <(String?, String, IconData, Color)>[
+      (null, 'Tudo', Icons.layers_rounded, Cores.tinta),
+      if ((contagem['emergencias'] ?? 0) > 0)
+        (
+          'emergencias',
+          estiloEmergencia.nome,
+          estiloEmergencia.icone,
+          estiloEmergencia.cor,
+        ),
+      for (final t in TipoItem.values)
+        (t.name, nomesTipo[t]!, estilosTipo[t]!.icone, estilosTipo[t]!.cor),
+    ];
     return Stack(
       children: [
-        FlutterMap(
-          key: ValueKey(pontos.length),
-          options: MapOptions(
-            initialCenter: pontos.length == 1
-                ? pontos.first
-                : _centroPorOmissao,
-            initialZoom: 14,
-            initialCameraFit: pontos.length > 1
-                ? CameraFit.bounds(
-                    bounds: LatLngBounds.fromPoints(pontos),
-                    padding: const EdgeInsets.fromLTRB(48, 80, 48, 200),
-                    maxZoom: 16,
-                  )
-                : null,
-            backgroundColor: Cores.creme2,
-            onTap: (_, _) => setState(() => _escolhido = null),
-          ),
-          children: [
-            TileLayer(
-              urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-              userAgentPackageName: 'pt.toucamara.municipe',
-              maxZoom: 19,
-              errorTileCallback: (_, _, _) => _falhouMosaico(),
-            ),
-            CircleLayer(
-              circles: [
-                for (final i in comLocal)
-                  if ((i.raioM ?? 0) > 0)
-                    CircleMarker(
-                      point: LatLng(i.lat!, i.lng!),
-                      radius: i.raioM!.toDouble(),
-                      useRadiusInMeter: true,
-                      color: estiloDe(i).cor.withValues(alpha: 0.12),
-                      borderColor: estiloDe(i).cor,
-                      borderStrokeWidth: 1.5,
-                    ),
-              ],
-            ),
-            MarkerLayer(
-              markers: [
-                if (eu != null)
-                  Marker(
-                    point: LatLng(eu.lat, eu.lng),
-                    width: 28,
-                    height: 28,
-                    child: Semantics(
-                      label: 'Está aqui',
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF1E6FD9),
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white, width: 4),
-                          boxShadow: const [
-                            BoxShadow(blurRadius: 6, color: Colors.black26),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                for (final i in comLocal)
-                  Marker(
-                    point: LatLng(i.lat!, i.lng!),
-                    width: 52,
-                    height: 52,
-                    child: Semantics(
-                      button: true,
-                      label: '${estiloDe(i).singular}: ${i.titulo}',
-                      excludeSemantics: true,
-                      child: GestureDetector(
-                        onTap: () => setState(() => _escolhido = i),
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: estiloDe(i).cor,
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: _escolhido?.id == i.id
-                                  ? Cores.ambarSuave
-                                  : Colors.white,
-                              width: _escolhido?.id == i.id ? 5 : 3,
-                            ),
-                            boxShadow: const [
-                              BoxShadow(blurRadius: 6, color: Colors.black38),
-                            ],
-                          ),
-                          child: Icon(
-                            estiloDe(i).icone,
-                            color: Colors.white,
-                            size: 26,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-            const RichAttributionWidget(
-              alignment: AttributionAlignment.bottomLeft,
-              attributions: [
-                TextSourceAttribution('Contribuidores do OpenStreetMap'),
-              ],
-            ),
+        MapaCidade(
+          rotulo: 'Mapa do que se passa (a lista tem a mesma informação)',
+          marcadores: [
+            for (final i in visiveis)
+              MarcadorMapa(
+                id: i.id,
+                ponto: Ponto(i.lat!, i.lng!),
+                nome: '${estiloDe(i).singular}: ${i.titulo}',
+                cor: estiloDe(i).cor,
+                icone: estiloDe(i).icone,
+                titulo: i.titulo,
+                subtitulo: i.etiqueta,
+                pulsar: i.emergencia,
+                compacto: compacto && !i.emergencia && i.id != _escolhido,
+              ),
           ],
+          circulos: [
+            for (final i in visiveis)
+              if ((i.raioM ?? 0) > 0)
+                CirculoMapa(
+                  centro: Ponto(i.lat!, i.lng!),
+                  raioM: i.raioM!.toDouble(),
+                  cor: estiloDe(i).cor,
+                ),
+          ],
+          enquadrar: [for (final i in visiveis) Ponto(i.lat!, i.lng!), ?eu],
+          selecionado: _escolhido,
+          aoTocarMarcador: (id) => setState(() => _escolhido = id),
+          aoTocarMapa: () => setState(() => _escolhido = null),
+          eu: eu,
+          vista3d: true,
+          margens: EdgeInsets.fromLTRB(
+            48,
+            120,
+            48,
+            escolhido != null ? 240 : 64,
+          ),
+          aoFalharFundo: _falhouMosaico,
+          aoLocalizar: widget.aoPertoDeMim,
         ),
         Positioned(
-          left: 12,
-          right: 12,
-          top: 12,
-          child: Wrap(
-            spacing: 8,
-            runSpacing: 6,
+          left: 0,
+          right: 0,
+          top: 10,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (_semFundo)
-                const Pilula(
-                  'Mapa de fundo indisponível (sem rede?)',
-                  tom: TomPilula.ambar,
-                  icone: Icons.layers_clear_rounded,
+              SizedBox(
+                height: 52,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  itemCount: chips.length,
+                  separatorBuilder: (_, _) => const SizedBox(width: 8),
+                  itemBuilder: (_, n) {
+                    final (id, nome, icone, cor) = chips[n];
+                    return ChipVidro(
+                      nome: nome,
+                      ativo: _filtro == id,
+                      contagem: contagem[id] ?? 0,
+                      icone: icone,
+                      cor: cor,
+                      aoTocar: () => setState(() {
+                        _filtro = id;
+                        _escolhido = null;
+                      }),
+                    );
+                  },
                 ),
-              if (semLocal > 0)
-                Pilula(
-                  '$semLocal sem sítio no mapa (ver na lista)',
-                  icone: Icons.location_off_outlined,
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 6, 12, 0),
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 6,
+                  children: [
+                    if (_semFundo)
+                      const Pilula(
+                        'Mapa de fundo indisponível (sem rede?)',
+                        tom: TomPilula.ambar,
+                        icone: Icons.layers_clear_rounded,
+                      ),
+                    if (semLocal > 0)
+                      Pilula(
+                        '$semLocal sem sítio no mapa (ver na lista)',
+                        icone: Icons.location_off_outlined,
+                      ),
+                  ],
                 ),
+              ),
             ],
           ),
         ),
-        if (_escolhido != null)
+        if (escolhido != null)
           Positioned(
-            left: 12,
-            right: 12,
+            left: 10,
+            right: 10,
             bottom: 12,
-            child: CartaoItemAgora(
-              item: _escolhido!,
-              onTap: () => abrirItem(context, _escolhido!),
+            child: Vidro(
+              raio: 26,
+              padding: const EdgeInsets.all(6),
+              child: CartaoItemAgora(
+                item: escolhido,
+                onTap: () => abrirItem(context, escolhido),
+              ),
             ),
           ),
       ],

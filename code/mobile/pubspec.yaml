@@ -16,6 +16,8 @@ dependencies:
   shared_preferences: ^2.5.6
   flutter_secure_storage: ^11.2.0
   flutter_map: ^8.3.2
+  # Mapa 3D nativo (Android), atrás de --dart-define=MAPA_NATIVO=true (docs/MAPAS.md).
+  mapbox_maps_flutter: 3.0.0
   latlong2: ^0.10.1
   image_picker: ^1.2.4
   geolocator: ^14.1.2
