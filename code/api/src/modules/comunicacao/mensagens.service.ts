@@ -7,6 +7,7 @@ import { DatabaseService, Tx } from '../../database/database.service.js';
 import { JobsService } from '../../jobs/jobs.service.js';
 import { mascararTelefone } from '../municipes/municipes.service.js';
 import { assinaturaValida } from '../../common/twilio.js';
+import { destinoSimulado, FORNECEDOR_SIMULADO } from './destino-simulado.js';
 import { infoSms, transliterar } from './sms.js';
 
 export type MotivoMensagem =
@@ -57,7 +58,7 @@ export interface NovoSms {
 }
 
 /** O que fica num envio simulado (`provider_id`). */
-export const FORNECEDOR_SIMULADO = 'simulado';
+export { FORNECEDOR_SIMULADO };
 
 export interface NovoEmail {
   para: string;
@@ -236,17 +237,18 @@ export class MensagensService implements OnModuleInit {
     if (!m) throw new Error(`Mensagem ${mensagemId} ainda não existe.`);
     if (!['agendada', 'pendente'].includes(m.estado)) return;
 
-    // BARREIRA: um destino simulado nunca sai, com qualquer fornecedor e em
-    // qualquer ambiente. (Só `true` estrito deixa passar para o fornecedor
-    // quando a coluna não vem: na dúvida, não se envia.)
-    if (m.simulado !== false) {
+    // BARREIRA (um só ponto, destinoSimulado): destinos simulados e a gama
+    // de teste da demonstração nunca saem, com qualquer fornecedor e em
+    // qualquer ambiente; ficam 'enviada' para o painel mostrar.
+    const bloqueado = destinoSimulado(m);
+    if (bloqueado) {
       this.logger.log(
-        `SMS simulado para ${mascararTelefone(m.destino)}: gravado, não enviado.`,
+        `SMS para ${mascararTelefone(m.destino)} (${bloqueado.motivo}): gravado, não enviado.`,
       );
       await this.db.query(
         `UPDATE mensagens_saida SET estado = 'enviada', enviada_em = now(), provider_id = $2, erro = NULL
-         WHERE id = $1 AND simulado`,
-        [mensagemId, FORNECEDOR_SIMULADO],
+         WHERE id = $1`,
+        [mensagemId, bloqueado.fornecedor],
       );
       return;
     }
@@ -257,7 +259,7 @@ export class MensagensService implements OnModuleInit {
         m.destino,
         m.corpo,
         m.canal === 'whatsapp',
-        m.simulado,
+        m,
       );
       if ('sid' in r) {
         await this.db.query(
@@ -302,11 +304,14 @@ export class MensagensService implements OnModuleInit {
     destino: string,
     corpo: string,
     whatsapp: boolean,
-    simulado: boolean,
+    linha: { destino: string; simulado: boolean },
   ): Promise<{ sid: string } | { erro: string }> {
     // Segunda barreira, mesmo à porta do fornecedor.
-    if (simulado !== false) {
-      throw new Error('Destino simulado: nunca se envia para o Twilio.');
+    const bloqueado = destinoSimulado(linha);
+    if (bloqueado) {
+      throw new Error(
+        `Destino ${bloqueado.motivo}: nunca se envia para o Twilio.`,
+      );
     }
     const { smsRemetente, whatsappRemetente, twilio } = this.cfg();
     if (!twilio.accountSid || !twilio.authToken) {

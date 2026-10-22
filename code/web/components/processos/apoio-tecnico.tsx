@@ -17,6 +17,7 @@ import {
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useState } from "react";
+import { Pilula } from "@/components/conhecimento/comum";
 import { Aviso } from "@/components/painel/cabecalho";
 import { useSessao } from "@/lib/sessao";
 import { DialogoAssinar } from "./dialogo-assinar";
@@ -32,6 +33,7 @@ import {
   type ResumoProcesso,
   type TipoRascunho,
   type TrechoDestacado,
+  type Verificacoes,
 } from "./tipos";
 import {
   ACarregar,
@@ -43,12 +45,15 @@ import {
   Segmentado,
   usePedido,
 } from "./ui";
+import { BlocoVerificacoes, type EstadoVerificacoes } from "./verificacoes";
 
 /*
- * V2 · Apoio ao técnico (tjX6g, uc2Hf, IbPF4, FR3XT): à esquerda o resumo
- * do processo numa página e o regulamento com as frases destacadas; à
- * direita o rascunho (ofício, pedido de elementos, SMS) para rever, editar,
- * aprovar com assinatura simulada ou descartar.
+ * V2 · Apoio ao técnico (tjX6g, uc2Hf, IbPF4, FR3XT): à esquerda as
+ * verificações automáticas, o regulamento com as frases destacadas e o
+ * resumo do processo numa página; à direita o rascunho (parecer técnico,
+ * ofício, pedido de elementos, SMS) para rever, editar, aprovar com
+ * assinatura simulada ou descartar. "Gerar outra vez" refaz as verificações
+ * e o rascunho aberto.
  */
 
 function Linha({
@@ -301,7 +306,12 @@ export function ApoioTecnico() {
   const lista = usePedido<{ itens: Rascunho[]; armazenamento_disponivel: boolean }>(
     permitido ? `/v1/painel/processos/${id}/rascunhos` : null,
   );
-  const [tipo, setTipo] = useState<TipoRascunho>("oficio");
+  const verif = usePedido<Verificacoes>(
+    permitido ? `/v1/painel/processos/${id}/verificacoes` : null,
+  );
+  const [aVerificar, setAVerificar] = useState(false);
+  const [erroVerificar, setErroVerificar] = useState<string | null>(null);
+  const [tipo, setTipo] = useState<TipoRascunho>("parecer");
   const [escolhido, setEscolhido] = useState<Record<string, string>>({});
   const [novo, setNovo] = useState(false);
   const [assinar, setAssinar] = useState<Rascunho | null>(null);
@@ -348,10 +358,42 @@ export function ApoioTecnico() {
     setEscolhido((e) => ({ ...e, [r.tipo]: r.id }));
   }
 
+  async function verificarOutraVez(): Promise<boolean> {
+    setAVerificar(true);
+    setErroVerificar(null);
+    try {
+      verif.definir(
+        await pedido<Verificacoes>(`/v1/painel/processos/${id}/verificacoes?atualizar=true`),
+      );
+      return true;
+    } catch (e) {
+      setErroVerificar(paraErro(e).message);
+      return false;
+    } finally {
+      setAVerificar(false);
+    }
+  }
+
+  const estadoVerificacoes: EstadoVerificacoes = {
+    dados: verif.dados,
+    erro: verif.erro,
+    aCarregar: verif.aCarregar,
+    aAtualizar: aVerificar,
+    atualizar: async () => {
+      await verificarOutraVez();
+    },
+    erroAtualizar: erroVerificar,
+  };
+
   async function gerarOutraVez() {
-    if (!atual || atual.tipo === "parecer") return;
     setARegerar(true);
     setMensagem(null);
+    // As verificações primeiro: o rascunho novo já as usa.
+    await verificarOutraVez();
+    if (!atual) {
+      setARegerar(false);
+      return;
+    }
     try {
       const corpo: Record<string, unknown> = { tipo: atual.tipo };
       if (atual.instrucoes) corpo.instrucoes = atual.instrucoes;
@@ -393,11 +435,19 @@ export function ApoioTecnico() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {atual && atual.tipo !== "parecer" && (
-            <BotaoPainel icone={RefreshCw} onClick={gerarOutraVez} disabled={aRegerar}>
-              {aRegerar ? "A gerar…" : "Gerar outra vez"}
-            </BotaoPainel>
-          )}
+          {p.demonstracao && <Pilula tom="ambar">processo de demonstração</Pilula>}
+          <BotaoPainel
+            icone={RefreshCw}
+            onClick={gerarOutraVez}
+            disabled={aRegerar || aVerificar}
+            title={
+              atual
+                ? "Refaz as verificações automáticas e o rascunho aberto"
+                : "Refaz as verificações automáticas"
+            }
+          >
+            {aRegerar ? "A gerar…" : "Gerar outra vez"}
+          </BotaoPainel>
           <BotaoPainel
             variante="principal"
             icone={PenLine}
@@ -411,11 +461,12 @@ export function ApoioTecnico() {
 
       <div className="grid flex-1 lg:grid-cols-[400px_minmax(0,1fr)]">
         <aside
-          aria-label="Resumo e regulamento"
+          aria-label="Verificações, regulamento e resumo"
           className="flex flex-col gap-6 border-r border-linha py-6 pl-8 pr-6"
         >
-          <Resumo processoId={p.id} />
+          <BlocoVerificacoes processoId={p.id} v={estadoVerificacoes} />
           <Regras processoId={p.id} />
+          <Resumo processoId={p.id} />
         </aside>
 
         <section aria-label="Documento" className="flex flex-col gap-4 bg-creme-2 px-10 py-6">

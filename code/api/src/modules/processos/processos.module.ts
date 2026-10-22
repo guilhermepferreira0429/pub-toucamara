@@ -2,6 +2,8 @@ import { Module, OnModuleInit } from '@nestjs/common';
 import { RegistoFerramentas } from '../../ferramentas/registo-ferramentas.service.js';
 import { JobsService } from '../../jobs/jobs.service.js';
 import { ConhecimentoModule } from '../conhecimento/conhecimento.module.js';
+import { OcorrenciasModule } from '../ocorrencias/ocorrencias.module.js';
+import { OrdenamentoModule } from '../ordenamento/ordenamento.module.js';
 import {
   ProcessosPainelController,
   ProcessosPublicoController,
@@ -11,13 +13,17 @@ import {
 import { ferramentasProcessos } from './processos.ferramentas.js';
 import { ProcessosApoioService } from './processos-apoio.service.js';
 import { ProcessosAvisosService } from './processos-avisos.service.js';
+import { ProcessosDemonstracaoService } from './processos-demonstracao.service.js';
+import { ProcessosVerificacoesService } from './processos-verificacoes.service.js';
+import { OrdemSimulada, VERIFICADOR_ORDEM } from './verificacoes.js';
 import { ProcessosPainelService } from './processos-painel.service.js';
 import { ProcessosService } from './processos.service.js';
 import { TiposProcessoService } from './tipos-processo.service.js';
 
 @Module({
-  // Pesquisa no conhecimento para o regulamento aplicável.
-  imports: [ConhecimentoModule],
+  // Pesquisa no conhecimento para o regulamento aplicável; zonas do PDM e
+  // geocodificação para as verificações automáticas.
+  imports: [ConhecimentoModule, OrdenamentoModule, OcorrenciasModule],
   controllers: [
     ProcessosPainelController,
     RascunhosController,
@@ -29,7 +35,11 @@ import { TiposProcessoService } from './tipos-processo.service.js';
     ProcessosPainelService,
     ProcessosAvisosService,
     ProcessosApoioService,
+    ProcessosVerificacoesService,
+    ProcessosDemonstracaoService,
     TiposProcessoService,
+    // Não há API pública da Ordem: simulado até haver uma ligação real.
+    { provide: VERIFICADOR_ORDEM, useClass: OrdemSimulada },
   ],
   exports: [ProcessosService, TiposProcessoService],
 })

@@ -27,6 +27,7 @@ import {
   Segmentado,
   usePedido,
 } from "./ui";
+import { BotaoProcessoDemonstracao } from "./verificacoes";
 
 // Os filtros ficam lado a lado: o campo base tem w-full, que o w-auto não
 // anula (as duas classes ao mesmo tempo dependem da ordem do CSS).
@@ -377,6 +378,7 @@ export function ListaProcessos() {
               Limpar filtros
             </Botao>
           )}
+          <BotaoProcessoDemonstracao />
         </div>
 
         {primeira.erro ? (

@@ -325,6 +325,16 @@ describe('Regras públicas e decisão automática (e2e)', () => {
         .set(chefe)
         .send({ aprovacao: 'talvez' })
         .expect(400);
+      // Outros ficheiros também mudam as regras (a BD é partilhada).
+      const antes =
+        (
+          await linha<{ v: number | null }>(
+            ctx.db,
+            `SELECT max(versao) AS v FROM regras_versoes
+             WHERE municipio_id = $1 AND ambito = 'licenca' AND chave = 'esplanada'`,
+            [MUNICIPIO_ID],
+          )
+        )?.v ?? 1;
       const m = await ctx
         .http()
         .put('/v1/painel/licencas/aprovacao/esplanada')
@@ -334,7 +344,7 @@ describe('Regras públicas e decisão automática (e2e)', () => {
       expect(m.body).toMatchObject({
         aprovacao: 'funcionario',
         mudou: true,
-        versao: 2,
+        versao: antes + 1,
       });
       const audit = await linha(
         ctx.db,
@@ -344,7 +354,7 @@ describe('Regras públicas e decisão automática (e2e)', () => {
       );
       expect(audit.dados).toMatchObject({
         tipo: 'esplanada',
-        versao: 2,
+        versao: antes + 1,
         alteracoes: [
           expect.objectContaining({
             campo: 'aprovacao',

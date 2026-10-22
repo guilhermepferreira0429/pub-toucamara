@@ -16,6 +16,9 @@ export const ACOES_DADOS_PESSOAIS = [
 ] as const;
 
 const VERBOS: Record<string, string> = {
+  preparar_demo: 'preparou a demonstração',
+  ocultar_testes: 'escondeu do painel os registos de teste',
+  repor_ocultos: 'voltou a mostrar os registos de teste escondidos',
   ouvir_gravacao: 'ouviu a gravação',
   ver: 'viu',
   ver_resumo: 'viu o resumo',
@@ -50,6 +53,8 @@ const VERBOS: Record<string, string> = {
   gerar_relatorio: 'gerou',
   enviar_aviso_zona: 'enviou',
   carregar_zonas_demonstracao: 'carregou as zonas de demonstração do',
+  verificar: 'correu as verificações automáticas de',
+  carregar_processo_demonstracao: 'criou o processo de demonstração',
   mudar_regras_zona: 'mudou as regras de',
   carregar_consultas_pdm_demonstracao: 'carregou perguntas de demonstração do',
   criar: 'criou',
@@ -167,6 +172,7 @@ const VERBOS: Record<string, string> = {
 };
 
 const OBJETOS: Record<string, string> = {
+  demo: '',
   conversa: 'uma conversa',
   passagem_humano: 'uma passagem a funcionário',
   processo: 'um processo',

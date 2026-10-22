@@ -136,9 +136,7 @@ describe('MensagensService · Twilio', () => {
 
       expect(fetchMock).not.toHaveBeenCalled();
       expect(query).toHaveBeenLastCalledWith(
-        expect.stringMatching(
-          /estado = 'enviada'.*provider_id = \$2.*AND simulado/s,
-        ),
+        expect.stringMatching(/estado = 'enviada'.*provider_id = \$2/s),
         ['m1', 'simulado'],
       );
     });
@@ -158,6 +156,20 @@ describe('MensagensService · Twilio', () => {
       const { servico } = montar(undefined, { simulado: undefined });
       await servico.enviarAgora('m1');
       expect(fetchMock).not.toHaveBeenCalled();
+    });
+
+    it('a gama de demonstração (+351 910 000 xxx) também não sai (provider demonstracao)', async () => {
+      fetchMock.mockImplementation(proibido);
+      const { servico, query } = montar(undefined, {
+        destino: '+351910000123',
+        simulado: false,
+      });
+      await servico.enviarAgora('m1');
+      expect(fetchMock).not.toHaveBeenCalled();
+      expect(query).toHaveBeenLastCalledWith(
+        expect.stringContaining("estado = 'enviada'"),
+        ['m1', 'demonstracao'],
+      );
     });
 
     it('o mesmo número sem a marca (pessoa real) sai normalmente', async () => {

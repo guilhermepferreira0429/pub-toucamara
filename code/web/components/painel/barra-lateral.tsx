@@ -20,7 +20,9 @@ import {
   Map as IconeMapa,
   MapPin,
   Megaphone,
+  MonitorPlay,
   MessagesSquare,
+  Newspaper,
   NotebookPen,
   PhoneOutgoing,
   Receipt,
@@ -53,6 +55,8 @@ interface Item {
   recurso: Recurso;
   /** Chave da contagem (badge), quando há. */
   contagem?: keyof Contagens;
+  /** Só aparece com a demonstração ligada no servidor (DEMO_ATIVA). */
+  soDemo?: boolean;
 }
 
 interface Seccao {
@@ -225,6 +229,12 @@ const SECCOES: Seccao[] = [
         recurso: "indicadores",
       },
       {
+        rotulo: "Comunicados e eventos",
+        href: "/painel/comunicados",
+        icone: Newspaper,
+        recurso: "visao_geral",
+      },
+      {
         rotulo: "Avisos por zona",
         href: "/painel/avisos",
         icone: Megaphone,
@@ -243,9 +253,29 @@ const SECCOES: Seccao[] = [
         icone: Users,
         recurso: "equipa",
       },
+      {
+        rotulo: "Preparar demo",
+        href: "/painel/demo",
+        icone: MonitorPlay,
+        recurso: "demo",
+        soDemo: true,
+      },
     ],
   },
 ];
+
+/** A demonstração está ligada no servidor? (só pergunta quem tem o recurso). */
+function useDemoAtiva(): boolean {
+  const { pedido, pode } = useSessao();
+  const [ativa, setAtiva] = useState(false);
+  useEffect(() => {
+    if (!pode("demo")) return;
+    pedido<{ ativa: boolean }>("/v1/painel/demo/estado")
+      .then((r) => setAtiva(r.ativa))
+      .catch(() => undefined);
+  }, [pedido, pode]);
+  return ativa;
+}
 
 const PERFIS: Record<Perfil, string> = {
   atendimento: "Atendimento",
@@ -273,6 +303,8 @@ function Contagem({ n }: { n?: number }) {
 export function BarraLateral({ contagens = {} }: { contagens?: Contagens }) {
   const { eu, pode, sair } = useSessao();
   const caminho = usePathname();
+  const demoAtiva = useDemoAtiva();
+  const visivel = (it: Item) => !it.soDemo || (demoAtiva && pode(it.recurso));
 
   const ativo = (href: string) =>
     href === "/painel" ? caminho === "/painel" : caminho.startsWith(href);
@@ -305,7 +337,7 @@ export function BarraLateral({ contagens = {} }: { contagens?: Contagens }) {
 
       <nav className="flex flex-col gap-4.5" aria-label="Painel">
         {SECCOES.map((s, i) => {
-          const trancada = s.itens.every((it) => !pode(it.recurso));
+          const trancada = s.itens.filter(visivel).every((it) => !pode(it.recurso));
           return (
             <div key={i} className="flex flex-col gap-0.5">
               {s.titulo && (
@@ -318,7 +350,7 @@ export function BarraLateral({ contagens = {} }: { contagens?: Contagens }) {
                   )}
                 </div>
               )}
-              {s.itens.map((it) => {
+              {s.itens.filter(visivel).map((it) => {
                 const permitido = pode(it.recurso);
                 const Icone = it.icone;
                 const corpo = (
