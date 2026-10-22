@@ -815,7 +815,16 @@ export class AnimaisService {
     }>(
       `SELECT r.id, r.numero, r.tipo, r.especie, r.nome_animal, r.descricao, r.morada, r.lat, r.lng,
               r.com_chip, r.urgente, r.telefone, r.canal, r.conversa_id, r.estado,
-              o.numero AS ocorrencia_numero, r.criado_em, r.atualizado_em
+              o.numero AS ocorrencia_numero, r.criado_em, r.atualizado_em,
+              -- Possíveis correspondências (perdido ↔ encontrado/abandonado).
+              CASE WHEN r.estado <> 'aberto' THEN 0 ELSE (
+                SELECT count(*)::int FROM animais_reportados x
+                WHERE x.municipio_id = r.municipio_id AND x.id <> r.id
+                  AND x.estado = 'aberto' AND x.especie = r.especie
+                  AND x.criado_em > r.criado_em - interval '30 days'
+                  AND ((r.tipo = 'perdido' AND x.tipo IN ('encontrado', 'abandonado'))
+                       OR (r.tipo IN ('encontrado', 'abandonado') AND x.tipo = 'perdido'))
+              ) END AS parecidos
        FROM animais_reportados r
        LEFT JOIN ocorrencias o ON o.id = r.ocorrencia_id
        WHERE r.municipio_id = $1
@@ -832,23 +841,12 @@ export class AnimaisService {
         limite + 1,
       ],
     );
-    // Possíveis correspondências entre avisos abertos (perdido ↔ encontrado).
-    const abertos = linhas.filter((l) => l.estado === 'aberto');
     const p = pagina(linhas, limite, (l) => ({ em: l.criado_em, id: l.id }));
     return {
       ...p,
       itens: p.itens.map((l) => ({
         ...l,
         tipo_dito: TIPOS_DITOS[l.tipo] ?? l.tipo,
-        parecidos:
-          l.estado === 'aberto'
-            ? abertos.filter(
-                (o) =>
-                  o.id !== l.id &&
-                  o.especie === l.especie &&
-                  tiposCorrespondentes(l.tipo).includes(o.tipo),
-              ).length
-            : 0,
       })),
     };
   }
