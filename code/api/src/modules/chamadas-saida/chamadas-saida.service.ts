@@ -94,10 +94,17 @@ interface Chamada {
   tentativas: number;
   forcar_horario: boolean;
   recurso_sms_id: string | null;
+  /** Número simulado (demonstração): a chamada nunca sai. */
+  simulado: boolean;
 }
 
 const COLUNAS = `c.id, c.municipio_id, c.municipe_id, c.telefone_e164, c.motivo, c.processo_id,
-  c.pedido_id, c.contexto, c.recurso, c.estado, c.tentativas, c.forcar_horario, c.recurso_sms_id`;
+  c.pedido_id, c.contexto, c.recurso, c.estado, c.tentativas, c.forcar_horario, c.recurso_sms_id,
+  c.simulado`;
+
+/** O que fica numa chamada a um número simulado (nunca feita). */
+export const ERRO_SIMULADA =
+  'Número simulado (demonstração): a chamada fica registada mas nunca sai para o fornecedor.';
 
 /** Por corrida do job; o resto fica para o minuto seguinte. */
 const LOTE = 20;
@@ -373,6 +380,12 @@ export class ChamadasSaidaService {
         [id],
       );
       if (!c) return null;
+      // BARREIRA: um número simulado nunca é ligado (nem recebe o SMS de
+      // recurso), com qualquer configuração e em qualquer ambiente.
+      if (c.simulado !== false) {
+        await this.terminar(tx, c, 'cancelada', ERRO_SIMULADA);
+        return null;
+      }
       const municipio = await this.municipios.porId(c.municipio_id);
       const feriados = await this.municipios.feriados(c.municipio_id);
       if (
@@ -436,6 +449,8 @@ export class ChamadasSaidaService {
     });
     if (!pronta) return false;
     const { c, agentId, config } = pronta;
+    // Segunda barreira, mesmo à porta do fornecedor.
+    if (c.simulado !== false) throw new Error(ERRO_SIMULADA);
 
     // As mesmas variáveis do início de uma chamada de entrada (ja_ligou,
     // pendentes…) mais as da saída: o prompt é um só.
@@ -660,6 +675,8 @@ export class ChamadasSaidaService {
         corpo: c.recurso.corpo,
         relacionado: { ...c.recurso.relacionado, chamada_saida_id: c.id },
         chave: c.recurso.chave,
+        // O SMS de recurso de uma chamada simulada também nunca sai.
+        simulado: c.simulado !== false,
       },
       tx,
     );

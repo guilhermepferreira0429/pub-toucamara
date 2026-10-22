@@ -20,7 +20,8 @@ import {
   RITMO_OMISSAO,
   textoSmsEmergencia,
 } from './emergencias.regras';
-import { FonteExternaNaoConfigurada, FonteLista } from './fontes';
+import { FonteLista, FonteOperadoresZona } from './fontes';
+import { FonteOperadoresReal, FonteOperadoresSimulada } from './operadores';
 
 const fonte = (
   id: ResultadoFonte['fonte'],
@@ -121,8 +122,8 @@ describe('juntarFontes', () => {
       fonte('cuidado', ['+351912000002', '+351253000003'], {}, true),
       fonte('lista', ['912000001', '+351912000004', '+351912000004']),
       {
-        fonte: 'externa',
-        nome: 'externa',
+        fonte: 'operadores',
+        nome: 'operadores',
         estado: 'nao_configurada',
         candidatos: [],
         nota: null,
@@ -132,7 +133,7 @@ describe('juntarFontes', () => {
       municipes: 2,
       cuidado: 2,
       lista: 2,
-      externa: 0,
+      operadores: 0,
     });
     expect(r.destinatarios).toHaveLength(4);
     expect(r.em_varias_fontes).toBe(2);
@@ -153,6 +154,68 @@ describe('juntarFontes', () => {
     ).toEqual(['municipes', 'lista']);
   });
 
+  it('operadores simulados: sem duplicar; os conhecidos têm prioridade e não ficam simulados', () => {
+    const simulados = (tels: string[]): ResultadoFonte => ({
+      fonte: 'operadores',
+      nome: 'operadores',
+      estado: 'ok',
+      nota: null,
+      simulada: true,
+      candidatos: tels.map((t) => ({
+        telefone_e164: t,
+        municipe_id: null,
+        nome: null,
+        vulneravel: false,
+        simulado: true,
+        zona_aproximada: 'Azurém',
+      })),
+    });
+    const conhecido: ResultadoFonte = {
+      fonte: 'municipes',
+      nome: 'municipes',
+      estado: 'ok',
+      nota: null,
+      candidatos: [
+        {
+          telefone_e164: '+351919900001',
+          municipe_id: 'm1',
+          nome: 'Ana Real',
+          vulneravel: false,
+        },
+      ],
+    };
+    // A fonte simulada até vem primeiro: o real ganha na mesma.
+    const r = juntarFontes([
+      simulados(['+351919900001', '+351929900002', '+351929900002']),
+      conhecido,
+    ]);
+    expect(r.destinatarios).toHaveLength(2);
+    expect(r.simulados).toBe(1);
+    const ana = r.destinatarios.find(
+      (d) => d.telefone_e164 === '+351919900001',
+    );
+    expect(ana).toMatchObject({
+      simulado: false,
+      municipe_id: 'm1',
+      nome: 'Ana Real',
+      fontes: ['municipes', 'operadores'],
+      zona_aproximada: 'Azurém',
+    });
+    const falso = r.destinatarios.find(
+      (d) => d.telefone_e164 === '+351929900002',
+    );
+    expect(falso).toMatchObject({
+      simulado: true,
+      municipe_id: null,
+      nome: null,
+      fontes: ['operadores'],
+    });
+    expect(r.por_fonte).toMatchObject({ municipes: 1, operadores: 2 });
+    expect(r.so_desta_fonte).toMatchObject({ municipes: 0, operadores: 1 });
+    // Os reais primeiro, os simulados no fim.
+    expect(r.destinatarios[r.destinatarios.length - 1].simulado).toBe(true);
+  });
+
   it('números de tarifa especial ficam de fora (contados)', () => {
     const r = juntarFontes([fonte('lista', ['+351760000000'])]);
     expect(r.destinatarios).toHaveLength(0);
@@ -167,6 +230,8 @@ describe('chamadas e ritmo', () => {
     nome: null,
     vulneravel,
     fontes: ['lista'],
+    simulado: false,
+    zona_aproximada: null,
     sms,
     ligavel: true,
   });
@@ -327,13 +392,70 @@ describe('fontes sem BD', () => {
     });
   });
 
-  it('externa: não configurada, sem números', async () => {
-    const r = await new FonteExternaNaoConfigurada().procurar();
+  const pedido = {
+    municipio: { id: 'mun-1', slug: 'x', nome: 'X', fuso: 'Europe/Lisbon' },
+    zona: { geo: null, freguesias: ['Azurém'] },
+    lista: [],
+    desde: new Date(),
+  };
+
+  it('operadores reais sem configuração: não configurada, com a mensagem do acordo', async () => {
+    const r = await new FonteOperadoresZona(
+      new FonteOperadoresReal({ url: '', credencial: '' }),
+    ).procurar(pedido);
     expect(r).toMatchObject({
-      fonte: 'externa',
+      fonte: 'operadores',
       estado: 'nao_configurada',
       candidatos: [],
+      simulada: false,
     });
-    expect(r.nota).toMatch(/não configurada/);
+    expect(r.nota).toBe(
+      'Fonte dos operadores por configurar — falta acordo com a ANEPC / operadores.',
+    );
+  });
+
+  it('operadores simulados: números marcados, por páginas, com a estimativa', async () => {
+    const r = await new FonteOperadoresZona(
+      new FonteOperadoresSimulada({ escala: 0.02, latenciaMs: 0, taxaErro: 0 }),
+      undefined,
+      50,
+    ).procurar(pedido);
+    // Azurém: 9500 pessoas (demonstração) × 0,9 × 0,02 = 171.
+    expect(r).toMatchObject({
+      estado: 'ok',
+      simulada: true,
+      estimativa: { pessoas: 9_500, com_telemovel: 8_550, gerados: 171 },
+    });
+    expect(r.candidatos).toHaveLength(171);
+    expect(r.candidatos.every((c) => c.simulado === true)).toBe(true);
+    expect(r.candidatos[0].zona_aproximada).toBe('Azurém');
+    expect(new Set(r.candidatos.map((c) => c.telefone_e164)).size).toBe(171);
+    expect(r.nota).toMatch(/SIMULADO/);
+  });
+
+  it('operadores simulados com falhas: repete a página e diz quantas vezes', async () => {
+    const r = await new FonteOperadoresZona(
+      new FonteOperadoresSimulada({
+        escala: 0.02,
+        latenciaMs: 0,
+        taxaErro: 0.5,
+      }),
+      undefined,
+      20,
+    ).procurar(pedido);
+    if (r.estado === 'ok') {
+      expect(r.candidatos).toHaveLength(171);
+      expect(r.nota).toMatch(/pedidas? de novo/);
+    } else {
+      expect(r.estado).toBe('erro');
+      expect(r.nota).toMatch(/3 tentativas/);
+    }
+  });
+
+  it('operadores simulados sempre a falhar: erro (nunca uma lista a meio)', async () => {
+    const r = await new FonteOperadoresZona(
+      new FonteOperadoresSimulada({ escala: 0.02, latenciaMs: 0, taxaErro: 1 }),
+    ).procurar(pedido);
+    expect(r).toMatchObject({ estado: 'erro', candidatos: [] });
   });
 });

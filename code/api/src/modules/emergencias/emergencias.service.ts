@@ -25,6 +25,7 @@ import {
   AMOSTRA,
   aLigar,
   AVISO_COBERTURA,
+  AVISO_COBERTURA_SIMULADA,
   contarResultados,
   descreverZonaEmergencia,
   Destinatario,
@@ -32,6 +33,8 @@ import {
   esquemaListaManual,
   esquemaZona,
   EstadoEmergencia,
+  estimarEnvioSms,
+  fonteAtual,
   FONTES,
   geometriaEmergencia,
   GeometriaEmergencia,
@@ -53,6 +56,7 @@ import {
   PoliticaChamadas,
   politicaPorGravidade,
   POLITICAS_CHAMADAS,
+  Resultado,
   resultadoDe,
   ResultadoFonte,
   RITMO_OMISSAO,
@@ -65,10 +69,20 @@ import {
 import {
   FonteCuidado,
   FonteDestinatarios,
-  FonteExternaNaoConfigurada,
   FonteLista,
   FonteMunicipes,
+  FonteOperadoresZona,
 } from './fontes.js';
+import {
+  CellBroadcast,
+  CellBroadcastSimulado,
+  cellBroadcastDoAmbiente,
+  EstadoDaDifusao,
+  FonteOperadores,
+  fonteOperadoresDoAmbiente,
+  MENSAGEM_POR_CONFIGURAR_CELL_BROADCAST,
+} from './operadores.js';
+import type { EstadoDifusao } from './operadores.regras.js';
 
 export const FILA_EMERGENCIAS = 'emergencias_seguimento';
 
@@ -97,18 +111,29 @@ export const esquemaNovaEmergencia = z
       .optional(),
     /** A quem liga o agente; por omissão, conforme a gravidade. */
     chamadas: z.enum(POLITICAS_CHAMADAS).optional(),
+    /**
+     * De onde vêm os números. 'operadores' (todas as pessoas na zona) só
+     * quando pedido: é simulada até haver acordo com a ANEPC / operadores.
+     * ('externa' é o nome antigo de 'operadores'.)
+     */
     fontes: z
-      .array(z.enum(FONTES))
-      .min(1)
+      .array(z.preprocess(fonteAtual, z.enum(FONTES)))
       .max(FONTES.length)
-      .default(['municipes', 'cuidado', 'lista', 'externa']),
+      .default(['municipes', 'cuidado', 'lista'])
+      .transform((x) => [...new Set(x)]),
+    /** Pedir também o cell broadcast (área + texto, sem números). */
+    cell_broadcast: z.boolean().default(false),
     /** A lista carregada à mão: já lida, ou o CSV como texto. */
     lista_manual: esquemaListaManual.optional(),
     lista_csv: z.string().max(200_000).optional(),
     /** Faz tudo sem gravar nem enviar nada e devolve o plano. */
     simular: z.boolean().default(false),
   })
-  .strict();
+  .strict()
+  .refine((e) => e.fontes.length > 0 || e.cell_broadcast, {
+    message: 'Escolha pelo menos uma fonte de números ou o cell broadcast.',
+    path: ['fontes'],
+  });
 export type NovaEmergencia = z.output<typeof esquemaNovaEmergencia>;
 
 export const esquemaEnviar = z
@@ -182,6 +207,7 @@ interface LinhaEmergencia {
   valida_ate: Date;
   chamadas: PoliticaChamadas;
   fontes: IdFonte[];
+  cell_broadcast: boolean;
   lista_manual: LinhaLista[];
   estado: EstadoEmergencia;
   destinatarios_previstos: number;
@@ -197,7 +223,7 @@ interface LinhaEmergencia {
 
 const COLUNAS = `e.id, e.municipio_id, e.tipo, e.gravidade, e.titulo, e.mensagem_sms, e.guiao,
   e.instrucoes, e.numero_emergencia, e.zona, e.geometria, e.zona_descricao, e.valida_ate,
-  e.chamadas, e.fontes, e.lista_manual, e.estado, e.destinatarios_previstos, e.campanha_id,
+  e.chamadas, e.fontes, e.cell_broadcast, e.lista_manual, e.estado, e.destinatarios_previstos, e.campanha_id,
   e.criada_por, uc.nome AS criada_por_nome, e.criada_em, e.enviada_em, ue.nome AS enviada_por_nome,
   e.encerrada_em, e.encerrada_nota`;
 const DE = `FROM emergencias e
@@ -225,8 +251,25 @@ interface Calculo {
   fontes: ResultadoFonte[];
   destinatarios: Destinatario[];
   por_fonte: Record<IdFonte, number>;
+  so_desta_fonte: Record<IdFonte, number>;
   em_varias_fontes: number;
   sem_contacto_possivel: number;
+  simulados: number;
+}
+
+interface LinhaDifusao {
+  id: string;
+  modo: 'simulada' | 'cell_broadcast';
+  simulado: boolean;
+  estado: EstadoDifusao;
+  zona_descricao: string;
+  texto: string;
+  pessoas_estimadas: number | null;
+  referencia_externa: string | null;
+  pedida_em: Date | null;
+  iniciada_em: Date | null;
+  concluida_em: Date | null;
+  erro: string | null;
 }
 
 /**
@@ -262,13 +305,59 @@ export class EmergenciasService {
   // Fontes e plano
   // -------------------------------------------------------------------
 
-  /** Os adaptadores, um por fonte (a externa ainda não configurada). */
+  private env(nome: string): string {
+    return (this.config.get<string>(nome) ?? '').trim();
+  }
+
+  /** A fonte dos operadores (EMERGENCIAS_OPERADORES; simulada por omissão). */
+  operadores(): FonteOperadores {
+    return fonteOperadoresDoAmbiente((n) => this.env(n));
+  }
+
+  /** O cell broadcast (EMERGENCIAS_CELL_BROADCAST; simulado por omissão). */
+  cellBroadcast(): CellBroadcast {
+    return cellBroadcastDoAmbiente((n) => this.env(n));
+  }
+
+  /** Os adaptadores, um por fonte. */
   fontes(q: Pick<Tx, 'query'> = this.db): Record<IdFonte, FonteDestinatarios> {
     return {
       municipes: new FonteMunicipes(q, this.avisos),
       cuidado: new FonteCuidado(q, this.geo),
       lista: new FonteLista(),
-      externa: new FonteExternaNaoConfigurada(),
+      operadores: new FonteOperadoresZona(this.operadores()),
+    };
+  }
+
+  /** O modo de cada fonte externa e o que falta para ser real (painel). */
+  fonteExterna() {
+    const o = this.operadores();
+    const c = this.cellBroadcast();
+    const falta =
+      'Para ser real: acordo com a ANEPC / operadores (base legal e acordo de tratamento de dados), o serviço deles e as credenciais. Ver docs/CREDENCIAIS_EXTERNAS.md.';
+    return {
+      operadores: {
+        modo: o.modo,
+        simulada: o.simulada,
+        configurada: o.emFalta().length === 0,
+        em_falta: o.emFalta(),
+        nota: o.simulada
+          ? `Simulada: números gerados para demonstração, que nunca saem. ${falta}`
+          : o.emFalta().length
+            ? `Real, por configurar — falta acordo com a ANEPC / operadores.`
+            : 'Real.',
+      },
+      cell_broadcast: {
+        modo: c.modo,
+        simulada: c.simulada,
+        configurada: c.emFalta().length === 0,
+        em_falta: c.emFalta(),
+        nota: c.simulada
+          ? `Simulado: a difusão é de demonstração, nada sai. ${falta}`
+          : c.emFalta().length
+            ? MENSAGEM_POR_CONFIGURAR_CELL_BROADCAST
+            : 'Real.',
+      },
     };
   }
 
@@ -418,6 +507,7 @@ export class EmergenciasService {
       geometria: GeometriaEmergencia;
       zona_descricao: string;
       fontes: readonly IdFonte[];
+      cell_broadcast: boolean;
       lista: readonly LinhaLista[];
       sms: { texto: string; segmentos: number; codificacao: string };
       guiao: Guiao;
@@ -437,6 +527,32 @@ export class EmergenciasService {
       ritmoDemonstracao: config.demonstracao,
     });
     const ligar = aLigar(calc.destinatarios, e.politica);
+    const op = calc.fontes.find((f) => f.fonte === 'operadores');
+    const externa = this.fonteExterna();
+    // A fonte dos operadores à escala real (a simulação só gera uma parte):
+    // quanto tempo e quanto custaria mandar SMS a todos os telemóveis da zona.
+    const operadores = op
+      ? {
+          ...externa.operadores,
+          estado: op.estado,
+          estimativa: op.estimativa ?? null,
+          encontrados: op.candidatos.length,
+          // O que acrescenta (os conhecidos têm prioridade e contam na fonte deles).
+          novos: calc.so_desta_fonte.operadores,
+          ja_conhecidos:
+            calc.por_fonte.operadores - calc.so_desta_fonte.operadores,
+          escala_real: op.estimativa
+            ? estimarEnvioSms(
+                op.estimativa.com_telemovel,
+                e.sms.segmentos,
+                config.sms_por_minuto,
+              )
+            : null,
+        }
+      : null;
+    const cellBroadcast = e.cell_broadcast
+      ? await this.planoDifusao(m, e.geometria)
+      : null;
     return {
       calc,
       resposta: {
@@ -444,16 +560,24 @@ export class EmergenciasService {
         nada_enviado: true,
         zona: e.zona_descricao,
         aviso_cobertura: AVISO_COBERTURA,
+        aviso_simulado: calc.simulados ? AVISO_COBERTURA_SIMULADA : null,
+        fonte_externa: externa,
         fontes: calc.fontes.map((f) => ({
           fonte: f.fonte,
           nome: f.nome,
           estado: f.estado,
           encontrados: f.candidatos.length,
           nota: f.nota,
+          simulada: !!f.simulada,
         })),
+        operadores,
+        cell_broadcast: cellBroadcast,
         destinatarios: {
           total: calc.destinatarios.length,
           por_fonte: calc.por_fonte,
+          so_desta_fonte: calc.so_desta_fonte,
+          simulados: calc.simulados,
+          reais: calc.destinatarios.length - calc.simulados,
           em_varias_fontes: calc.em_varias_fontes,
           vulneraveis: calc.destinatarios.filter((d) => d.vulneravel).length,
           so_telefone_fixo: calc.destinatarios.filter((d) => !d.sms).length,
@@ -481,11 +605,44 @@ export class EmergenciasService {
           telefone: mascararTelefone(d.telefone_e164),
           fontes: d.fontes,
           vulneravel: d.vulneravel,
+          simulado: d.simulado,
+          zona_aproximada: d.zona_aproximada,
           sms: d.sms,
           ligado: ligar.includes(d),
         })),
       },
     };
+  }
+
+  /** O cell broadcast no plano: o modo, quantas pessoas na área, o que falta. */
+  private async planoDifusao(m: Municipio, geometria: GeometriaEmergencia) {
+    const cb = this.cellBroadcast();
+    const base = this.fonteExterna().cell_broadcast;
+    try {
+      const e = await cb.estimar({ municipioId: m.id, zona: geometria });
+      return {
+        ...base,
+        estado: 'ok' as const,
+        pessoas_estimadas: e.com_telemovel,
+        demonstracao: e.demonstracao,
+        nota_estimativa: e.nota,
+        // Sem preço de fonte certa: a confirmar no acordo.
+        custo: null,
+        custo_nota:
+          'Custo do cell broadcast: a confirmar no acordo com a ANEPC / operadores.',
+      };
+    } catch (x) {
+      return {
+        ...base,
+        estado: 'nao_configurada' as const,
+        pessoas_estimadas: null,
+        demonstracao: false,
+        nota_estimativa: (x as Error).message,
+        custo: null,
+        custo_nota:
+          'Custo do cell broadcast: a confirmar no acordo com a ANEPC / operadores.',
+      };
+    }
   }
 
   // -------------------------------------------------------------------
@@ -505,6 +662,7 @@ export class EmergenciasService {
       geometria,
       zona_descricao: zonaDescricao,
       fontes: e.fontes,
+      cell_broadcast: e.cell_broadcast,
       lista,
       sms,
       guiao,
@@ -522,6 +680,8 @@ export class EmergenciasService {
           tipo: e.tipo,
           gravidade: e.gravidade,
           destinatarios: calc.destinatarios.length,
+          simulados: calc.simulados,
+          cell_broadcast: e.cell_broadcast,
           guardada: false,
         },
       });
@@ -532,8 +692,8 @@ export class EmergenciasService {
       const [r] = await tx.query<{ id: string }>(
         `INSERT INTO emergencias (municipio_id, tipo, gravidade, titulo, mensagem_sms, guiao,
            instrucoes, numero_emergencia, zona, geometria, zona_descricao, valida_ate, chamadas,
-           fontes, lista_manual, destinatarios_previstos, criada_por)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17) RETURNING id`,
+           fontes, lista_manual, destinatarios_previstos, criada_por, cell_broadcast)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18) RETURNING id`,
         [
           m.id,
           e.tipo,
@@ -552,6 +712,7 @@ export class EmergenciasService {
           JSON.stringify(lista),
           calc.destinatarios.length,
           u.id,
+          e.cell_broadcast,
         ],
       );
       await this.auditoria.registar(
@@ -566,6 +727,8 @@ export class EmergenciasService {
             tipo: e.tipo,
             gravidade: e.gravidade,
             destinatarios_previstos: calc.destinatarios.length,
+            simulados: calc.simulados,
+            cell_broadcast: e.cell_broadcast,
           },
         },
         tx,
@@ -609,7 +772,16 @@ export class EmergenciasService {
       politica: e.chamadas,
       geometria: e.geometria,
       zona_descricao: e.zona_descricao,
-      fontes: e.fontes,
+      fontes: [
+        ...new Set(
+          e.fontes
+            .map(fonteAtual)
+            .filter((f): f is IdFonte =>
+              (FONTES as readonly string[]).includes(f),
+            ),
+        ),
+      ],
+      cell_broadcast: e.cell_broadcast,
       lista: e.lista_manual,
       sms,
       guiao: e.guiao,
@@ -624,13 +796,15 @@ export class EmergenciasService {
         precisa_ajuda: number;
         em_seguranca: number;
         por_tratar: number;
+        simulados: number;
       }
     >(
       `SELECT ${COLUNAS},
          (SELECT count(*)::int FROM emergencia_destinatarios d WHERE d.emergencia_id = e.id) AS total,
          (SELECT count(*)::int FROM emergencia_destinatarios d WHERE d.emergencia_id = e.id AND d.resposta = 'precisa_ajuda') AS precisa_ajuda,
          (SELECT count(*)::int FROM emergencia_destinatarios d WHERE d.emergencia_id = e.id AND d.resposta = 'em_seguranca') AS em_seguranca,
-         (SELECT count(*)::int FROM emergencia_destinatarios d WHERE d.emergencia_id = e.id AND d.resposta = 'precisa_ajuda' AND d.tratado_em IS NULL) AS por_tratar
+         (SELECT count(*)::int FROM emergencia_destinatarios d WHERE d.emergencia_id = e.id AND d.resposta = 'precisa_ajuda' AND d.tratado_em IS NULL) AS por_tratar,
+         (SELECT count(*)::int FROM emergencia_destinatarios d WHERE d.emergencia_id = e.id AND d.simulado) AS simulados
        ${DE} WHERE e.municipio_id = $1
        ORDER BY (e.estado = 'ativa') DESC, e.criada_em DESC LIMIT 50`,
       [m.id],
@@ -645,6 +819,8 @@ export class EmergenciasService {
         zona_descricao: l.zona_descricao,
         estado: l.estado,
         chamadas: l.chamadas,
+        fontes: l.fontes.map(fonteAtual),
+        cell_broadcast: l.cell_broadcast,
         destinatarios_previstos: l.destinatarios_previstos,
         criada_em: l.criada_em,
         enviada_em: l.enviada_em,
@@ -655,6 +831,7 @@ export class EmergenciasService {
           precisa_ajuda: l.precisa_ajuda,
           em_seguranca: l.em_seguranca,
           por_tratar: l.por_tratar,
+          simulados: l.simulados,
         },
       })),
     };
@@ -670,9 +847,14 @@ export class EmergenciasService {
       nome: string | null;
       fontes: IdFonte[];
       vulneravel: boolean;
+      simulado: boolean;
+      zona_aproximada: string | null;
       sms_estado: string | null;
+      sms_simulado: boolean | null;
+      sms_fornecedor: string | null;
       sms_em: Date | null;
       chamada_estado: string | null;
+      chamada_simulada: boolean;
       chamada_em: Date | null;
       resposta: 'em_seguranca' | 'precisa_ajuda' | null;
       ajuda: string[];
@@ -683,8 +865,9 @@ export class EmergenciasService {
       tratado_nota: string | null;
       tratado_por_nome: string | null;
     }>(
-      `SELECT d.id, d.telefone_e164, d.nome, d.fontes, d.vulneravel,
-              ms.estado::text AS sms_estado, d.sms_em, cd.estado AS chamada_estado, d.chamada_em,
+      `SELECT d.id, d.telefone_e164, d.nome, d.fontes, d.vulneravel, d.simulado, d.zona_aproximada,
+              ms.estado::text AS sms_estado, ms.simulado AS sms_simulado, ms.provider_id AS sms_fornecedor, d.sms_em,
+              cd.estado AS chamada_estado, d.chamada_simulada, d.chamada_em,
               d.resposta, d.ajuda, coalesce(d.nota, cd.nota) AS nota, d.respondido_em,
               d.alertado_em, d.tratado_em, d.tratado_nota, ut.nome AS tratado_por_nome
        FROM emergencia_destinatarios d
@@ -708,8 +891,20 @@ export class EmergenciasService {
       IdFonte,
       number
     >;
-    for (const d of dest) for (const f of d.fontes) porFonte[f]++;
+    const resultadosPorFonte = Object.fromEntries(
+      FONTES.map((f) => [f, [] as Resultado[]]),
+    ) as Record<IdFonte, Resultado[]>;
+    for (const d of comResultado) {
+      for (const f0 of d.fontes) {
+        const f = fonteAtual(f0) as IdFonte;
+        if (!(f in porFonte)) continue;
+        porFonte[f]++;
+        resultadosPorFonte[f].push(d.resultado);
+      }
+    }
+    const simulados = comResultado.filter((d) => d.simulado);
     const ajuda = comResultado.filter((d) => d.resultado === 'precisa_ajuda');
+    const difusao = await this.difusao(m.id, id);
     return {
       id: e.id,
       tipo: e.tipo,
@@ -725,7 +920,8 @@ export class EmergenciasService {
       zona_descricao: e.zona_descricao,
       valida_ate: e.valida_ate,
       chamadas: e.chamadas,
-      fontes: e.fontes,
+      fontes: e.fontes.map(fonteAtual),
+      cell_broadcast: e.cell_broadcast,
       lista_manual: e.lista_manual.length,
       estado: e.estado,
       destinatarios_previstos: e.destinatarios_previstos,
@@ -737,9 +933,30 @@ export class EmergenciasService {
       encerrada_em: e.encerrada_em,
       encerrada_nota: e.encerrada_nota,
       aviso_cobertura: AVISO_COBERTURA,
-      fonte_externa: (await new FonteExternaNaoConfigurada().procurar()).estado,
+      aviso_simulado: simulados.length ? AVISO_COBERTURA_SIMULADA : null,
+      fonte_externa: this.fonteExterna(),
       contagens: contarResultados(comResultado.map((d) => d.resultado)),
       por_fonte: porFonte,
+      // Contagens por fonte e por estado (um número em duas fontes conta nas duas).
+      por_fonte_estado: Object.fromEntries(
+        FONTES.map((f) => [f, contarResultados(resultadosPorFonte[f])]),
+      ) as Record<IdFonte, ReturnType<typeof contarResultados>>,
+      // Os números simulados: gravados como enviados (simulado), nunca enviados.
+      simulados: {
+        total: simulados.length,
+        sms_enviados_simulado: simulados.filter(
+          (d) => d.sms_simulado && d.sms_estado === 'enviada',
+        ).length,
+        sms_por_sair: simulados.filter(
+          (d) => d.sms_estado === 'agendada' || d.sms_estado === 'pendente',
+        ).length,
+        chamadas_simuladas: simulados.filter((d) => d.chamada_simulada).length,
+        // Tem de ser sempre 0 (a BD também o garante, migração 0072).
+        enviados_ao_fornecedor: simulados.filter(
+          (d) => d.sms_fornecedor && d.sms_fornecedor !== 'simulado',
+        ).length,
+      },
+      cell_broadcast_difusao: difusao,
       // Quem precisa de ajuda: o número inteiro, para a câmara ligar de volta.
       precisa_ajuda: ajuda.map((d) => ({
         id: d.id,
@@ -759,8 +976,11 @@ export class EmergenciasService {
         id: d.id,
         nome: mascararNome(d.nome),
         telefone: mascararTelefone(d.telefone_e164),
-        fontes: d.fontes,
+        fontes: d.fontes.map(fonteAtual),
         vulneravel: d.vulneravel,
+        simulado: d.simulado,
+        zona_aproximada: d.zona_aproximada,
+        chamada_simulada: d.chamada_simulada,
         resultado: d.resultado,
         sms_em: d.sms_em,
         chamada_em: d.chamada_em,
@@ -805,8 +1025,17 @@ export class EmergenciasService {
       );
     }
     const config = await this.obterConfig(m);
+    const cb = this.cellBroadcast();
     await this.db.transaction(async (tx) => {
       const e = await this.obter(tx, m.id, id, true);
+      if (e.cell_broadcast && cb.emFalta().length) {
+        throw new ErroApi(
+          HttpStatus.SERVICE_UNAVAILABLE,
+          'cell_broadcast_por_configurar',
+          `${MENSAGEM_POR_CONFIGURAR_CELL_BROADCAST} Tire o cell broadcast para enviar só pelos números.`,
+          { em_falta: cb.emFalta() },
+        );
+      }
       if (e.estado !== 'rascunho') {
         throw new ErroApi(
           HttpStatus.CONFLICT,
@@ -826,7 +1055,7 @@ export class EmergenciasService {
           { destinatarios: n, confirmados: b.confirmo_destinatarios },
         );
       }
-      if (!n) {
+      if (!n && !e.cell_broadcast) {
         throw new ErroApi(
           HttpStatus.UNPROCESSABLE_ENTITY,
           'sem_destinatarios',
@@ -841,22 +1070,27 @@ export class EmergenciasService {
         );
       }
       const inicio = new Date();
-      // 1. A lista fica fixa, com a fonte de cada número.
+      // 1. A lista fica fixa, com a fonte de cada número e a marca dos simulados.
       const inseridos = await tx.query<{ id: string; telefone_e164: string }>(
-        `INSERT INTO emergencia_destinatarios (emergencia_id, telefone_e164, municipe_id, nome, fontes, vulneravel)
-         SELECT $1, x.telefone_e164, x.municipe_id, x.nome, x.fontes, x.vulneravel
+        `INSERT INTO emergencia_destinatarios (emergencia_id, telefone_e164, municipe_id, nome, fontes,
+           vulneravel, simulado, zona_aproximada)
+         SELECT $1, x.telefone_e164, x.municipe_id, x.nome, x.fontes, x.vulneravel, x.simulado,
+                x.zona_aproximada
          FROM jsonb_to_recordset($2::jsonb)
-           AS x(telefone_e164 text, municipe_id uuid, nome text, fontes text[], vulneravel boolean)
+           AS x(telefone_e164 text, municipe_id uuid, nome text, fontes text[], vulneravel boolean,
+                simulado boolean, zona_aproximada text)
          RETURNING id, telefone_e164`,
         [
           id,
           JSON.stringify(
             calc.destinatarios.map((d) => ({
               telefone_e164: d.telefone_e164,
-              municipe_id: d.municipe_id,
-              nome: d.nome,
+              municipe_id: d.simulado ? null : d.municipe_id,
+              nome: d.simulado ? null : d.nome,
               fontes: d.fontes,
               vulneravel: d.vulneravel,
+              simulado: d.simulado,
+              zona_aproximada: d.zona_aproximada,
             })),
           ),
         ],
@@ -864,19 +1098,23 @@ export class EmergenciasService {
       const idDe = new Map(inseridos.map((r) => [r.telefone_e164, r.id]));
 
       // 2. SMS a todos com telemóvel, ao ritmo configurado (ignora o opt-out e o horário).
+      // Os simulados vão no fim, marcados: ficam gravados, nunca saem.
       const comSms = calc.destinatarios.filter((d) => d.sms);
       for (const [i, d] of comSms.entries()) {
         const em = instanteDoEnvio(i, config.sms_por_minuto, inicio);
         const smsId = await this.mensagens.sms(
           {
             municipioId: m.id,
-            municipeId: d.municipe_id,
+            municipeId: d.simulado ? null : d.municipe_id,
             destino: d.telefone_e164,
             motivo: 'aviso',
             corpo: dados.sms.texto,
-            relacionado: { emergencia_id: id },
+            relacionado: d.simulado
+              ? { emergencia_id: id, simulado: 'true' }
+              : { emergencia_id: id },
             chave: `emergencia:${id}:${d.telefone_e164}`,
             enviarEm: em.getTime() > inicio.getTime() ? em : undefined,
+            simulado: d.simulado,
           },
           tx,
         );
@@ -887,8 +1125,32 @@ export class EmergenciasService {
       }
 
       // 3. Chamadas do agente (campanha sem janela de horário), ao ritmo configurado.
-      const ligar = aLigar(calc.destinatarios, e.chamadas);
+      // Os números simulados NUNCA entram na campanha (nem viram munícipes):
+      // a chamada fica só registada (chamada_simulada), no fim da fila.
+      const todosALigar = aLigar(calc.destinatarios, e.chamadas);
+      const ligar = todosALigar.filter((d) => !d.simulado);
+      const ligarSimulados = todosALigar.filter((d) => d.simulado);
       let campanhaId: string | null = null;
+      if (ligarSimulados.length) {
+        await tx.query(
+          `UPDATE emergencia_destinatarios ed SET chamada_simulada = true, chamada_em = x.em
+           FROM jsonb_to_recordset($2::jsonb) AS x(id uuid, em timestamptz)
+           WHERE ed.id = x.id AND ed.emergencia_id = $1 AND ed.simulado`,
+          [
+            id,
+            JSON.stringify(
+              ligarSimulados.map((d, j) => ({
+                id: idDe.get(d.telefone_e164),
+                em: instanteDoEnvio(
+                  ligar.length + j,
+                  config.chamadas_por_minuto,
+                  inicio,
+                ).toISOString(),
+              })),
+            ),
+          ],
+        );
+      }
       if (ligar.length) {
         const alvo: AlvoCampanha[] = [];
         for (const d of ligar) {
@@ -964,6 +1226,28 @@ export class EmergenciasService {
          WHERE id = $1`,
         [id, u.id, campanhaId, n],
       );
+
+      // 4. Cell broadcast: a área e o texto (o pedido sai depois do COMMIT).
+      if (e.cell_broadcast) {
+        const est = await cb
+          .estimar({ municipioId: m.id, zona: e.geometria })
+          .catch(() => null);
+        await tx.query(
+          `INSERT INTO emergencia_difusoes (municipio_id, emergencia_id, modo, simulado, area,
+             zona_descricao, texto, pessoas_estimadas)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+          [
+            m.id,
+            id,
+            cb.modo,
+            cb.simulada,
+            JSON.stringify(e.geometria),
+            e.zona_descricao,
+            dados.sms.texto,
+            est?.com_telemovel ?? null,
+          ],
+        );
+      }
       await this.auditoria.registar(
         {
           municipioId: m.id,
@@ -976,8 +1260,16 @@ export class EmergenciasService {
             gravidade: e.gravidade,
             destinatarios: n,
             sms: comSms.length,
-            chamadas: ligar.length,
+            chamadas: todosALigar.length,
             por_fonte: calc.por_fonte,
+            simulados: {
+              destinatarios: calc.simulados,
+              sms: comSms.filter((d) => d.simulado).length,
+              chamadas: ligarSimulados.length,
+            },
+            cell_broadcast: e.cell_broadcast
+              ? { modo: cb.modo, simulado: cb.simulada }
+              : null,
             campanha_id: campanhaId,
             ignora_recusas: true,
             ignora_horario: true,
@@ -987,7 +1279,114 @@ export class EmergenciasService {
       );
     });
     await this.avisarNaApp(m, id);
+    await this.pedirDifusao(m, u, id, cb);
     return this.detalhe(m, id);
+  }
+
+  /** Depois do COMMIT: pede o cell broadcast (se a emergência o tiver). */
+  private async pedirDifusao(
+    m: Municipio,
+    u: UtilizadorPainel,
+    id: string,
+    cb: CellBroadcast,
+  ): Promise<void> {
+    const [d] = await this.db.query<
+      LinhaDifusao & { valida_ate: Date; geometria: GeometriaEmergencia }
+    >(
+      `SELECT d.id, d.modo, d.simulado, d.estado, d.texto, e.valida_ate, e.geometria
+       FROM emergencia_difusoes d JOIN emergencias e ON e.id = d.emergencia_id
+       WHERE d.emergencia_id = $1 AND d.municipio_id = $2 AND d.estado = 'por_pedir'`,
+      [id, m.id],
+    );
+    if (!d) return;
+    let r: EstadoDaDifusao;
+    try {
+      r = await cb.pedir({
+        municipioId: m.id,
+        zona: d.geometria,
+        referencia: id,
+        texto: d.texto,
+        validaAte: d.valida_ate,
+      });
+    } catch (x) {
+      r = {
+        estado: 'erro',
+        referencia_externa: null,
+        iniciada_em: null,
+        concluida_em: null,
+        erro: (x as Error).message.slice(0, 500),
+      };
+    }
+    await this.db.query(
+      `UPDATE emergencia_difusoes SET estado = $2, referencia_externa = $3, pedida_em = now(),
+         iniciada_em = $4, concluida_em = $5, erro = $6, atualizada_em = now()
+       WHERE id = $1`,
+      [
+        d.id,
+        r.estado,
+        r.referencia_externa,
+        r.iniciada_em,
+        r.concluida_em,
+        r.erro,
+      ],
+    );
+    await this.auditoria.registar({
+      municipioId: m.id,
+      atorTipo: 'utilizador',
+      atorId: u.id,
+      acao: 'pedir_cell_broadcast',
+      objetoTipo: 'emergencia',
+      objetoId: id,
+      dados: {
+        modo: d.modo,
+        simulado: d.simulado,
+        estado: r.estado,
+        referencia: r.referencia_externa,
+      },
+    });
+  }
+
+  /** O adaptador da difusão guardada (a simulada fica sempre simulada). */
+  private adaptadorDifusao(d: Pick<LinhaDifusao, 'modo'>): CellBroadcast {
+    return d.modo === 'simulada'
+      ? new CellBroadcastSimulado()
+      : this.cellBroadcast();
+  }
+
+  /** A difusão (cell broadcast) da emergência, com o estado atualizado. */
+  private async difusao(municipioId: string, id: string) {
+    const [d] = await this.db.query<LinhaDifusao>(
+      `SELECT id, modo, simulado, estado, zona_descricao, texto, pessoas_estimadas,
+              referencia_externa, pedida_em, iniciada_em, concluida_em, erro
+       FROM emergencia_difusoes WHERE emergencia_id = $1 AND municipio_id = $2`,
+      [id, municipioId],
+    );
+    if (!d) return null;
+    if ((d.estado === 'pedida' || d.estado === 'em_difusao') && d.pedida_em) {
+      try {
+        const r = await this.adaptadorDifusao(d).consultar({
+          referencia_externa: d.referencia_externa,
+          pedida_em: d.pedida_em,
+        });
+        if (r.estado !== d.estado) {
+          await this.db.query(
+            `UPDATE emergencia_difusoes SET estado = $2, iniciada_em = $3, concluida_em = $4,
+               atualizada_em = now() WHERE id = $1`,
+            [d.id, r.estado, r.iniciada_em, r.concluida_em],
+          );
+          Object.assign(d, {
+            estado: r.estado,
+            iniciada_em: r.iniciada_em,
+            concluida_em: r.concluida_em,
+          });
+        }
+      } catch (x) {
+        this.logger.warn(
+          `Estado do cell broadcast ${d.id}: ${(x as Error).message}`,
+        );
+      }
+    }
+    return { ...d, demonstracao: d.simulado };
   }
 
   /**
@@ -1066,6 +1465,12 @@ export class EmergenciasService {
          WHERE estado = 'agendada' AND relacionado->>'emergencia_id' = $1 RETURNING id`,
         [id],
       );
+      const difusoes = await tx.query<{ id: string }>(
+        `UPDATE emergencia_difusoes SET estado = 'cancelada', atualizada_em = now()
+         WHERE emergencia_id = $1 AND estado IN ('por_pedir','pedida','em_difusao') AND simulado
+         RETURNING id`,
+        [id],
+      );
       await tx.query(
         `UPDATE emergencias SET estado = $2, encerrada_por = $3, encerrada_em = now(), encerrada_nota = $4
          WHERE id = $1`,
@@ -1088,6 +1493,7 @@ export class EmergenciasService {
             estado_anterior: e.estado,
             chamadas_canceladas: chamadas,
             sms_cancelados: sms.length,
+            cell_broadcast_cancelado: difusoes.length > 0,
           },
         },
         tx,

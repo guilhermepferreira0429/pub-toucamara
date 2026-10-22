@@ -16,8 +16,9 @@ import {
 
 /**
  * Avisos de emergência em massa: simulação com as três fontes (munícipes
- * com morada na zona, contactos de cuidado, lista CSV) e a fonte externa
- * "não configurada"; envio com SMS a todos (mesmo a quem recusou avisos, a
+ * com morada na zona, contactos de cuidado, lista CSV) e a fonte dos
+ * operadores real "por configurar" (a simulada está em
+ * emergencias-operadores.e2e-spec.ts); envio com SMS a todos (mesmo a quem recusou avisos, a
  * qualquer hora, ao ritmo configurado) e chamadas do agente sem janela de
  * horário; "precisa de ajuda" pela ferramenta nova e pela da campanha, com
  * alerta por email; encerrar; permissões.
@@ -81,6 +82,8 @@ describe('Avisos de emergência (e2e)', () => {
     ctx.http().post('/v1/painel/emergencias').set(h).send(corpo);
 
   beforeAll(async () => {
+    process.env.EMERGENCIAS_OPERADORES = 'simulada';
+    process.env.EMERGENCIAS_CELL_BROADCAST = 'simulada';
     ctx = await arrancarApp();
     chefe = await entrarPainel(ctx);
     ctx.geo.moradas.set(C.morada, { lat: base.lat, lng: base.lng });
@@ -188,7 +191,7 @@ describe('Avisos de emergência (e2e)', () => {
       .expect(403);
   });
 
-  it('simular: as três fontes, a externa não configurada, plano e custo de demonstração, nada gravado', async () => {
+  it('simular: as três fontes (os operadores só quando pedidos), plano e custo de demonstração, nada gravado', async () => {
     const antes = await linha<{ n: number }>(
       ctx.db,
       'SELECT count(*)::int AS n FROM emergencias',
@@ -207,14 +210,15 @@ describe('Avisos de emergência (e2e)', () => {
     expect(porFonte.municipes).toMatchObject({ estado: 'ok', encontrados: 1 });
     expect(porFonte.cuidado).toMatchObject({ estado: 'ok', encontrados: 2 });
     expect(porFonte.lista).toMatchObject({ estado: 'ok', encontrados: 2 });
-    expect(porFonte.externa).toMatchObject({
-      estado: 'nao_configurada',
-      encontrados: 0,
-    });
+    expect(porFonte.operadores).toBeUndefined();
+    expect(p.operadores).toBeNull();
+    expect(p.cell_broadcast).toBeNull();
+    expect(p.aviso_simulado).toBeNull();
     // A, C, F, L (A está nos munícipes e na lista).
     expect(p.destinatarios).toMatchObject({
       total: 4,
-      por_fonte: { municipes: 1, cuidado: 2, lista: 2, externa: 0 },
+      por_fonte: { municipes: 1, cuidado: 2, lista: 2, operadores: 0 },
+      simulados: 0,
       em_varias_fontes: 1,
       vulneraveis: 2,
       so_telefone_fixo: 1,
@@ -253,21 +257,32 @@ describe('Avisos de emergência (e2e)', () => {
     expect(await smsPara(ctx, L)).toHaveLength(0);
   });
 
-  it('só a fonte externa: não configurada, ninguém', async () => {
-    const r = await criar({
-      ...NOVA(),
-      fontes: ['externa'],
-      lista_csv: undefined,
-      simular: true,
-    }).expect(201);
-    expect(r.body.destinatarios.total).toBe(0);
-    expect(r.body.fontes).toEqual([
-      expect.objectContaining({
-        fonte: 'externa',
-        estado: 'nao_configurada',
-        nota: expect.stringContaining('não configurada'),
-      }),
-    ]);
+  it('só a fonte dos operadores, real e sem configuração: por configurar, ninguém', async () => {
+    process.env.EMERGENCIAS_OPERADORES = 'operadores';
+    try {
+      const r = await criar({
+        ...NOVA(),
+        fontes: ['externa'], // o nome antigo ainda é aceite
+        lista_csv: undefined,
+        simular: true,
+      }).expect(201);
+      expect(r.body.destinatarios.total).toBe(0);
+      expect(r.body.fontes).toEqual([
+        expect.objectContaining({
+          fonte: 'operadores',
+          estado: 'nao_configurada',
+          nota: 'Fonte dos operadores por configurar — falta acordo com a ANEPC / operadores.',
+        }),
+      ]);
+      expect(r.body.fonte_externa.operadores).toMatchObject({
+        modo: 'operadores',
+        simulada: false,
+        configurada: false,
+        em_falta: ['OPERADORES_URL', 'OPERADORES_CREDENCIAL'],
+      });
+    } finally {
+      process.env.EMERGENCIAS_OPERADORES = 'simulada';
+    }
   });
 
   it('zona por freguesias: contactos de cuidado da freguesia', async () => {
@@ -290,7 +305,8 @@ describe('Avisos de emergência (e2e)', () => {
     expect(c.body).toMatchObject({
       estado: 'rascunho',
       destinatarios_previstos: 4,
-      fonte_externa: 'nao_configurada',
+      cell_broadcast: false,
+      fonte_externa: { operadores: { simulada: true } },
       simulacao: { destinatarios: { total: 4 } },
     });
     const enviar = (corpo: object) =>
@@ -316,7 +332,9 @@ describe('Avisos de emergência (e2e)', () => {
       estado: 'ativa',
       campanha_id: expect.any(String),
       destinatarios_total: 4,
-      por_fonte: { municipes: 1, cuidado: 2, lista: 2, externa: 0 },
+      por_fonte: { municipes: 1, cuidado: 2, lista: 2, operadores: 0 },
+      simulados: { total: 0 },
+      cell_broadcast_difusao: null,
     });
 
     // SMS: A recusou avisos e recebe; o fixo não recebe SMS.

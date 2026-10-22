@@ -47,7 +47,17 @@ export interface NovoSms {
    * modelos aprovados e os avisos continuam por SMS).
    */
   canal?: 'sms' | 'whatsapp';
+  /**
+   * Destino SIMULADO (ex.: número gerado pela fonte simulada dos operadores
+   * nos avisos de emergência): pode coincidir com o número de uma pessoa
+   * real. Fica gravado e conta como enviado, mas NUNCA sai para o Twilio
+   * nem para outro fornecedor, qualquer que seja o SMS_PROVIDER.
+   */
+  simulado?: boolean;
 }
+
+/** O que fica num envio simulado (`provider_id`). */
+export const FORNECEDOR_SIMULADO = 'simulado';
 
 export interface NovoEmail {
   para: string;
@@ -67,6 +77,11 @@ const FILA_SMS = 'sms_enviar';
  * alfanumérico. Sem SMS_PROVIDER, em dev o SMS é escrito no log e fica
  * `enviada` com provider 'log'; em produção fica `falhou`. Nunca se finge um
  * envio real.
+ *
+ * Barreira dos destinos simulados (`simulado = true`): o envio verifica a
+ * marca na própria linha antes de olhar para o fornecedor e fica `enviada`
+ * com provider 'simulado', sem pedido nenhum para fora. A BD recusa uma
+ * linha simulada com a referência de um fornecedor (migração 0072).
  */
 @Injectable()
 export class MensagensService implements OnModuleInit {
@@ -169,9 +184,9 @@ export class MensagensService implements OnModuleInit {
     const q = tx ?? this.db;
     const [criada] = await q.query<{ id: string }>(
       `INSERT INTO mensagens_saida (municipio_id, municipe_id, canal, destino, motivo, corpo,
-         codificacao, segmentos, relacionado, enviar_em, estado, chave_idempotencia)
+         codificacao, segmentos, relacionado, enviar_em, estado, chave_idempotencia, simulado)
        VALUES ($1, $2, $11, $3, $4, $5, $6, $7, $8, coalesce($9::timestamptz, now()),
-         CASE WHEN $9::timestamptz > clock_timestamp() THEN 'agendada' ELSE 'pendente' END::estado_msg, $10)
+         CASE WHEN $9::timestamptz > clock_timestamp() THEN 'agendada' ELSE 'pendente' END::estado_msg, $10, $12)
        ON CONFLICT (chave_idempotencia) DO NOTHING
        RETURNING id`,
       [
@@ -186,6 +201,7 @@ export class MensagensService implements OnModuleInit {
         enviarEm,
         novo.chave ?? null,
         whatsapp ? 'whatsapp' : 'sms',
+        novo.simulado === true,
       ],
     );
     if (!criada) {
@@ -212,12 +228,28 @@ export class MensagensService implements OnModuleInit {
       corpo: string;
       estado: string;
       canal: 'sms' | 'whatsapp' | 'email';
+      simulado: boolean;
     }>(
-      'SELECT destino, corpo, estado, canal FROM mensagens_saida WHERE id = $1',
+      'SELECT destino, corpo, estado, canal, simulado FROM mensagens_saida WHERE id = $1',
       [mensagemId],
     );
     if (!m) throw new Error(`Mensagem ${mensagemId} ainda não existe.`);
     if (!['agendada', 'pendente'].includes(m.estado)) return;
+
+    // BARREIRA: um destino simulado nunca sai, com qualquer fornecedor e em
+    // qualquer ambiente. (Só `true` estrito deixa passar para o fornecedor
+    // quando a coluna não vem: na dúvida, não se envia.)
+    if (m.simulado !== false) {
+      this.logger.log(
+        `SMS simulado para ${mascararTelefone(m.destino)}: gravado, não enviado.`,
+      );
+      await this.db.query(
+        `UPDATE mensagens_saida SET estado = 'enviada', enviada_em = now(), provider_id = $2, erro = NULL
+         WHERE id = $1 AND simulado`,
+        [mensagemId, FORNECEDOR_SIMULADO],
+      );
+      return;
+    }
 
     const { smsProvider } = this.cfg();
     if (smsProvider === 'twilio') {
@@ -225,6 +257,7 @@ export class MensagensService implements OnModuleInit {
         m.destino,
         m.corpo,
         m.canal === 'whatsapp',
+        m.simulado,
       );
       if ('sid' in r) {
         await this.db.query(
@@ -268,8 +301,13 @@ export class MensagensService implements OnModuleInit {
   private async enviarTwilio(
     destino: string,
     corpo: string,
-    whatsapp = false,
+    whatsapp: boolean,
+    simulado: boolean,
   ): Promise<{ sid: string } | { erro: string }> {
+    // Segunda barreira, mesmo à porta do fornecedor.
+    if (simulado !== false) {
+      throw new Error('Destino simulado: nunca se envia para o Twilio.');
+    }
     const { smsRemetente, whatsappRemetente, twilio } = this.cfg();
     if (!twilio.accountSid || !twilio.authToken) {
       return { erro: 'TWILIO_ACCOUNT_SID/TWILIO_AUTH_TOKEN por configurar' };

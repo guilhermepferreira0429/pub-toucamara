@@ -39,13 +39,17 @@ export class EmergenciasController {
     return this.emergencias.listar(m);
   }
 
-  /** Ritmo de envio, proteção civil e os textos prontos por tipo. */
+  /**
+   * Ritmo de envio, proteção civil, os textos prontos por tipo e o modo das
+   * fontes externas (operadores e cell broadcast: simuladas ou reais).
+   */
   @Get('config')
   async config(@MunicipioAtual() m: Municipio) {
     return {
       ...(await this.emergencias.obterConfig(m)),
       guioes: GUIOES,
       precos: PRECOS_DEMONSTRACAO,
+      fonte_externa: this.emergencias.fonteExterna(),
     };
   }
 

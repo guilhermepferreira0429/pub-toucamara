@@ -5,11 +5,22 @@ import { MensagensService } from './mensagens.service.js';
 
 const SID = 'AC123';
 
-function montar(twilio = { accountSid: SID, authToken: 'tok' }) {
+function montar(
+  twilio = { accountSid: SID, authToken: 'tok' },
+  linha: Record<string, unknown> = { simulado: false },
+) {
   const query = jest.fn((sql: string) =>
     Promise.resolve(
       sql.startsWith('SELECT')
-        ? [{ destino: '+351912345678', corpo: 'Ola', estado: 'pendente' }]
+        ? [
+            {
+              destino: '+351912345678',
+              corpo: 'Ola',
+              estado: 'pendente',
+              canal: 'sms',
+              ...linha,
+            },
+          ]
         : [],
     ),
   );
@@ -106,5 +117,61 @@ describe('MensagensService · Twilio', () => {
       expect.stringContaining("estado = 'falhou'"),
       ['m1', expect.stringContaining('TWILIO_ACCOUNT_SID')],
     );
+  });
+
+  describe('destinos simulados (avisos de emergência com a fonte simulada)', () => {
+    /** O fetch falso: qualquer pedido é uma falha do teste. */
+    const proibido = () => {
+      throw new Error('Pedido ao fornecedor para um número simulado!');
+    };
+
+    it('com o Twilio configurado, um SMS simulado fica enviado (simulado) e não sai', async () => {
+      fetchMock.mockImplementation(proibido);
+      const { servico, query } = montar(undefined, {
+        destino: '+351919912345',
+        simulado: true,
+      });
+
+      await servico.enviarAgora('m1');
+
+      expect(fetchMock).not.toHaveBeenCalled();
+      expect(query).toHaveBeenLastCalledWith(
+        expect.stringMatching(
+          /estado = 'enviada'.*provider_id = \$2.*AND simulado/s,
+        ),
+        ['m1', 'simulado'],
+      );
+    });
+
+    it('WhatsApp simulado também não sai', async () => {
+      fetchMock.mockImplementation(proibido);
+      const { servico } = montar(undefined, {
+        canal: 'whatsapp',
+        simulado: true,
+      });
+      await servico.enviarAgora('m1');
+      expect(fetchMock).not.toHaveBeenCalled();
+    });
+
+    it('na dúvida (marca em falta) não se envia', async () => {
+      fetchMock.mockImplementation(proibido);
+      const { servico } = montar(undefined, { simulado: undefined });
+      await servico.enviarAgora('m1');
+      expect(fetchMock).not.toHaveBeenCalled();
+    });
+
+    it('o mesmo número sem a marca (pessoa real) sai normalmente', async () => {
+      fetchMock.mockResolvedValue(resposta(201, { sid: 'SMreal' }));
+      const { servico, query } = montar(undefined, {
+        destino: '+351919912345',
+        simulado: false,
+      });
+      await servico.enviarAgora('m1');
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(query).toHaveBeenLastCalledWith(
+        expect.stringContaining("estado = 'enviada'"),
+        ['m1', 'SMreal'],
+      );
+    });
   });
 });
