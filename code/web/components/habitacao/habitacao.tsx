@@ -172,7 +172,7 @@ export function PaginaHabitacao() {
           <Numero rotulo="Fogos livres" valor={c.fogos_livres} sufixo={` de ${c.fogos}`} />
         </div>
       )}
-      <div className="flex gap-1 px-10 pb-4" role="tablist" aria-label="Vista">
+      <div className="flex gap-1 overflow-x-auto px-4 pb-4 sm:px-10 [&>*]:shrink-0 [&>*]:whitespace-nowrap" role="tablist" aria-label="Vista">
         {(
           [
             ["candidaturas", "Candidaturas"],

@@ -167,7 +167,7 @@ export function PaginaEscolas() {
           <Numero rotulo="Pré-inscrições à espera do agrupamento" valor={d.dados.contagens.pre_escolar_pendentes} />
         </div>
       )}
-      <div className="flex gap-1 px-10 pb-4" role="tablist" aria-label="Vista">
+      <div className="flex gap-1 overflow-x-auto px-4 pb-4 sm:px-10 [&>*]:shrink-0 [&>*]:whitespace-nowrap" role="tablist" aria-label="Vista">
         {(
           [
             ["refeicoes", "Refeições do dia"],

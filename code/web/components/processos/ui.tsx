@@ -4,6 +4,7 @@ import type { LucideIcon } from "lucide-react";
 import { Loader2, X } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { ROLO_SEPARADORES } from "@/components/painel/rolo";
 import { ErroApi } from "@/lib/api";
 import { useSessao } from "@/lib/sessao";
 
@@ -233,16 +234,18 @@ export function SeparadoresLinks({
   rotulo: string;
 }) {
   return (
-    <nav aria-label={rotulo}>
-      <ul className="inline-flex items-center gap-1 rounded-xl bg-creme-2 p-1">
+    <nav aria-label={rotulo} className="max-w-full">
+      <ul
+        className={`inline-flex max-w-full items-center gap-1 rounded-xl bg-creme-2 p-1 ${ROLO_SEPARADORES}`}
+      >
         {itens.map((i) => {
           const ativo = i.href === atual;
           return (
-            <li key={i.href}>
+            <li key={i.href} className="shrink-0">
               <Link
                 href={i.href}
                 aria-current={ativo ? "page" : undefined}
-                className={`inline-flex rounded-[9px] px-3.5 py-2 text-[13px] transition-colors ${
+                className={`inline-flex whitespace-nowrap rounded-[9px] px-3.5 py-2 text-[13px] transition-colors ${
                   ativo
                     ? "bg-papel font-bold text-tinta"
                     : "font-medium text-tinta-2 hover:text-tinta"

@@ -469,14 +469,14 @@ export function TiposProcesso() {
           A equipa Tou, Câmara? configura-os com a câmara.
         </Aviso>
       ) : (
-        <div className="flex flex-col gap-4 px-10">
+        <div className="flex flex-col gap-4 px-4 sm:px-10">
           <p className="flex items-center gap-2 text-xs text-tinta-3">
             <Info className="size-3.5" aria-hidden />
             {podeEditar
               ? "As mudanças valem logo: o agente pede os documentos novos e verifica-os sozinho. O formulário do requerimento é configurado pela equipa Tou, Câmara?."
               : "Só a chefia muda prazos e documentos. O formulário é configurado pela equipa Tou, Câmara?."}
           </p>
-          <div className="flex flex-col items-start gap-6 lg:flex-row">
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
             <nav
               aria-label="Tipos de processo"
               className="w-full shrink-0 overflow-hidden rounded-2xl border border-linha bg-papel lg:w-[340px]"
