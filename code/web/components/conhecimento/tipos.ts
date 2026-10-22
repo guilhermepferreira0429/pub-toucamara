@@ -282,6 +282,15 @@ export interface Qualidade {
     factos_errados: unknown;
     justificacao: string | null;
   }[];
+  /** Números ditos pelo agente que não estão na pergunta nem no gabarito (última execução). */
+  numeros?: {
+    respostas: number;
+    com_numeros: number;
+    com_numeros_sem_fonte: number;
+    numeros_sem_fonte: number;
+    percentagem: number | null;
+    exemplos: { resposta_id: string; pergunta: string; resposta: string | null; numeros: string[] }[];
+  } | null;
   voz: (ResultadoExecucao & { amostra: boolean; latencia_media_ms: number | null }) | null;
 }
 

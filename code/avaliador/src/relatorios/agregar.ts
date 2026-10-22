@@ -3,6 +3,7 @@
  * aqui fica o que as vistas não sabem: restringir às perguntas comuns a
  * vários sistemas, as divergências e a escolha dos exemplos.
  */
+import { resumirNumeros, type ResumoNumeros } from '../juiz/numeros.js';
 import { regraDaJustificacao } from '../juiz/regras.js';
 import type { Veredicto } from '../tipos.js';
 
@@ -24,6 +25,8 @@ export interface RespostaRel {
   factos_errados: string[];
   factos_em_falta: string[];
   gabarito_resposta: string | null;
+  /** Factos obrigatórios do gabarito usado (fontes da métrica "números sem fonte"). */
+  gabarito_factos?: string[] | null;
 }
 
 export interface ExecucaoRel {
@@ -172,6 +175,38 @@ export function escolherExemplos(
     .filter((g) => g.pares.length);
 }
 
+/**
+ * "Números sem fonte": valores (€, prazos, horas, telefones, %) ditos na
+ * resposta que não estão na pergunta nem no gabarito (escrito a partir das
+ * fontes oficiais). Por resposta, quantos; agregado, a % de respostas com
+ * pelo menos um. Respostas sem gabarito ficam de fora (não há com que
+ * comparar) e contam em `sem_gabarito`.
+ */
+export function numerosSemFonte(respostas: RespostaRel[]): ResumoNumeros & {
+  sem_gabarito: number;
+  porResposta: { resposta_id: string; numeros: string[] }[];
+} {
+  const comGabarito = respostas.filter((r) => r.gabarito_resposta !== null);
+  const { porResposta, ...resumo } = resumirNumeros(
+    comGabarito.map((r) => ({
+      texto: r.texto,
+      fontes: [
+        r.pergunta,
+        r.gabarito_resposta ?? '',
+        ...(r.gabarito_factos ?? []),
+      ],
+    })),
+  );
+  return {
+    ...resumo,
+    sem_gabarito: respostas.length - comGabarito.length,
+    porResposta: comGabarito.map((r, i) => ({
+      resposta_id: r.resposta_id,
+      numeros: porResposta[i].semFonte.map((n) => n.texto),
+    })),
+  };
+}
+
 /** Frases simples para "o que muda para o munícipe". */
 export function oQueMuda(
   nos: ExecucaoRel,
@@ -210,6 +245,12 @@ export function oQueMuda(
   if (errosO > errosN)
     frases.push(
       `Respostas com informação errada (números, entidades, prazos): hoje ${errosO}, com o Tou, Câmara? ${errosN}.`,
+    );
+  const numO = numerosSemFonte(outro.respostas).com_numeros_sem_fonte;
+  const numN = numerosSemFonte(nos.respostas).com_numeros_sem_fonte;
+  if (numO > numN)
+    frases.push(
+      `Respostas com valores que não estão nas fontes oficiais (taxas, prazos, horários, telefones): hoje ${numO}, com o Tou, Câmara? ${numN}.`,
     );
   if (tn.passadas_bem)
     frases.push(
