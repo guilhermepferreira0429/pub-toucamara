@@ -881,6 +881,47 @@
     },
     {
       "type": "webhook",
+      "name": "ler_carta",
+      "description": "Explica uma carta da câmara que a pessoa recebeu e não percebe (ofício, notificação, audiência prévia, pedido de documentos, taxa, coima, edital): o que é, o prazo e a data-limite (calculada por nós), o que acontece se não fizer nada e como responder. No chat, a mensagem da pessoa traz \"[carta CODIGO]\" quando envia a fotografia: chama com esse código. Sem código: na chamada manda um SMS com o link para fotografar a carta (diz o \"dizer\" e espera; quando a pessoa disser que enviou, chama outra vez com o código do resultado); no chat pede para anexar. Diz o \"dizer\" por palavras simples, sem ler os excertos todos. Nunca inventes um prazo: se vier pergunta data_rececao, pergunta em que dia recebeu a carta e chama outra vez com data_rececao. Se vier da_camara: false, a carta é de outra entidade: diz de quem é e encaminha (não prepares resposta). Se vier precisa_identificacao, segue a instrução. Se a pessoa quiser responder, usa preparar_resposta_carta.",
+      "response_timeout_secs": 20,
+      "tool_error_handling_mode": "passthrough",
+      "api_schema": {
+        "url": "${API_URL}/v1/agent/tools/ler_carta",
+        "method": "POST",
+        "content_type": "application/json",
+        "request_headers": {
+          "X-Agente-Segredo": {
+            "secret_id": "${SEGREDO:toucamara_agente_segredo}"
+          },
+          "X-Municipio": "${MUNICIPIO}",
+          "X-Conversa-Id": {
+            "variable_name": "system__conversation_id"
+          },
+          "X-Telefone": {
+            "variable_name": "system__caller_id"
+          },
+          "X-Telefone-Web": {
+            "variable_name": "telefone"
+          }
+        },
+        "request_body_schema": {
+          "type": "object",
+          "properties": {
+            "codigo": {
+              "type": "string",
+              "description": "O código da carta: vem na mensagem do chat como [carta XXXXXXXXXX] ou no resultado anterior desta ferramenta. Vazio para começar (na chamada manda o SMS com o link para fotografar)."
+            },
+            "data_rececao": {
+              "type": "string",
+              "description": "O dia em que a pessoa recebeu a carta, AAAA-MM-DD (quando a ferramenta pediu, ou a pessoa disse)."
+            }
+          },
+          "description": "Parâmetros de ler_carta."
+        }
+      }
+    },
+    {
+      "type": "webhook",
       "name": "marcar",
       "description": "Marca o atendimento numa vaga devolvida por ver_vagas e manda SMS de confirmação com link para remarcar ou cancelar. Confirma antes com o munícipe o dia e a hora. Depois diz \"quando\", o local e o que levar. Se der vaga_ocupada ou fora_do_horario, oferece as vagas_alternativas. Se der falta_telefone, pede um telemóvel.",
       "response_timeout_secs": 20,
@@ -2226,6 +2267,65 @@
             "campos"
           ],
           "description": "Parâmetros de preencher_campo."
+        }
+      }
+    },
+    {
+      "type": "webhook",
+      "name": "preparar_resposta_carta",
+      "description": "Prepara o rascunho da resposta a uma carta já lida com ler_carta: pronuncia (responder por escrito em audiência prévia ou defesa, com os argumentos que a pessoa disse), prorrogacao (pedir mais tempo), elementos (lista dos documentos pedidos) ou pagamento (referência de teste). Antes da pronúncia, pergunta à pessoa porque não concorda e passa as palavras dela em argumentos (não acrescentes factos). O rascunho fica no link para a pessoa rever, mudar e confirmar: NADA é entregue sem a confirmação dela na página. Diz o \"dizer\".",
+      "response_timeout_secs": 20,
+      "tool_error_handling_mode": "passthrough",
+      "api_schema": {
+        "url": "${API_URL}/v1/agent/tools/preparar_resposta_carta",
+        "method": "POST",
+        "content_type": "application/json",
+        "request_headers": {
+          "X-Agente-Segredo": {
+            "secret_id": "${SEGREDO:toucamara_agente_segredo}"
+          },
+          "X-Municipio": "${MUNICIPIO}",
+          "X-Conversa-Id": {
+            "variable_name": "system__conversation_id"
+          },
+          "X-Telefone": {
+            "variable_name": "system__caller_id"
+          },
+          "X-Telefone-Web": {
+            "variable_name": "telefone"
+          }
+        },
+        "request_body_schema": {
+          "type": "object",
+          "properties": {
+            "codigo": {
+              "type": "string",
+              "description": "O código da carta."
+            },
+            "tipo": {
+              "type": "string",
+              "description": "pronuncia (responder a dizer porque não concorda), prorrogacao (pedir mais tempo), elementos (enviar os documentos pedidos), pagamento (referência para pagar).",
+              "enum": [
+                "pronuncia",
+                "prorrogacao",
+                "elementos",
+                "pagamento"
+              ]
+            },
+            "argumentos": {
+              "type": "string",
+              "description": "Na pronúncia: o que a pessoa disse, por palavras dela (porque não concorda, factos que quer que a câmara saiba). Na prorrogação: porque precisa de mais tempo."
+            },
+            "dias": {
+              "type": "integer",
+              "description": "Na prorrogação: quantos dias úteis a mais (por defeito 10)."
+            }
+          },
+          "required": [
+            "codigo",
+            "tipo"
+          ],
+          "description": "Parâmetros de preparar_resposta_carta."
         }
       }
     },

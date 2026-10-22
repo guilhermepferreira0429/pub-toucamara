@@ -35,6 +35,10 @@ export const GRUPOS_FERRAMENTAS: {
         'quando pergunta o que diz um edital, regulamento ou aviso',
       ],
       [
+        'ler_carta',
+        'quando recebeu uma carta da câmara e não a percebe (ofício, notificação, audiência prévia, taxa): manda o SMS para fotografar, explica, diz o prazo e o que acontece se não fizer nada',
+      ],
+      [
         'encaminhar',
         'quando o assunto é de outra entidade (água, finanças, segurança social, saúde)',
       ],
@@ -148,6 +152,10 @@ export const GRUPOS_FERRAMENTAS: {
       [
         'pedir_consulta_arquivo',
         'quando quer ver um processo antigo no arquivo (planta da casa do avô)',
+      ],
+      [
+        'preparar_resposta_carta',
+        'depois de ler_carta, quando quer responder (pronúncia com as palavras dela, pedir mais tempo, documentos, pagar): o rascunho vai por SMS e só é entregue quando a pessoa confirma',
       ],
       [
         'redigir',

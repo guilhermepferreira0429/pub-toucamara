@@ -21,6 +21,7 @@ import {
 } from '../antecipacoes/antecipacoes.demo.js';
 import { ArmazenamentoService } from '../armazenamento/armazenamento.service.js';
 import { AuditoriaService } from '../auditoria/auditoria.service.js';
+import { CartasService } from '../cartas/cartas.service.js';
 import {
   AvisosZonaService,
   esquemaNovoAviso,
@@ -126,6 +127,12 @@ export function passosDemo(): Passo[] {
         'processo:porta_cozinha',
         ...PROCESSOS_PERFIS.map((p) => `processo:analise_${p.chave}`),
       ],
+    },
+    {
+      passo: 'cartas',
+      rotulo:
+        'Carta "Não percebi": audiência prévia do processo "Porta na cozinha", lida e explicada',
+      chaves: ['carta:audiencia_previa'],
     },
     {
       passo: 'processos',
@@ -531,6 +538,7 @@ export class DemoService {
       ['passagens', () => this.passagens(ctx)],
       ['zonas_pdm', () => this.zonasPdm(ctx)],
       ['processo_apoio', () => this.processoApoio(ctx)],
+      ['cartas', () => this.cartas(ctx)],
       ['processos', () => this.processos(ctx)],
       ['ocorrencias', () => this.ocorrencias(ctx)],
       ['licencas', () => this.licencas(ctx)],
@@ -884,6 +892,21 @@ export class DemoService {
         },
       );
     }
+  }
+
+  /**
+   * A carta que a requerente do "Porta na cozinha" não percebeu (a
+   * notificação para audiência prévia), já lida com a leitura de
+   * demonstração: o prazo, o rascunho por preparar e a nota na ficha.
+   */
+  private async cartas(c: Preparacao) {
+    const processoId = await this.registado(c.m.id, 'processo:porta_cozinha');
+    if (!processoId) return;
+    await this.umaVez(c.m, 'carta:audiencia_previa', 'carta', async () => {
+      const id = await this.svc(CartasService).prepararDemo(c.m, processoId);
+      if (id) c.contar('cartas');
+      return id;
+    });
   }
 
   /**

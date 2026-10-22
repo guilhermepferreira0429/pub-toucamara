@@ -25,7 +25,8 @@ export type TipoCartao =
   | 'documento'
   | 'termo'
   | 'momento'
-  | 'turismo';
+  | 'turismo'
+  | 'carta';
 
 export interface FonteCartao {
   titulo: string;
@@ -88,6 +89,9 @@ const POR_FERRAMENTA: Record<
   explicar_momento: 'momento',
   // Turistas: o roteiro (paragens, eventos dos próximos dias, link do mapa).
   o_que_visitar: 'turismo',
+  // "Não percebi esta carta": a explicação, o prazo e o rascunho.
+  ler_carta: 'carta',
+  preparar_resposta_carta: 'carta',
 };
 
 function objeto(v: unknown): Record<string, unknown> {
