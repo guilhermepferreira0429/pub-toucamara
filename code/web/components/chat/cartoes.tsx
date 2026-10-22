@@ -33,6 +33,11 @@ import { useState } from "react";
 import { Etiqueta } from "@/components/ui/botao";
 import { FonteOficial } from "@/components/ui/marca";
 import { CartaoChatEntrega } from "@/components/entregas/cartao-chat";
+import {
+  CODIGO_LINGUA,
+  linguaValida,
+  TEXTOS as TEXTOS_TURISMO,
+} from "@/components/turismo/textos";
 import type { Cartao } from "./tipos";
 
 /* ------------------------------------------------------------------ */
@@ -1438,8 +1443,12 @@ function CartaoMomento({ dados }: { dados: Dados }) {
               {txt(m.o_que_e)}
               {txt(m.numero_processo) ? ` · ${txt(m.numero_processo)}` : ""}
             </p>
-            <p className="text-sm font-semibold text-terracota">Até {txt(m.data)}</p>
-            <p className="text-sm leading-[1.45] text-tinta-2">{txt(m.o_que_pode_fazer)}</p>
+            <p className="text-sm font-semibold text-terracota">
+              Até {txt(m.data)}
+            </p>
+            <p className="text-sm leading-[1.45] text-tinta-2">
+              {txt(m.o_que_pode_fazer)}
+            </p>
             {m.confirmar_com_a_camara === true && (
               <p className="text-[11px] font-semibold text-ambar">
                 O efeito legal confirma-se com a câmara para o seu caso.
@@ -1448,6 +1457,56 @@ function CartaoMomento({ dados }: { dados: Dados }) {
           </li>
         ))}
       </ul>
+    </div>
+  );
+}
+
+/** Turistas: o roteiro sugerido (na língua da conversa) com o link do mapa. */
+function CartaoTurismo({ dados }: { dados: Dados }) {
+  const paragens = lista(dados.roteiro);
+  if (!paragens.length) return null;
+  const l = linguaValida(txt(dados.lingua)) ?? "pt";
+  const t = TEXTOS_TURISMO[l];
+  const eventos = lista(dados.eventos_proximos_dias);
+  const total = num(dados.minutos_total);
+  return (
+    <div lang={CODIGO_LINGUA[l]} className={`${CAIXA} gap-2 border-linha p-4`}>
+      <span className="text-[10px] font-bold uppercase tracking-[1px] text-tinta-3">
+        {t.roteiros}
+        {total ? ` · ${t.duracao(total)}` : ""}
+      </span>
+      <ol className="flex flex-col">
+        {paragens.map((p, i) => (
+          <Linha key={`${txt(p.nome)}-${i}`} icone={MapPin}>
+            <span className="font-semibold">
+              {i + 1}. {txt(p.nome)}
+            </span>
+            {num(p.minutos) ? (
+              <span className="text-tinta-2">
+                {" "}
+                · {t.minutos(num(p.minutos)!)}
+              </span>
+            ) : null}
+          </Linha>
+        ))}
+      </ol>
+      {eventos.length > 0 && (
+        <p className="text-[13px] text-tinta-2">
+          {t.eventosProximos}:{" "}
+          {eventos
+            .map((e) => txt(e.titulo))
+            .filter(Boolean)
+            .join(" · ")}
+        </p>
+      )}
+      {dados.demonstracao === true && (
+        <p className="text-[11px] font-semibold text-ambar">{t.avisoDemo}</p>
+      )}
+      {txt(dados.link) && (
+        <LinkCartao href={txt(dados.link)!} icone={MapPin}>
+          {t.abrirMapa}
+        </LinkCartao>
+      )}
     </div>
   );
 }
@@ -1515,6 +1574,8 @@ export function CartaoChat({
       return <CartaoTermo dados={cartao.dados} />;
     case "momento":
       return <CartaoMomento dados={cartao.dados} />;
+    case "turismo":
+      return <CartaoTurismo dados={cartao.dados} />;
     default:
       return null;
   }

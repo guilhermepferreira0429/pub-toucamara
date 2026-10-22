@@ -59,6 +59,7 @@ import { EquipaCampoModule } from './modules/equipa-campo/equipa-campo.module.js
 import { PushModule } from './modules/app-municipe/push.module.js';
 import { ArquivoModule } from './modules/arquivo/arquivo.module.js';
 import { OrdenamentoModule } from './modules/ordenamento/ordenamento.module.js';
+import { TurismoModule } from './modules/turismo/turismo.module.js';
 import { RegrasPublicasModule } from './modules/regras-publicas/regras-publicas.module.js';
 import { RegrasVersoesModule } from './modules/regras-publicas/versoes.service.js';
 import { FiscalizacaoModule } from './modules/fiscalizacao/fiscalizacao.module.js';
@@ -130,6 +131,7 @@ import { EntregasModule } from './modules/entregas/entregas.module.js';
     CampanhasModule,
     LicencasModule,
     OrdenamentoModule,
+    TurismoModule,
     EmpresasModule,
     // Regras públicas e verificáveis (histórico das regras, verificador)
     RegrasVersoesModule,

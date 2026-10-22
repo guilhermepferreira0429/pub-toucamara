@@ -305,6 +305,10 @@ export interface Fonte {
   respostas?: number;
   citacoes?: number;
   alteracoes_por_rever: number;
+  /** Língua do texto (pt, en, es, fr). */
+  lingua?: string;
+  /** Texto de demonstração, a confirmar pela câmara. */
+  demonstracao?: boolean;
 }
 
 export interface Fontes {

@@ -267,7 +267,12 @@ const SECCOES: Seccao[] = [
         icone: Siren,
         recurso: "acao_social",
       },
-      { rotulo: "Agente", href: "/painel/agente", icone: Bot, recurso: "agente" },
+      {
+        rotulo: "Agente",
+        href: "/painel/agente",
+        icone: Bot,
+        recurso: "agente",
+      },
       {
         rotulo: "Equipa e acessos",
         href: "/painel/equipa",
@@ -309,7 +314,9 @@ const PERFIS: Record<Perfil, string> = {
 
 function iniciais(nome: string) {
   const p = nome.trim().split(/\s+/);
-  return ((p[0]?.[0] ?? "") + (p.length > 1 ? p[p.length - 1][0] : "")).toUpperCase();
+  return (
+    (p[0]?.[0] ?? "") + (p.length > 1 ? p[p.length - 1][0] : "")
+  ).toUpperCase();
 }
 
 function Contagem({ n }: { n?: number }) {
@@ -332,7 +339,7 @@ export function BarraLateral({ contagens = {} }: { contagens?: Contagens }) {
 
   return (
     <aside className="sticky top-0 flex h-dvh w-62 shrink-0 flex-col gap-4.5 overflow-y-auto border-r border-linha bg-papel px-4 pb-5 pt-7">
-      <div className="flex flex-col gap-2.5">
+      <div className="flex shrink-0 flex-col gap-2.5">
         <Link href="/painel" className="w-fit">
           <Logo tamanho={21} />
         </Link>
@@ -344,21 +351,26 @@ export function BarraLateral({ contagens = {} }: { contagens?: Contagens }) {
         </div>
       </div>
 
-      <label className="flex h-9.5 items-center gap-2 rounded-[10px] border border-linha bg-creme pl-3 pr-2">
-        <Search className="size-[15px] text-tinta-3" aria-hidden />
+      {/* shrink-0: com muitos itens a barra faz scroll, e sem isto a
+          pesquisa e o cabeçalho encolhiam para caber na altura. */}
+      <label className="flex h-10 shrink-0 cursor-text items-center gap-2.5 rounded-xl border border-linha bg-creme pl-3 pr-1.5 transition-colors focus-within:border-terracota focus-within:bg-papel hover:border-tinta-3/40">
+        <Search className="size-4 shrink-0 text-tinta-3" aria-hidden />
         <input
           type="search"
           placeholder="Pesquisar tudo"
-          className="w-full bg-transparent text-xs text-tinta outline-none placeholder:text-tinta-3"
+          aria-label="Pesquisar tudo"
+          className="min-w-0 flex-1 bg-transparent text-[13px] text-tinta outline-none placeholder:text-tinta-3 [&::-webkit-search-cancel-button]:hidden"
         />
-        <kbd className="rounded-[5px] border border-linha bg-papel px-1.5 py-0.5 text-[10px] font-semibold text-tinta-3">
+        <kbd className="flex h-6 shrink-0 items-center rounded-md border border-linha bg-papel px-1.5 font-sans text-[11px] font-semibold text-tinta-3 shadow-[0_1px_0_var(--color-linha)]">
           ⌘K
         </kbd>
       </label>
 
-      <nav className="flex flex-col gap-4.5" aria-label="Painel">
+      <nav className="flex shrink-0 flex-col gap-4.5" aria-label="Painel">
         {SECCOES.map((s, i) => {
-          const trancada = s.itens.filter(visivel).every((it) => !pode(it.recurso));
+          const trancada = s.itens
+            .filter(visivel)
+            .every((it) => !pode(it.recurso));
           return (
             <div key={i} className="flex flex-col gap-0.5">
               {s.titulo && (
@@ -367,7 +379,10 @@ export function BarraLateral({ contagens = {} }: { contagens?: Contagens }) {
                     {s.titulo}
                   </span>
                   {trancada && (
-                    <Lock className="size-3 text-tinta-3" aria-label="Sem acesso" />
+                    <Lock
+                      className="size-3 text-tinta-3"
+                      aria-label="Sem acesso"
+                    />
                   )}
                 </div>
               )}
@@ -377,15 +392,21 @@ export function BarraLateral({ contagens = {} }: { contagens?: Contagens }) {
                 const corpo = (
                   <>
                     <Icone className="size-[17px]" aria-hidden />
-                    <span className="flex-1 text-sm font-medium">{it.rotulo}</span>
+                    <span className="flex-1 text-sm font-medium">
+                      {it.rotulo}
+                    </span>
                     {permitido ? (
                       <Contagem n={it.contagem && contagens[it.contagem]} />
                     ) : (
-                      <Lock className="size-3.5 text-tinta-3" aria-label="Sem acesso" />
+                      <Lock
+                        className="size-3.5 text-tinta-3"
+                        aria-label="Sem acesso"
+                      />
                     )}
                   </>
                 );
-                const base = "flex h-9 items-center gap-2.5 rounded-[10px] px-3";
+                const base =
+                  "flex h-9 items-center gap-2.5 rounded-[10px] px-3";
                 return permitido ? (
                   <Link
                     key={it.href}

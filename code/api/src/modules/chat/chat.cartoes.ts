@@ -24,7 +24,8 @@ export type TipoCartao =
   | 'entrega'
   | 'documento'
   | 'termo'
-  | 'momento';
+  | 'momento'
+  | 'turismo';
 
 export interface FonteCartao {
   titulo: string;
@@ -85,6 +86,8 @@ const POR_FERRAMENTA: Record<
   explicar_termo: 'termo',
   // Antecipações: a data que está a chegar e o que a pessoa pode fazer.
   explicar_momento: 'momento',
+  // Turistas: o roteiro (paragens, eventos dos próximos dias, link do mapa).
+  o_que_visitar: 'turismo',
 };
 
 function objeto(v: unknown): Record<string, unknown> {

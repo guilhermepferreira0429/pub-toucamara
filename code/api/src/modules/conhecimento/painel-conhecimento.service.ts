@@ -52,6 +52,8 @@ export interface NovaFonte {
   url: string;
   ler_a_cada_horas: number;
   leitura_automatica: boolean;
+  /** Língua do texto (ISO 639-1); por omissão 'pt'. */
+  lingua?: string;
 }
 
 /** Uma resposta nova a partir de uma pergunta sem resposta. */
@@ -1014,7 +1016,7 @@ export class PainelConhecimentoService {
     const [itens, [ultima]] = await Promise.all([
       this.db.query(
         `SELECT fo.id, fo.titulo, fo.tipo, fo.url, fo.estado, fo.erro,
-                fo.ultima_leitura_em, fo.leitura_automatica,
+                fo.ultima_leitura_em, fo.leitura_automatica, fo.lingua, fo.demonstracao,
                 (extract(epoch FROM fo.ler_a_cada) / 3600)::int AS ler_a_cada_horas,
                 CASE WHEN fo.leitura_automatica
                      THEN coalesce(fo.ultima_leitura_em + fo.ler_a_cada, now()) END AS proxima_leitura_em,
@@ -1061,8 +1063,8 @@ export class PainelConhecimentoService {
       );
     }
     const [f] = await this.db.query<{ id: string }>(
-      `INSERT INTO fontes (municipio_id, entidade_id, titulo, tipo, url, ler_a_cada, leitura_automatica)
-       VALUES ($1, $2, $3, $4, $5, make_interval(hours => $6), $7)
+      `INSERT INTO fontes (municipio_id, entidade_id, titulo, tipo, url, ler_a_cada, leitura_automatica, lingua)
+       VALUES ($1, $2, $3, $4, $5, make_interval(hours => $6), $7, $8)
        ON CONFLICT (municipio_id, url) DO NOTHING
        RETURNING id`,
       [
@@ -1073,6 +1075,7 @@ export class PainelConhecimentoService {
         d.url,
         d.ler_a_cada_horas,
         d.leitura_automatica,
+        d.lingua ?? 'pt',
       ],
     );
     if (!f) {
@@ -1097,7 +1100,7 @@ export class PainelConhecimentoService {
   async fonte(municipioId: string, id: string) {
     const [f] = await this.db.query(
       `SELECT fo.id, fo.titulo, fo.tipo, fo.url, fo.estado, fo.erro, fo.ultima_leitura_em,
-              fo.leitura_automatica, (extract(epoch FROM fo.ler_a_cada) / 3600)::int AS ler_a_cada_horas,
+              fo.leitura_automatica, fo.lingua, fo.demonstracao, (extract(epoch FROM fo.ler_a_cada) / 3600)::int AS ler_a_cada_horas,
               fo.entidade_id, e.nome AS entidade
        FROM fontes fo JOIN entidades e ON e.id = fo.entidade_id
        WHERE fo.id = $1 AND fo.municipio_id = $2`,

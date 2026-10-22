@@ -85,7 +85,13 @@ function juntarCartao(cartoes: Cartao[], novo: Cartao): Cartao[] {
  * por enviar quando a ligação falha (nunca se perdem: voltam a seguir quando
  * a rede volta ou com "Tentar").
  */
-export function useChat(municipio: string) {
+export function useChat(
+  municipio: string,
+  /** Língua escolhida na página (ex.: /visitar); por omissão, a do browser. */
+  idioma?: string,
+  /** Saudação a mostrar em vez da do servidor (que vem em português). */
+  saudacaoLocal?: string,
+) {
   const [mensagens, setMensagens] = useState<Mensagem[]>([]);
   const [ligacao, setLigacao] = useState<EstadoLigacao>("a_iniciar");
   const [avisoGeral, setAvisoGeral] = useState<string | null>(null);
@@ -119,7 +125,7 @@ export function useChat(municipio: string) {
       api<SessaoCriada>("/v1/chat/sessoes", {
         corpo: {
           municipio,
-          idioma: idiomaDoBrowser(),
+          idioma: idioma ?? idiomaDoBrowser(),
           ...(anterior ? { sessao_anterior: anterior } : {}),
         },
       });
@@ -149,7 +155,7 @@ export function useChat(municipio: string) {
                 {
                   id: "saudacao",
                   papel: "agente",
-                  texto: r.saudacao,
+                  texto: saudacaoLocal ?? r.saudacao,
                   cartoes: [],
                   estado: "feita",
                   hora: hora(),
@@ -172,7 +178,7 @@ export function useChat(municipio: string) {
     })();
     iniciarRef.current = p;
     return p;
-  }, [chave, municipio]);
+  }, [chave, municipio, idioma, saudacaoLocal]);
 
   useEffect(() => {
     void iniciar();

@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { DatabaseService } from '../../database/database.service.js';
 import { EmbeddingsService, paraVetor } from './embeddings.service.js';
+import { linguasDaPesquisa } from './lingua.js';
 import { rrf } from './rrf.js';
 import {
   CONSULTA_OU,
@@ -110,19 +111,24 @@ export class ConhecimentoService {
     limite = 5,
   ): Promise<ResultadoPesquisa> {
     const candidatos = Math.max(CANDIDATOS, limite * 2);
+    // Português sempre; as versões noutra língua (turismo) só quando a
+    // pergunta vem nessa língua.
+    const linguas = linguasDaPesquisa(pergunta);
     const vetorPromessa = this.embeddings.pergunta(pergunta);
     const textoPromessa = Promise.all([
       this.respostasPorTexto(municipioId, pergunta),
-      this.trechosPorTexto(municipioId, pergunta, candidatos),
+      this.trechosPorTexto(municipioId, pergunta, candidatos, linguas),
     ]);
 
     const vetor = await vetorPromessa;
     const [porVetor, [respostasTexto, trechosTexto]] = await Promise.all([
       vetor
-        ? this.porVetor(municipioId, vetor, candidatos).catch((e: Error) => {
-            this.logger.warn(`Pesquisa por vetores falhou: ${e.message}`);
-            return null;
-          })
+        ? this.porVetor(municipioId, vetor, candidatos, linguas).catch(
+            (e: Error) => {
+              this.logger.warn(`Pesquisa por vetores falhou: ${e.message}`);
+              return null;
+            },
+          )
         : Promise.resolve(null),
       textoPromessa,
     ]);
@@ -246,6 +252,7 @@ export class ConhecimentoService {
     municipioId: string,
     pergunta: string,
     limite: number,
+    linguas: string[],
   ) {
     return this.db.query<LinhaTrecho>(
       `WITH c AS (${CONSULTA_OU(2)})
@@ -255,10 +262,11 @@ export class ConhecimentoService {
        ${TRECHO_JUNCOES}
        WHERE fo.municipio_id = $1 AND e.ativo
          AND t.tsv @@ c.q
+         AND fo.lingua = ANY($4::text[])
          AND ${EM_VIGOR('t')} AND ${VERSAO_ATUAL}
        ORDER BY pontuacao DESC
        LIMIT $3`,
-      [municipioId, pergunta, limite],
+      [municipioId, pergunta, limite, linguas],
     );
   }
 
@@ -268,7 +276,12 @@ export class ConhecimentoService {
    * `iterative_scan` o pgvector continua a procurar até ter `limite` linhas.
    * SET LOCAL só vale dentro da transação.
    */
-  private porVetor(municipioId: string, vetor: number[], limite: number) {
+  private porVetor(
+    municipioId: string,
+    vetor: number[],
+    limite: number,
+    linguas: string[],
+  ) {
     const v = paraVetor(vetor);
     return this.db.transaction(async (tx) => {
       await tx.query(
@@ -283,13 +296,14 @@ export class ConhecimentoService {
            FROM trechos t
            ${TRECHO_JUNCOES}
            WHERE fo.municipio_id = $1 AND e.ativo AND t.embedding IS NOT NULL
+             AND fo.lingua = ANY($4::text[])
              AND ${EM_VIGOR('t')} AND ${VERSAO_ATUAL}
            ORDER BY t.embedding <=> $2::vector
            LIMIT $3
          )
          SELECT *, 1 - distancia AS similaridade, 0::float8 AS pontuacao
          FROM perto ORDER BY distancia`,
-        [municipioId, v, limite],
+        [municipioId, v, limite, linguas],
       );
       const respostas = await tx.query<LinhaResposta>(
         `WITH f AS (
