@@ -119,7 +119,8 @@ describe('Verificações automáticas (apoio ao técnico)', () => {
       demonstracao: true,
       tem_zonas_pdm: true,
     });
-    expect(r.body.numero).toMatch(/^CP (DEMO-)?412\/\d{4}$/);
+    // A numeração é contínua (o preparar demo pode tê-lo criado com outro número).
+    expect(r.body.numero).toMatch(/^CP (DEMO-)?\d+\/\d{4}$/);
     // E os 3 da análise por tipo de operação.
     expect(r.body.outros.map((x: any) => x.chave)).toEqual([
       'ampliacao',
