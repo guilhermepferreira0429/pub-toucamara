@@ -26,6 +26,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { FaixaDemonstracao } from "@/components/painel/faixa-demonstracao";
 import { Botao } from "@/components/ui/botao";
+import { MenuAcoes, type AcaoMenu } from "@/components/ui/menu-acoes";
 import { PainelTurismo } from "@/components/turismo/painel-turismo";
 import { useSessao } from "@/lib/sessao";
 import {
@@ -209,6 +210,248 @@ function ColarTexto({ fonte, onFeito }: { fonte: Fonte; onFeito: (msg: string) =
   );
 }
 
+interface GrupoFonte {
+  principal: Fonte;
+  /** A mesma página noutras línguas (o turismo em pt, en, es, fr). */
+  traducoes: Fonte[];
+}
+
+const LINGUAS = "pt|en|es|fr|de|it";
+
+/**
+ * A última marca de língua no caminho do endereço ("…-en", "/en/", "lang=en"),
+ * nunca no domínio (o ".pt" de cm-guimaraes.pt não é uma língua).
+ */
+function marcaLingua(url: string, lingua = LINGUAS): { lingua: string; sem: string } | null {
+  let base = url;
+  let resto = "";
+  try {
+    const u = new URL(url);
+    base = `${u.protocol}//${u.host}`;
+    resto = url.slice(base.length);
+  } catch {
+    return null;
+  }
+  const re = new RegExp(`([-_/.=])(${lingua})(?=$|[/?#&.])`, "gi");
+  let ultimo: RegExpExecArray | null = null;
+  for (let m = re.exec(resto); m; m = re.exec(resto)) ultimo = m;
+  if (!ultimo) return null;
+  return {
+    lingua: ultimo[2].toLowerCase(),
+    sem: base + resto.slice(0, ultimo.index + 1) + resto.slice(ultimo.index + ultimo[0].length),
+  };
+}
+
+/** A língua da fonte: a que vem da recolha ou, sem ela, a marca no endereço ("…-pt"). */
+function linguaDe(f: Fonte): string | null {
+  return f.lingua ?? marcaLingua(f.url)?.lingua ?? null;
+}
+
+/** A página sem a marca da língua, para juntar as traduções. */
+function chaveTraducao(f: Fonte): string | null {
+  const l = linguaDe(f);
+  const m = l ? marcaLingua(f.url, l) : null;
+  return m ? `${f.tipo}|${m.sem}` : null;
+}
+
+/** Junta as traduções de uma página por baixo da versão portuguesa (pela ordem da lista). */
+function agruparTraducoes(itens: Fonte[]): GrupoFonte[] {
+  const porChave = new Map<string, Fonte[]>();
+  const ordem: (string | Fonte)[] = [];
+  for (const f of itens) {
+    const k = chaveTraducao(f);
+    if (!k) {
+      ordem.push(f);
+      continue;
+    }
+    if (!porChave.has(k)) {
+      porChave.set(k, []);
+      ordem.push(k);
+    }
+    porChave.get(k)!.push(f);
+  }
+  return ordem.map((x) => {
+    if (typeof x !== "string") return { principal: x, traducoes: [] };
+    const fs = porChave.get(x)!;
+    const principal = fs.find((f) => linguaDe(f) === "pt") ?? fs[0];
+    return { principal, traducoes: fs.filter((f) => f !== principal) };
+  });
+}
+
+/** O estado de leitura, com a frase por baixo do título. */
+function estadoDe(f: Fonte) {
+  // Nunca lida (acabada de criar ou descoberta num site): ainda não está "em dia".
+  const porLer = f.estado === "em_dia" && !f.ultima_leitura_em;
+  const e = porLer ? POR_LER : ESTADOS[f.estado];
+  const frase =
+    f.estado === "erro"
+      ? (f.erro ?? "Não conseguimos ler a página")
+      : f.estado === "mudou"
+        ? `${f.alteracoes_por_rever} ${f.alteracoes_por_rever === 1 ? "alteração" : "alterações"} por rever`
+        : porLer
+          ? `${f.entidade} · à espera da primeira leitura`
+          : `${f.entidade} · lida ${quando(f.ultima_leitura_em)}`;
+  const cor = f.estado === "erro" ? "text-terracota-escuro" : f.estado === "mudou" ? "text-ambar" : "text-tinta-2";
+  return { e, porLer, frase, cor };
+}
+
+function proximaLeitura(f: Fonte): string {
+  if (f.arquivada_em) return `Arquivada ${quando(f.arquivada_em)}: já não é lida`;
+  if (!f.leitura_automatica) return "Texto copiado à mão";
+  return `${periodicidade(f.ler_a_cada_horas)} · próxima ${proximaVez(f.proxima_leitura_em)}${
+    (f.falhas_seguidas ?? 0) > 1 ? ` · ${f.falhas_seguidas} erros seguidos` : ""
+  }`;
+}
+
+function usoDe(f: Fonte): string {
+  return `${f.versoes} ${f.versoes === 1 ? "versão" : "versões"}${
+    typeof f.respostas === "number"
+      ? ` · usada em ${f.respostas} ${f.respostas === 1 ? "resposta" : "respostas"}${f.citacoes ? ` · citada ${f.citacoes}×` : ""}`
+      : ""
+  }`;
+}
+
+function Linguas({ fontes }: { fontes: Fonte[] }) {
+  return (
+    <span className="flex flex-wrap gap-1.5">
+      {fontes.map((t) => (
+        <a key={t.id} href={t.url} target="_blank" rel="noreferrer" title={t.titulo}>
+          <Pilula tom={t.estado === "erro" ? "terracota" : t.estado === "mudou" ? "ambar" : "neutro"}>
+            {(linguaDe(t) ?? "?").toUpperCase()}
+          </Pilula>
+        </a>
+      ))}
+    </span>
+  );
+}
+
+/** Telemóvel: o cartão de uma página, com as ações no menu "⋯". */
+function CartaoFonte({ f, traducoes, acoes }: { f: Fonte; traducoes: Fonte[]; acoes: AcaoMenu[] }) {
+  const t = TIPOS[f.tipo] ?? { rotulo: f.tipo, icone: FileText };
+  const { e, frase, cor } = estadoDe(f);
+  const Icone = t.icone;
+  return (
+    <li className={`flex flex-col gap-3 rounded-2xl border bg-papel p-5 ${e.borda}`}>
+      <div className="flex items-center justify-between gap-2">
+        <span className="flex items-center gap-2">
+          <span className="flex size-[34px] items-center justify-center rounded-[10px] bg-creme">
+            <Icone className="size-4 text-tinta-2" aria-hidden />
+          </span>
+          <span className="text-[11px] font-bold tracking-[0.4px] text-tinta-3 uppercase">{t.rotulo}</span>
+        </span>
+        <span className="flex items-center gap-1">
+          <Pilula tom={e.tom} icone={e.icone}>
+            {e.rotulo}
+          </Pilula>
+          <MenuAcoes acoes={acoes} rotulo={`Ações · ${f.titulo}`} />
+        </span>
+      </div>
+      <div className="flex flex-col gap-1">
+        <p className="text-[15px] font-bold text-tinta">{f.titulo}</p>
+        <p className={`text-[13px] ${cor}`}>{frase}</p>
+        <p className="text-xs text-tinta-3">{proximaLeitura(f)}</p>
+        {f.site && <p className="text-xs text-tinta-3">Do site «{f.site}»</p>}
+        {traducoes.length > 0 && (
+          <span className="flex flex-wrap items-center gap-1.5 pt-1 text-xs text-tinta-2">
+            Também em <Linguas fontes={traducoes} />
+          </span>
+        )}
+      </div>
+      <p className="border-t border-linha pt-2.5 text-xs font-semibold text-tinta">{usoDe(f)}</p>
+    </li>
+  );
+}
+
+/** Computador: a tabela das fontes; as traduções de uma página abrem por baixo dela. */
+function TabelaFontes({ grupos, acoesDe }: { grupos: GrupoFonte[]; acoesDe: (f: Fonte) => AcaoMenu[] }) {
+  const [abertos, setAbertos] = useState<Set<string>>(new Set());
+  const alternar = (id: string) =>
+    setAbertos((s) => {
+      const n = new Set(s);
+      if (n.has(id)) n.delete(id);
+      else n.add(id);
+      return n;
+    });
+  const linha = (f: Fonte, traducao: boolean, g?: GrupoFonte) => {
+    const t = TIPOS[f.tipo] ?? { rotulo: f.tipo, icone: FileText };
+    const { e, frase, cor } = estadoDe(f);
+    const Icone = t.icone;
+    return (
+      <tr key={f.id} className={`border-b border-linha last:border-b-0 ${traducao ? "bg-creme/40" : ""}`}>
+        <td className={`py-3 pr-3 ${traducao ? "pl-14" : "pl-5"}`}>
+          <span className="flex items-start gap-3">
+            {!traducao && (
+              <span className="mt-0.5 flex size-[30px] shrink-0 items-center justify-center rounded-[9px] bg-creme" title={t.rotulo}>
+                <Icone className="size-4 text-tinta-2" aria-hidden />
+              </span>
+            )}
+            <span className="flex min-w-0 flex-col gap-0.5">
+              <span className="flex flex-wrap items-center gap-2 text-[14px] font-semibold text-tinta">
+                {traducao && <Pilula tom="neutro">{(linguaDe(f) ?? "?").toUpperCase()}</Pilula>}
+                {f.titulo}
+              </span>
+              <span className={`text-[13px] ${cor}`}>{frase}</span>
+              {g && g.traducoes.length > 0 && (
+                <button
+                  type="button"
+                  aria-expanded={abertos.has(f.id)}
+                  onClick={() => alternar(f.id)}
+                  className="w-fit text-xs font-semibold text-terracota-escuro hover:underline"
+                >
+                  {abertos.has(f.id) ? "Esconder" : "+"} {g.traducoes.length}{" "}
+                  {g.traducoes.length === 1 ? "tradução" : "traduções"} (
+                  {g.traducoes.map((x) => (linguaDe(x) ?? "?").toUpperCase()).join(", ")})
+                </button>
+              )}
+            </span>
+          </span>
+        </td>
+        <td className="px-3 py-3">
+          <Pilula tom={e.tom} icone={e.icone}>
+            {e.rotulo}
+          </Pilula>
+        </td>
+        <td className="px-3 py-3 text-[13px] text-tinta-2">{proximaLeitura(f)}</td>
+        <td className="px-3 py-3 text-[13px] text-tinta-2">{usoDe(f)}</td>
+        <td className="px-3 py-3 text-[13px]">
+          <a href={f.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-tinta-3 hover:text-tinta">
+            {anfitriao(f.url)}
+            <ExternalLink className="size-3" aria-hidden />
+          </a>
+        </td>
+        <td className="py-3 pl-1 pr-3 text-right">
+          <MenuAcoes acoes={acoesDe(f)} rotulo={`Ações · ${f.titulo}`} />
+        </td>
+      </tr>
+    );
+  };
+  return (
+    <div className="hidden overflow-visible rounded-2xl border border-linha bg-papel md:block">
+      <table className="w-full border-collapse text-left">
+        <caption className="sr-only">Fontes de conhecimento</caption>
+        <thead>
+          <tr className="h-[42px] border-b border-linha bg-creme text-[11px] font-bold uppercase tracking-[0.6px] text-tinta-3">
+            <th scope="col" className="pl-5 pr-3">Fonte</th>
+            <th scope="col" className="w-[130px] px-3">Estado</th>
+            <th scope="col" className="w-[220px] px-3">Leitura</th>
+            <th scope="col" className="w-[220px] px-3">Uso</th>
+            <th scope="col" className="w-[170px] px-3">Página</th>
+            <th scope="col" className="w-[56px] pr-3">
+              <span className="sr-only">Ações</span>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {grupos.flatMap((g) => [
+            linha(g.principal, false, g),
+            ...(abertos.has(g.principal.id) ? g.traducoes.map((x) => linha(x, true)) : []),
+          ])}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 export function Fontes() {
   const { pedido, pode } = useSessao();
   const [filtro, setFiltro] = useState<"" | EstadoFonte | "arquivadas">("");
@@ -229,6 +472,26 @@ export function Fontes() {
     const r = await ler.executar(() => pedido<{ em_fila: boolean }>(caminho, { metodo: "POST" }));
     if (r) setAviso(r.em_fila ? msg : "Já há uma leitura em curso.");
   };
+  const grupos = agruparTraducoes(itens);
+  const acoesDe = (f: Fonte): AcaoMenu[] => [
+    ...(escrever
+      ? [
+          {
+            rotulo: "Ler agora",
+            icone: RefreshCw,
+            desativado: ler.aCorrer,
+            onClick: () => void lerAgora(`/v1/painel/conhecimento/fontes/${f.id}/ler`, `Vamos ler «${f.titulo}» agora.`),
+          },
+          { rotulo: "Colar texto", icone: ClipboardPaste, onClick: () => setColar(f) },
+          { rotulo: "Editar", icone: Pencil, onClick: () => setEditar(f) },
+          { rotulo: "Histórico de leituras", icone: History, onClick: () => setHistorico(f) },
+          ...(f.estado === "mudou"
+            ? [{ rotulo: "Rever alterações", icone: TriangleAlert, href: "/painel/conhecimento/alteracoes", tom: "aviso" as const }]
+            : []),
+        ]
+      : []),
+    { rotulo: "Abrir a página", icone: ExternalLink, href: f.url, externo: true },
+  ];
 
   return (
     <div className="flex flex-col gap-5 px-4 sm:px-10">
@@ -290,104 +553,14 @@ export function Fontes() {
       )}
 
       <Estado aCarregar={fontes.aCarregar} erro={fontes.erro} vazio={!itens.length} textoVazio="Sem fontes neste filtro.">
-        <ul className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {itens.map((f) => {
-            const t = TIPOS[f.tipo] ?? { rotulo: f.tipo, icone: FileText };
-            // Nunca lida (acabada de criar ou descoberta num site): ainda não está "em dia".
-            const porLer = f.estado === "em_dia" && !f.ultima_leitura_em;
-            const e = porLer ? POR_LER : ESTADOS[f.estado];
-            const Icone = t.icone;
-            return (
-              <li key={f.id} className={`flex flex-col gap-3 rounded-2xl border bg-papel p-5 ${e.borda}`}>
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <span className="flex items-center gap-2">
-                    <span className="flex size-[34px] items-center justify-center rounded-[10px] bg-creme">
-                      <Icone className="size-4 text-tinta-2" aria-hidden />
-                    </span>
-                    <span className="text-[10px] font-bold tracking-[0.4px] text-tinta-3 uppercase">{t.rotulo}</span>
-                  </span>
-                  <Pilula tom={e.tom} icone={e.icone}>
-                    {e.rotulo}
-                  </Pilula>
-                </div>
-                <div className="flex flex-col gap-1">
-                  <p className="text-[15px] font-bold text-tinta">{f.titulo}</p>
-                  <p
-                    className={`text-[13px] ${f.estado === "erro" ? "text-terracota-escuro" : f.estado === "mudou" ? "text-ambar" : "text-tinta-2"}`}
-                  >
-                    {f.estado === "erro"
-                      ? (f.erro ?? "Não conseguimos ler a página")
-                      : f.estado === "mudou"
-                        ? `${f.alteracoes_por_rever} ${f.alteracoes_por_rever === 1 ? "alteração" : "alterações"} por rever`
-                        : porLer
-                          ? `${f.entidade} · à espera da primeira leitura`
-                          : `${f.entidade} · lida ${quando(f.ultima_leitura_em)}`}
-                  </p>
-                  {f.arquivada_em ? (
-                    <p className="text-xs text-tinta-3">Arquivada {quando(f.arquivada_em)}: já não é lida</p>
-                  ) : !f.leitura_automatica ? (
-                    <p className="text-xs text-tinta-3">Texto copiado à mão</p>
-                  ) : (
-                    <p className="text-xs text-tinta-3">
-                      {periodicidade(f.ler_a_cada_horas)} · próxima {proximaVez(f.proxima_leitura_em)}
-                      {(f.falhas_seguidas ?? 0) > 1 && (
-                        <span className="text-terracota-escuro"> · {f.falhas_seguidas} erros seguidos</span>
-                      )}
-                    </p>
-                  )}
-                  {f.site && <p className="text-xs text-tinta-3">Do site «{f.site}»</p>}
-                  {f.lingua && f.lingua !== "pt" && (
-                    <span className="flex flex-wrap gap-1.5">
-                      <Pilula tom="neutro">{f.lingua.toUpperCase()}</Pilula>
-                    </span>
-                  )}
-                </div>
-                <div className="mt-auto flex flex-wrap items-center justify-between gap-2 border-t border-linha pt-2.5">
-                  <span className="text-xs font-semibold text-tinta">
-                    {f.versoes} {f.versoes === 1 ? "versão" : "versões"}
-                    {typeof f.respostas === "number" && (
-                      <span className="font-normal text-tinta-2">
-                        {" "}
-                        · usada em {f.respostas} {f.respostas === 1 ? "resposta" : "respostas"}
-                        {f.citacoes ? ` · citada ${f.citacoes}×` : ""}
-                      </span>
-                    )}
-                  </span>
-                  <a href={f.url} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-xs text-tinta-3 hover:text-tinta">
-                    {anfitriao(f.url)}
-                    <ExternalLink className="size-3" aria-hidden />
-                  </a>
-                </div>
-                {escrever && (
-                  <div className="flex flex-wrap gap-3 text-xs font-semibold">
-                    <button
-                      type="button"
-                      disabled={ler.aCorrer}
-                      className="flex items-center gap-1 text-terracota-escuro hover:underline"
-                      onClick={() => lerAgora(`/v1/painel/conhecimento/fontes/${f.id}/ler`, `Vamos ler «${f.titulo}» agora.`)}
-                    >
-                      <RefreshCw className="size-3" aria-hidden /> Ler agora
-                    </button>
-                    <button type="button" className="flex items-center gap-1 text-terracota-escuro hover:underline" onClick={() => setColar(f)}>
-                      <ClipboardPaste className="size-3" aria-hidden /> Colar texto
-                    </button>
-                    <button type="button" className="flex items-center gap-1 text-terracota-escuro hover:underline" onClick={() => setEditar(f)}>
-                      <Pencil className="size-3" aria-hidden /> Editar
-                    </button>
-                    <button type="button" className="flex items-center gap-1 text-terracota-escuro hover:underline" onClick={() => setHistorico(f)}>
-                      <History className="size-3" aria-hidden /> Histórico
-                    </button>
-                    {f.estado === "mudou" && (
-                      <Link href="/painel/conhecimento/alteracoes" className="text-ambar hover:underline">
-                        Rever alterações
-                      </Link>
-                    )}
-                  </div>
-                )}
-              </li>
-            );
-          })}
+        {/* Telemóvel: um cartão por página (as traduções como pílulas). */}
+        <ul className="grid grid-cols-1 gap-4 md:hidden">
+          {grupos.map((g) => (
+            <CartaoFonte key={g.principal.id} f={g.principal} traducoes={g.traducoes} acoes={acoesDe(g.principal)} />
+          ))}
         </ul>
+        {/* Computador: uma tabela, com as traduções recolhidas por baixo da página. */}
+        <TabelaFontes grupos={grupos} acoesDe={acoesDe} />
       </Estado>
 
       <Sites escrever={escrever} tipos={TIPOS} onMudou={fontes.recarregar} />
