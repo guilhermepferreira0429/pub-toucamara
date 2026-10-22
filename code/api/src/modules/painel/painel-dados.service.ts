@@ -164,7 +164,7 @@ export class PainelDadosService {
   async ocorrenciasAbertas(municipioId: string): Promise<number> {
     const [r] = await this.db.query<{ n: number }>(
       `SELECT count(*)::int AS n FROM ocorrencias
-       WHERE municipio_id = $1 AND estado IN ('nova','com_equipa')`,
+       WHERE municipio_id = $1 AND oculto_em IS NULL AND estado IN ('nova','com_equipa')`,
       [municipioId],
     );
     return r.n;

@@ -18,7 +18,8 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "node --experimental-vm-modules --disable-warning=ExperimentalWarning node_modules/jest/bin/jest.js --config ./test/jest-e2e.json",
-    "db:reset": "nest build && node dist/scripts/db-reset.js"
+    "db:reset": "nest build && node dist/scripts/db-reset.js",
+    "demo:preparar": "nest build && node dist/scripts/demo-preparar.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.135.0",

@@ -50,6 +50,9 @@ export const PERMISSOES = {
   // quem atende (comunicação) e a chefia escrevem e publicam; ver é de quem
   // tem a visão geral.
   comunicados: ['atendimento', 'chefe_divisao'],
+  // Preparar a câmara de demonstração e esconder os registos dos testes:
+  // só a chefia (e a administração, que pode tudo).
+  demo: ['chefe_divisao'],
 } as const satisfies Record<string, readonly Perfil[]>;
 
 export type Recurso = keyof typeof PERMISSOES;
