@@ -1,6 +1,6 @@
 "use client";
 
-import { FlaskConical, Pencil, Plus, Trash2 } from "lucide-react";
+import { Pencil, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import {
   Campo,
@@ -15,6 +15,7 @@ import {
   useAcao,
   useDados,
 } from "@/components/conhecimento/comum";
+import { FaixaDemonstracao } from "@/components/painel/faixa-demonstracao";
 import { Botao } from "@/components/ui/botao";
 import { useSessao } from "@/lib/sessao";
 import type { Termo } from "./tipos";
@@ -183,11 +184,6 @@ export function Glossario() {
           sublinhadas nos documentos públicos (a explicação abre ao tocar) e o agente usa-as
           quando alguém pergunta &ldquo;o que é…?&rdquo;.
         </p>
-        {lista.dados?.demonstracao && (
-          <Pilula tom="ambar" icone={FlaskConical}>
-            valores de demonstração
-          </Pilula>
-        )}
         {escrever && (
           <>
             <Botao
@@ -208,6 +204,12 @@ export function Glossario() {
           </>
         )}
       </Cartao>
+      {(lista.dados?.demonstracao || itens.some((t) => t.demonstracao)) && (
+        <FaixaDemonstracao>
+          As explicações marcadas «por validar» são exemplos escritos para a demonstração: a câmara confirma-as
+          antes de aparecerem nos documentos públicos.
+        </FaixaDemonstracao>
+      )}
       <ErroLinha erro={acao.erro} />
 
       <Cartao>
@@ -223,17 +225,13 @@ export function Glossario() {
                 <div className="flex min-w-0 flex-1 flex-col gap-1">
                   <p className="flex flex-wrap items-center gap-2 text-sm font-semibold text-tinta">
                     {t.termo}
-                    {t.demonstracao && (
-                      <Pilula tom="ambar" icone={FlaskConical}>
-                        valores de demonstração
-                      </Pilula>
-                    )}
                     {!t.ativo && <Pilula>fora de uso</Pilula>}
                   </p>
                   <p className="text-sm text-tinta-2">{t.explicacao}</p>
                   <p className="text-xs text-tinta-3">
                     {t.variantes.length > 0 && `Também: ${t.variantes.join(", ")} · `}
                     {t.fonte_legal && `${t.fonte_legal} · `}
+                    {t.demonstracao && "por validar · "}
                     atualizado {quando(t.atualizado_em)}
                   </p>
                 </div>

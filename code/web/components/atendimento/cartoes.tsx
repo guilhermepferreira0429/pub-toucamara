@@ -45,7 +45,7 @@ export function BarraEmpilhada({
   const visiveis = partes.filter((p) => p.valor > 0);
   return (
     <div className="flex flex-col gap-2">
-      <h3 className="text-xs font-bold tracking-[0.8px] text-tinta-3">{titulo}</h3>
+      <h3 className="text-xs font-bold uppercase tracking-[0.8px] text-tinta-3">{titulo}</h3>
       <div className="flex h-3 overflow-hidden rounded-md bg-creme-2" aria-hidden>
         {visiveis.map((p) => (
           <span

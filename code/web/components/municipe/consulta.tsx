@@ -348,7 +348,7 @@ function ResultadoPublico({
   return (
     <section className="flex flex-col gap-5" aria-labelledby="resultado">
       <TituloSecao id="resultado">O resultado</TituloSecao>
-      <p className="text-[15px] text-tinta-2">{r.total} pessoas participaram.</p>
+      <p className="text-[15px] text-tinta-2">{r.total === 1 ? "1 pessoa participou." : `${r.total} pessoas participaram.`}</p>
       {r.perguntas.map((p) => (
         <div key={p.id} className="flex flex-col gap-3 rounded-2xl border border-linha bg-papel p-5">
           <p className="text-[17px] font-bold text-tinta">{p.texto}</p>

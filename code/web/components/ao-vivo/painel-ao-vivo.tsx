@@ -193,7 +193,7 @@ export function PainelAoVivo() {
             aCarregar={lista.aCarregar && !lista.dados}
             erro={lista.erro}
             vazio={!conversas.length}
-            textoVazio="Não há chamadas web nem chats a decorrer. Quando alguém ligar pelo /ligar, aparece aqui."
+            textoVazio="Não há chamadas web nem chats a decorrer. Quando alguém ligar ou escrever no chat, aparece aqui."
           >
             <ul className="divide-y divide-linha">
               {conversas.map((c) => (

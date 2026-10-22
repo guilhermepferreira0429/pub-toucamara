@@ -328,7 +328,7 @@ export class EmergenciasService {
     const o = this.operadores();
     const c = this.cellBroadcast();
     const falta =
-      'Para ser real: acordo com a ANEPC / operadores (base legal e acordo de tratamento de dados), o serviço deles e as credenciais. Ver docs/CREDENCIAIS_EXTERNAS.md.';
+      'Para ser real: acordo com a ANEPC / operadores (base legal e acordo de tratamento de dados), o serviço deles e as credenciais, que a equipa Tou, Câmara? configura.';
     return {
       operadores: {
         modo: o.modo,

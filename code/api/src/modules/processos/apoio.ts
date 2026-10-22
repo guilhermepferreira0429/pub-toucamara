@@ -428,6 +428,73 @@ export interface TrechoRegulamento {
   /** Quando a versão da fonte foi lida ('AAAA-MM-DD'). */
   data: string | null;
   origem: 'base_legal' | 'pesquisa';
+  /** O tipo da fonte ('lei', 'regulamento', 'turismo'…), quando se sabe. */
+  tipo_fonte?: string | null;
+}
+
+/** Trechos mostrados ao técnico no máximo (os mais aplicáveis primeiro). */
+export const MAX_TRECHOS_APOIO = 3;
+
+/** Fontes que nunca são regulamento de um processo. */
+const TIPOS_FONTE_FORA = new Set(['turismo', 'contactos']);
+
+/**
+ * Assuntos com regulamento próprio: uma fonte cujo título fala de um destes
+ * só se aplica a processos que também falam dele. Assim uma ampliação de
+ * moradia não recebe o Regulamento das esplanadas só porque partilham
+ * palavras como "obras" ou "licença". Raízes sem acentos e em minúsculas.
+ */
+const DOMINIOS: string[][] = [
+  ['esplanad'],
+  ['ruido', 'ruidos'],
+  ['publicidad', 'anuncio', 'reclamo'],
+  ['feira', 'mercado', 'venda ambulante'],
+  ['cemiter', 'sepultur', 'jazig', 'ossari'],
+  ['residuo', 'lixo', 'recolha de monos'],
+  ['estacionament', 'parquimetr'],
+  ['animai', 'animal', 'canil', 'canin'],
+  ['taxi'],
+  ['abastecimento de agua', 'saneamento', 'aguas residuais'],
+  ['espetacul', 'divertiment', 'arraial'],
+  ['turism', 'alojamento local'],
+];
+
+function semAcentos(t: string): string {
+  return t
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+}
+
+function dominiosDe(texto: string): Set<number> {
+  const t = semAcentos(texto);
+  const r = new Set<number>();
+  DOMINIOS.forEach((raizes, i) => {
+    if (raizes.some((x) => t.includes(x))) r.add(i);
+  });
+  return r;
+}
+
+/**
+ * Só os trechos que se aplicam ao processo, no máximo `max`. A base legal
+ * definida pela câmara para o tipo fica sempre (é a regra que a câmara
+ * escolheu). Os da pesquisa saem quando são de turismo ou contactos, ou
+ * quando a fonte é de um assunto com regulamento próprio (esplanadas,
+ * ruído, publicidade…) de que o processo não fala. `processo` é o tipo,
+ * o serviço, o assunto e a descrição do requerimento, em texto.
+ */
+export function trechosAplicaveis<
+  T extends Pick<TrechoRegulamento, 'fonte' | 'origem' | 'tipo_fonte'>,
+>(trechos: T[], processo: string, max = MAX_TRECHOS_APOIO): T[] {
+  const doProcesso = dominiosDe(processo);
+  const r = trechos.filter((t) => {
+    if (t.origem === 'base_legal') return true;
+    if (t.tipo_fonte && TIPOS_FONTE_FORA.has(t.tipo_fonte)) return false;
+    const daFonte = dominiosDe(t.fonte);
+    for (const d of daFonte) if (!doProcesso.has(d)) return false;
+    return true;
+  });
+  return r.slice(0, max);
 }
 
 export interface Destaque {

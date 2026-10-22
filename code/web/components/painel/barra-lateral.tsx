@@ -98,7 +98,7 @@ export const SECCOES: Seccao[] = [
     ],
   },
   {
-    titulo: "ATENDIMENTO",
+    titulo: "Atendimento",
     itens: [
       {
         rotulo: "Conversas",
@@ -159,7 +159,7 @@ export const SECCOES: Seccao[] = [
     ],
   },
   {
-    titulo: "PROCESSOS",
+    titulo: "Processos",
     itens: [
       {
         rotulo: "Processos",
@@ -220,7 +220,7 @@ export const SECCOES: Seccao[] = [
     ],
   },
   {
-    titulo: "SERVIÇOS",
+    titulo: "Serviços",
     itens: [
       {
         rotulo: "Escolas",
@@ -267,7 +267,7 @@ export const SECCOES: Seccao[] = [
     ],
   },
   {
-    titulo: "GESTÃO",
+    titulo: "Gestão",
     itens: [
       {
         rotulo: "Indicadores",
@@ -455,7 +455,7 @@ export function BarraLateral({ contagens = {} }: { contagens?: Contagens }) {
             <div key={i} className="flex flex-col gap-0.5">
               {s.titulo && (
                 <div className="flex items-center justify-between px-3 pb-1.5">
-                  <span className="text-[11px] font-bold text-tinta-3">
+                  <span className="text-[11px] font-bold uppercase text-tinta-3">
                     {s.titulo}
                   </span>
                   {trancada && (

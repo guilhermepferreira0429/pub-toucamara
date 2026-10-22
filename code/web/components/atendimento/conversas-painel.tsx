@@ -19,9 +19,9 @@ const FILTROS: { valor: Filtro; rotulo: string }[] = [
 function grupo(iso: string, fuso: string): string {
   const dia = new Date(iso).toLocaleDateString("sv-SE", { timeZone: fuso });
   const hoje = hojeNoFuso(fuso);
-  if (dia === hoje) return "HOJE";
-  if (dia === somarDias(hoje, -1)) return "ONTEM";
-  return quando(iso, fuso, false).toUpperCase();
+  if (dia === hoje) return "Hoje";
+  if (dia === somarDias(hoje, -1)) return "Ontem";
+  return quando(iso, fuso, false);
 }
 
 /**
@@ -112,7 +112,7 @@ export function ConversasPainel({ ativa }: { ativa: string }) {
 
       {grupos.map((g, gi) => (
         <section key={`${g.nome}-${gi}`} aria-label={g.nome}>
-          <h2 className="px-5 pb-1.5 pt-4 text-[11px] font-bold tracking-[1px] text-tinta-3">
+          <h2 className="px-5 pb-1.5 pt-4 text-[11px] font-bold uppercase tracking-[1px] text-tinta-3">
             {g.nome}
           </h2>
           <ul>

@@ -131,7 +131,7 @@ export class ClaudeService {
       throw new ErroApi(
         HttpStatus.SERVICE_UNAVAILABLE,
         'ia_indisponivel',
-        'IA não configurada (ANTHROPIC_API_KEY).',
+        'O assistente de IA não está ligado nesta instalação.',
       );
     }
     return this.cliente;

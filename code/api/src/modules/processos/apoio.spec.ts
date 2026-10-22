@@ -13,6 +13,7 @@ import {
   semNif,
   smsComLink,
   TrechoRegulamento,
+  trechosAplicaveis,
 } from './apoio.js';
 import { gerarPdfOficio } from './oficio-pdf.js';
 
@@ -208,6 +209,68 @@ describe('juntarTrechos', () => {
   it('respeita o máximo', () => {
     const l = [trecho('a', '1'), trecho('b', '2'), trecho('c', '3')];
     expect(juntarTrechos([l], 2)).toHaveLength(2);
+  });
+});
+
+describe('trechosAplicaveis', () => {
+  const ampliacao =
+    'CP Comunicação prévia · obras de alteração. Ampliação da moradia (1.º andar)';
+  const esplanada = (id: string) =>
+    trecho(id, 'Artigo 2.º A instalação de esplanada aberta…', {
+      fonte: 'Regulamento das esplanadas abertas (texto de demonstração)',
+      tipo_fonte: 'regulamento',
+    });
+
+  it('tira as esplanadas de uma ampliação de moradia e fica com o RJUE', () => {
+    const l = [
+      esplanada('e1'),
+      trecho('r1', 'Estão sujeitas a comunicação prévia as obras…'),
+      esplanada('e2'),
+      trecho('r2', 'Estão isentas de controlo prévio…'),
+    ];
+    expect(trechosAplicaveis(l, ampliacao).map((t) => t.trecho_id)).toEqual([
+      'r1',
+      'r2',
+    ]);
+  });
+
+  it('mantém as esplanadas num processo de esplanada', () => {
+    const l = [esplanada('e1'), trecho('r1', 'RJUE')];
+    expect(
+      trechosAplicaveis(l, 'ESP Licença de esplanada. Esplanada · Café').map(
+        (t) => t.trecho_id,
+      ),
+    ).toEqual(['e1', 'r1']);
+  });
+
+  it('a base legal fica sempre; turismo e contactos nunca; no máximo 3', () => {
+    const l = [
+      { ...esplanada('base'), origem: 'base_legal' as const },
+      trecho('t', 'Visite o castelo', { tipo_fonte: 'turismo' }),
+      trecho('c', 'Telefone 253…', { tipo_fonte: 'contactos' }),
+      trecho('r1', 'a'),
+      trecho('r2', 'b'),
+      trecho('r3', 'c'),
+    ];
+    expect(trechosAplicaveis(l, ampliacao).map((t) => t.trecho_id)).toEqual([
+      'base',
+      'r1',
+      'r2',
+    ]);
+  });
+
+  it('sem nada aplicável devolve a lista vazia', () => {
+    expect(trechosAplicaveis([esplanada('e1')], ampliacao)).toEqual([]);
+  });
+
+  it('o ruído não entra numa obra, mas entra numa licença de ruído', () => {
+    const r = trecho('ru', 'Atividades ruidosas temporárias…', {
+      fonte: 'Regulamento Geral do Ruído',
+    });
+    expect(trechosAplicaveis([r], ampliacao)).toEqual([]);
+    expect(
+      trechosAplicaveis([r], 'LER Licença especial de ruído. Arraial'),
+    ).toHaveLength(1);
   });
 });
 
