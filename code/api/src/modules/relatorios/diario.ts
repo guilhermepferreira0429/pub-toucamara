@@ -677,7 +677,8 @@ function numerosDe(v: unknown, r = new Set<number>()): Set<number> {
 export function numerosConferem(texto: string, dados: unknown): boolean {
   const validos = numerosDe(dados);
   [24, 7, 1].forEach((x) => validos.add(x));
-  const achados = texto.match(/\d+(?:[\u00a0\u202f .]\d{3})*(?:,\d+)?/g) ?? [];
+  const achados: string[] =
+    texto.match(/\d+(?:[\u00a0\u202f .]\d{3})*(?:,\d+)?/g) ?? [];
   return achados.every((s) => {
     const v = Number(s.replace(/[\u00a0\u202f .]/g, '').replace(',', '.'));
     return validos.has(Math.round(v * 10) / 10);
