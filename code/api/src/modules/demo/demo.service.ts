@@ -15,6 +15,10 @@ import {
   esquemaEvento,
 } from '../agora/agora.publicacoes.js';
 import { PassagensService } from '../atendimento/passagens.service.js';
+import {
+  AntecipacoesDemoService,
+  PROCESSOS_ANTECIPACAO,
+} from '../antecipacoes/antecipacoes.demo.js';
 import { ArmazenamentoService } from '../armazenamento/armazenamento.service.js';
 import { AuditoriaService } from '../auditoria/auditoria.service.js';
 import {
@@ -165,6 +169,12 @@ export function passosDemo(): Passo[] {
         'documento_simples:esplanadas',
         'glossario',
       ],
+    },
+    {
+      passo: 'antecipacoes',
+      rotulo:
+        'Antecipações: pedido a acabar, prazo da câmara a acabar, obra perto de caducar',
+      chaves: PROCESSOS_ANTECIPACAO.map((p) => p.chave),
     },
     {
       passo: 'balcao',
@@ -508,6 +518,7 @@ export class DemoService {
       ['agora', () => this.agora(ctx)],
       ['linguagem_simples', () => this.linguagemSimples(ctx)],
       ['balcao', () => this.balcao(ctx)],
+      ['antecipacoes', () => this.antecipacoes(ctx)],
     ];
     for (const [nome, correr] of passos) {
       try {
@@ -981,6 +992,23 @@ export class DemoService {
     });
     c.contar('processos');
     return id;
+  }
+
+  /** Processos com momentos nos próximos dias (módulo antecipacoes). */
+  private async antecipacoes(c: Preparacao) {
+    const svc = this.svc(AntecipacoesDemoService);
+    for (const p of PROCESSOS_ANTECIPACAO) {
+      await this.umaVez(c.m, p.chave, 'processo', async () => {
+        const id = await svc.criar(
+          c.m,
+          p.chave,
+          c.pessoa(p.pessoa).id,
+          c.agora,
+        );
+        if (id) c.contar('processos');
+        return id;
+      });
+    }
   }
 
   private async ocorrencias(c: Preparacao) {

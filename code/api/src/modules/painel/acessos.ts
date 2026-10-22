@@ -178,6 +178,10 @@ const VERBOS: Record<string, string> = {
   editar_termo_glossario: 'editou',
   apagar_termo_glossario: 'apagou',
   carregar_glossario_demonstracao: 'carregou os termos de demonstração',
+  configurar_antecipacoes: 'mudou as antecedências',
+  correr_antecipacoes: 'correu agora a verificação',
+  alertar_prazo_camara: 'alertou a chefia do prazo da câmara em',
+  abrir_audiencia_previa: 'abriu a audiência prévia em',
 };
 
 const OBJETOS: Record<string, string> = {
@@ -240,6 +244,7 @@ const OBJETOS: Record<string, string> = {
   documento_simples: 'um documento oficial (linguagem simples)',
   termo_glossario: 'um termo do glossário',
   glossario: 'do glossário',
+  antecipacao_config: 'das antecipações',
 };
 
 export function frase(acao: string, objetoTipo: string): string {

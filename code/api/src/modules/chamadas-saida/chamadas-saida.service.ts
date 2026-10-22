@@ -412,7 +412,9 @@ export class ChamadasSaidaService {
       }
       if (
         c.respondido &&
-        (c.motivo === 'pedido_documento' || c.motivo === 'lembrete_prazo')
+        (c.motivo === 'pedido_documento' ||
+          c.motivo === 'lembrete_prazo' ||
+          c.motivo === 'antecipacao')
       ) {
         await this.terminar(tx, c, 'cancelada', 'O pedido já foi respondido.');
         // O pedido tem de ficar por escrito; o lembrete já não faz falta.

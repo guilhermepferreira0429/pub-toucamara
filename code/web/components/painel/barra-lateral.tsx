@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  AlarmClock,
   BadgeCheck,
   BookOpen,
   Bot,
@@ -167,6 +168,12 @@ const SECCOES: Seccao[] = [
         rotulo: "Licenças",
         href: "/painel/licencas",
         icone: BadgeCheck,
+        recurso: "processos",
+      },
+      {
+        rotulo: "Antecipações",
+        href: "/painel/antecipacoes",
+        icone: AlarmClock,
         recurso: "processos",
       },
       {
