@@ -489,6 +489,8 @@ export interface Verificacoes {
   /** Ausente nas respostas antigas. */
   perfil?: InfoPerfil;
   pronto_para_decisao?: boolean;
+  /** Quantas vêm da IA (ou de uma simulação) e o técnico confirma. Ausente nas respostas antigas. */
+  a_confirmar?: number;
   gerado_em: string;
   gerado_por: { id: string; nome: string | null } | null;
   leitura_ia_em: string | null;

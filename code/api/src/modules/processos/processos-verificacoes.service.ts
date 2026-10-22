@@ -32,21 +32,23 @@ import {
   ficheiroDemonstracao,
   PREFIXO_DEMONSTRACAO,
 } from './projeto-demonstracao-pdf.js';
+import { analisarPdf } from './analise-pdf.js';
 import {
+  aConfirmar,
   contagem,
-  conteudoLeitura,
   DocumentoLido,
   esquemaLeituraProjeto,
+  FicheiroCandidato,
   interpretarLeitura,
   juntarVerificacoes,
   leituraNaoVerificavel,
-  MAX_BYTES_IA,
   MAX_FICHEIROS_IA,
   obraDoProcesso,
   OpcoesLeitura,
+  pedidoLeituraProjeto,
   PROJETO,
   ResultadoLeitura,
-  SISTEMA_LEITURA_PROJETO,
+  selecionarParaLeitura,
   TERMO,
   Verificacao,
   VERIFICADOR_ORDEM,
@@ -221,6 +223,8 @@ export class ProcessosVerificacoesService {
       perfil: infoPerfil(escolha),
       /** Tudo verificado sem falhas nem avisos (o que vem da IA confirma-se na mesma). */
       pronto_para_decisao: prontoParaDecisao(l.resultado),
+      /** Quantas vêm da IA (ou de uma simulação) e o técnico confirma: a IA nunca aprova sozinha. */
+      a_confirmar: aConfirmar(l.resultado),
       gerado_em: l.gerado_em,
       gerado_por: l.gerado_por
         ? { id: l.gerado_por, nome: l.gerado_por_nome }
@@ -570,9 +574,11 @@ export class ProcessosVerificacoesService {
         'A IA não está configurada nesta instalação: a leitura do projeto fica por fazer.',
       );
     }
-    const ficheiros: { nome: string; ficheiro: Buffer; mime: MimeVisao }[] = [];
-    const usados: DocumentoDoProcesso[] = [];
-    let bytes = 0;
+    // Abrir os ficheiros e ver o que são (páginas, texto ou só imagem).
+    const candidatos: FicheiroCandidato<{
+      doc: DocumentoDoProcesso;
+      ficheiro: Buffer;
+    }>[] = [];
     const falhas: string[] = [];
     for (const x of lidos) {
       let ficheiro: Buffer | null = null;
@@ -591,42 +597,57 @@ export class ProcessosVerificacoesService {
         falhas.push(nomeDoc(x));
         continue;
       }
-      if (bytes + ficheiro.length > MAX_BYTES_IA) {
-        falhas.push(`${nomeDoc(x)} (grande demais)`);
-        continue;
-      }
-      bytes += ficheiro.length;
-      ficheiros.push({
+      candidatos.push({
+        item: { doc: x, ficheiro },
         nome: nomeDoc(x),
-        ficheiro,
-        mime: x.mime as MimeVisao,
+        mime: x.mime,
+        tamanho: ficheiro.length,
+        analise: x.mime === 'application/pdf' ? analisarPdf(ficheiro) : null,
       });
-      usados.push(x);
     }
-    if (!ficheiros.length) {
+    // Sem passar os limites de páginas e de bytes de um pedido (o resto fica por ler, dito).
+    const selecao = selecionarParaLeitura(candidatos);
+    falhas.push(...selecao.por_ler);
+    const usados = selecao.usados.map((u) => ({
+      ...u.item,
+      paginas: u.paginas,
+      digitalizado: u.digitalizado,
+    }));
+    if (!usados.length) {
       return sem(
-        this.armazenamento.disponivel
-          ? 'Não foi possível abrir os ficheiros do projeto.'
-          : 'Sem armazenamento configurado: não há como abrir os ficheiros do projeto.',
+        selecao.por_ler.length
+          ? `A IA não pode ler os ficheiros do projeto: ${selecao.por_ler.join('; ')}.`
+          : this.armazenamento.disponivel
+            ? 'Não foi possível abrir os ficheiros do projeto.'
+            : 'Sem armazenamento configurado: não há como abrir os ficheiros do projeto.',
       );
     }
+    const docsLidos: DocumentoLido[] = usados.map((u) => ({
+      ...paraLido(u.doc),
+      paginas: u.paginas,
+      digitalizado: u.digitalizado,
+    }));
     try {
-      const bruto = await this.claude.extrair(esquemaLeituraProjeto, {
-        sistema: SISTEMA_LEITURA_PROJETO,
-        esforco: 'medium',
-        maxTokens: 8000,
-        ficheiros,
-        conteudo: conteudoLeitura({
+      const bruto = await this.claude.extrair(
+        esquemaLeituraProjeto,
+        pedidoLeituraProjeto({
           tipo: d.tipo.nome,
           assunto: d.assunto,
           descricao,
-          documentos: usados.map((x) => ({ nome: nomeDoc(x), mime: x.mime })),
+          ficheiros: usados.map((u) => ({
+            nome: nomeDoc(u.doc),
+            ficheiro: u.ficheiro,
+            mime: u.doc.mime as MimeVisao,
+            paginas: u.paginas,
+            digitalizado: u.digitalizado,
+          })),
           perfil: perfil ? pedidoDoPerfil(perfil) : null,
+          por_ler: falhas,
         }),
-      });
+      );
       const leitura = interpretarLeitura(
         bruto,
-        usados.map(paraLido),
+        docsLidos,
         opcoesLeitura(perfil),
       );
       if (falhas.length) {
@@ -640,7 +661,7 @@ export class ProcessosVerificacoesService {
       // documentos pela ordem em que foram (as referências são por número).
       const valida = esquemaLeituraProjeto.safeParse(bruto).success;
       const guardar: LeituraGuardada = {
-        documentos: usados.map(paraLido),
+        documentos: docsLidos,
         resposta: bruto,
         perfil,
       };
@@ -655,6 +676,8 @@ export class ProcessosVerificacoesService {
           ia_resposta_cortada:
             'A resposta da IA veio cortada: tente gerar outra vez.',
           ia_recusou: 'A IA recusou ler estes documentos.',
+          ia_erro:
+            'O pedido à IA falhou (os ficheiros podem ser grandes ou estar danificados): tente outra vez ou confirme os documentos.',
         };
         return sem(motivo[e.codigo] ?? 'A leitura do projeto pela IA falhou.');
       }

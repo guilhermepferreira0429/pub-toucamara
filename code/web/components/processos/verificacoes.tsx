@@ -452,7 +452,11 @@ export function BlocoVerificacoes({
               <CheckCheck className="mt-0.5 size-4 shrink-0" aria-hidden />
               <p className="flex flex-col text-xs">
                 <span className="font-bold">Pronto para decisão</span>
-                <span>Tudo verificado; o que vem da IA confirma-se na mesma.</span>
+                <span>
+                  {d.a_confirmar
+                    ? `Tudo verificado; ${d.a_confirmar === 1 ? "1 ponto vem" : `${d.a_confirmar} pontos vêm`} da IA e confirma-se na mesma (a IA não aprova).`
+                    : "Tudo verificado; o que vem da IA confirma-se na mesma."}
+                </span>
               </p>
             </div>
           )}

@@ -8,6 +8,7 @@ import {
 import {
   esquemaLeituraProjeto,
   LeituraProjeto,
+  VERSAO_VERIFICACOES,
 } from '../../src/modules/processos/verificacoes';
 import {
   arrancarApp,
@@ -219,7 +220,7 @@ describe('Verificações automáticas (apoio ao técnico)', () => {
       '%PDF-',
     );
     expect(ia.leituras[0].conteudo).toContain(
-      '1. Projeto de arquitetura (PDF)',
+      '1. Projeto de arquitetura (PDF, 3 páginas)',
     );
 
     const aud = await linha(
@@ -229,7 +230,7 @@ describe('Verificações automáticas (apoio ao técnico)', () => {
     );
     expect(aud.dados).toMatchObject({
       leitura_ia: 'nova',
-      versao_motor: '2',
+      versao_motor: VERSAO_VERIFICACOES,
       perfil: 'interior',
     });
   });

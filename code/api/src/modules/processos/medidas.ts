@@ -93,8 +93,19 @@ export const CODIGOS_GRANDEZA = Object.keys(GRANDEZAS) as [
 
 export type Unidade = (typeof GRANDEZAS)[Grandeza]['unidade'];
 
-/** As unidades que a IA pode devolver (cm converte-se para m). */
-export const UNIDADES_LIDAS = ['m2', 'm', 'cm', 'pisos', 'lugares'] as const;
+/**
+ * As unidades que a IA pode devolver: cm e mm convertem-se para m, ha para
+ * m². Percentagens e índices não são medidas: não se aceitam.
+ */
+export const UNIDADES_LIDAS = [
+  'm2',
+  'm',
+  'cm',
+  'mm',
+  'ha',
+  'pisos',
+  'lugares',
+] as const;
 export type UnidadeLida = (typeof UNIDADES_LIDAS)[number];
 
 const UNIDADE_DITA: Record<Unidade, string> = {
@@ -122,19 +133,115 @@ export function unidadeDita(g: Grandeza): string {
 }
 
 /**
+ * Um número escrito à portuguesa ou não: 1.5, '1,5', '1 234,5', '1.234,56'.
+ * Ambíguo ('1.500': mil e quinhentos ou um e meio?) → null, para não
+ * adivinhar.
+ */
+function numeroEscrito(t: string): number | null {
+  const s = t.replace(/[\s\u00a0]/g, '');
+  if (!/^-?\d[\d.,]*$/.test(s)) return null;
+  let n: string;
+  if (s.includes('.') && s.includes(',')) {
+    // O último separador é o decimal; o outro, o dos milhares.
+    const dec = s.lastIndexOf(',') > s.lastIndexOf('.') ? ',' : '.';
+    const mil = dec === ',' ? '.' : ',';
+    const [int, frac, ...resto] = s.split(dec);
+    if (resto.length || !/^-?\d{1,3}(\d{3})*$/.test(int.split(mil).join('')))
+      return null;
+    if (
+      !int
+        .split(mil)
+        .slice(1)
+        .every((g) => g.length === 3)
+    )
+      return null;
+    n = `${int.split(mil).join('')}.${frac}`;
+  } else if (/^-?\d{1,3}([.,]\d{3}){2,}$/.test(s)) {
+    n = s.replace(/[.,]/g, ''); // 1.234.567
+  } else if (/^-?\d{1,3}\.\d{3}$/.test(s)) {
+    return null; // '1.500': ambíguo
+  } else if (/^-?\d+([.,]\d+)?$/.test(s)) {
+    n = s.replace(',', '.');
+  } else return null;
+  const v = Number(n);
+  return Number.isFinite(v) ? v : null;
+}
+
+/** As unidades escritas no requerimento, normalizadas. */
+const UNIDADE_ESCRITA: [RegExp, UnidadeLida][] = [
+  [/^(m²|m2|metros?quadrados?)$/i, 'm2'],
+  [/^(ha|hectares?)$/i, 'ha'],
+  [/^(m|mts?|metros?)$/i, 'm'],
+  [/^(cm|cent[ií]metros?)$/i, 'cm'],
+  [/^(mm|mil[ií]metros?)$/i, 'mm'],
+  [/^pisos?$/i, 'pisos'],
+  [/^lugar(es)?$/i, 'lugares'],
+];
+
+/** O número e a unidade escrita ('1,5 m' → 1,5 e m); null se não se percebe. */
+function numeroEUnidade(
+  x: unknown,
+): { n: number; unidade: UnidadeLida | null } | null {
+  if (typeof x === 'number') {
+    return Number.isFinite(x) ? { n: x, unidade: null } : null;
+  }
+  if (typeof x !== 'string') return null;
+  const m =
+    /^\s*(-?[\d][\d\s\u00a0.,]*?)\s*([a-zA-Z²%][a-zA-Z0-9²\s]*)?\s*$/.exec(x);
+  if (!m) return null;
+  const n = numeroEscrito(m[1]);
+  if (n === null) return null;
+  const u = m[2]?.replace(/\s+/g, '') ?? '';
+  if (!u) return { n, unidade: null };
+  const achada = UNIDADE_ESCRITA.find(([re]) => re.test(u));
+  return achada ? { n, unidade: achada[1] } : null;
+}
+
+/**
  * Um número do requerimento: 1.5, '1,5', '1,5 m', '165 m²'. null se não é
  * um número.
  */
 export function lerNumero(x: unknown): number | null {
-  if (typeof x === 'number') return Number.isFinite(x) ? x : null;
-  if (typeof x !== 'string') return null;
-  const m =
-    /^\s*(-?\d{1,7}(?:[.,]\d+)?)\s*(m²|m2|m|metros|pisos?|lugares?)?\s*$/i.exec(
-      x,
-    );
-  if (!m) return null;
-  const n = Number(m[1].replace(',', '.'));
-  return Number.isFinite(n) ? n : null;
+  return numeroEUnidade(x)?.n ?? null;
+}
+
+/** Converte um valor na unidade lida para a unidade da grandeza (null se não dá). */
+function converter(
+  g: Grandeza,
+  valor: number,
+  unidade: UnidadeLida,
+): number | null {
+  const u = GRANDEZAS[g].unidade;
+  const fator =
+    unidade === u
+      ? 1
+      : u === 'm' && unidade === 'cm'
+        ? 0.01
+        : u === 'm' && unidade === 'mm'
+          ? 0.001
+          : u === 'm2' && unidade === 'ha'
+            ? 10_000
+            : null;
+  if (fator === null) return null;
+  // Sem restos de vírgula flutuante (125 cm → 1,25 m, não 1,2500000000000002).
+  return Math.round(valor * fator * 1e6) / 1e6;
+}
+
+/**
+ * Um valor declarado no requerimento para a grandeza, na unidade dela: '150
+ * cm' → 1,5 m; '0,05 ha' → 500 m². Uma unidade que não é desta grandeza ('3
+ * m²' num afastamento) ou um valor fora do intervalo plausível → null (fica
+ * "por verificar", nunca se adivinha).
+ */
+export function lerMedida(g: Grandeza, x: unknown): number | null {
+  const r = numeroEUnidade(x);
+  if (!r) return null;
+  const v = r.unidade ? converter(g, r.n, r.unidade) : r.n;
+  if (v === null) return null;
+  const def = GRANDEZAS[g];
+  if (v < def.min || v > def.max) return null;
+  if (def.inteiro && !Number.isInteger(v)) return null;
+  return v;
 }
 
 export type Plausibilidade =
@@ -150,12 +257,11 @@ export function medicaoPlausivel(
   unidade: UnidadeLida,
 ): Plausibilidade {
   const def = GRANDEZAS[g];
-  let v = valor;
-  if (unidade === 'cm' && def.unidade === 'm') v = valor / 100;
-  else if (unidade !== def.unidade) {
+  const v = converter(g, valor, unidade);
+  if (v === null) {
     return {
       ok: false,
-      motivo: `${def.rotulo}: a IA leu em ${unidade}, esperava-se ${UNIDADE_DITA[def.unidade]}`,
+      motivo: `${def.rotulo}: a IA leu em ${unidade === 'm2' ? 'm²' : unidade}, esperava-se ${UNIDADE_DITA[def.unidade]}`,
     };
   }
   if (!Number.isFinite(v) || v < def.min || v > def.max) {
