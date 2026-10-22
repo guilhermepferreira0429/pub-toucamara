@@ -29,7 +29,8 @@ export type MotivoMensagem =
   | 'familiar'
   | 'resposta_sms'
   | 'apoio'
-  | 'carta';
+  | 'carta'
+  | 'atestado';
 
 /**
  * Confirmações que, numa chamada em curso, esperam pelo SMS do fim (que já as

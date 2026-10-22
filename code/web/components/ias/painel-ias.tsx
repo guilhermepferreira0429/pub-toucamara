@@ -144,7 +144,7 @@ export function PainelIas() {
           nota="ocorrências, marcações, requerimentos…"
         />
         <Numero
-          rotulo="Consultas sem chave"
+          rotulo="Consultas anónimas"
           valor={r?.publicos_7d}
           icone={Eye}
           nota="só informação pública, 7 dias"
@@ -163,7 +163,7 @@ export function PainelIas() {
             aCarregar={feed.aCarregar}
             erro={feed.erro}
             vazio={feed.dados?.pedidos.length === 0}
-            textoVazio="Ainda nenhum assistente falou com a câmara. Ligue um em /ia e peça-lhe alguma coisa."
+            textoVazio="Ainda nenhum assistente falou com a câmara. Quando alguém ligar o seu assistente na página de autorização, os pedidos aparecem aqui."
           >
             {feed.dados && <Feed pedidos={feed.dados.pedidos} />}
           </Estado>
@@ -279,7 +279,7 @@ function Feed({ pedidos }: { pedidos: PedidoIa[] }) {
                     {p.ligacao.assistente ?? nomeCliente(p.cliente)} · {p.ligacao.telefone}
                   </Pilula>
                 ) : (
-                  <Pilula tom="neutro">sem chave</Pilula>
+                  <Pilula tom="neutro">anónima</Pilula>
                 )}
               </div>
               {p.resumo && <p className="text-[13px] text-tinta-2">{p.resumo}</p>}
@@ -305,19 +305,36 @@ function Feed({ pedidos }: { pedidos: PedidoIa[] }) {
   );
 }
 
+function ehLocal(url: string): boolean {
+  try {
+    const h = new URL(url).hostname;
+    return h === "localhost" || h === "127.0.0.1" || h === "::1" || h.endsWith(".local");
+  } catch {
+    return true;
+  }
+}
+
 function EnderecoPublico({ caminho }: { caminho?: string }) {
   const [copiado, setCopiado] = useState(false);
-  const url = caminho ? urlApi(caminho) : "";
+  const completo = caminho ? urlApi(caminho) : "";
+  // Um endereço local (localhost, 127.0.0.1) não serve a ninguém fora deste
+  // computador: mostra-se "por publicar" em vez dele.
+  const url = completo && !ehLocal(completo) ? completo : "";
   return (
     <Cartao className="flex flex-col gap-3 p-5">
       <Rotulo>Endereço público da câmara</Rotulo>
       <p className="text-[13px] text-tinta-2">
         Qualquer assistente pode consultar a informação oficial por aqui. Para
-        agir em nome de alguém, a pessoa autoriza em <span className="font-semibold">/ia</span>.
+        agir em nome de alguém, a pessoa autoriza na página de autorização.
       </p>
-      <code className="rounded-[10px] bg-creme px-3 py-2 font-mono text-xs break-all text-tinta">
-        {url || "—"}
-      </code>
+      {url ? (
+        <code className="rounded-[10px] bg-creme px-3 py-2 font-mono text-xs break-all text-tinta">{url}</code>
+      ) : (
+        <p className="rounded-[10px] bg-creme px-3 py-2 text-[13px] text-tinta-2">
+          <span className="font-semibold text-tinta">Por publicar.</span> O endereço aparece aqui quando
+          o serviço estiver no ar, no domínio da câmara.
+        </p>
+      )}
       <div className="flex gap-2">
         <Botao
           tamanho="pequeno"
@@ -339,7 +356,7 @@ function EnderecoPublico({ caminho }: { caminho?: string }) {
           rel="noreferrer"
           className="inline-flex h-8 items-center rounded-full px-3 text-[13px] font-semibold text-tinta-2 hover:bg-creme-2"
         >
-          Abrir /ia
+          Abrir a página de autorização
         </a>
       </div>
     </Cartao>
@@ -398,62 +415,64 @@ function Ligacoes({
         vazio={ligacoes?.length === 0}
         textoVazio="Ainda ninguém ligou o seu assistente."
       >
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="text-left text-[11px] font-bold tracking-[0.4px] text-tinta-3 uppercase">
-              <th className="px-5 py-2.5">Assistente</th>
-              <th className="px-3 py-2.5">Munícipe</th>
-              <th className="px-3 py-2.5">Pedidos</th>
-              <th className="px-3 py-2.5">Último uso</th>
-              <th className="px-3 py-2.5">Estado</th>
-              <th className="px-5 py-2.5" />
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-linha">
-            {(ligacoes ?? []).map((l) => (
-              <tr key={l.id} className={l.ativa ? "" : "text-tinta-3"}>
-                <td className="px-5 py-3">
-                  <span className="font-semibold text-tinta">{l.assistente}</span>
-                  <span className="ml-2 font-mono text-xs text-tinta-3">…{l.chave_fim}</span>
-                </td>
-                <td className="px-3 py-3">
-                  {l.municipe.nome ? `${l.municipe.nome} · ` : ""}
-                  {l.municipe.telefone}
-                </td>
-                <td className="px-3 py-3">{numero(l.pedidos)}</td>
-                <td className="px-3 py-3">{quando(l.ultimo_uso_em)}</td>
-                <td className="px-3 py-3">
-                  {l.ativa ? (
-                    <Pilula tom="verde">ligado</Pilula>
-                  ) : (
-                    <Pilula tom="neutro">
-                      desligado {l.revogada_por === "camara" ? "pela câmara" : "pela pessoa"}
-                    </Pilula>
-                  )}
-                </td>
-                <td className="px-5 py-3 text-right">
-                  {l.ativa && pode("agente") && (
-                    <Botao
-                      tamanho="pequeno"
-                      variante="discreto"
-                      icone={Unplug}
-                      disabled={acao.aCorrer}
-                      onClick={async () => {
-                        if (!window.confirm(`Desligar o ${l.assistente} desta pessoa?`)) return;
-                        const ok = await acao.executar(() =>
-                          pedido(`/v1/painel/ias/ligacoes/${l.id}/revogar`, { metodo: "POST" }),
-                        );
-                        if (ok !== undefined) onMudou();
-                      }}
-                    >
-                      Desligar
-                    </Botao>
-                  )}
-                </td>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-left text-[11px] font-bold tracking-[0.4px] text-tinta-3 uppercase">
+                <th className="px-5 py-2.5">Assistente</th>
+                <th className="px-3 py-2.5">Munícipe</th>
+                <th className="px-3 py-2.5">Pedidos</th>
+                <th className="px-3 py-2.5">Último uso</th>
+                <th className="px-3 py-2.5">Estado</th>
+                <th className="px-5 py-2.5" />
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-linha">
+              {(ligacoes ?? []).map((l) => (
+                <tr key={l.id} className={l.ativa ? "" : "text-tinta-3"}>
+                  <td className="px-5 py-3">
+                    <span className="font-semibold text-tinta">{l.assistente}</span>
+                    <span className="ml-2 font-mono text-xs text-tinta-3">…{l.chave_fim}</span>
+                  </td>
+                  <td className="px-3 py-3">
+                    {l.municipe.nome ? `${l.municipe.nome} · ` : ""}
+                    {l.municipe.telefone}
+                  </td>
+                  <td className="px-3 py-3">{numero(l.pedidos)}</td>
+                  <td className="px-3 py-3">{quando(l.ultimo_uso_em)}</td>
+                  <td className="px-3 py-3">
+                    {l.ativa ? (
+                      <Pilula tom="verde">ligado</Pilula>
+                    ) : (
+                      <Pilula tom="neutro">
+                        desligado {l.revogada_por === "camara" ? "pela câmara" : "pela pessoa"}
+                      </Pilula>
+                    )}
+                  </td>
+                  <td className="px-5 py-3 text-right">
+                    {l.ativa && pode("agente") && (
+                      <Botao
+                        tamanho="pequeno"
+                        variante="discreto"
+                        icone={Unplug}
+                        disabled={acao.aCorrer}
+                        onClick={async () => {
+                          if (!window.confirm(`Desligar o ${l.assistente} desta pessoa?`)) return;
+                          const ok = await acao.executar(() =>
+                            pedido(`/v1/painel/ias/ligacoes/${l.id}/revogar`, { metodo: "POST" }),
+                          );
+                          if (ok !== undefined) onMudou();
+                        }}
+                      >
+                        Desligar
+                      </Botao>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </Estado>
     </Cartao>
   );

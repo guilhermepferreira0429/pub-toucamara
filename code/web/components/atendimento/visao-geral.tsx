@@ -33,7 +33,9 @@ import {
 } from "./graficos";
 import { ChavePeriodo, chaveValida, periodoDe, SeletorPeriodo } from "./periodo";
 import { PrimeiroDia } from "./primeiro-dia";
+import { CartaoCustoIa } from "./custo-ia";
 import { CartaoQualidade } from "./qualidade";
+import { CartaoSatisfacao, type Satisfacao } from "./satisfacao";
 import { BotaoRelatorio } from "./relatorio";
 import { TabelaConversas } from "./tabela-conversas";
 import type {
@@ -70,6 +72,9 @@ export function VisaoGeral() {
   );
   const ultimas = useDados<Pagina<ConversaLista>>(
     permitido && pode("conversas") ? "/v1/painel/conversas?limite=5" : null,
+  );
+  const satisfacao = useDados<Satisfacao>(
+    permitido ? `/v1/painel/satisfacao?de=${p.de}&ate=${p.ate}` : null,
   );
   const qualidade = useDados<Qualidade>(
     permitido && pode("conhecimento_ver") ? "/v1/painel/conhecimento/qualidade" : null,
@@ -123,7 +128,7 @@ export function VisaoGeral() {
         }
       />
 
-      <div className="flex flex-col gap-8 px-10">
+      <div className="flex flex-col gap-8 px-4 sm:px-10">
         {vg.erro && <ErroBloco mensagem={vg.erro} tentar={vg.recarregar} />}
         {!d && !vg.erro && (
           <>
@@ -146,6 +151,12 @@ export function VisaoGeral() {
               )}
             </div>
 
+            <CartaoSatisfacao
+              dados={satisfacao.dados}
+              erro={satisfacao.erro}
+              tentar={satisfacao.recarregar}
+            />
+
             <div className="flex flex-col gap-6 xl:flex-row">
               <Cartao
                 id="temas"
@@ -161,9 +172,11 @@ export function VisaoGeral() {
               </Cartao>
               <SemResposta
                 itens={d.atencao.sem_resposta.itens}
-                total={d.indicadores.sem_resposta.valor ?? 0}
+                total={d.atencao.sem_resposta.total ?? d.atencao.sem_resposta.itens.length}
               />
             </div>
+
+            {pode("indicadores") && <CartaoCustoIa de={p.de} ate={p.ate} />}
           </>
         )}
 
@@ -230,19 +243,24 @@ function Resumo({ dados, chave }: { dados: Dados; chave: ChavePeriodo }) {
       className="flex flex-col gap-8 border-b border-linha pb-8 pt-2 xl:flex-row xl:items-end xl:gap-12"
     >
       <div className="flex flex-1 flex-col gap-3">
-        <p className="font-display text-[40px] font-bold leading-[1.08] tracking-[-1.2px] text-tinta">
+        <p className="font-display text-[30px] font-bold leading-[1.08] tracking-[-1.2px] text-tinta sm:text-[40px]">
           {numero(n)} {n === 1 ? "conversa atendida" : "conversas atendidas"}{" "}
           {TEXTO_PERIODO[chave]}.
           {fora !== null && n > 0 && <> {pct(fora)} com o balcão fechado.</>}
         </p>
         <p className="text-[15px] text-tinta-2">{comparacao}</p>
       </div>
-      <dl className="flex shrink-0">
+      {/* Telemóvel: 2 × 2; a partir de `sm`, os quatro lado a lado. */}
+      <dl className="grid grid-cols-2 gap-y-5 sm:flex sm:shrink-0">
         {numeros.map((x, k) => (
           <div
             key={x.rotulo}
-            className={`flex w-[132px] flex-col-reverse gap-1 px-5 ${
-              k ? "border-l border-linha" : "pl-0 xl:pl-5"
+            className={`flex flex-col-reverse gap-1 px-5 sm:w-[132px] ${
+              k === 0
+                ? "pl-0 xl:pl-5"
+                : k === 2
+                  ? "pl-0 sm:border-l sm:border-linha sm:pl-5"
+                  : "border-l border-linha"
             }`}
           >
             <dt className="text-xs leading-[1.35] text-tinta-2">{x.rotulo}</dt>
@@ -481,7 +499,7 @@ function SemResposta({ itens, total }: { itens: SemRespostaItem[]; total: number
       acao={
         total > 0 ? (
           <span className="shrink-0 rounded-xl bg-ambar-suave px-2.5 py-1 text-xs font-bold text-ambar">
-            {numero(total)} neste período
+            {numero(total)} por responder
           </span>
         ) : undefined
       }

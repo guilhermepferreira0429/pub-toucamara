@@ -170,7 +170,23 @@ export class RgpdService {
            SELECT count(*)::int AS turnos, count(DISTINCT conversa_id)::int AS conversas FROM x`,
           [m.id, limite, TEXTO_ANONIMIZADO],
         );
-        return { turnos: r.turnos, conversas: r.conversas };
+        // O comentário do inquérito de satisfação é texto livre como a
+        // transcrição: sai com ela. A nota (1–5) fica para as estatísticas.
+        const [s] = await this.db.query<{ comentarios: number }>(
+          `WITH x AS (
+             UPDATE satisfacao_respostas s SET comentario = NULL
+             FROM conversas c
+             WHERE c.id = s.conversa_id AND c.municipio_id = $1
+               AND c.iniciada_em < $2 AND s.comentario IS NOT NULL
+             RETURNING 1)
+           SELECT count(*)::int AS comentarios FROM x`,
+          [m.id, limite],
+        );
+        return {
+          turnos: r.turnos,
+          conversas: r.conversas,
+          comentarios: s.comentarios,
+        };
       }
       case 'telefones_sem_processo':
         return { municipes: await this.anonimizarMunicipes(m, limite) };

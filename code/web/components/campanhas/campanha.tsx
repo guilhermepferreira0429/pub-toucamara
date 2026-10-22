@@ -82,7 +82,7 @@ export function DetalheCampanha() {
   };
 
   return (
-    <div className="flex flex-col gap-6 px-10 pt-8 pb-12">
+    <div className="flex flex-col gap-6 px-4 sm:px-10 pt-8 pb-12">
       <Link
         href="/painel/campanhas"
         className="inline-flex w-fit items-center gap-1.5 text-sm font-semibold text-tinta-2 hover:text-tinta"

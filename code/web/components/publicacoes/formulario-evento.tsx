@@ -352,7 +352,7 @@ export function FormularioEvento({
 
         <div className="flex flex-col gap-1 rounded-xl bg-creme px-3 py-2.5 text-[13px] text-tinta-2">
           <p>
-            <span className="font-semibold text-tinta">Quanto tempo fica no /agora: </span>
+            <span className="font-semibold text-tinta">Quanto tempo fica na página «O que se passa»: </span>
             {evento?.visivel_ate
               ? `até ${dia(evento.visivel_ate)} (${diasDepois} dias depois de acabar).`
               : `desde que é publicado até ${diasDepois} dias depois de acabar.`}
@@ -369,7 +369,7 @@ export function FormularioEvento({
         {!publicado && <AvisoSms pedidoAbr={pedidoAbr} jaPublicado={!!evento?.publicado_em} />}
         {publicado && (
           <p className="rounded-xl border border-linha bg-creme p-3 text-[13px] text-tinta-2">
-            Já está publicado: o que mudar aparece logo no /agora, sem novo aviso por SMS.
+            Já está publicado: o que mudar aparece logo na página «O que se passa», sem novo aviso por SMS.
           </p>
         )}
         <ErroLinha erro={acao.erro} />

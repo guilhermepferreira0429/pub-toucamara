@@ -237,6 +237,12 @@ export function RequerimentoAoVivo() {
                               a perguntar…
                               <span aria-hidden className="h-5 w-0.5 animate-pulse bg-terracota" />
                             </span>
+                          ) : c.obrigatorio && dados.estado !== "a_preencher" ? (
+                            // Obrigatório e o requerimento já saiu da conversa: não
+                            // fica "por preencher" (parecia que o entregue estava completo).
+                            <span className="text-sm font-semibold text-ambar">
+                              em falta · pedir ao munícipe
+                            </span>
                           ) : (
                             <span className="text-sm text-tinta-3">por preencher</span>
                           )}

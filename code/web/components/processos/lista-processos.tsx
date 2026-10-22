@@ -2,10 +2,12 @@
 
 import { FileClock, Search, UserRound } from "lucide-react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { membrosDe, type ServicosEquipa } from "@/components/atendimento/equipa";
+import { BotaoExportar } from "@/components/painel/botao-exportar";
 import { Aviso, CabecalhoPagina } from "@/components/painel/cabecalho";
+import { FiltrosRecolhiveis } from "@/components/painel/telemovel";
 import { Botao } from "@/components/ui/botao";
 import { useSessao } from "@/lib/sessao";
 import { diaCurto, textoDiasUteis } from "./formatos";
@@ -69,7 +71,6 @@ function prazoDe(p: ProcessoResumo): { texto: string; cor: string } {
 
 export function ListaProcessos() {
   const { eu, pode, pedido } = useSessao();
-  const router = useRouter();
   const sp = useSearchParams();
 
   const faseInicial = sp.get("fase");
@@ -201,10 +202,16 @@ export function ListaProcessos() {
         migalhas={["Processos", "Lista"]}
         titulo="Processos"
         descricao={descricao}
-        acoes={<SeparadoresProcessos atual="/painel/processos" />}
+        acoes={
+          <>
+            <SeparadoresProcessos atual="/painel/processos" />
+            {/* Os mesmos filtros da lista (a API ignora o limite). */}
+            <BotaoExportar caminho={`/v1/painel/processos/exportar.csv?${qs}`} base="processos" />
+          </>
+        }
       />
 
-      <div className="flex flex-col gap-5 px-10">
+      <div className="flex flex-col gap-5 px-4 sm:px-10">
         <div className="flex flex-wrap items-center gap-2">
           <Segmentado<Vista>
             rotulo="Que processos mostrar"
@@ -219,7 +226,7 @@ export function ListaProcessos() {
               { valor: "atrasados", rotulo: "Atrasados", contagem: tot?.atrasados },
             ]}
           />
-          <div className="relative w-[320px] max-w-full">
+          <div className="relative w-full sm:w-[320px] sm:max-w-full">
             <Search
               className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-tinta-3"
               aria-hidden
@@ -236,130 +243,137 @@ export function ListaProcessos() {
               className={`${CAMPO} pl-9`}
             />
           </div>
-          <label className="sr-only" htmlFor="filtro-fase">
-            Fase
-          </label>
-          <select
-            id="filtro-fase"
-            value={fase}
-            onChange={(e) => setFase(e.target.value as Fase | "")}
-            className={FILTRO}
+          <FiltrosRecolhiveis
+            ativos={
+              [fase, tecnico, servico, aguarda, tipo, freguesia, aTerminar].filter(Boolean)
+                .length
+            }
           >
-            <option value="">Fase: todas</option>
-            {FASES.map((f) => (
-              <option key={f} value={f}>
-                {FASE_ROTULO[f]}
-              </option>
-            ))}
-          </select>
-          {(tiposProcesso.dados?.itens.length ?? 0) > 0 && (
-            <>
-              <label className="sr-only" htmlFor="filtro-tipo">
-                Tipo
-              </label>
-              <select
-                id="filtro-tipo"
-                value={tipo}
-                onChange={(e) => setTipo(e.target.value)}
-                className={FILTRO}
-              >
-                <option value="">Tipo: todos</option>
-                {tiposProcesso.dados!.itens.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.codigo} · {t.nome}
-                  </option>
-                ))}
-              </select>
-            </>
-          )}
-          {(tot?.freguesias.length ?? 0) > 0 && (
-            <>
-              <label className="sr-only" htmlFor="filtro-freguesia">
-                Freguesia
-              </label>
-              <select
-                id="filtro-freguesia"
-                value={freguesia}
-                onChange={(e) => setFreguesia(e.target.value)}
-                className={FILTRO}
-              >
-                <option value="">Freguesia: todas</option>
-                {tot!.freguesias.map((f) => (
-                  <option key={f} value={f}>
-                    {f}
-                  </option>
-                ))}
-              </select>
-            </>
-          )}
-          {servicos.length > 0 && (
-            <>
-              <label className="sr-only" htmlFor="filtro-servico">
-                Serviço
-              </label>
-              <select
-                id="filtro-servico"
-                value={servico}
-                onChange={(e) => setServico(e.target.value)}
-                className={FILTRO}
-              >
-                <option value="">Serviço: todos</option>
-                {servicos.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.nome}
-                  </option>
-                ))}
-              </select>
-            </>
-          )}
-          {vista !== "meus" && tecnicos.length > 0 && (
-            <>
-              <label className="sr-only" htmlFor="filtro-tecnico">
-                Técnico
-              </label>
-              <select
-                id="filtro-tecnico"
-                value={tecnico}
-                onChange={(e) => setTecnico(e.target.value)}
-                className={FILTRO}
-              >
-                <option value="">Técnico: todos</option>
-                {tecnicos.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.nome}
-                  </option>
-                ))}
-              </select>
-            </>
-          )}
-          <label className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-[10px] border border-linha bg-papel px-3 text-[13px] font-medium text-tinta">
-            <input
-              type="checkbox"
-              checked={aguarda}
-              onChange={(e) => setAguarda(e.target.checked)}
-              className="size-4 accent-terracota"
-            />
-            À espera do munícipe
-            {tot && (
-              <span className="rounded-full bg-creme-2 px-1.5 text-[11px] font-bold tabular-nums text-tinta-2">
-                {tot.aguarda_municipe}
-              </span>
+            <label className="sr-only" htmlFor="filtro-fase">
+              Fase
+            </label>
+            <select
+              id="filtro-fase"
+              value={fase}
+              onChange={(e) => setFase(e.target.value as Fase | "")}
+              className={FILTRO}
+            >
+              <option value="">Fase: todas</option>
+              {FASES.map((f) => (
+                <option key={f} value={f}>
+                  {FASE_ROTULO[f]}
+                </option>
+              ))}
+            </select>
+            {(tiposProcesso.dados?.itens.length ?? 0) > 0 && (
+              <>
+                <label className="sr-only" htmlFor="filtro-tipo">
+                  Tipo
+                </label>
+                <select
+                  id="filtro-tipo"
+                  value={tipo}
+                  onChange={(e) => setTipo(e.target.value)}
+                  className={FILTRO}
+                >
+                  <option value="">Tipo: todos</option>
+                  {tiposProcesso.dados!.itens.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.codigo} · {t.nome}
+                    </option>
+                  ))}
+                </select>
+              </>
             )}
-          </label>
-          <label className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-[10px] border border-linha bg-papel px-3 text-[13px] font-medium text-tinta">
-            <input
-              type="checkbox"
-              checked={aTerminar}
-              onChange={(e) => setATerminar(e.target.checked)}
-              className="size-4 accent-terracota"
-            />
-            Prazo a terminar
-            {tot && (
-              <span className="rounded-full bg-creme-2 px-1.5 text-[11px] font-bold tabular-nums text-tinta-2">
-                {tot.a_terminar}
-              </span>
+            {(tot?.freguesias.length ?? 0) > 0 && (
+              <>
+                <label className="sr-only" htmlFor="filtro-freguesia">
+                  Freguesia
+                </label>
+                <select
+                  id="filtro-freguesia"
+                  value={freguesia}
+                  onChange={(e) => setFreguesia(e.target.value)}
+                  className={FILTRO}
+                >
+                  <option value="">Freguesia: todas</option>
+                  {tot!.freguesias.map((f) => (
+                    <option key={f} value={f}>
+                      {f}
+                    </option>
+                  ))}
+                </select>
+              </>
             )}
-          </label>
+            {servicos.length > 0 && (
+              <>
+                <label className="sr-only" htmlFor="filtro-servico">
+                  Serviço
+                </label>
+                <select
+                  id="filtro-servico"
+                  value={servico}
+                  onChange={(e) => setServico(e.target.value)}
+                  className={FILTRO}
+                >
+                  <option value="">Serviço: todos</option>
+                  {servicos.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.nome}
+                    </option>
+                  ))}
+                </select>
+              </>
+            )}
+            {vista !== "meus" && tecnicos.length > 0 && (
+              <>
+                <label className="sr-only" htmlFor="filtro-tecnico">
+                  Técnico
+                </label>
+                <select
+                  id="filtro-tecnico"
+                  value={tecnico}
+                  onChange={(e) => setTecnico(e.target.value)}
+                  className={FILTRO}
+                >
+                  <option value="">Técnico: todos</option>
+                  {tecnicos.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.nome}
+                    </option>
+                  ))}
+                </select>
+              </>
+            )}
+            <label className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-[10px] border border-linha bg-papel px-3 text-[13px] font-medium text-tinta">
+              <input
+                type="checkbox"
+                checked={aguarda}
+                onChange={(e) => setAguarda(e.target.checked)}
+                className="size-4 accent-terracota"
+              />
+              À espera do munícipe
+              {tot && (
+                <span className="rounded-full bg-creme-2 px-1.5 text-[11px] font-bold tabular-nums text-tinta-2">
+                  {tot.aguarda_municipe}
+                </span>
+              )}
+            </label>
+            <label className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-[10px] border border-linha bg-papel px-3 text-[13px] font-medium text-tinta">
+              <input
+                type="checkbox"
+                checked={aTerminar}
+                onChange={(e) => setATerminar(e.target.checked)}
+                className="size-4 accent-terracota"
+              />
+              Prazo a terminar
+              {tot && (
+                <span className="rounded-full bg-creme-2 px-1.5 text-[11px] font-bold tabular-nums text-tinta-2">
+                  {tot.a_terminar}
+                </span>
+              )}
+            </label>
+          </FiltrosRecolhiveis>
           {filtrosAtivos && (
             <Botao
               variante="discreto"
@@ -416,7 +430,55 @@ export function ListaProcessos() {
             }`}
             aria-busy={primeira.aCarregar}
           >
-            <table className="w-full table-fixed border-collapse text-left">
+            {/* Telemóvel: um cartão por processo, a linha inteira é o link. */}
+            <ul className="divide-y divide-linha md:hidden" aria-label="Processos">
+              {itens.map((p) => {
+                const prazo = prazoDe(p);
+                return (
+                  <li key={p.id} className={p.atrasado ? "bg-terracota-suave/20" : ""}>
+                    <Link
+                      href={`/painel/processos/${p.id}`}
+                      className="flex flex-col gap-1.5 px-4 py-3.5 hover:bg-creme"
+                    >
+                      <span className="flex items-baseline justify-between gap-3">
+                        <span className="text-[13px] font-bold text-tinta">{p.numero}</span>
+                        <span className={`text-right text-xs font-semibold ${prazo.cor}`}>
+                          {prazo.texto}
+                        </span>
+                      </span>
+                      <span className="line-clamp-2 text-[15px] font-semibold leading-snug text-tinta">
+                        {p.assunto}
+                      </span>
+                      {p.morada && (
+                        <span className="truncate text-xs text-tinta-3">{p.morada}</span>
+                      )}
+                      <span className="flex flex-wrap items-center gap-x-3 gap-y-1.5 pt-0.5">
+                        <span className="flex items-center gap-2">
+                          <BarrasFase fase={p.fase} />
+                          <span className="text-xs font-medium text-tinta">{p.fase_rotulo}</span>
+                        </span>
+                        {p.aguarda_municipe ? (
+                          <Chip tom="ambar" pequeno icone={FileClock}>
+                            à espera do munícipe
+                          </Chip>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 text-xs text-tinta-2">
+                            <UserRound className="size-3.5 text-tinta-3" aria-hidden />
+                            {p.tecnico?.nome ?? "sem técnico"}
+                          </span>
+                        )}
+                        {p.documentos && p.documentos.exigidos > 0 && (
+                          <span className="text-xs tabular-nums text-tinta-2">
+                            Documentos {p.documentos.entregues}/{p.documentos.exigidos}
+                          </span>
+                        )}
+                      </span>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+            <table className="hidden w-full table-fixed border-collapse text-left md:table">
               <caption className="sr-only">
                 Processos, ordenados pelo prazo mais próximo
               </caption>
@@ -448,16 +510,15 @@ export function ListaProcessos() {
                   return (
                     <tr
                       key={p.id}
-                      onClick={() => router.push(href)}
-                      className={`h-[62px] cursor-pointer border-b border-linha last:border-b-0 hover:bg-creme ${
+                      className={`relative h-[62px] border-b border-linha last:border-b-0 hover:bg-creme focus-within:bg-creme ${
                         p.atrasado ? "bg-terracota-suave/20" : ""
                       }`}
                     >
                       <td className="pl-5 pr-2">
+                        {/* O link cobre a linha inteira (abre num separador novo, partilha-se). */}
                         <Link
                           href={href}
-                          onClick={(e) => e.stopPropagation()}
-                          className="text-[13px] font-bold text-tinta hover:underline"
+                          className="text-[13px] font-bold text-tinta after:absolute after:inset-0 after:content-[''] hover:underline"
                         >
                           {p.numero}
                         </Link>
@@ -535,7 +596,7 @@ export function ListaProcessos() {
                 })}
               </tbody>
             </table>
-            <div className="flex items-center justify-between gap-4 border-t border-linha px-5 py-3.5">
+            <div className="flex items-center justify-between gap-4 border-t border-linha px-4 py-3.5 md:px-5">
               <p className="text-xs text-tinta-3" aria-live="polite">
                 A mostrar {itens.length}
                 {cursor ? " (há mais)" : ""}

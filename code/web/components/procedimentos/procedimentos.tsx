@@ -21,6 +21,7 @@ import {
 import { CabecalhoPagina } from "@/components/painel/cabecalho";
 import { Botao } from "@/components/ui/botao";
 import { useSessao } from "@/lib/sessao";
+import { plural } from "@/lib/plural";
 
 /*
  * Painel · Procedimentos internos: o "como se faz" da câmara, escrito por
@@ -245,7 +246,7 @@ export function PaginaProcedimentos() {
                     >
                       <p className="text-sm font-semibold text-tinta">{e.area}</p>
                       <p className="text-xs text-tinta-3">
-                        {e.entrevistado_nome} · {e.respondidas} respostas · {haQuanto(e.criada_em)}
+                        {e.entrevistado_nome} · {plural(e.respondidas, "resposta", "respostas")} · {haQuanto(e.criada_em)}
                       </p>
                     </Link>
                   </li>

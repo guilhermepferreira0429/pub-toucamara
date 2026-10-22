@@ -98,13 +98,60 @@ function CorrerTeste({ d, onPedido }: { d: TQualidade; onPedido: () => void }) {
   );
 }
 
+/**
+ * Valores (€, prazos, horas, telefones, %) que o agente disse no último teste
+ * e que não estão na pergunta nem no gabarito escrito a partir das fontes.
+ */
+function NumerosSemFonte({ n }: { n: NonNullable<TQualidade["numeros"]> }) {
+  const zero = n.numeros_sem_fonte === 0;
+  return (
+    <Cartao className="flex flex-col gap-3 p-6">
+      <div className="flex flex-wrap items-center gap-3">
+        <span
+          className={`flex size-9 shrink-0 items-center justify-center rounded-full ${zero ? "bg-verde-suave" : "bg-ambar-suave"}`}
+        >
+          {zero ? (
+            <Check className="size-4 text-verde" aria-hidden />
+          ) : (
+            <TriangleAlert className="size-4 text-ambar" aria-hidden />
+          )}
+        </span>
+        <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+          <h2 className="font-display text-[19px] font-bold text-tinta">
+            {numero(n.numeros_sem_fonte)} {n.numeros_sem_fonte === 1 ? "número inventado" : "números inventados"}
+          </h2>
+          <p className="text-[13px] text-tinta-2">
+            Em {numero(n.respostas)} respostas do último teste, {numero(n.com_numeros)} dão valores (taxas, prazos,
+            horários, telefones).{" "}
+            {zero
+              ? "Todos estão nas fontes oficiais."
+              : `${numero(n.com_numeros_sem_fonte)} (${pct(n.percentagem, 1)}) dizem pelo menos um que não está na fonte.`}
+          </p>
+        </div>
+      </div>
+      {n.exemplos.length > 0 && (
+        <ul className="flex flex-col">
+          {n.exemplos.map((e) => (
+            <li key={e.resposta_id} className="flex flex-col gap-0.5 border-t border-linha py-2.5">
+              <span className="text-[13px] font-semibold text-tinta">“{e.pergunta}”</span>
+              <span className="text-xs text-tinta-2">
+                Sem fonte: <b className="text-tinta">{e.numeros.join(", ")}</b>
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Cartao>
+  );
+}
+
 export function Qualidade() {
   const q = useDados<TQualidade>("/v1/painel/conhecimento/qualidade");
   const [aberta, setAberta] = useState<string | null>(null);
 
   if (q.erro || !q.dados) {
     return (
-      <div className="px-10">
+      <div className="px-4 sm:px-10">
         <Cartao>
           <Estado aCarregar={q.aCarregar} erro={q.erro} />
         </Cartao>
@@ -117,7 +164,7 @@ export function Qualidade() {
   const bem = u ? (u.certas ?? 0) + (u.passadas_bem ?? 0) : 0;
 
   return (
-    <div className="flex flex-col gap-5 px-10">
+    <div className="flex flex-col gap-5 px-4 sm:px-10">
       <div className="flex flex-wrap items-center gap-3.5 rounded-[14px] bg-terracota-suave px-[18px] py-3.5">
         <span
           className="flex size-8 shrink-0 items-center justify-center rounded-[16px_16px_16px_4px] bg-terracota font-display text-[17px] font-extrabold text-white"
@@ -149,11 +196,16 @@ export function Qualidade() {
 
       <CorrerTeste d={d} onPedido={q.recarregar} />
 
-      <div className="grid gap-6 lg:grid-cols-[360px_minmax(0,1fr)]">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[360px_minmax(0,1fr)]">
         <section className="flex flex-col gap-3 rounded-2xl bg-tinta p-6">
           <p className="text-[11px] font-bold tracking-[0.4px] text-white/60 uppercase">
             Teste de qualidade · {u ? quando(u.terminada_em) : "ainda sem teste"}
           </p>
+          {u?.demonstracao && (
+            <p className="text-xs text-white/70">
+              Resultados de demonstração (câmara de demonstração), não a taxa medida do agente.
+            </p>
+          )}
           <p className="font-display text-[72px] leading-none font-bold text-white">
             {u ? pct(u.taxa, 1) : "—"}
           </p>
@@ -209,6 +261,8 @@ export function Qualidade() {
           )}
         </Cartao>
       </div>
+
+      {d.numeros && <NumerosSemFonte n={d.numeros} />}
 
       <div className="grid items-start gap-6 lg:grid-cols-[360px_minmax(0,1fr)]">
         <Cartao className="flex flex-col p-6">

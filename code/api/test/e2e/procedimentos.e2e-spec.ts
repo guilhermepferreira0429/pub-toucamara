@@ -479,8 +479,10 @@ describe('Procedimentos internos (e2e)', () => {
           pergunta: 'Abrir uma porta na fachada precisa de comunicação prévia?',
         })
         .expect(200);
+      // A do RJUE (com artigo); as fontes da demo, na mesma BD, podem vir também.
       const c = r.body.fontes.find(
-        (f: { tipo: string }) => f.tipo === 'conhecimento',
+        (f: { tipo: string; referencia?: string }) =>
+          f.tipo === 'conhecimento' && /art\./.test(f.referencia ?? ''),
       );
       expect(c).toMatchObject({
         etiqueta: expect.stringMatching(/^C\d$/),
@@ -546,7 +548,7 @@ describe('Procedimentos internos (e2e)', () => {
         .http()
         .post('/v1/painel/assistente/perguntar')
         .set(chefe)
-        .send({ pergunta: 'Quem trata da xilofonia?' })
+        .send({ pergunta: 'Xilofonia?' })
         .expect(200);
       // O rascunho não serve de resposta, mas quem o escreveu sabe.
       expect(r.body).toMatchObject({ estado: 'sem_resposta', fontes: [] });

@@ -94,7 +94,7 @@ export function Indicadores() {
           </>
         }
       />
-      <div className="flex flex-col gap-6 px-10">
+      <div className="flex flex-col gap-6 px-4 sm:px-10">
         <Perguntar />
 
         <div className="border-b border-linha">
@@ -219,7 +219,7 @@ function Atendimento({
           {t ? (
             <div className="flex flex-col gap-5">
               <BarraEmpilhada
-                titulo="CANAL"
+                titulo="Canal"
                 partes={Object.entries(t.por_canal)
                   .sort((a, b) => b[1] - a[1])
                   .map(([k, n]) => ({
@@ -229,7 +229,7 @@ function Atendimento({
                   }))}
               />
               <BarraEmpilhada
-                titulo="RESULTADO"
+                titulo="Resultado"
                 partes={[
                   { rotulo: "Resolvida pelo agente", valor: t.resolvidas_sem_humano, cor: "bg-verde" },
                   { rotulo: "Passada a funcionário", valor: t.passadas, cor: "bg-terracota-suave" },

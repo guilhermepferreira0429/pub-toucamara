@@ -16,6 +16,7 @@ import {
   SemAcesso,
   useAcao,
   useDados,
+  useEquipaInterna,
 } from "@/components/conhecimento/comum";
 import { CabecalhoPagina } from "@/components/painel/cabecalho";
 import { useSessao } from "@/lib/sessao";
@@ -37,6 +38,8 @@ import {
 
 /** O modo atual (simulado / real por configurar) e o que falta para a entrega real. */
 export function CartaoModo({ modo }: { modo: ModoEntrega }) {
+  // Variáveis e documentos de configuração: só para a equipa técnica.
+  const tecnico = useEquipaInterna();
   const titulo =
     modo.estado === "simulado"
       ? "Modo de demonstração: tudo simulado"
@@ -64,7 +67,7 @@ export function CartaoModo({ modo }: { modo: ModoEntrega }) {
           <Pilula tom="terracota">por configurar</Pilula>
         )}
       </span>
-      {p.em_falta.length > 0 && (
+      {tecnico && p.em_falta.length > 0 && (
         <span className="pl-6 text-xs text-tinta-2">
           Falta definir: <code className="font-mono">{p.em_falta.join(", ")}</code>
         </span>
@@ -95,9 +98,13 @@ export function CartaoModo({ modo }: { modo: ModoEntrega }) {
             ))}
           </ul>
           <p className="mt-2 text-xs text-tinta-2">
-            Os passos, quem os faz e as variáveis estão em{" "}
-            <code className="font-mono">{modo.documento}</code>. O link de autorização vale{" "}
-            {modo.validade_horas} horas.
+            {tecnico && (
+              <>
+                Os passos, quem os faz e as variáveis estão em{" "}
+                <code className="font-mono">{modo.documento}</code>.{" "}
+              </>
+            )}
+            O link de autorização vale {modo.validade_horas} horas.
           </p>
         </div>
       )}

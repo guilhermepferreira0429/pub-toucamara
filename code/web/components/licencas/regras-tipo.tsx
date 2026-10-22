@@ -142,8 +142,8 @@ export function RegrasTipo({ info, onMudou }: { info: InfoTipo; onMudou: () => v
       <p className="text-xs text-tinta-3">Base: {c.fonte.titulo}.</p>
       {c.demonstracao && <Pilula tom="ambar">valores de demonstração · confirmar com o regulamento</Pilula>}
       <p className="text-xs text-tinta-3">
-        Fora destas regras o pedido não é recusado: vai para um técnico, com o que falhou à vista. O agente usa a
-        ferramenta <span className="font-mono">{info.ferramenta}</span>.
+        Fora destas regras o pedido não é recusado: vai para um técnico, com o que falhou à vista. O agente aplica
+        estas regras quando alguém pede a licença ao telefone ou no chat.
       </p>
       <a
         href={`/regras/licencas/${info.tipo}`}

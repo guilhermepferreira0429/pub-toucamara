@@ -359,7 +359,7 @@ export function Alteracoes() {
   const atual = escolhida ?? abertas[0]?.id ?? revistas[0]?.id ?? null;
 
   return (
-    <div className="flex flex-col gap-6 px-10">
+    <div className="flex flex-col gap-6 px-4 sm:px-10">
       <div className="grid items-start gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
         <nav className="flex flex-col gap-2.5" aria-label="Alterações">
           <Rotulo>Por rever</Rotulo>

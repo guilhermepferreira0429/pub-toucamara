@@ -109,7 +109,9 @@ export function quando(iso: string, fuso: string, comHora = true): string {
   const d = new Date(iso);
   const dia = diaNoFuso(d, fuso);
   const hoje = hojeNoFuso(fuso);
-  const h = comHora ? `, ${hora(iso, fuso)}` : "";
+  // Meia-noite certa é uma data sem hora: fica só o dia.
+  const hh = hora(iso, fuso);
+  const h = comHora && hh !== "00:00" ? `, ${hh}` : "";
   if (dia === hoje) return `Hoje${h}`;
   if (dia === somarDias(hoje, -1)) return `Ontem${h}`;
   const ano = dia.slice(0, 4) !== hoje.slice(0, 4);

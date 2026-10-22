@@ -43,6 +43,15 @@ export const iaConfig = registerAs('ia', () => ({
   // Sem chave, o que depende de IA fora da chamada (resumos, classificação) desliga-se.
   apiKey: process.env.ANTHROPIC_API_KEY || '',
   modelo: process.env.ANTHROPIC_MODEL || 'claude-sonnet-5-5',
+  // Custos no painel: os preços são em dólares; mostram-se em euros (estimativa).
+  usdEur: Number(process.env.IA_USD_EUR || '0.86'),
+  // Voz (ElevenLabs Agents): dólares por minuto de chamada, conforme o plano.
+  vozUsdMinuto: Number(process.env.IA_VOZ_USD_MINUTO || '0.10'),
+  // Teto mensal por município, em euros (vazio = sem teto). Passado, a IA fora
+  // da chamada responde 503 até ao mês seguinte.
+  limiteMensalEur: process.env.IA_LIMITE_MENSAL_EUR
+    ? Number(process.env.IA_LIMITE_MENSAL_EUR)
+    : null,
 }));
 
 export const embeddingsConfig = registerAs('embeddings', () => ({

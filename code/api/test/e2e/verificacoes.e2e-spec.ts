@@ -8,6 +8,7 @@ import {
 import {
   esquemaLeituraProjeto,
   LeituraProjeto,
+  VERSAO_VERIFICACOES,
 } from '../../src/modules/processos/verificacoes';
 import {
   arrancarApp,
@@ -118,7 +119,8 @@ describe('Verificações automáticas (apoio ao técnico)', () => {
       demonstracao: true,
       tem_zonas_pdm: true,
     });
-    expect(r.body.numero).toMatch(/^CP (DEMO-)?412\/\d{4}$/);
+    // A numeração é contínua (o preparar demo pode tê-lo criado com outro número).
+    expect(r.body.numero).toMatch(/^CP (DEMO-)?\d+\/\d{4}$/);
     // E os 3 da análise por tipo de operação.
     expect(r.body.outros.map((x: any) => x.chave)).toEqual([
       'ampliacao',
@@ -219,7 +221,7 @@ describe('Verificações automáticas (apoio ao técnico)', () => {
       '%PDF-',
     );
     expect(ia.leituras[0].conteudo).toContain(
-      '1. Projeto de arquitetura (PDF)',
+      '1. Projeto de arquitetura (PDF, 3 páginas)',
     );
 
     const aud = await linha(
@@ -229,7 +231,7 @@ describe('Verificações automáticas (apoio ao técnico)', () => {
     );
     expect(aud.dados).toMatchObject({
       leitura_ia: 'nova',
-      versao_motor: '2',
+      versao_motor: VERSAO_VERIFICACOES,
       perfil: 'interior',
     });
   });

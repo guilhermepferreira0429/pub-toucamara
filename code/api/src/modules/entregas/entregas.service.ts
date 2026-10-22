@@ -255,7 +255,7 @@ export class EntregasService {
         ...(auth.modo === 'simulada' || auth.em_falta.length
           ? [
               'Credenciação na AMA: adesão ao Fornecedor de Autenticação do Estado (autenticacao.gov) para a Chave Móvel Digital e o Cartão de Cidadão, com o protocolo da câmara, os certificados e o URL de retorno registado.',
-              'Testar no ambiente de testes da AMA e ligar a validação da resposta (adaptador cmd).',
+              'Testar no ambiente de testes da AMA e ligar a validação da resposta da Chave Móvel Digital.',
             ]
           : []),
         ...(sub.modo === 'simulada' || sub.em_falta.length

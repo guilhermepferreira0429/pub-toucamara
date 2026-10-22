@@ -20,6 +20,7 @@ import { Botao } from "@/components/ui/botao";
 import { useSessao } from "@/lib/sessao";
 import { useDitado } from "./ditado";
 import { AvisoInterno } from "./procedimentos";
+import { plural } from "@/lib/plural";
 
 /*
  * Entrevista de quem se vai reformar: uma pergunta de cada vez, resposta
@@ -135,7 +136,7 @@ export function PaginaEntrevista() {
               descricao={
                 <span className="flex flex-wrap items-center gap-2">
                   <span>
-                    {e.entrevistado_nome} · começou {quando(e.criada_em)} · {respondidas} respostas
+                    {e.entrevistado_nome} · começou {quando(e.criada_em)} · {plural(respondidas, "resposta", "respostas")}
                   </span>
                   <Pilula tom={e.modo === "ia" ? "tinta" : "neutro"}>
                     {e.modo === "ia" ? "perguntas com IA" : "guião fixo"}

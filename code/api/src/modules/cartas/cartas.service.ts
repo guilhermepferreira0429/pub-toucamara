@@ -416,6 +416,7 @@ export class CartasService {
       );
     }
     const leitura = await this.claude.extrair(esquemaLeituraCarta, {
+      tarefa: 'ler_carta',
       sistema: SISTEMA_LEITURA,
       conteudo:
         'Lê esta carta que o munícipe recebeu e não percebe. Preenche os campos só com o que está escrito.',
@@ -900,6 +901,7 @@ export class CartasService {
       let formais: string | undefined;
       if (e.argumentos && this.claude.disponivel) {
         formais = await this.claude.escrever({
+          tarefa: 'cartas_formais',
           sistema: SISTEMA_PRONUNCIA,
           conteudo: `Tipo de carta: ${l.tipo_rotulo}. Assunto: ${l.assunto}.\nO que a pessoa disse:\n${e.argumentos}`,
           esforco: 'medium',

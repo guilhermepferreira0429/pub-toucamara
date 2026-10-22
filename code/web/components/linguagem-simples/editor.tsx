@@ -259,7 +259,7 @@ function Editor({ d, onMudou }: { d: Documento; onMudou: (d: Documento) => void 
                   Partir de excertos
                 </Botao>
                 <span className="text-xs text-tinta-3">
-                  A IA não está configurada: escreva à mão ou parta de excertos do original.
+                  O assistente de IA não está ligado: escreva à mão ou parta de excertos do original.
                 </span>
               </>
             )}
@@ -327,7 +327,6 @@ function Editor({ d, onMudou }: { d: Documento; onMudou: (d: Documento) => void 
                     <span className="text-[11px] font-bold uppercase tracking-[0.4px] text-tinta-3">
                       {s.referencia ?? `Parte ${i + 1}`}
                     </span>
-                    <span className="text-[10px] text-tinta-3">{s.id}</span>
                     {escrever && ativa !== null && form.partes[ativa] && (
                       <button
                         type="button"

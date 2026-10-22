@@ -15,6 +15,7 @@ import {
 import { CabecalhoPagina } from "@/components/painel/cabecalho";
 import { Botao } from "@/components/ui/botao";
 import { useSessao } from "@/lib/sessao";
+import { plural } from "@/lib/plural";
 
 /*
  * Painel · "Cartas que os munícipes não perceberam": as cartas da câmara que
@@ -108,8 +109,12 @@ export function PaginaCartas() {
               </h2>
               {c && (
                 <p className="text-xs text-tinta-3">
-                  {c.total_cartas_camara} cartas da câmara explicadas ·{" "}
-                  {c.total_outras_entidades} eram de outras entidades
+                  {plural(c.total_cartas_camara, "carta da câmara explicada", "cartas da câmara explicadas")} ·{" "}
+                  {c.total_outras_entidades === 0
+                    ? "nenhuma de outras entidades"
+                    : c.total_outras_entidades === 1
+                      ? "1 era de outra entidade"
+                      : `${c.total_outras_entidades} eram de outras entidades`}
                 </p>
               )}
             </div>
@@ -127,33 +132,35 @@ export function PaginaCartas() {
             vazio={!c?.itens.length}
             textoVazio="Ainda ninguém pediu ajuda com uma carta da câmara."
           >
-            <table className="mt-3 w-full text-sm">
-              <thead>
-                <tr className="border-b border-linha text-left text-xs text-tinta-3">
-                  <th className="px-5 py-2 font-semibold">Ofício</th>
-                  <th className="px-3 py-2 text-right font-semibold">Pedidos de ajuda</th>
-                  <th className="px-3 py-2 text-right font-semibold">Últimos 30 dias</th>
-                  <th className="px-3 py-2 text-right font-semibold">Sem prazo claro</th>
-                  <th className="px-5 py-2 text-right font-semibold">Responderam</th>
-                </tr>
-              </thead>
-              <tbody>
-                {c?.itens.map((i) => (
-                  <tr key={`${i.modelo_id ?? ""}${i.tipo}`} className="border-b border-linha last:border-b-0">
-                    <td className="px-5 py-2.5">
-                      <span className="font-semibold text-tinta">{i.nome}</span>
-                      <span className="block text-xs text-tinta-3">
-                        {i.por_modelo ? "modelo de ofício" : "tipo de carta (sem modelo conhecido)"}
-                      </span>
-                    </td>
-                    <td className="px-3 py-2.5 text-right font-bold text-tinta">{i.total}</td>
-                    <td className="px-3 py-2.5 text-right">{i.ultimos_30_dias}</td>
-                    <td className="px-3 py-2.5 text-right">{i.sem_prazo}</td>
-                    <td className="px-5 py-2.5 text-right">{i.responderam}</td>
+            <div className="overflow-x-auto">
+              <table className="mt-3 w-full text-sm">
+                <thead>
+                  <tr className="border-b border-linha text-left text-xs text-tinta-3">
+                    <th className="px-5 py-2 font-semibold">Ofício</th>
+                    <th className="px-3 py-2 text-right font-semibold">Pedidos de ajuda</th>
+                    <th className="px-3 py-2 text-right font-semibold">Últimos 30 dias</th>
+                    <th className="px-3 py-2 text-right font-semibold">Sem prazo claro</th>
+                    <th className="px-5 py-2 text-right font-semibold">Responderam</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {c?.itens.map((i) => (
+                    <tr key={`${i.modelo_id ?? ""}${i.tipo}`} className="border-b border-linha last:border-b-0">
+                      <td className="px-5 py-2.5">
+                        <span className="font-semibold text-tinta">{i.nome}</span>
+                        <span className="block text-xs text-tinta-3">
+                          {i.por_modelo ? "modelo de ofício" : "tipo de carta (sem modelo conhecido)"}
+                        </span>
+                      </td>
+                      <td className="px-3 py-2.5 text-right font-bold text-tinta">{i.total}</td>
+                      <td className="px-3 py-2.5 text-right">{i.ultimos_30_dias}</td>
+                      <td className="px-3 py-2.5 text-right">{i.sem_prazo}</td>
+                      <td className="px-5 py-2.5 text-right">{i.responderam}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
             {c?.nota && <p className="px-5 py-3 text-xs text-tinta-3">{c.nota}</p>}
           </Estado>
         </Cartao>

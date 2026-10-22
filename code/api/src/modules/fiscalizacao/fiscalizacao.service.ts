@@ -1134,7 +1134,7 @@ export class FiscalizacaoService {
       throw new ErroApi(
         HttpStatus.SERVICE_UNAVAILABLE,
         'transcricao_indisponivel',
-        'A transcrição de áudio não está configurada (ELEVENLABS_API_KEY). O áudio ficou guardado; envie o texto ditado no telemóvel.',
+        'A transcrição automática do áudio não está ligada. O áudio ficou guardado; envie o texto ditado no telemóvel.',
       );
     }
     let audio: Buffer;
@@ -1196,6 +1196,7 @@ export class FiscalizacaoService {
     if (this.claude.disponivel) {
       try {
         const e = await this.claude.extrair(esquemaEstruturado, {
+          tarefa: 'relatorio_vistoria',
           sistema: SISTEMA_IA,
           conteudo: conteudoIa(v.tipo, v.motivo, checklist, texto),
           esforco: 'medium',

@@ -90,8 +90,8 @@ function datasDe(x: Linha): string {
   if (eEvento(x)) partes.push(`${quando(x.inicio)}${x.fim ? ` a ${quando(x.fim)}` : ""}`);
   if (x.situacao === "rascunho") partes.push(`criado ${dia(x.criado_em)}`);
   else if (x.publicado_em) partes.push(`publicado ${dia(x.publicado_em)}`);
-  if (x.situacao === "publicado" && x.visivel_ate) partes.push(`no /agora até ${dia(x.visivel_ate)}`);
-  if (x.situacao === "expirado" && x.visivel_ate) partes.push(`saiu do /agora a ${dia(x.visivel_ate)}`);
+  if (x.situacao === "publicado" && x.visivel_ate) partes.push(`na página «O que se passa» até ${dia(x.visivel_ate)}`);
+  if (x.situacao === "expirado" && x.visivel_ate) partes.push(`saiu da página «O que se passa» a ${dia(x.visivel_ate)}`);
   return partes.join(" · ");
 }
 
@@ -157,7 +157,7 @@ function Lista({
     onNovoFechado();
     onFeito(
       publicado
-        ? { texto: `«${x.titulo}» foi publicado no /agora.`, link: noSite(x) }
+        ? { texto: `«${x.titulo}» foi publicado na página «O que se passa».`, link: noSite(x) }
         : { texto: `«${x.titulo}» foi guardado${x.estado === "publicado" ? "" : " como rascunho"}.` },
     );
   };
@@ -171,8 +171,8 @@ function Lista({
     setPublicar(null);
     onFeito(
       pub
-        ? { texto: `«${r.titulo}» foi publicado no /agora.`, link: noSite(r) }
-        : { texto: `«${r.titulo}» saiu do /agora (fica como despublicado; pode voltar a publicar).` },
+        ? { texto: `«${r.titulo}» foi publicado na página «O que se passa».`, link: noSite(r) }
+        : { texto: `«${r.titulo}» saiu da página «O que se passa» (fica como despublicado; pode voltar a publicar).` },
     );
   };
 
@@ -261,8 +261,8 @@ function Lista({
             filtrado
               ? "Nada encontrado com estes filtros."
               : qual === "comunicado"
-                ? "Ainda não há comunicados. Escreva o primeiro: aparece no /agora quando o publicar."
-                : "Ainda não há eventos. Crie o primeiro: aparece no /agora quando o publicar."
+                ? "Ainda não há comunicados. Escreva o primeiro: aparece na página «O que se passa» quando o publicar."
+                : "Ainda não há eventos. Crie o primeiro: aparece na página «O que se passa» quando o publicar."
           }
         >
           <ul className="divide-y divide-linha" aria-label={qual === "comunicado" ? "Comunicados e notícias" : "Eventos"}>
@@ -400,7 +400,7 @@ function Lista({
         {publicar && (
           <div className="flex flex-col gap-4">
             <p className="text-sm text-tinta-2">
-              Passa a aparecer no /agora ({ambitoDe(publicar)}).
+              Passa a aparecer na página «O que se passa» ({ambitoDe(publicar)}).
             </p>
             <AvisoSms pedidoAbr={pedidoDe(publicar)} jaPublicado={!!publicar.publicado_em} />
             <ErroLinha erro={acao.erro} />
@@ -421,7 +421,7 @@ function Lista({
           <div className="flex flex-col gap-4">
             <p className="text-sm text-tinta-2">
               {apagar.estado === "publicado"
-                ? "Sai do /agora e deixa de existir. Não se pode desfazer. Se só o quer tirar do site, despublique-o."
+                ? "Sai da página «O que se passa» e deixa de existir. Não se pode desfazer. Se só o quer tirar do site, despublique-o."
                 : "Deixa de existir. Não se pode desfazer."}
             </p>
             <ErroLinha erro={acao.erro} />
@@ -475,8 +475,8 @@ export function PaginaPublicacoes({ inicial = "comunicados" }: { inicial?: Separ
         titulo="Comunicados e eventos"
         descricao={
           <>
-            O que a câmara publica no <span className="font-semibold">/agora</span>, a página «o que se passa perto de
-            mim». Quem pediu «avise-me» para a zona recebe um SMS quando publica (as notícias e o que é para todo o
+            O que a câmara publica na página <span className="font-semibold">«O que se passa perto de
+            mim»</span>, no site da câmara. Quem pediu «avise-me» para a zona recebe um SMS quando publica (as notícias e o que é para todo o
             concelho não enviam SMS).
             {!escrever && " O seu perfil só pode ver."}
           </>

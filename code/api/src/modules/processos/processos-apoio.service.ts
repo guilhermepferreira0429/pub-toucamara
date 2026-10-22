@@ -23,6 +23,7 @@ import {
   HASH_PROCESSO,
   HASH_REGULAMENTO,
   juntarTrechos,
+  MAX_TRECHOS_APOIO,
   limparRascunho,
   limparResumo,
   montarContextoProcesso,
@@ -30,6 +31,7 @@ import {
   proximoPrazo,
   ResumoProcesso,
   semDestaques,
+  trechosAplicaveis,
   SISTEMA_RASCUNHO,
   SISTEMA_REGULAMENTO,
   SISTEMA_RESUMO_PROCESSO,
@@ -350,6 +352,8 @@ export class ProcessosApoioService {
       const d = await this.painel.detalhe(municipio, id);
       const hoje = hojeLisboa();
       const r = await this.claude.extrair(esquemaResumoProcesso, {
+        tarefa: 'resumo_processo',
+        minimizar: true,
         sistema: SISTEMA_RESUMO_PROCESSO,
         esforco: 'medium',
         maxTokens: 6000,
@@ -390,7 +394,7 @@ export class ProcessosApoioService {
       throw new ErroApi(
         HttpStatus.SERVICE_UNAVAILABLE,
         'ia_indisponivel',
-        'IA não configurada (ANTHROPIC_API_KEY).',
+        'O assistente de IA não está ligado nesta instalação.',
       );
     }
   }
@@ -450,6 +454,7 @@ export class ProcessosApoioService {
         url: t.url,
         data: t.lida_em ? dia(t.lida_em) : null,
         origem: 'pesquisa' as const,
+        tipo_fonte: t.tipo_fonte,
       }));
     } catch (e) {
       this.logger.warn(
@@ -465,16 +470,23 @@ export class ProcessosApoioService {
     id: string,
     atualizar: boolean,
   ) {
-    await this.painel.carregar(municipio.id, id);
+    const linha = await this.painel.carregar(municipio.id, id);
     const hash = await this.hash(id, 'regulamento');
     const guardado = await this.cache<{
       perguntas: string[];
       trechos: TrechoDestacado[];
+      /** O texto do processo com que se filtraram os trechos. */
+      processo?: string;
     }>(id, 'regulamento');
     if (!atualizar && guardado && guardado.estado_hash === hash) {
+      // Guardados antes do filtro podem trazer trechos de outros assuntos.
+      const processo =
+        guardado.conteudo.processo ??
+        `${linha.tipo_codigo} ${linha.tipo_nome}. ${linha.assunto}`;
       return {
         processo_id: id,
-        ...guardado.conteudo,
+        perguntas: guardado.conteudo.perguntas,
+        trechos: trechosAplicaveis(guardado.conteudo.trechos, processo),
         destacado: true,
         ia_disponivel: this.claude.disponivel,
         gerado_em: guardado.gerado_em,
@@ -505,12 +517,21 @@ export class ProcessosApoioService {
       this.baseLegal(municipio.id, d.tipo.id),
       ...perguntas.map((q) => this.pesquisa(municipio.id, q)),
     ]);
-    const trechos = juntarTrechos([base, ...pesquisas]);
+    // Só os que se aplicam a este tipo de processo (sem as esplanadas numa
+    // ampliação de moradia); a IA escolhe entre estes e mostram-se até 3.
+    const processo = [`${d.tipo.codigo} ${d.tipo.nome}`, d.assunto, descricao]
+      .filter(Boolean)
+      .join('. ');
+    const trechos = trechosAplicaveis(
+      juntarTrechos([base, ...pesquisas]),
+      processo,
+      12,
+    );
 
     const semIa = () => ({
       processo_id: id,
       perguntas,
-      trechos: semDestaques(trechos),
+      trechos: semDestaques(trechos).slice(0, MAX_TRECHOS_APOIO),
       destacado: false,
       ia_disponivel: false,
       gerado_em: null,
@@ -533,22 +554,27 @@ export class ProcessosApoioService {
             .join('\n');
       try {
         const escolha = await this.claude.extrair(esquemaRegulamentoIa, {
+          tarefa: 'escolher_regulamento',
           sistema: SISTEMA_REGULAMENTO,
           esforco: 'medium',
           maxTokens: 8000,
           conteudo: conteudoRegulamento(caso, trechos),
         });
-        destacados = aplicarEscolha(trechos, escolha);
+        destacados = aplicarEscolha(trechos, escolha).slice(
+          0,
+          MAX_TRECHOS_APOIO,
+        );
       } catch (e) {
         if (iaIndisponivel(e)) return semIa();
         throw e;
       }
     }
-    const conteudo = { perguntas, trechos: destacados };
+    const conteudo = { perguntas, trechos: destacados, processo };
     const geradoEm = await this.guardar(id, 'regulamento', hash, conteudo, u);
     return {
       processo_id: id,
-      ...conteudo,
+      perguntas,
+      trechos: destacados,
       destacado: true,
       ia_disponivel: true,
       gerado_em: geradoEm,
@@ -659,6 +685,7 @@ export class ProcessosApoioService {
       : [];
 
     const texto = await this.claude.escrever({
+      tarefa: 'rascunho_parecer',
       sistema: SISTEMA_RASCUNHO[b.tipo],
       esforco: 'high',
       maxTokens: 8000,

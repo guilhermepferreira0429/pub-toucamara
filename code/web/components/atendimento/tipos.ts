@@ -115,7 +115,8 @@ export interface VisaoGeral {
       }[];
     };
     prazos_a_acabar: { ate: string; itens: PrazoItem[] };
-    sem_resposta: { itens: SemRespostaItem[] };
+    /** `total`: perguntas por responder (a mesma lista que `itens`). */
+    sem_resposta: { total?: number; itens: SemRespostaItem[] };
   };
   melhorias_portal: {
     propostas: number;
@@ -195,6 +196,8 @@ export interface Qualidade {
     perguntas: number;
     taxa: number | null;
     passou: boolean;
+    /** Resultados de demonstração (câmara de demonstração). */
+    demonstracao?: boolean;
   } | null;
 }
 
@@ -285,6 +288,8 @@ export interface ConversaDetalhe {
   turnos: Turno[];
   momentos: Momento[];
   citacoes: Citacao[];
+  /** Números que o agente disse e que não estão nos trechos que citou. */
+  numeros_sem_fonte?: { turno_id: string; numeros: { texto: string; valor: string; tipo: string }[] }[];
   criado: {
     requerimentos: {
       id: string;

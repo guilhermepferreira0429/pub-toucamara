@@ -147,7 +147,10 @@ export function dia(v: string | Date | null | undefined): string {
   return f.format(d);
 }
 
-/** "hoje, 10:12", "ontem, 09:00" ou "12 out., 10:12". */
+/**
+ * "hoje, 10:12", "ontem, 09:00" ou "12 out., 10:12". Sem hora (um dia
+ * 'AAAA-MM-DD' ou meia-noite certa) fica só o dia: "hoje", "12 out.".
+ */
 export function quando(v: string | Date | null | undefined): string {
   if (!v) return "—";
   const d = data(v);
@@ -155,10 +158,12 @@ export function quando(v: string | Date | null | undefined): string {
   const ontem = new Date(hoje);
   ontem.setDate(hoje.getDate() - 1);
   const mesmo = (a: Date, b: Date) => a.toDateString() === b.toDateString();
+  const soDia = typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v);
   const h = HORA.format(d);
-  if (mesmo(d, hoje)) return `hoje, ${h}`;
-  if (mesmo(d, ontem)) return `ontem, ${h}`;
-  return `${dia(d)}, ${h}`;
+  const comHora = soDia || h === "00:00" ? "" : `, ${h}`;
+  if (mesmo(d, hoje)) return `hoje${comHora}`;
+  if (mesmo(d, ontem)) return `ontem${comHora}`;
+  return `${dia(d)}${comHora}`;
 }
 
 /** "agora", "há 5 min", "há 2 h", "ontem", "há 3 dias". */
@@ -309,9 +314,9 @@ export function Pilula({
   } as const;
   return (
     <span
-      className={`inline-flex items-center gap-[5px] rounded-xl px-2.5 py-1 text-xs font-semibold whitespace-nowrap ${tons[tom]} ${className}`}
+      className={`inline-flex max-w-full items-center gap-[5px] rounded-xl px-2.5 py-1 text-xs font-semibold sm:whitespace-nowrap ${tons[tom]} ${className}`}
     >
-      {Icone && <Icone className="size-3.5" aria-hidden />}
+      {Icone && <Icone className="size-3.5 shrink-0" aria-hidden />}
       {children}
     </span>
   );

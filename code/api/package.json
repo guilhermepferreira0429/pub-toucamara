@@ -22,7 +22,9 @@
     "db:seed": "nest build && node dist/scripts/seed.js",
     "demo:preparar": "nest build && node dist/scripts/demo-preparar.js",
     "armazenamento": "nest build && node dist/scripts/armazenamento.js",
-    "agente-voz": "nest build && node dist/scripts/agente-voz.js"
+    "agente-voz": "nest build && node dist/scripts/agente-voz.js",
+    "verificar-projetos": "nest build && node dist/scripts/verificar-projetos.js",
+    "checklist-regras": "nest build && node dist/scripts/checklist-regras.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.135.0",
