@@ -48,6 +48,7 @@ import { PainelModule } from './modules/painel/painel.module.js';
 import { CampanhasModule } from './modules/campanhas/campanhas.module.js';
 import { ConsultasPublicasModule } from './modules/consultas-publicas/consultas-publicas.module.js';
 import { LicencasModule } from './modules/licencas/licencas.module.js';
+import { LinguagemSimplesModule } from './modules/linguagem-simples/linguagem-simples.module.js';
 import { ApoiosModule } from './modules/apoios/apoios.module.js';
 import { AppMunicipeModule } from './modules/app-municipe/app-municipe.module.js';
 import { PushModule } from './modules/app-municipe/push.module.js';
@@ -141,6 +142,8 @@ import { TransparenciaModule } from './modules/transparencia/transparencia.modul
     ArquivoModule,
     // App dos munícipes (Flutter): entrar com o telemóvel, os seus dados, push
     AppMunicipeModule,
+    // Editais e regulamentos em linguagem simples e glossário administrativo
+    LinguagemSimplesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

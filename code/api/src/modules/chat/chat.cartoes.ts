@@ -19,7 +19,9 @@ export type TipoCartao =
   | 'apoios'
   | 'consulta'
   | 'reclamacao'
-  | 'agora';
+  | 'agora'
+  | 'documento'
+  | 'termo';
 
 export interface FonteCartao {
   titulo: string;
@@ -68,6 +70,10 @@ const POR_FERRAMENTA: Record<
   // subscrição "avise-me" (zona, tipos).
   o_que_se_passa: 'agora',
   avisar_me: 'agora',
+  // Linguagem simples: o resumo revisto com o link (resumo + texto oficial).
+  documento_simples: 'documento',
+  // Glossário: o termo e a explicação simples.
+  explicar_termo: 'termo',
 };
 
 function objeto(v: unknown): Record<string, unknown> {

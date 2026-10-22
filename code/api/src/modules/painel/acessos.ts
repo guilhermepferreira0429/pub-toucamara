@@ -139,6 +139,15 @@ const VERBOS: Record<string, string> = {
   apagar_evento: 'apagou',
   subscrever_agora: 'pediu avisos de',
   aceitar_avisos: 'voltou a aceitar avisos em',
+  criar_documento_simples: 'começou a versão simples de',
+  gerar_versao_simples: 'gerou a versão simples de',
+  editar_versao_simples: 'editou a versão simples de',
+  publicar_versao_simples: 'reviu e publicou a versão simples de',
+  retirar_versao_simples: 'tirou do ar a versão simples de',
+  criar_termo_glossario: 'acrescentou',
+  editar_termo_glossario: 'editou',
+  apagar_termo_glossario: 'apagou',
+  carregar_glossario_demonstracao: 'carregou os termos de demonstração',
 };
 
 const OBJETOS: Record<string, string> = {
@@ -194,6 +203,9 @@ const OBJETOS: Record<string, string> = {
   comunicado: 'um comunicado ou notícia',
   evento: 'um evento',
   agora_subscricao: 'uma zona (o que se passa perto de mim)',
+  documento_simples: 'um documento oficial (linguagem simples)',
+  termo_glossario: 'um termo do glossário',
+  glossario: 'do glossário',
 };
 
 export function frase(acao: string, objetoTipo: string): string {
@@ -223,6 +235,8 @@ export function ligacao(objetoTipo: string, objetoId: string): string | null {
       return `/painel/emergencias?id=${objetoId}`;
     case 'entrevista':
       return `/painel/procedimentos/entrevistas/${objetoId}`;
+    case 'documento_simples':
+      return `/painel/conhecimento/linguagem-simples/${objetoId}`;
     default:
       return null;
   }
