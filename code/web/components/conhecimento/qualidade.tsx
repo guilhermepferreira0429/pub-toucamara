@@ -201,6 +201,11 @@ export function Qualidade() {
           <p className="text-[11px] font-bold tracking-[0.4px] text-white/60 uppercase">
             Teste de qualidade · {u ? quando(u.terminada_em) : "ainda sem teste"}
           </p>
+          {u?.demonstracao && (
+            <p className="text-xs text-white/70">
+              Resultados de demonstração (câmara de demonstração), não a taxa medida do agente.
+            </p>
+          )}
           <p className="font-display text-[72px] leading-none font-bold text-white">
             {u ? pct(u.taxa, 1) : "—"}
           </p>

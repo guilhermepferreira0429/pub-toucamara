@@ -81,12 +81,9 @@ export class AntecipacoesDemoService {
     if (!tipo) throw new Error('falta o tipo de processo CP');
     const feriados = await this.municipios.feriados(m.id);
     const hoje = diaLocal(agora, m.fuso);
-    const ano = Number(hoje.slice(0, 4));
     const as = (dia: string, hhmm: string) => instanteLocal(dia, hhmm, m.fuso);
 
     return this.db.transaction(async (tx) => {
-      const n = await proximoNumero(tx, m.id, 'CP', ano);
-      const numero = `CP ${n}/${ano}`;
       let fase = 'apreciacao';
       let entrada = recuarDiasUteis(hoje, 15, feriados);
       let prazoInicio: string | null = entrada;
@@ -109,6 +106,11 @@ export class AntecipacoesDemoService {
         prazoInicio = entrada;
         prazoFim = dia;
       }
+      // O número tem o ano da entrada (a obra admitida há quase um ano é
+      // de 2025 se entrou em 2025).
+      const ano = Number(entrada.slice(0, 4));
+      const n = await proximoNumero(tx, m.id, 'CP', ano);
+      const numero = `CP ${n}/${ano}`;
       const [p] = await tx.query<{ id: string }>(
         `INSERT INTO processos (municipio_id, numero, tipo_processo_id, municipe_id, assunto, morada,
            freguesia, fase, prazo_inicio, prazo_fim, decisao, decidido_em, criado_em, atualizado_em,
@@ -150,7 +152,7 @@ export class AntecipacoesDemoService {
         );
       await evento(
         'criado',
-        `Comunicação prévia entregue. Processo ${numero} aberto.`,
+        'Comunicação prévia entregue. Processo aberto.',
         as(entrada, '10:05'),
       );
       if (chave === 'antecipacao:pedido') {
