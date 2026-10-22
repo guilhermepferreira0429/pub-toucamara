@@ -70,17 +70,28 @@ function partes(v: string | Date): Partes | null {
   };
 }
 
-/** "18 out." */
-export function diaCurto(v: string | Date | null | undefined): string {
-  const p = v ? partes(v) : null;
-  return p ? `${p.dia} ${MESES[p.mes - 1]}` : "";
+/** " 2025" quando o ano não é o corrente (senão nada). */
+function anoSeOutro(p: Partes): string {
+  const hoje = partes(new Date());
+  return hoje && hoje.ano !== p.ano ? ` ${p.ano}` : "";
 }
 
-/** "17 out., 21:47" (só o dia, se não houver hora). */
+/** "18 out." (ou "1 nov. 2025" noutro ano). */
+export function diaCurto(v: string | Date | null | undefined): string {
+  const p = v ? partes(v) : null;
+  return p ? `${p.dia} ${MESES[p.mes - 1]}${anoSeOutro(p)}` : "";
+}
+
+/**
+ * "17 out., 21:47" (só o dia, se não houver hora; "00:00" é uma data sem
+ * hora e também fica só o dia).
+ */
 export function diaHora(v: string | Date | null | undefined): string {
   const p = v ? partes(v) : null;
   if (!p) return "";
-  return p.hora ? `${p.dia} ${MESES[p.mes - 1]}, ${p.hora}` : diaCurto(v);
+  return p.hora && p.hora !== "00:00"
+    ? `${p.dia} ${MESES[p.mes - 1]}${anoSeOutro(p)}, ${p.hora}`
+    : diaCurto(v);
 }
 
 /** "6 de novembro" (com o ano se não for o corrente). */

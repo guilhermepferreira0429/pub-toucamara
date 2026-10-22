@@ -31,6 +31,8 @@ interface ResumoExecucao {
   por_responder: number | null;
   por_avaliar: number | null;
   taxa: number | null;
+  /** Resultados de demonstração (sistema marcado na preparação da demo). */
+  demonstracao: boolean;
 }
 
 export interface PedidoAvaliacao {
@@ -208,7 +210,8 @@ export class AvaliacaoService {
   async qualidade(municipioId: string) {
     const ultimas = await this.db.query<ResumoExecucao>(
       `SELECT e.id AS execucao_id, s.nome AS sistema, e.agente_versao, e.motivo,
-              e.iniciada_em, e.terminada_em, ${COLUNAS_RESULTADO}
+              e.iniciada_em, e.terminada_em, ${COLUNAS_RESULTADO},
+              coalesce((s.config->>'demonstracao')::boolean, false) AS demonstracao
        FROM avaliacao.execucoes e
        JOIN avaliacao.sistemas s ON s.id = e.sistema_id
        LEFT JOIN avaliacao.resultados r ON r.execucao_id = e.id AND r.categoria IS NULL

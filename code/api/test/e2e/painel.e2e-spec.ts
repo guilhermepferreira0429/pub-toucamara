@@ -1533,11 +1533,12 @@ describe('Painel (e2e)', () => {
         }),
       ]);
 
-      // No ar, a resposta curada é o que a procurar_conhecimento devolve.
+      // No ar, a resposta curada é o que a procurar_conhecimento devolve
+      // (em primeiro: as respostas da demo, na mesma BD, podem vir a seguir).
       const f = await ferramenta(ctx, novaChamada(), 'procurar_conhecimento', {
         pergunta: `A que horas abre o ${palavra}?`,
       }).expect(200);
-      expect(f.body.respostas).toEqual([
+      expect(f.body.respostas.slice(0, 1)).toEqual([
         expect.objectContaining({
           resposta_id: id,
           texto: `O ${palavra} abre todos os dias úteis às nove da manhã.`,

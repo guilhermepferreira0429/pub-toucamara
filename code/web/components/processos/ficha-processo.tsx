@@ -72,17 +72,22 @@ function Passos({ p }: { p: ProcessoDetalhe }) {
       (e) => e.tipo === "fase" && (e.dados as { para?: string } | null)?.para === para,
     )?.em ?? null;
   const criado = p.eventos.find((e) => e.tipo === "criado")?.em ?? p.criado_em;
+  // "Documentos completos" só quando não falta nenhum (a fase pode ir à
+  // frente: um pedido do técnico a meio da apreciação volta a abrir o passo).
+  const faltam = p.documentos_resumo.em_falta.length;
 
-  const passos = [
+  const passos: { titulo: string; data: string; pendente?: boolean }[] = [
     { titulo: "Entrada", data: diaCurto(criado) },
     {
-      titulo: atual === 1 ? "Documentos" : "Documentos completos",
-      data:
-        atual === 1
+      titulo: atual === 1 || faltam ? "Documentos" : "Documentos completos",
+      data: faltam
+        ? `${faltam === 1 ? "falta 1" : `faltam ${faltam}`} · à espera do munícipe`
+        : atual === 1
           ? "à espera do munícipe"
           : p.prazo.inicio
             ? diaCurto(p.prazo.inicio)
             : "",
+      pendente: faltam > 0 && atual > 1,
     },
     {
       titulo: "Apreciação técnica",
@@ -107,8 +112,8 @@ function Passos({ p }: { p: ProcessoDetalhe }) {
     <section aria-label="Estado do processo" className="rounded-2xl border border-linha bg-papel px-6 py-[18px]">
       <ol className="flex flex-wrap items-center gap-3.5">
         {passos.map((s, i) => {
-          const feito = i < atual;
-          const corrente = i === atual;
+          const feito = i < atual && !s.pendente;
+          const corrente = i === atual || !!s.pendente;
           return (
             <li key={s.titulo} className="flex items-center gap-3.5">
               {i > 0 && (

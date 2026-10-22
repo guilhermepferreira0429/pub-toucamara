@@ -1,14 +1,23 @@
 import { nifValido } from '../municipes/municipes.service';
-import { CONVERSAS, PESSOAS } from './demo.conteudo';
+import {
+  EXECUCOES_AVALIACAO,
+  FONTES_DEMO,
+  PERGUNTAS_AVALIACAO,
+  RESPOSTAS_DEMO,
+} from './demo.conhecimento';
+import { CONVERSAS, NOMES_ANTIGOS, PESSOAS } from './demo.conteudo';
 import {
   chaveValida,
   demoAtiva,
   diaDemo,
+  escolherResposta,
   eTelefoneDemonstracao,
   instanteDemo,
   nifDemo,
+  numeracaoContinua,
   proximoDiaSemana,
   telefoneDemo,
+  trocarNomes,
 } from './demo.regras';
 import { passosDemo } from './demo.service';
 import { pngDemonstracao } from './imagens-demo';
@@ -69,5 +78,136 @@ describe('demo · regras', () => {
       expect(png.readUInt32BE(16)).toBe(480);
       expect(png.length).toBeGreaterThan(1000);
     }
+  });
+});
+
+describe('demo · coerência', () => {
+  const respostas = [
+    {
+      chave: 'a',
+      tema: 'obras',
+      estado: 'no_ar',
+      trechos: [1],
+      palavras: /cozinha/i,
+    },
+    {
+      chave: 'b',
+      tema: 'obras',
+      estado: 'no_ar',
+      trechos: [1],
+      palavras: /porta/i,
+    },
+    { chave: 'c', tema: 'eventos', estado: 'rascunho', trechos: [] },
+    { chave: 'd', tema: 'vias', estado: 'no_ar', trechos: [] },
+  ];
+
+  it('a conversa cita a resposta do tema com as suas palavras (ou a primeira)', () => {
+    expect(
+      escolherResposta(respostas, 'obras', 'Quero abrir uma porta')?.chave,
+    ).toBe('b');
+    expect(
+      escolherResposta(respostas, 'obras', 'Em que fase está?')?.chave,
+    ).toBe('a');
+    // Rascunhos e respostas sem fonte não se citam.
+    expect(escolherResposta(respostas, 'eventos', 'piscina')).toBeNull();
+    expect(escolherResposta(respostas, 'vias', 'buraco')).toBeNull();
+  });
+
+  it('os nomes de teste dão lugar a nomes plausíveis, em todo o lado', () => {
+    expect(
+      trocarNomes(
+        '{"nome": "Café Sicrano, Lda", "titular": "Maria Fulana"}',
+        NOMES_ANTIGOS,
+      ),
+    ).toBe('{"nome": "Café Pereira, Lda", "titular": "Maria Fernandes"}');
+    const todos = PESSOAS.map((p) => p.nome).join(' ');
+    expect(todos).not.toMatch(/Fulan|Sicran|Beltran/);
+    expect(new Set(PESSOAS.map((p) => p.nome)).size).toBe(PESSOAS.length);
+  });
+
+  it('numeração contínua: 1, 2, 3 por ano de entrada', () => {
+    const p = (id: string, numero: string, dia: string) => ({
+      id,
+      numero,
+      dia,
+      registado: true,
+    });
+    expect(
+      numeracaoContinua(
+        [
+          p('x', 'CP 6/2026', '2025-09-29'),
+          p('a', 'CP 3/2026', '2026-09-22'),
+          p('b', 'CP 1/2026', '2026-10-06'),
+          p('c', 'CP 412/2026', '2026-10-22'),
+        ],
+        true,
+      ),
+    ).toEqual([
+      { id: 'x', numero: 'CP 1/2025' },
+      { id: 'a', numero: 'CP 1/2026' },
+      { id: 'b', numero: 'CP 2/2026' },
+      { id: 'c', numero: 'CP 3/2026' },
+    ]);
+    // Já contínua: nada a mudar.
+    expect(
+      numeracaoContinua(
+        [p('a', 'CP 1/2026', '2026-01-02'), p('b', 'CP 2/2026', '2026-02-02')],
+        true,
+      ),
+    ).toEqual([]);
+  });
+
+  it('com processos que não são da demo, só mudam os números de design e de ano errado', () => {
+    const r = numeracaoContinua(
+      [
+        {
+          id: 'real',
+          numero: 'CP 412/2026',
+          dia: '2026-10-01',
+          registado: false,
+        },
+        {
+          id: 'porta',
+          numero: 'CP DEMO-412/2026',
+          dia: '2026-10-22',
+          registado: true,
+        },
+        {
+          id: 'velho',
+          numero: 'CP 6/2026',
+          dia: '2025-09-29',
+          registado: true,
+        },
+        { id: 'ok', numero: 'CP 7/2026', dia: '2026-10-01', registado: true },
+      ],
+      false,
+    );
+    expect(r).toEqual([
+      { id: 'porta', numero: 'CP 0/2026' },
+      { id: 'velho', numero: 'CP 0/2025' },
+    ]);
+  });
+
+  it('as respostas citam secções que existem nas fontes, e o teste de qualidade é coerente', () => {
+    const fontes = new Set(['regulamento', ...FONTES_DEMO.map((f) => f.chave)]);
+    for (const r of RESPOSTAS_DEMO) {
+      for (const [f, ref] of r.trechos) {
+        expect(fontes).toContain(f);
+        if (f !== 'regulamento') {
+          const fonte = FONTES_DEMO.find((x) => x.chave === f)!;
+          expect(fonte.texto).toContain(`## ${ref}`);
+        }
+      }
+    }
+    for (const e of EXECUCOES_AVALIACAO) expect(e.dias).toBeGreaterThan(0);
+    // A última execução passa os 80%; a primeira não (o gate parou-a).
+    const taxa = (falhas: number) =>
+      (100 * (PERGUNTAS_AVALIACAO.length - falhas)) /
+      PERGUNTAS_AVALIACAO.length;
+    const ultima = EXECUCOES_AVALIACAO[EXECUCOES_AVALIACAO.length - 1];
+    expect(taxa(Object.keys(ultima.falhas).length)).toBeGreaterThanOrEqual(80);
+    expect(
+      taxa(Object.keys(EXECUCOES_AVALIACAO[0].falhas).length),
+    ).toBeLessThan(80);
   });
 });

@@ -139,22 +139,23 @@ export class PainelService {
     const feriados = await this.municipios.feriados(m.id);
     const limitePrazo = somarDiasUteis(hoje, DIAS_UTEIS_ALERTA, feriados);
 
-    const [passagens, ocorrencias, processos, semResposta] = await Promise.all([
-      this.db.query<{
-        id: string;
-        conversa_id: string;
-        motivo: string;
-        resumo: string;
-        estado: string;
-        responder_ate: Date | null;
-        criada_em: Date;
-        atribuida_a: string | null;
-        atribuida_a_nome: string | null;
-        atrasada: boolean;
-        total: number;
-        total_atrasadas: number;
-      }>(
-        `SELECT p.id, p.conversa_id, p.motivo, p.resumo, p.estado, p.responder_ate,
+    const [passagens, ocorrencias, processos, semResposta, [porResponder]] =
+      await Promise.all([
+        this.db.query<{
+          id: string;
+          conversa_id: string;
+          motivo: string;
+          resumo: string;
+          estado: string;
+          responder_ate: Date | null;
+          criada_em: Date;
+          atribuida_a: string | null;
+          atribuida_a_nome: string | null;
+          atrasada: boolean;
+          total: number;
+          total_atrasadas: number;
+        }>(
+          `SELECT p.id, p.conversa_id, p.motivo, p.resumo, p.estado, p.responder_ate,
                 p.criada_em, p.atribuida_a, u.nome AS atribuida_a_nome,
                 coalesce(p.responder_ate < now(), false) AS atrasada,
                 count(*) OVER ()::int AS total,
@@ -165,37 +166,37 @@ export class PainelService {
          WHERE c.municipio_id = $1 AND c.oculto_em IS NULL AND p.estado IN ('aberta','em_curso')
          ORDER BY p.responder_ate ASC NULLS LAST, p.criada_em ASC
          LIMIT 5`,
-        [m.id],
-      ),
-      this.db.query<{
-        id: string;
-        numero: string;
-        categoria: string;
-        icone: string | null;
-        descricao: string;
-        morada: string;
-        criada_em: Date;
-        total: number;
-      }>(
-        `SELECT o.id, o.numero, cat.nome AS categoria, cat.icone, o.descricao, o.morada,
+          [m.id],
+        ),
+        this.db.query<{
+          id: string;
+          numero: string;
+          categoria: string;
+          icone: string | null;
+          descricao: string;
+          morada: string;
+          criada_em: Date;
+          total: number;
+        }>(
+          `SELECT o.id, o.numero, cat.nome AS categoria, cat.icone, o.descricao, o.morada,
                 o.criada_em, count(*) OVER ()::int AS total
          FROM ocorrencias o
          JOIN categorias_ocorrencia cat ON cat.id = o.categoria_id
          WHERE o.municipio_id = $1 AND o.oculto_em IS NULL AND o.estado = 'nova' AND o.duplicada_de IS NULL
          ORDER BY o.criada_em DESC
          LIMIT 5`,
-        [m.id],
-      ),
-      this.db.query<{
-        id: string;
-        numero: string;
-        assunto: string;
-        fase: string;
-        prazo_fim: string;
-        tecnico_id: string | null;
-        tecnico: string | null;
-      }>(
-        `SELECT p.id, p.numero, p.assunto, p.fase::text AS fase,
+          [m.id],
+        ),
+        this.db.query<{
+          id: string;
+          numero: string;
+          assunto: string;
+          fase: string;
+          prazo_fim: string;
+          tecnico_id: string | null;
+          tecnico: string | null;
+        }>(
+          `SELECT p.id, p.numero, p.assunto, p.fase::text AS fase,
                 to_char(p.prazo_fim, 'YYYY-MM-DD') AS prazo_fim,
                 p.tecnico_id, u.nome AS tecnico
          FROM processos p
@@ -204,10 +205,16 @@ export class PainelService {
            AND p.prazo_fim IS NOT NULL AND p.prazo_fim <= $2::date
          ORDER BY p.prazo_fim ASC, p.numero
          LIMIT 10`,
-        [m.id, limitePrazo],
-      ),
-      this.dados.semResposta(m.id, 5),
-    ]);
+          [m.id, limitePrazo],
+        ),
+        this.dados.semResposta(m.id, 5),
+        // O total da mesma lista (não as conversas sem resposta do período).
+        this.db.query<{ n: number }>(
+          `SELECT count(*)::int AS n FROM perguntas_sem_resposta
+         WHERE municipio_id = $1 AND estado IN ('nova','com_equipa','espera_camara')`,
+          [m.id],
+        ),
+      ]);
 
     return {
       passagens: {
@@ -230,7 +237,7 @@ export class PainelService {
           };
         }),
       },
-      sem_resposta: { itens: semResposta },
+      sem_resposta: { total: porResponder?.n ?? 0, itens: semResposta },
     };
   }
 }

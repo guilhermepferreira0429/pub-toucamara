@@ -4,10 +4,10 @@
  * linguagem simples. Tudo fictício e coerente entre si; as datas são
  * relativas ao dia em que se prepara (dias atrás / dias à frente).
  *
- * Nomes: os apelidos Fulano, Sicrano e Beltrano são os de "qualquer pessoa"
- * em português, para se ver logo que não são reais. A requerente do processo
- * do design (Sandra Martins) mantém o nome do design. Telefones na gama de
- * teste +351 910 000 xxx (demo.regras.ts); NIF fictícios válidos no algoritmo.
+ * Nomes: portugueses e plausíveis, mas fictícios (não são de ninguém
+ * conhecido). A requerente do processo do design (Sandra Martins) mantém o
+ * nome do design. Telefones na gama de teste +351 910 000 xxx
+ * (demo.regras.ts); NIF fictícios válidos no algoritmo.
  */
 
 export type Canal = 'telefone' | 'chat' | 'sms' | 'whatsapp';
@@ -25,26 +25,69 @@ export interface PessoaDemo {
 
 export const PESSOAS: PessoaDemo[] = [
   { chave: 'sandra', nome: 'Sandra Martins', telefone: 101, nif: 1 },
-  { chave: 'maria', nome: 'Maria Fulana', telefone: 102, nif: 2 },
-  { chave: 'jose', nome: 'José Sicrano', telefone: 103 },
-  { chave: 'ana', nome: 'Ana Beltrana', telefone: 104 },
-  { chave: 'rui', nome: 'Rui Fulano', telefone: 105 },
-  { chave: 'manuel', nome: 'Manuel Sicrano', telefone: 106, nif: 6 },
-  { chave: 'teresa', nome: 'Teresa Beltrana', telefone: 107, nif: 7 },
-  { chave: 'carlos', nome: 'Carlos Fulano', telefone: 108, nif: 8 },
-  { chave: 'helena', nome: 'Helena Sicrana', telefone: 109, nif: 9 },
-  { chave: 'pedro', nome: 'Pedro Beltrano', telefone: 110, nif: 10 },
-  { chave: 'luisa', nome: 'Luísa Fulana', telefone: 111 },
-  { chave: 'antonio', nome: 'António Sicrano', telefone: 112 },
-  { chave: 'ines', nome: 'Inês Beltrana', telefone: 113 },
-  { chave: 'fernando', nome: 'Fernando Fulano', telefone: 114 },
-  { chave: 'graca', nome: 'Graça Sicrana', telefone: 115 },
-  { chave: 'joao', nome: 'João Beltrano', telefone: 116 },
-  { chave: 'rosa', nome: 'Rosa Fulana', telefone: 117 },
-  { chave: 'paulo', nome: 'Paulo Sicrano', telefone: 118 },
-  { chave: 'marta', nome: 'Marta Beltrana', telefone: 119 },
-  { chave: 'jorge', nome: 'Jorge Fulano', telefone: 120 },
+  { chave: 'maria', nome: 'Maria Fernandes', telefone: 102, nif: 2 },
+  { chave: 'jose', nome: 'José Oliveira', telefone: 103 },
+  { chave: 'ana', nome: 'Ana Ribeiro', telefone: 104 },
+  { chave: 'rui', nome: 'Rui Carvalho', telefone: 105 },
+  { chave: 'manuel', nome: 'Manuel Pereira', telefone: 106, nif: 6 },
+  { chave: 'teresa', nome: 'Teresa Lopes', telefone: 107, nif: 7 },
+  { chave: 'carlos', nome: 'Carlos Mendes', telefone: 108, nif: 8 },
+  { chave: 'helena', nome: 'Helena Sousa', telefone: 109, nif: 9 },
+  { chave: 'pedro', nome: 'Pedro Antunes', telefone: 110, nif: 10 },
+  { chave: 'luisa', nome: 'Luísa Gomes', telefone: 111 },
+  { chave: 'antonio', nome: 'António Faria', telefone: 112 },
+  { chave: 'ines', nome: 'Inês Machado', telefone: 113 },
+  { chave: 'fernando', nome: 'Fernando Pinto', telefone: 114 },
+  { chave: 'graca', nome: 'Graça Teixeira', telefone: 115 },
+  { chave: 'joao', nome: 'João Freitas', telefone: 116 },
+  { chave: 'rosa', nome: 'Rosa Magalhães', telefone: 117 },
+  { chave: 'paulo', nome: 'Paulo Nogueira', telefone: 118 },
+  { chave: 'marta', nome: 'Marta Rocha', telefone: 119 },
+  { chave: 'jorge', nome: 'Jorge Abreu', telefone: 120 },
 ];
+
+/**
+ * Marcações do balcão para o dia de hoje (as que já passaram ficam
+ * "realizada" ou "faltou"; as que faltam, "marcada"). A hora é a pedida: a
+ * marcação fica na primeira vaga a partir dela.
+ */
+export const MARCACOES_HOJE: {
+  chave: string;
+  pessoa: string;
+  hora: string;
+  assunto: string;
+}[] = [
+  {
+    chave: 'hoje_1',
+    pessoa: 'rosa',
+    hora: '09:30',
+    assunto: 'Entregar documentos do processo de obras',
+  },
+  {
+    chave: 'hoje_2',
+    pessoa: 'jorge',
+    hora: '11:00',
+    assunto: 'Cartão municipal do idoso (para a mãe)',
+  },
+  {
+    chave: 'hoje_3',
+    pessoa: 'paulo',
+    hora: '14:30',
+    assunto: 'Dúvidas sobre o dístico de residente',
+  },
+  {
+    chave: 'hoje_4',
+    pessoa: 'graca',
+    hora: '15:30',
+    assunto: 'Tarifa social da água',
+  },
+];
+
+/** Quem recebeu cada aviso por zona (moradas dos processos e ocorrências). */
+export const DESTINATARIOS_AVISOS: Record<string, string[]> = {
+  obras: ['jose', 'ana', 'rui', 'teresa', 'luisa', 'marta'],
+  agua: ['joao', 'paulo', 'rosa', 'graca', 'fernando'],
+};
 
 /** Temas do painel ("o que mais perguntam"); criam-se se a câmara não os tiver. */
 export const TEMAS = {
@@ -58,6 +101,7 @@ export const TEMAS = {
   comercio: 'Comércio e esplanadas',
   iluminacao: 'Iluminação pública',
   eventos: 'Eventos e cultura',
+  desporto: 'Desporto e piscinas',
 } as const;
 export type Tema = keyof typeof TEMAS;
 
@@ -297,7 +341,7 @@ const ESPECIAIS: ConversaDemo[] = [
     tema: 'comercio',
     resultado: 'resolvida',
     resumo:
-      'Pediu a licença da esplanada do Café Sicrano (10 m², 4 mesas). Cumpre as regras; pagou e recebeu a licença.',
+      'Pediu a licença da esplanada do Café Pereira (10 m², 4 mesas). Cumpre as regras; pagou e recebeu a licença.',
     turnos: [
       {
         papel: 'municipe',
@@ -432,8 +476,8 @@ const ESPECIAIS: ConversaDemo[] = [
     tema: 'agua',
     resultado: 'resolvida',
     resumo:
-      'Sem água em casa desde manhã. Encaminhado para a empresa que gere a água no concelho, com o contacto de avarias 24 horas, enviado por SMS.',
-    proximos: ['Ligue para a linha de avarias da água (contacto no SMS)'],
+      'Sem água em casa desde manhã. Encaminhado para a Vimágua, que gere a água no concelho, com os contactos enviados por SMS.',
+    proximos: ['Contacte a Vimágua (contactos no SMS)'],
     turnos: [
       {
         papel: 'municipe',
@@ -442,7 +486,7 @@ const ESPECIAIS: ConversaDemo[] = [
       {
         papel: 'agente',
         texto:
-          'Quem trata da água no concelho é a empresa municipal das águas, não a câmara. Enviei-lhe por SMS o contacto de avarias, que atende 24 horas.',
+          'Quem trata da água no concelho é a Vimágua, não a câmara. Enviei-lhe por SMS onde encontrar os contactos da Vimágua.',
       },
     ],
   },
@@ -479,7 +523,7 @@ const MODELOS: Record<string, Modelo> = {
     tema: 'agua',
     resultado: 'resolvida',
     resumo:
-      'Fuga de água na rua. Encaminhado para a empresa municipal das águas, com o contacto de avarias por SMS.',
+      'Fuga de água na rua. Encaminhado para a Vimágua, com os contactos por SMS.',
     turnos: [
       {
         papel: 'municipe',
@@ -487,8 +531,7 @@ const MODELOS: Record<string, Modelo> = {
       },
       {
         papel: 'agente',
-        texto:
-          'Isso é com a empresa das águas. Enviei-lhe o contacto de avarias, 24 horas, por SMS.',
+        texto: 'Isso é com a Vimágua. Enviei-lhe os contactos por SMS.',
       },
     ],
   },
@@ -588,7 +631,7 @@ const MODELOS: Record<string, Modelo> = {
     ],
   },
   piscina: {
-    tema: 'eventos',
+    tema: 'desporto',
     resultado: 'sem_resposta',
     resumo:
       'Perguntou quando reabre uma piscina municipal. Sem fonte para responder: ficou nas perguntas sem resposta.',
@@ -836,7 +879,7 @@ export const PONTOS = {
 
 export const REGULAMENTO = {
   titulo: 'Regulamento das esplanadas abertas (texto de demonstração)',
-  url: 'https://demo.toucamara.pt/regulamentos/esplanadas-abertas',
+  url: 'https://www.cm-guimaraes.pt/#regulamento-esplanadas',
   texto: [
     'Regulamento das esplanadas abertas (texto de demonstração, não é o regulamento em vigor)',
     'Artigo 1.º Objeto',
@@ -897,3 +940,60 @@ export const REGULAMENTO = {
     ],
   },
 } as const;
+
+/**
+ * Preparações antigas: os nomes de teste ("Fulano", "Sicrano", "Beltrano")
+ * e os textos que não diziam quem gere a água. Os acertos trocam-nos onde
+ * ficaram gravados (DemoAcertosService).
+ */
+export const NOMES_ANTIGOS: readonly (readonly [string, string])[] = [
+  ['Café Sicrano, Lda', 'Café Pereira, Lda'],
+  ['Café Sicrano', 'Café Pereira'],
+  ['Maria Fulana', 'Maria Fernandes'],
+  ['José Sicrano', 'José Oliveira'],
+  ['Ana Beltrana', 'Ana Ribeiro'],
+  ['Rui Fulano', 'Rui Carvalho'],
+  ['Manuel Sicrano', 'Manuel Pereira'],
+  ['Teresa Beltrana', 'Teresa Lopes'],
+  ['Carlos Fulano', 'Carlos Mendes'],
+  ['Helena Sicrana', 'Helena Sousa'],
+  ['Pedro Beltrano', 'Pedro Antunes'],
+  ['Luísa Fulana', 'Luísa Gomes'],
+  ['António Sicrano', 'António Faria'],
+  ['Inês Beltrana', 'Inês Machado'],
+  ['Fernando Fulano', 'Fernando Pinto'],
+  ['Graça Sicrana', 'Graça Teixeira'],
+  ['João Beltrano', 'João Freitas'],
+  ['Rosa Fulana', 'Rosa Magalhães'],
+  ['Paulo Sicrano', 'Paulo Nogueira'],
+  ['Marta Beltrana', 'Marta Rocha'],
+  ['Jorge Fulano', 'Jorge Abreu'],
+  ['Rafael Fulano', 'Rafael Fernandes'],
+  ['Beatriz Sicrano', 'Beatriz Lopes'],
+  ['Gonçalo Beltrano', 'Gonçalo Mendes'],
+  ['Leonor Fulano', 'Leonor Sousa'],
+];
+export const TEXTOS_ANTIGOS: readonly (readonly [string, string])[] = [
+  [
+    'Encaminhado para a empresa que gere a água no concelho, com o contacto de avarias 24 horas, enviado por SMS.',
+    'Encaminhado para a Vimágua, que gere a água no concelho, com os contactos enviados por SMS.',
+  ],
+  [
+    'Quem trata da água no concelho é a empresa municipal das águas, não a câmara. Enviei-lhe por SMS o contacto de avarias, que atende 24 horas.',
+    'Quem trata da água no concelho é a Vimágua, não a câmara. Enviei-lhe por SMS onde encontrar os contactos da Vimágua.',
+  ],
+  [
+    'Encaminhado para a empresa municipal das águas, com o contacto de avarias por SMS.',
+    'Encaminhado para a Vimágua, com os contactos por SMS.',
+  ],
+  [
+    'Isso é com a empresa das águas. Enviei-lhe o contacto de avarias, 24 horas, por SMS.',
+    'Isso é com a Vimágua. Enviei-lhe os contactos por SMS.',
+  ],
+  [
+    'Ligue para a linha de avarias da água (contacto no SMS)',
+    'Contacte a Vimágua (contactos no SMS)',
+  ],
+  ['a empresa das águas', 'a Vimágua'],
+  ['à empresa das águas', 'à Vimágua'],
+];

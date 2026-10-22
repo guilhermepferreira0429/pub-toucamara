@@ -26,8 +26,14 @@ describe('Preparar demo (e2e)', () => {
   let conversaTeste: string;
   let ocorrenciaTeste: string;
 
+  // Sem acertar a base: os outros testes contam com o seed ("Águas do
+  // Concelho", "Chefe Teste"). O acerto da base testa-se à parte, no fim.
   const preparar = (corpo: object) =>
-    ctx.http().post('/v1/painel/demo/preparar').set(chefe).send(corpo);
+    ctx
+      .http()
+      .post('/v1/painel/demo/preparar')
+      .set(chefe)
+      .send({ acertar_base: false, ...corpo });
 
   /** Os números que não podem mudar numa segunda preparação. */
   const numeros = async () =>
@@ -277,7 +283,16 @@ describe('Preparar demo (e2e)', () => {
       assunto: 'Porta na cozinha',
       demonstracao: true,
     });
-    expect(porta.numero).toMatch(/^CP (DEMO-)?412\/\d{4}$/);
+    // Numeração contínua: não fica o número do design (CP 412).
+    expect(porta.numero).toMatch(/^CP \d+\/\d{4}$/);
+    expect(porta.numero).not.toMatch(/^CP (DEMO-)?412\//);
+    const esplanadaDecisao = await linha(
+      ctx.db,
+      'SELECT decisao, decidida_por FROM licencas WHERE id = $1',
+      [await demoId('licenca:esplanada')],
+    );
+    // Cumpre as regras: não é uma exceção, nem foi aprovada pelo fornecedor.
+    expect(esplanadaDecisao).toMatchObject({ decisao: 'automatica' });
     expect(porta.provider_id).toContain('porta_cozinha');
 
     const ls = await linha(
@@ -291,6 +306,95 @@ describe('Preparar demo (e2e)', () => {
       origem: 'manual',
       revista: true,
     });
+  });
+
+  it('o conhecimento prova o que se diz: respostas no ar, fontes citadas, qualidade, alteração e contradição', async () => {
+    const mapa = await ctx
+      .http()
+      .get('/v1/painel/conhecimento/mapa')
+      .set(chefe)
+      .expect(200);
+    expect(mapa.body.resumo.respostas_no_ar).toBeGreaterThanOrEqual(15);
+    expect(mapa.body.resumo.alteracoes_por_rever).toBeGreaterThanOrEqual(1);
+    expect(mapa.body.resumo.contradicoes_abertas).toBeGreaterThanOrEqual(1);
+    const obras = mapa.body.temas.find(
+      (t: { nome: string }) => t.nome === 'Obras e licenciamento',
+    );
+    expect(obras.respostas_no_ar).toBeGreaterThanOrEqual(3);
+
+    // As conversas resolvidas da demo citam a fonte; as passadas, não.
+    const citadas = await linha<{ resolvidas: number; passadas: number }>(
+      ctx.db,
+      `SELECT count(*) FILTER (WHERE c.resultado = 'resolvida' AND EXISTS (
+                SELECT 1 FROM conversa_turnos t JOIN citacoes ci ON ci.turno_id = t.id
+                WHERE t.conversa_id = c.id))::int AS resolvidas,
+              count(*) FILTER (WHERE c.resultado = 'passada_funcionario' AND EXISTS (
+                SELECT 1 FROM conversa_turnos t JOIN citacoes ci ON ci.turno_id = t.id
+                WHERE t.conversa_id = c.id))::int AS passadas
+       FROM demo_registos d JOIN conversas c ON c.id = d.objeto_id
+       WHERE d.municipio_id = $1 AND d.tipo = 'conversa'`,
+      [MUNICIPIO_ID],
+    );
+    expect(citadas!.resolvidas).toBeGreaterThan(30);
+    expect(citadas!.passadas).toBe(0);
+
+    const q = await ctx
+      .http()
+      .get('/v1/painel/conhecimento/qualidade')
+      .set(chefe)
+      .expect(200);
+    // (A BD dos testes é partilhada: outros testes também correm avaliações.)
+    const demoExecucoes = q.body.evolucao.filter(
+      (e: { demonstracao: boolean }) => e.demonstracao,
+    );
+    expect(demoExecucoes.length).toBe(3);
+    expect(demoExecucoes[0].passou).toBe(false);
+    expect(demoExecucoes[2]).toMatchObject({ passou: true });
+    expect(demoExecucoes[2].taxa).toBeGreaterThanOrEqual(80);
+
+    const alteracao = await linha(
+      ctx.db,
+      `SELECT a.estado, ar.proposta_versao_id, v.texto_voz
+       FROM alteracoes a
+       JOIN alteracao_respostas ar ON ar.alteracao_id = a.id
+       JOIN resposta_versoes v ON v.id = ar.proposta_versao_id
+       WHERE a.id = $1`,
+      [await demoId('alteracao:esplanadas')],
+    );
+    expect(alteracao.estado).toBe('por_rever');
+    expect(alteracao.texto_voz).toContain('3,50 euros');
+
+    const contradicao = await linha(
+      ctx.db,
+      'SELECT estado, valor_a, valor_b FROM contradicoes WHERE id = $1',
+      [await demoId('contradicao:esplanadas')],
+    );
+    expect(contradicao).toMatchObject({ estado: 'aberta' });
+
+    // "Sem resposta": o total e a lista vêm da mesma tabela.
+    const vg = await ctx
+      .http()
+      .get('/v1/painel/visao-geral')
+      .set(chefe)
+      .expect(200);
+    expect(vg.body.atencao.sem_resposta.total).toBeGreaterThanOrEqual(
+      vg.body.atencao.sem_resposta.itens.length,
+    );
+    const piscina = await linha(
+      ctx.db,
+      'SELECT estado, vezes, resposta_id FROM perguntas_sem_resposta WHERE id = $1',
+      [await demoId('pergunta_sem_resposta:piscina')],
+    );
+    expect(piscina).toMatchObject({ estado: 'com_equipa', vezes: 2 });
+    expect(piscina.resposta_id).toBe(await demoId('resposta:piscina'));
+
+    // Os avisos enviados têm destinatários.
+    const aviso = await linha<{ n: number }>(
+      ctx.db,
+      'SELECT count(*)::int AS n FROM avisos_zona_destinatarios WHERE aviso_id = $1',
+      [await demoId('aviso:obras')],
+    );
+    expect(aviso!.n).toBeGreaterThan(0);
   });
 
   it('o /agora público mostra obras, corte de água, eventos, comunicados e a consulta', async () => {
@@ -342,5 +446,44 @@ describe('Preparar demo (e2e)', () => {
       [ocorrenciaTeste],
     );
     expect(o.oculto_em).toBeNull();
+  });
+
+  it('acerta a base com nomes de teste (Vimágua, a chefia) e repõe-se para os outros testes', async () => {
+    const antes = await linha<{ chefe: string; agua: string }>(
+      ctx.db,
+      `SELECT (SELECT nome FROM utilizadores WHERE municipio_id = $1 AND nome = 'Chefe Teste' LIMIT 1) AS chefe,
+              (SELECT nome FROM entidades WHERE municipio_id = $1 AND nome = 'Águas do Concelho') AS agua`,
+      [MUNICIPIO_ID],
+    );
+    try {
+      await preparar({ confirmar: true, acertar_base: true }).expect(200);
+      const depois = await linha<{ agua: number; chefe: number }>(
+        ctx.db,
+        `SELECT (SELECT count(*)::int FROM entidades WHERE municipio_id = $1 AND nome = 'Vimágua') AS agua,
+                (SELECT count(*)::int FROM utilizadores WHERE municipio_id = $1 AND nome = 'Chefe Teste') AS chefe`,
+        [MUNICIPIO_ID],
+      );
+      if (antes?.agua) expect(depois!.agua).toBe(1);
+      expect(depois!.chefe).toBe(0);
+    } finally {
+      // O seed volta ao que era (os outros testes contam com ele).
+      if (antes?.agua) {
+        await ctx.db.query(
+          `UPDATE entidades SET nome = 'Águas do Concelho', descricao = 'Água e saneamento', site_url = NULL
+           WHERE municipio_id = $1 AND nome = 'Vimágua'`,
+          [MUNICIPIO_ID],
+        );
+        await ctx.db.query(
+          `UPDATE entidade_contactos SET tipo = 'avarias', valor = '800 000 000',
+             rotulo = 'Avarias, 24 horas', horario = '{"sempre": true}'
+           WHERE id = '00000000-0000-0000-0000-0000000000c2'`,
+        );
+      }
+      if (antes?.chefe) {
+        await ctx.db.query(
+          `UPDATE utilizadores SET nome = 'Chefe Teste' WHERE id = '00000000-0000-0000-0000-0000000000a9'`,
+        );
+      }
+    }
   });
 });
