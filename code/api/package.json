@@ -20,7 +20,8 @@
     "test:e2e": "node --experimental-vm-modules --disable-warning=ExperimentalWarning node_modules/jest/bin/jest.js --config ./test/jest-e2e.json",
     "db:reset": "nest build && node dist/scripts/db-reset.js",
     "demo:preparar": "nest build && node dist/scripts/demo-preparar.js",
-    "armazenamento": "nest build && node dist/scripts/armazenamento.js"
+    "armazenamento": "nest build && node dist/scripts/armazenamento.js",
+    "agente-voz": "nest build && node dist/scripts/agente-voz.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.135.0",
