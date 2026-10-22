@@ -56,21 +56,32 @@ export const ESTADOS_EMERGENCIA = [
 export type EstadoEmergencia = (typeof ESTADOS_EMERGENCIA)[number];
 
 /**
- * As fontes dos números. 'externa' (operadores / cell broadcast / Proteção
- * Civil) está por implementar e devolve "não configurada".
+ * As fontes dos números. 'operadores' é a fonte externa com os números de
+ * todas as pessoas na zona (operadores móveis, via ANEPC/SMPC): simulada por
+ * omissão (números falsos, que nunca saem), real por configurar. O cell
+ * broadcast não é uma fonte de números (não há números): é um pedido de
+ * difusão à parte (`cell_broadcast` na emergência).
  */
-export const FONTES = ['municipes', 'cuidado', 'lista', 'externa'] as const;
+export const FONTES = ['municipes', 'cuidado', 'lista', 'operadores'] as const;
 export type IdFonte = (typeof FONTES)[number];
+
+/** Nome antigo da fonte 'operadores' (rascunhos e pedidos antigos). */
+export function fonteAtual(f: string): string {
+  return f === 'externa' ? 'operadores' : f;
+}
 
 export const NOMES_FONTES: Record<IdFonte, string> = {
   municipes: 'Munícipes conhecidos com morada na zona',
   cuidado: 'Contactos de cuidado da ação social na zona',
   lista: 'Lista carregada à mão',
-  externa: 'Fonte externa (operadores, cell broadcast, Proteção Civil)',
+  operadores: 'Todas as pessoas na zona (operadores)',
 };
 
 export const AVISO_COBERTURA =
-  'Esta lista não é toda a gente da zona: são só os números que a câmara conhece (munícipes que já trataram de alguma coisa com morada na zona, pessoas inscritas na ação social e a lista carregada). Para chegar a toda a gente é preciso uma fonte externa (operadores, cell broadcast ou Proteção Civil), que ainda não está ligada.';
+  'Esta lista não é toda a gente da zona: são só os números que a câmara conhece (munícipes que já trataram de alguma coisa com morada na zona, pessoas inscritas na ação social e a lista carregada). Para chegar a toda a gente é preciso a fonte dos operadores ou o cell broadcast, que dependem de um acordo com a ANEPC / operadores.';
+
+export const AVISO_COBERTURA_SIMULADA =
+  'Os números de "todas as pessoas na zona" são SIMULADOS (gerados para demonstração): ficam registados como enviados (simulado), mas nenhum SMS nem chamada sai para eles. Para serem reais falta o acordo com a ANEPC / operadores.';
 
 export const MAX_DESTINATARIOS = 20_000;
 export const MAX_LISTA = 5_000;
@@ -278,6 +289,13 @@ export interface Candidato {
   nome: string | null;
   /** Contacto de cuidado da ação social: é dos primeiros a ser ligado. */
   vulneravel: boolean;
+  /**
+   * Número de uma fonte SIMULADA (falso, pode coincidir com o de uma pessoa
+   * real): nunca sai para o Twilio nem para o ElevenLabs.
+   */
+  simulado?: boolean;
+  /** Freguesia ou zona aproximada (fonte dos operadores). */
+  zona_aproximada?: string | null;
 }
 
 export type EstadoFonte = 'ok' | 'nao_configurada' | 'erro';
@@ -289,10 +307,21 @@ export interface ResultadoFonte {
   candidatos: Candidato[];
   /** O que se deve saber desta fonte (limites, o que ficou de fora). */
   nota: string | null;
+  /** Fonte simulada (números falsos). */
+  simulada?: boolean;
+  /** Fonte dos operadores: quantas pessoas estima na zona antes de buscar. */
+  estimativa?: {
+    pessoas: number;
+    com_telemovel: number;
+    gerados: number | null;
+    demonstracao: boolean;
+  } | null;
 }
 
 export interface Destinatario extends Candidato {
   fontes: IdFonte[];
+  simulado: boolean;
+  zona_aproximada: string | null;
   /** Pode receber SMS (telemóvel). */
   sms: boolean;
   /** Pode ser ligado (móvel ou fixo, sem tarifa especial). */
@@ -304,12 +333,20 @@ export interface Destinatario extends Candidato {
  * as fontes de onde veio; é vulnerável se alguma fonte o disser; fica com o
  * primeiro munícipe e nome conhecidos. Quem não pode receber SMS nem ser
  * ligado fica de fora (contado).
+ *
+ * Números simulados: um destinatário só é simulado se TODAS as fontes de onde
+ * veio forem simuladas. Se o número também vier de uma fonte real (munícipe
+ * conhecido, ação social, lista), é a pessoa real: fica com o munícipe, o
+ * nome e o canal dela e recebe normalmente (os conhecidos têm prioridade).
  */
 export function juntarFontes(resultados: readonly ResultadoFonte[]): {
   destinatarios: Destinatario[];
   por_fonte: Record<IdFonte, number>;
+  /** Destinatários que só vieram desta fonte (o que ela acrescenta). */
+  so_desta_fonte: Record<IdFonte, number>;
   em_varias_fontes: number;
   sem_contacto_possivel: number;
+  simulados: number;
 } {
   const por = new Map<string, Destinatario>();
   const porFonte = Object.fromEntries(FONTES.map((f) => [f, 0])) as Record<
@@ -324,20 +361,32 @@ export function juntarFontes(resultados: readonly ResultadoFonte[]): {
       if (!tel || vistosNestaFonte.has(tel)) continue;
       vistosNestaFonte.add(tel);
       porFonte[r.fonte]++;
+      const simulado = !!c.simulado;
       const ja = por.get(tel);
       if (ja) {
         if (!ja.fontes.includes(r.fonte)) ja.fontes.push(r.fonte);
+        if (ja.simulado && !simulado) {
+          // Afinal é (também) um número real: os dados reais mandam.
+          ja.simulado = false;
+          ja.municipe_id = c.municipe_id ?? ja.municipe_id;
+          ja.nome = c.nome ?? ja.nome;
+        }
         ja.vulneravel ||= c.vulneravel;
-        ja.municipe_id ??= c.municipe_id;
-        ja.nome ??= c.nome;
+        if (!simulado) {
+          ja.municipe_id ??= c.municipe_id;
+          ja.nome ??= c.nome;
+        }
+        ja.zona_aproximada ??= c.zona_aproximada ?? null;
         continue;
       }
       por.set(tel, {
         telefone_e164: tel,
-        municipe_id: c.municipe_id,
-        nome: c.nome,
+        municipe_id: simulado ? null : c.municipe_id,
+        nome: simulado ? null : c.nome,
         vulneravel: c.vulneravel,
         fontes: [r.fonte],
+        simulado,
+        zona_aproximada: c.zona_aproximada ?? null,
         sms: telefoneParaSms(tel),
         ligavel: telefoneLigavel(tel),
       });
@@ -347,13 +396,26 @@ export function juntarFontes(resultados: readonly ResultadoFonte[]): {
   for (const d of todos)
     d.fontes.sort((a, b) => FONTES.indexOf(a) - FONTES.indexOf(b));
   const destinatarios = todos.filter((d) => d.sms || d.ligavel);
-  // Primeiro os vulneráveis (são os primeiros avisados e ligados).
-  destinatarios.sort((a, b) => Number(b.vulneravel) - Number(a.vulneravel));
+  // Primeiro os vulneráveis (são os primeiros avisados e ligados), depois os
+  // números reais e só no fim os simulados.
+  destinatarios.sort(
+    (a, b) =>
+      Number(b.vulneravel) - Number(a.vulneravel) ||
+      Number(a.simulado) - Number(b.simulado),
+  );
+  const soDesta = Object.fromEntries(FONTES.map((f) => [f, 0])) as Record<
+    IdFonte,
+    number
+  >;
+  for (const d of destinatarios)
+    if (d.fontes.length === 1) soDesta[d.fontes[0]]++;
   return {
     destinatarios,
     por_fonte: porFonte,
+    so_desta_fonte: soDesta,
     em_varias_fontes: destinatarios.filter((d) => d.fontes.length > 1).length,
     sem_contacto_possivel: todos.length - destinatarios.length,
+    simulados: destinatarios.filter((d) => d.simulado).length,
   };
 }
 
@@ -486,6 +548,24 @@ export function planear(e: {
       demonstracao: true,
       nota: p.nota,
     },
+  };
+}
+
+/**
+ * Tempo e custo de `total` SMS (sem montar a lista): para mostrar a fonte dos
+ * operadores à escala real quando a simulação só gera uma parte.
+ */
+export function estimarEnvioSms(
+  total: number,
+  segmentosPorSms: number,
+  smsPorMinuto: number,
+): { sms: number; minutos: number; custo: number; demonstracao: true } {
+  const n = Math.max(0, Math.round(total));
+  return {
+    sms: n,
+    minutos: minutosParaEnviar(n, smsPorMinuto),
+    custo: centimos(n * segmentosPorSms * PRECOS_DEMONSTRACAO.sms_por_segmento),
+    demonstracao: true,
   };
 }
 

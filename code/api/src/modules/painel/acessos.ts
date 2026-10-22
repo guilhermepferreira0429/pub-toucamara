@@ -130,6 +130,7 @@ const VERBOS: Record<string, string> = {
     'alertou as chefias e a proteção civil de um pedido de ajuda em',
   tratar_pedido_ajuda_emergencia: 'tratou um pedido de ajuda de',
   mudar_config_emergencias: 'mudou o ritmo de envio e os contactos de',
+  pedir_cell_broadcast: 'pediu o cell broadcast de',
   entrar_app: 'entrou na app do munícipe',
   sair_app: 'saiu da app do munícipe',
   mudar_preferencias_app: 'mudou as notificações da app de',
