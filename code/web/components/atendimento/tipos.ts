@@ -115,7 +115,8 @@ export interface VisaoGeral {
       }[];
     };
     prazos_a_acabar: { ate: string; itens: PrazoItem[] };
-    sem_resposta: { itens: SemRespostaItem[] };
+    /** `total`: perguntas por responder (a mesma lista que `itens`). */
+    sem_resposta: { total?: number; itens: SemRespostaItem[] };
   };
   melhorias_portal: {
     propostas: number;
@@ -195,6 +196,8 @@ export interface Qualidade {
     perguntas: number;
     taxa: number | null;
     passou: boolean;
+    /** Resultados de demonstração (câmara de demonstração). */
+    demonstracao?: boolean;
   } | null;
 }
 

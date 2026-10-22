@@ -162,7 +162,7 @@ export const ALUNOS_DEMO: AlunoDemo[] = [
   },
   {
     encarregado: 1,
-    nome: 'Rafael Fulano',
+    nome: 'Rafael Fernandes',
     data_nascimento: '2019-09-21',
     escola: 'EB das Taipas',
     ano: '1',
@@ -172,7 +172,7 @@ export const ALUNOS_DEMO: AlunoDemo[] = [
   },
   {
     encarregado: 2,
-    nome: 'Beatriz Sicrano',
+    nome: 'Beatriz Lopes',
     data_nascimento: '2017-01-30',
     escola: 'EB de Pevidém',
     ano: '4',
@@ -184,7 +184,7 @@ export const ALUNOS_DEMO: AlunoDemo[] = [
   },
   {
     encarregado: 3,
-    nome: 'Gonçalo Beltrano',
+    nome: 'Gonçalo Mendes',
     data_nascimento: '2018-11-05',
     escola: 'EB de Azurém',
     ano: '2',
@@ -194,7 +194,7 @@ export const ALUNOS_DEMO: AlunoDemo[] = [
   },
   {
     encarregado: 4,
-    nome: 'Leonor Fulano',
+    nome: 'Leonor Sousa',
     data_nascimento: '2021-06-18',
     escola: 'Jardim de Infância de Creixomil',
     ano: 'pre',

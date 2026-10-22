@@ -238,6 +238,8 @@ export interface ResultadoExecucao {
   por_avaliar: number | null;
   taxa: number | null;
   passou: boolean;
+  /** Resultados de demonstração (câmara de demonstração). */
+  demonstracao?: boolean;
 }
 
 export interface Qualidade {

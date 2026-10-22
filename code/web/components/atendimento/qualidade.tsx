@@ -90,6 +90,7 @@ export function CartaoQualidade({
             <div className="flex justify-between gap-2 text-[11px] text-white/60">
               <span>
                 {u.terminada_em ? `Corrido ${quando(u.terminada_em, fuso).toLowerCase()}` : ""}
+                {u.demonstracao ? " · resultados de demonstração" : ""}
               </span>
               <span>Mínimo para ir ao ar: {limiar}%</span>
             </div>
