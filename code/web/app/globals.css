@@ -137,3 +137,55 @@ html[data-contraste="alto"] .zona-municipe a:not([class*="bg-"]) {
   height: 44px;
   line-height: 44px;
 }
+
+/* O cursor do Tou, Câmara?: a seta a
+   tinta com contorno branco, a mãozinha terracota onde se pode clicar e a barra a tinta com
+   contorno branco onde se escreve (vê-se nos fundos escuros). Só com rato. Fica fora das
+   camadas do Tailwind para ganhar ao "cursor-pointer" dos componentes. A ponta da seta está
+   em (4, 4); a da mãozinha, na ponta do dedo, em (12, 2); a barra, ao meio, em (8, 12). O que
+   tem "cursor-default", "cursor-grab" ou "cursor-not-allowed" fica com o seu. */
+@media (pointer: fine) {
+  html {
+    cursor:
+      url("/cursor/normal.svg") 4 4,
+      auto;
+  }
+
+  :is(
+      a[href],
+      button:not(:disabled),
+      summary,
+      select,
+      label:has(input[type="checkbox"], input[type="radio"]),
+      input[type="checkbox"],
+      input[type="radio"],
+      input[type="range"],
+      input[type="file"],
+      [role="button"],
+      [role="tab"],
+      [role="option"],
+      [role="menuitem"],
+      [role="switch"],
+      [role="checkbox"],
+      .cursor-pointer
+    ):not(.cursor-default, .cursor-grab, .cursor-not-allowed) {
+    cursor:
+      url("/cursor/links.svg") 12 2,
+      pointer;
+  }
+
+  input:not(
+      [type="checkbox"],
+      [type="radio"],
+      [type="range"],
+      [type="file"],
+      [type="submit"],
+      [type="button"]
+    ),
+  textarea,
+  [contenteditable="true"] {
+    cursor:
+      url("/cursor/texto.svg") 8 12,
+      text;
+  }
+}
