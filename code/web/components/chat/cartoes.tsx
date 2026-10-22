@@ -31,6 +31,7 @@ import {
 import { useState } from "react";
 import { Etiqueta } from "@/components/ui/botao";
 import { FonteOficial } from "@/components/ui/marca";
+import { CartaoChatEntrega } from "@/components/entregas/cartao-chat";
 import type { Cartao } from "./tipos";
 
 /* ------------------------------------------------------------------ */
@@ -1109,6 +1110,8 @@ export function CartaoChat({ cartao, acoes }: { cartao: Cartao; acoes: AcoesCart
       return <CartaoReclamacao dados={cartao.dados} />;
     case "agora":
       return <CartaoAgora ferramenta={cartao.ferramenta} dados={cartao.dados} />;
+    case "entrega":
+      return <CartaoChatEntrega dados={cartao.dados} />;
     default:
       return null;
   }

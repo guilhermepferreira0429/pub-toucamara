@@ -56,20 +56,24 @@ export function gerarPdfComprovativo(d: DadosComprovativo): Promise<Buffer> {
     const marcaDeAgua = () => {
       if (!simulado) return;
       const { width, height } = doc.page;
+      // Escrever a marca mexe no cursor: o conteúdo continua onde estava.
+      const { x, y } = doc;
       doc.save();
       doc.rotate(-35, { origin: [width / 2, height / 2] });
       doc
         .font('Helvetica-Bold')
-        .fontSize(46)
+        .fontSize(30)
         .fillColor('#c0392b')
         .fillOpacity(0.14)
-        .text(MARCA_SIMULACAO, 0, height / 2 - 30, {
-          width,
+        .text(MARCA_SIMULACAO, -width * 0.25, height / 2 - 18, {
+          width: width * 1.5,
           align: 'center',
           lineBreak: false,
         });
       doc.restore();
       doc.fillOpacity(1).fillColor('#000');
+      doc.x = x;
+      doc.y = y;
     };
     marcaDeAgua();
     doc.on('pageAdded', marcaDeAgua);
