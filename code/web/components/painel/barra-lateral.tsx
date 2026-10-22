@@ -18,6 +18,7 @@ import {
   FileQuestion,
   HandCoins,
   HeartHandshake,
+  House,
   LogOut,
   Map as IconeMapa,
   MapPin,
@@ -43,6 +44,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Logo } from "@/components/ui/marca";
+import { abrirPesquisa, useTeclaAtalho } from "@/lib/pesquisa";
 import { useSessao, type Perfil, type Recurso } from "@/lib/sessao";
 
 /*
@@ -52,7 +54,7 @@ import { useSessao, type Perfil, type Recurso } from "@/lib/sessao";
  * nenhum dos seus itens.
  */
 
-interface Item {
+export interface Item {
   rotulo: string;
   href: string;
   icone: LucideIcon;
@@ -63,7 +65,7 @@ interface Item {
   soDemo?: boolean;
 }
 
-interface Seccao {
+export interface Seccao {
   titulo: string | null;
   itens: Item[];
 }
@@ -76,7 +78,7 @@ export interface Contagens {
   conhecimento?: number;
 }
 
-const SECCOES: Seccao[] = [
+export const SECCOES: Seccao[] = [
   {
     titulo: null,
     itens: [
@@ -201,6 +203,18 @@ const SECCOES: Seccao[] = [
         href: "/painel/cartas",
         icone: FileQuestion,
         recurso: "processos",
+      },
+      {
+        rotulo: "Escolas",
+        href: "/painel/escolas",
+        icone: GraduationCap,
+        recurso: "escolas",
+      },
+      {
+        rotulo: "Habitação municipal",
+        href: "/painel/habitacao",
+        icone: House,
+        recurso: "habitacao",
       },
     ],
   },
@@ -340,6 +354,7 @@ export function BarraLateral({ contagens = {} }: { contagens?: Contagens }) {
   const caminho = usePathname();
   const demoAtiva = useDemoAtiva();
   const visivel = (it: Item) => !it.soDemo || (demoAtiva && pode(it.recurso));
+  const tecla = useTeclaAtalho();
 
   const ativo = (href: string) =>
     href === "/painel" ? caminho === "/painel" : caminho.startsWith(href);
@@ -359,19 +374,26 @@ export function BarraLateral({ contagens = {} }: { contagens?: Contagens }) {
       </div>
 
       {/* shrink-0: com muitos itens a barra faz scroll, e sem isto a
-          pesquisa e o cabeçalho encolhiam para caber na altura. */}
-      <label className="flex h-10 shrink-0 cursor-text items-center gap-2.5 rounded-xl border border-linha bg-creme pl-3 pr-1.5 transition-colors focus-within:border-terracota focus-within:bg-papel hover:border-tinta-3/40">
+          pesquisa e o cabeçalho encolhiam para caber na altura. É um botão
+          com ar de caixa: a pesquisa faz-se na paleta (pesquisa-global). */}
+      <button
+        type="button"
+        onClick={abrirPesquisa}
+        aria-haspopup="dialog"
+        aria-keyshortcuts="Control+K Meta+K"
+        className="flex h-10 shrink-0 cursor-text items-center gap-2.5 rounded-xl border border-linha bg-creme pl-3 pr-1.5 text-left transition-colors hover:border-tinta-3/40 focus-visible:border-terracota focus-visible:bg-papel focus-visible:outline-none"
+      >
         <Search className="size-4 shrink-0 text-tinta-3" aria-hidden />
-        <input
-          type="search"
-          placeholder="Pesquisar tudo"
-          aria-label="Pesquisar tudo"
-          className="min-w-0 flex-1 bg-transparent text-[13px] text-tinta outline-none placeholder:text-tinta-3 [&::-webkit-search-cancel-button]:hidden"
-        />
-        <kbd className="flex h-6 shrink-0 items-center rounded-md border border-linha bg-papel px-1.5 font-sans text-[11px] font-semibold text-tinta-3 shadow-[0_1px_0_var(--color-linha)]">
-          ⌘K
+        <span className="min-w-0 flex-1 truncate text-[13px] text-tinta-3">
+          Pesquisar tudo
+        </span>
+        <kbd
+          aria-hidden
+          className="flex h-6 shrink-0 items-center rounded-md border border-linha bg-papel px-1.5 font-sans text-[11px] font-semibold text-tinta-3 shadow-[0_1px_0_var(--color-linha)]"
+        >
+          {tecla}
         </kbd>
-      </label>
+      </button>
 
       <nav className="flex shrink-0 flex-col gap-4.5" aria-label="Painel">
         {SECCOES.map((s, i) => {

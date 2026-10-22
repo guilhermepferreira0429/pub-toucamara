@@ -1366,6 +1366,7 @@ export function pedidoLeituraProjeto(d: {
   por_ler?: string[];
 }): PedidoIa {
   return {
+    tarefa: 'ler_projeto',
     sistema: SISTEMA_LEITURA_PROJETO,
     esforco: 'medium',
     maxTokens: MAX_TOKENS_LEITURA,

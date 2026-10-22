@@ -224,6 +224,8 @@ export class ConcelhoService {
     } else {
       try {
         const bruto: unknown = await this.claude.extrair(esquemaAnaliseIa, {
+          tarefa: 'analise_concelho',
+          minimizar: true,
           sistema: SISTEMA_CONCELHO,
           conteudo: conteudoIa(
             pedido.pergunta,

@@ -6,6 +6,7 @@ import { lerKappa } from '../calibracao/amostra.js';
 import {
   divergencias,
   escolherExemplos,
+  numerosSemFonte,
   oQueMuda,
   perguntasComuns,
   soComuns,
@@ -159,10 +160,15 @@ export interface LinhaPitch {
   agente_versao: string | null;
   rubricas: string[];
   concordancia: Calib | null;
+  /** Números ditos que não estão na pergunta nem no gabarito. */
+  numeros_sem_fonte: number;
+  /** % de respostas com pelo menos um número sem fonte. */
+  respostas_com_numeros_sem_fonte: number | null;
 }
 
 export function linhaPitch(e: ExecucaoRel, calib: Calib | null): LinhaPitch {
   const t = taxa(e.respostas);
+  const n = numerosSemFonte(e.respostas);
   return {
     sistema: e.sistema,
     nosso: e.nosso,
@@ -173,6 +179,8 @@ export function linhaPitch(e: ExecucaoRel, calib: Calib | null): LinhaPitch {
     agente_versao: e.agente_versao,
     rubricas: [...new Set(e.respostas.map((r) => r.rubrica_versao))].sort(),
     concordancia: calib && calib.n ? calib : null,
+    numeros_sem_fonte: n.numeros_sem_fonte,
+    respostas_com_numeros_sem_fonte: n.percentagem,
   };
 }
 
@@ -186,7 +194,8 @@ export function textoPitch(linhas: LinhaPitch[], comuns: number): string {
     const c = l.concordancia
       ? ` · juiz validado por uma pessoa: ${pctPt(l.concordancia.acordo)} de acordo (n=${l.concordancia.n})`
       : ' · juiz ainda sem calibração';
-    return `${l.sistema}: ${pctPt(l.taxa)} de ${l.perguntas} perguntas (${dataPt(l.data)})${c}`;
+    const num = ` · ${l.numeros_sem_fonte} ${l.numeros_sem_fonte === 1 ? 'número inventado' : 'números inventados'}${l.numeros_sem_fonte ? ` (${pctPt(l.respostas_com_numeros_sem_fonte)} das respostas)` : ''}`;
+    return `${l.sistema}: ${pctPt(l.taxa)} de ${l.perguntas} perguntas (${dataPt(l.data)})${num}${c}`;
   });
   const perguntas = new Set(linhas.map((l) => l.perguntas));
   if (

@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { SaltarParaConteudo } from "@/components/acessibilidade/saltar";
 import { BarraLateral, useContagens } from "@/components/painel/barra-lateral";
+import { PesquisaGlobal } from "@/components/painel/pesquisa-global";
 import { Logo } from "@/components/ui/marca";
 import { useFocoPreso } from "@/lib/foco";
 import { SessaoProvider, useSessao } from "@/lib/sessao";
@@ -13,7 +14,11 @@ import { SessaoProvider, useSessao } from "@/lib/sessao";
  * Em ecrãs estreitos (telemóvel, zoom a 200 % / 400 %) a barra lateral fica
  * escondida atrás do botão "Menu", para o conteúdo caber sem scroll lateral.
  */
-function MenuEstreito({ contagens }: { contagens: ReturnType<typeof useContagens> }) {
+function MenuEstreito({
+  contagens,
+}: {
+  contagens: ReturnType<typeof useContagens>;
+}) {
   const [aberto, setAberto] = useState(false);
   const [aberturaEm, setAberturaEm] = useState<string | null>(null);
   const caminho = usePathname();
@@ -100,10 +105,16 @@ function Moldura({ children }: { children: React.ReactNode }) {
       </div>
       <div className="flex min-w-0 flex-1 flex-col">
         <MenuEstreito contagens={contagens} />
-        <main id="conteudo" tabIndex={-1} className="min-w-0 flex-1 outline-none">
+        <main
+          id="conteudo"
+          tabIndex={-1}
+          className="min-w-0 flex-1 outline-none"
+        >
           {children}
         </main>
       </div>
+      {/* Uma só paleta ⌘K para as duas barras (computador e gaveta). */}
+      <PesquisaGlobal />
     </div>
   );
 }

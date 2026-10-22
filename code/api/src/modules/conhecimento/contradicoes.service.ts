@@ -205,6 +205,7 @@ export class ContradicoesService {
     const lado = (nome: string, l: Lado) =>
       `Trecho ${nome} · ${l.entidade} (${l.entidade_tipo}${l.entidade_descricao ? `: ${l.entidade_descricao}` : ''}) · ${l.fonte}${l.referencia ? ` · ${l.referencia}` : ''}\n${l.texto}`;
     const v = await this.claude.extrair(veredicto, {
+      tarefa: 'contradicoes',
       sistema: SISTEMA,
       esforco: 'low',
       maxTokens: 1000,

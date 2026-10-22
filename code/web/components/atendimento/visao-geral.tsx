@@ -33,7 +33,9 @@ import {
 } from "./graficos";
 import { ChavePeriodo, chaveValida, periodoDe, SeletorPeriodo } from "./periodo";
 import { PrimeiroDia } from "./primeiro-dia";
+import { CartaoCustoIa } from "./custo-ia";
 import { CartaoQualidade } from "./qualidade";
+import { CartaoSatisfacao, type Satisfacao } from "./satisfacao";
 import { BotaoRelatorio } from "./relatorio";
 import { TabelaConversas } from "./tabela-conversas";
 import type {
@@ -70,6 +72,9 @@ export function VisaoGeral() {
   );
   const ultimas = useDados<Pagina<ConversaLista>>(
     permitido && pode("conversas") ? "/v1/painel/conversas?limite=5" : null,
+  );
+  const satisfacao = useDados<Satisfacao>(
+    permitido ? `/v1/painel/satisfacao?de=${p.de}&ate=${p.ate}` : null,
   );
   const qualidade = useDados<Qualidade>(
     permitido && pode("conhecimento_ver") ? "/v1/painel/conhecimento/qualidade" : null,
@@ -146,6 +151,12 @@ export function VisaoGeral() {
               )}
             </div>
 
+            <CartaoSatisfacao
+              dados={satisfacao.dados}
+              erro={satisfacao.erro}
+              tentar={satisfacao.recarregar}
+            />
+
             <div className="flex flex-col gap-6 xl:flex-row">
               <Cartao
                 id="temas"
@@ -164,6 +175,8 @@ export function VisaoGeral() {
                 total={d.indicadores.sem_resposta.valor ?? 0}
               />
             </div>
+
+            {pode("indicadores") && <CartaoCustoIa de={p.de} ate={p.ate} />}
           </>
         )}
 

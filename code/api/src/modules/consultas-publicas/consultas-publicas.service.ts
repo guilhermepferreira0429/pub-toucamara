@@ -525,6 +525,8 @@ export class ConsultasPublicasService {
     } else {
       try {
         const r = await this.claude.extrair(esquemaResumoIa, {
+          tarefa: 'resumo_consulta',
+          minimizar: true,
           sistema: SISTEMA_RESUMO,
           conteudo: conteudoResumo(c, opinioes, textos),
           esforco: 'medium',

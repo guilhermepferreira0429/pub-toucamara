@@ -7,6 +7,7 @@ import { DatabaseService } from '../../database/database.service.js';
 import { ArmazenamentoService } from '../armazenamento/armazenamento.service.js';
 import { AuditoriaService } from '../auditoria/auditoria.service.js';
 import { LinksCurtosService } from '../comunicacao/links-curtos.service.js';
+import { numerosSemFonteNaConversa } from '../conhecimento/numeros-na-fonte.js';
 import { mascararTelefone } from '../municipes/municipes.service.js';
 import { objetosDaConversa } from './objetos-conversa.js';
 import { resumoCurto } from './retomar.js';
@@ -193,7 +194,7 @@ export class PainelConversasService {
     const c = await this.conversa(municipioId, id);
     const [turnos, momentos, citacoes, ficha, objetos, historico] =
       await Promise.all([
-        this.db.query(
+        this.db.query<{ id: string; papel: string; texto: string }>(
           `SELECT id::text, ordem, papel, texto, inicio_ms, fim_ms
          FROM conversa_turnos WHERE conversa_id = $1 ORDER BY ordem`,
           [id],
@@ -204,9 +205,10 @@ export class PainelConversasService {
          ORDER BY em_ms NULLS LAST, id`,
           [id],
         ),
-        this.db.query(
+        this.db.query<{ turno_id: string; texto_completo: string }>(
           `SELECT ct.turno_id::text, tr.id AS trecho_id, tr.referencia,
-                left(tr.texto, 400) AS trecho, fo.titulo AS fonte, fo.url,
+                left(tr.texto, 400) AS trecho, tr.texto AS texto_completo,
+                fo.titulo AS fonte, fo.url,
                 e.nome AS entidade, fv.lida_em
          FROM citacoes ct
          JOIN conversa_turnos tu ON tu.id = ct.turno_id
@@ -285,7 +287,15 @@ export class PainelConversasService {
         : null,
       turnos,
       momentos,
-      citacoes,
+      citacoes: citacoes.map((ci) => sem(ci, 'texto_completo')),
+      // Números que o agente disse e que não estão nos trechos que citou.
+      numeros_sem_fonte: numerosSemFonteNaConversa(
+        turnos,
+        citacoes.map((ci) => ({
+          turno_id: ci.turno_id,
+          texto: ci.texto_completo,
+        })),
+      ),
       criado: {
         requerimentos: objetos.requerimentos.map((r) =>
           sem(r, 'token_publico'),

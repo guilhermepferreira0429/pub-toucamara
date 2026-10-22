@@ -56,6 +56,8 @@ export async function escreverAbertura(
   try {
     const texto = (
       await claude.escrever({
+        tarefa: 'resumo_diario',
+        minimizar: true,
         sistema: SISTEMA_ABERTURA,
         conteudo: JSON.stringify(dados),
         esforco: 'low',

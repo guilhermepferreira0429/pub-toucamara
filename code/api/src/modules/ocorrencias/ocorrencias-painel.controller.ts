@@ -8,7 +8,12 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { z } from 'zod';
-import { esquemaPaginacao } from '../../common/paginacao.js';
+import { Coluna, ficheiroCsv, gerarCsv, nomeCsv } from '../../common/csv.js';
+import {
+  esquemaPaginacao,
+  Pagina,
+  todasAsPaginas,
+} from '../../common/paginacao.js';
 import { IdempotenciaInterceptor } from '../../common/idempotencia.interceptor.js';
 import { MunicipioAtual, UtilizadorAtual } from '../../common/pedido.js';
 import type { UtilizadorPainel } from '../../common/pedido.js';
@@ -40,6 +45,46 @@ const esquemaLista = esquemaPaginacao.extend({
   categoria_id: z.guid().optional(),
   desde: z.coerce.date().optional(),
 });
+
+/** Uma linha da lista (sem caixa do mapa), para o CSV. */
+interface LinhaOcorrencia {
+  numero: string;
+  estado: string;
+  categoria: string;
+  descricao: string | null;
+  morada: string | null;
+  servico: string | null;
+  prevista_para: string | null;
+  criada_em: Date;
+  resolvida_em: Date | null;
+  duplicados: number;
+  canal: string | null;
+  fotos: number;
+}
+
+const ESTADOS_CSV: Record<string, string> = {
+  nova: 'Nova',
+  com_equipa: 'Com a equipa',
+  resolvida: 'Resolvida',
+  duplicada: 'Duplicada',
+  rejeitada: 'Rejeitada',
+};
+
+/** Sem munícipe nem contacto: só a ocorrência. */
+const COLUNAS_CSV: Coluna<LinhaOcorrencia>[] = [
+  { titulo: 'Número', valor: (o) => o.numero },
+  { titulo: 'Registada em', valor: (o) => o.criada_em },
+  { titulo: 'Estado', valor: (o) => ESTADOS_CSV[o.estado] ?? o.estado },
+  { titulo: 'Categoria', valor: (o) => o.categoria },
+  { titulo: 'Morada', valor: (o) => o.morada },
+  { titulo: 'Descrição', valor: (o) => o.descricao },
+  { titulo: 'Serviço', valor: (o) => o.servico },
+  { titulo: 'Prevista para', valor: (o) => o.prevista_para },
+  { titulo: 'Resolvida em', valor: (o) => o.resolvida_em },
+  { titulo: 'Avisos repetidos', valor: (o) => o.duplicados },
+  { titulo: 'Fotografias', valor: (o) => o.fotos },
+  { titulo: 'Canal', valor: (o) => o.canal },
+];
 
 const esquemaAlteracao = z
   .object({
@@ -78,6 +123,24 @@ export class OcorrenciasPainelController {
   @Painel('ocorrencias_ver')
   lista(@MunicipioAtual() m: Municipio, @Query() query: unknown) {
     return this.ocorrencias.lista(m.id, validar(esquemaLista, query));
+  }
+
+  /** A lista com os mesmos filtros (sem a caixa do mapa), em CSV. */
+  @Get('exportar.csv')
+  @Painel('ocorrencias_ver')
+  async exportar(@MunicipioAtual() m: Municipio, @Query() query: unknown) {
+    const f = validar(esquemaLista.omit({ bbox: true }), query);
+    const itens = await todasAsPaginas(
+      async (p) =>
+        (await this.ocorrencias.lista(m.id, {
+          ...f,
+          ...p,
+        })) as unknown as Pagina<LinhaOcorrencia>,
+    );
+    return ficheiroCsv(
+      gerarCsv(COLUNAS_CSV, itens, m.fuso),
+      nomeCsv('ocorrencias', new Date(), m.fuso),
+    );
   }
 
   @Get(':id')

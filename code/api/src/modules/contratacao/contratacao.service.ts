@@ -642,6 +642,7 @@ export class ContratacaoService {
     }
     try {
       const r = await this.claude.extrair(esquemaPecasIa, {
+        tarefa: 'pecas_contratacao',
         sistema: SISTEMA_PECAS,
         conteudo: conteudoPecasIa(dados),
         esforco: 'medium',
