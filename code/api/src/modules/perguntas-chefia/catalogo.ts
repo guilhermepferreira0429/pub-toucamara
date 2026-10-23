@@ -89,11 +89,13 @@ let cache: Anthropic.Beta.BetaToolUnion[] | null = null;
 /** As ferramentas para a API: as consultas e, no fim, `responder`. */
 export function ferramentasApi(): Anthropic.Beta.BetaToolUnion[] {
   cache ??= [
+    // Sem `strict` nas consultas: a API recusa esquemas estritos com mais de 16 parâmetros com uniões (as
+    // consultas têm dezenas de filtros opcionais/nullable). Os parâmetros são validados à mesma pelo zod de cada
+    // consulta, e um erro volta ao modelo como is_error para ele corrigir.
     ...CONSULTAS.map((c) => ({
       name: c.nome,
       description: c.descricao,
       input_schema: esquemaApi(c.entrada),
-      strict: true,
     })),
     {
       name: RESPONDER,

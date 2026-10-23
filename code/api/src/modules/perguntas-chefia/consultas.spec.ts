@@ -94,7 +94,7 @@ describe('catálogo das consultas', () => {
     }
   });
 
-  it('as definições para a API são strict, sem extras e sem restrições não suportadas', () => {
+  it('as definições para a API: responder strict; todas sem extras e sem restrições não suportadas', () => {
     const verificar = (s: unknown): void => {
       if (Array.isArray(s)) return s.forEach(verificar);
       if (!s || typeof s !== 'object') return;
@@ -125,7 +125,9 @@ describe('catálogo das consultas', () => {
     }[];
     expect(ferramentas.map((f) => f.name)).toContain('responder');
     for (const f of ferramentas) {
-      expect(f.strict).toBe(true);
+      // Só o `responder` vai strict: as consultas têm demasiados parâmetros nullable para o limite da API.
+      if (f.name === 'responder') expect(f.strict).toBe(true);
+      else expect(f.strict).toBeUndefined();
       verificar(f.input_schema);
     }
   });

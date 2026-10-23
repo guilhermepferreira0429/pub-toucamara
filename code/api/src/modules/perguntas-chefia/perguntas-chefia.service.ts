@@ -314,7 +314,21 @@ export class PerguntasChefiaService {
         `Não existe a consulta "${nome}".`,
       );
     }
-    const v = consulta.entrada.safeParse(entrada);
+    // As consultas vão sem `strict`: o modelo pode omitir os filtros que não usa. Os que aceitam null
+    // ficam a null (o mesmo que a API mandava com strict); os outros continuam obrigatórios.
+    const forma = consulta.entrada.shape as Record<string, { safeParse: (x: unknown) => { success: boolean } }>;
+    const completa =
+      entrada && typeof entrada === 'object' && !Array.isArray(entrada)
+        ? {
+            ...Object.fromEntries(
+              Object.keys(forma)
+                .filter((k) => !(k in entrada) && forma[k].safeParse(null).success)
+                .map((k) => [k, null]),
+            ),
+            ...entrada,
+          }
+        : entrada;
+    const v = consulta.entrada.safeParse(completa);
     if (!v.success) {
       throw new ErroApi(
         HttpStatus.BAD_REQUEST,
