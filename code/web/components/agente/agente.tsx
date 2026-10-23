@@ -487,6 +487,35 @@ function QuemTrata({
   const entidades = useDados<{ itens: Entidade[] }>(pode("conhecimento_ver") ? "/v1/painel/encaminhamento" : null);
   const [aberta, setAberta] = useState<Partial<Regra> | null>(null);
   const acao = useAcao();
+  // O mesmo cabeçalho de tabela das Conversas.
+  const th = "h-9 px-2 text-left text-[11px] font-bold uppercase tracking-[0.8px] text-tinta-3";
+  const acoesRegra = (r: Regra) => (
+    <span className="inline-flex shrink-0 items-center whitespace-nowrap">
+      <button
+        type="button"
+        aria-label={`Editar ${r.assunto}`}
+        onClick={() => setAberta(r)}
+        className="rounded-md p-1.5 text-tinta-3 hover:bg-creme-2 hover:text-tinta"
+      >
+        <Pencil className="size-4" />
+      </button>
+      <button
+        type="button"
+        aria-label={`Apagar ${r.assunto}`}
+        disabled={acao.aCorrer}
+        onClick={async () => {
+          if (!window.confirm(`Apagar a regra «${r.assunto}»?`)) return;
+          const ok = await acao.executar(() =>
+            pedido<void>(`/v1/painel/agente/regras/${r.id}`, { metodo: "DELETE" }).then(() => true),
+          );
+          if (ok) onMudou();
+        }}
+        className="rounded-md p-1.5 text-tinta-3 hover:bg-creme-2 hover:text-terracota-escuro"
+      >
+        <Trash2 className="size-4" />
+      </button>
+    </span>
+  );
   const horario = (r: Regra) => {
     const e = entidades.dados?.itens.find((x) => x.id === r.entidade_id);
     const c = e?.contactos.find((x) => x.id === r.contacto_id) ?? e?.contactos[0];
@@ -510,58 +539,95 @@ function QuemTrata({
       </div>
       <ErroLinha erro={acao.erro} className="mb-2" />
       {regras.length ? (
-        <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Regras de encaminhamento">
-          <table className="w-full min-w-[760px] text-left">
-            <thead>
-              <tr className="border-y border-linha text-[11px] font-bold text-tinta-3">
-                <th scope="col" className="py-2 font-bold">ASSUNTO</th>
-                <th scope="col" className="py-2 font-bold">QUEM TRATA</th>
-                <th scope="col" className="py-2 font-bold">CONTACTO</th>
-                <th scope="col" className="py-2 font-bold">HORÁRIO</th>
-                <th scope="col" className="py-2 font-bold">PASSA A PESSOA</th>
-                {podeEditar && <th scope="col" className="py-2"><span className="sr-only">Ações</span></th>}
-              </tr>
-            </thead>
-            <tbody>
-              {regras.map((r) => (
-                <tr key={r.id} className={`border-b border-linha ${r.ativo ? "" : "opacity-50"}`}>
-                  <td className="py-[11px] pr-3 text-[13px] font-semibold text-tinta">{r.assunto}</td>
-                  <td className="py-[11px] pr-3 text-[13px] text-tinta">
-                    <span className="inline-flex items-center gap-2">
-                      <span className="size-2 rounded-full bg-terracota" aria-hidden />
-                      {r.entidade}
-                    </span>
-                  </td>
-                  <td className="py-[11px] pr-3 font-mono text-xs text-tinta-2">{r.contacto_valor ?? "—"}</td>
-                  <td className="py-[11px] pr-3 text-xs text-tinta-2">{horario(r)}</td>
-                  <td className="py-[11px] pr-3 text-xs text-tinta-2">{r.passa_a_pessoa ?? "não"}</td>
+        <>
+          {/* Telemóvel: um cartão por regra. */}
+          <ul className="flex flex-col md:hidden">
+            {regras.map((r) => (
+              <li key={r.id} className="flex gap-3 border-b border-linha py-3.5 last:border-b-0">
+                <span className="flex min-w-0 flex-1 flex-col gap-[5px]">
+                  <span className="text-[13px] font-semibold leading-[1.4] text-tinta">{r.assunto}</span>
+                  <span className="flex items-center gap-2 text-[13px] text-tinta-2">
+                    <span className="size-2 shrink-0 rounded-full bg-terracota" aria-hidden />
+                    {r.entidade}
+                    {r.contacto_valor && <span className="tabular-nums text-tinta">· {r.contacto_valor}</span>}
+                  </span>
+                  <span className="text-xs text-tinta-3">
+                    {horario(r)} · passa a pessoa: {r.passa_a_pessoa ?? "não"}
+                  </span>
+                  {!r.ativo && <Pilula tom="neutro">desligada</Pilula>}
+                </span>
+                {podeEditar && acoesRegra(r)}
+              </li>
+            ))}
+          </ul>
+          <div
+            className="hidden overflow-x-auto md:block"
+            tabIndex={0}
+            role="region"
+            aria-label="Regras de encaminhamento"
+          >
+            <table className="w-full min-w-[760px] border-collapse">
+              <thead>
+                <tr className="border-b border-linha">
+                  <th scope="col" className={th}>Assunto</th>
+                  <th scope="col" className={`${th} w-[190px]`}>Quem trata</th>
+                  <th scope="col" className={`${th} w-[130px]`}>Contacto</th>
+                  <th scope="col" className={`${th} w-[170px]`}>Horário</th>
+                  <th scope="col" className={`${th} w-[240px]`}>Passa a pessoa</th>
                   {podeEditar && (
-                    <td className="py-[11px] text-right whitespace-nowrap">
-                      <button type="button" aria-label={`Editar ${r.assunto}`} onClick={() => setAberta(r)} className="rounded-md p-1 text-tinta-3 hover:bg-creme hover:text-tinta">
-                        <Pencil className="size-3.5" />
-                      </button>
-                      <button
-                        type="button"
-                        aria-label={`Apagar ${r.assunto}`}
-                        disabled={acao.aCorrer}
-                        onClick={async () => {
-                          if (!window.confirm(`Apagar a regra «${r.assunto}»?`)) return;
-                          const ok = await acao.executar(() =>
-                            pedido<void>(`/v1/painel/agente/regras/${r.id}`, { metodo: "DELETE" }).then(() => true),
-                          );
-                          if (ok) onMudou();
-                        }}
-                        className="rounded-md p-1 text-tinta-3 hover:bg-creme hover:text-terracota-escuro"
-                      >
-                        <Trash2 className="size-3.5" />
-                      </button>
-                    </td>
+                    <th scope="col" className={`${th} w-[76px]`}>
+                      <span className="sr-only">Ações</span>
+                    </th>
                   )}
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {regras.map((r, i) => (
+                  <tr
+                    key={r.id}
+                    className={`h-16 border-b border-linha transition-colors last:border-b-0 hover:bg-creme focus-within:bg-creme ${
+                      i % 2 ? "bg-creme/60" : ""
+                    }`}
+                  >
+                    <td className="px-2 py-2">
+                      <span className="line-clamp-2 text-[13px] font-semibold leading-[1.4] text-tinta">
+                        {r.assunto}
+                      </span>
+                      {!r.ativo && (
+                        <Pilula tom="neutro" className="mt-1">
+                          desligada
+                        </Pilula>
+                      )}
+                    </td>
+                    <td className="px-2">
+                      <span className="flex items-center gap-2 text-[13px] text-tinta-2">
+                        <span className="size-2 shrink-0 rounded-full bg-terracota" aria-hidden />
+                        <span className="line-clamp-2">{r.entidade}</span>
+                      </span>
+                    </td>
+                    <td className="px-2 text-[13px] font-medium whitespace-nowrap tabular-nums text-tinta">
+                      {r.contacto_valor ?? <span className="text-tinta-3">—</span>}
+                    </td>
+                    <td className="px-2 text-[13px] text-tinta-2">{horario(r)}</td>
+                    <td className="px-2 py-2">
+                      <span
+                        className="line-clamp-2 text-[13px] leading-[1.4] text-tinta-2"
+                        title={r.passa_a_pessoa ?? undefined}
+                      >
+                        {r.passa_a_pessoa ?? "não"}
+                      </span>
+                    </td>
+                    {podeEditar && (
+                      <td className="px-2 text-right">
+                        {acoesRegra(r)}
+                      </td>
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
       ) : (
         <p className="text-sm text-tinta-3">Ainda sem regras de encaminhamento.</p>
       )}
