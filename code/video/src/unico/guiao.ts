@@ -64,7 +64,7 @@ export interface Toma {
 }
 
 /** A avaliação final (ronda 5, docs/avaliacao/escala): chega para o munícipe? */
-export const AVALIACAO = { perguntas: 180, tou: 113, site: 15, certas: 87, graves: 5 };
+export const AVALIACAO = { perguntas: 180, tou: 113, site: 15, certas: '81.1', graves: 5 };
 
 export const CREDITO_MUSICA =
   'Música: “Voxel Revolution”, Kevin MacLeod (incompetech.com) · Creative Commons BY 4.0';
