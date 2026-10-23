@@ -225,7 +225,7 @@ export function PaginaVisao() {
             <div className="flex flex-col gap-6">
               <span className="text-[13px] font-bold uppercase tracking-[1.4px] text-terracota">Visão</span>
               <h1 className="font-display text-[44px] font-extrabold leading-[1.02] tracking-[-1.6px] sm:text-[60px]">
-                Hoje, a câmara que <span className="text-terracota">atende</span>.
+                Hoje, a câmara que <span className="text-terracota">resolve</span>.
                 <br />
                 Amanhã, a câmara que <span className="text-terracota">não esquece</span>.
               </h1>
@@ -238,7 +238,7 @@ export function PaginaVisao() {
             </div>
             <div className="flex flex-col gap-5 rounded-[28px] border border-linha bg-papel p-7 sm:p-9">
               <p className="font-display text-[22px] font-extrabold leading-tight">
-                A câmara que atende. <span className="text-terracota">A câmara que não esquece.</span>
+                A câmara que resolve. <span className="text-terracota">A câmara que não esquece.</span>
               </p>
               <Tarjas />
               <p className="text-[14px] leading-relaxed text-tinta-2">
