@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useFuso } from "./dados";
 import { canal, quando } from "./formatos";
 import type { ConversaLista } from "./tipos";
-import { EstadoResultado } from "./ui";
+import { Cara, EstadoResultado } from "./ui";
 
 /**
  * Tabela de conversas (design "Últimas conversas"): quando, canal, resumo,
@@ -169,8 +169,9 @@ export function TabelaConversas({
                         <span className="line-clamp-1 text-tinta-3">Tema: {c.tema.nome}</span>
                       )}
                       {mostrarMunicipe && c.municipe && (
-                        <span className="line-clamp-1 text-tinta-3">
-                          {c.municipe.nome ?? c.municipe.telefone}
+                        <span className="flex items-center gap-1.5 text-tinta-3">
+                          <Cara telefone={c.municipe.telefone} tamanho={20} />
+                          <span className="line-clamp-1">{c.municipe.nome ?? c.municipe.telefone}</span>
                         </span>
                       )}
                     </span>

@@ -1,5 +1,6 @@
 import { RefreshCw, type LucideIcon } from "lucide-react";
 import { ROLO_SEPARADORES } from "@/components/painel/rolo";
+import { caraDemo } from "@/lib/caras";
 import { resultado, TONS, type Tom } from "./formatos";
 
 /* Peças visuais repetidas nos ecrãs de atendimento (design: cartões em papel). */
@@ -119,6 +120,27 @@ export function AvatarAgente({ tamanho = 30 }: { tamanho?: 30 | 32 | 34 | 88 }) 
     >
       ?
     </span>
+  );
+}
+
+/**
+ * A cara de uma pessoa fictícia da demonstração (lib/caras.ts); nada para as
+ * outras. Decorativa: o nome está sempre ao lado.
+ */
+export function Cara({ telefone, tamanho = 32 }: { telefone: string | null | undefined; tamanho?: number }) {
+  const src = caraDemo(telefone);
+  if (!src) return null;
+  return (
+    // eslint-disable-next-line @next/next/no-img-element -- retrato pequeno e estático da demonstração
+    <img
+      src={src}
+      alt=""
+      width={tamanho}
+      height={tamanho}
+      loading="lazy"
+      className="shrink-0 rounded-full border-[1.5px] border-papel bg-creme-2 object-cover"
+      style={{ width: tamanho, height: tamanho }}
+    />
   );
 }
 

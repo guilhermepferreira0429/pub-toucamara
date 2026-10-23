@@ -16,7 +16,7 @@ import {
   quando,
 } from "./formatos";
 import type { Passagem } from "./tipos";
-import { AvatarAgente, ErroBloco, Esqueleto, LinhaFicha, Pilula, Rotulo } from "./ui";
+import { AvatarAgente, Cara, ErroBloco, Esqueleto, LinhaFicha, Pilula, Rotulo } from "./ui";
 
 /**
  * Passagem a funcionário (sem ecrã próprio no design): o caso resumido pelo
@@ -139,9 +139,12 @@ export function PassagemDetalhe({ id, aoMudar }: { id: string; aoMudar?: () => v
 
       <Ficha titulo="Ficha">
         <LinhaFicha campo="Munícipe" largura="w-[90px]">
-          {d.municipe
-            ? [d.municipe.nome, d.municipe.telefone].filter(Boolean).join(" · ") || "Sem nome"
-            : "Não identificado"}
+          <span className="flex items-center gap-2">
+            <Cara telefone={d.municipe?.telefone} tamanho={28} />
+            {d.municipe
+              ? [d.municipe.nome, d.municipe.telefone].filter(Boolean).join(" · ") || "Sem nome"
+              : "Não identificado"}
+          </span>
         </LinhaFicha>
         <LinhaFicha campo="Quer resposta" largura="w-[90px]">
           {d.preferencia_resposta ? canal(d.preferencia_resposta).rotulo : "Sem preferência"}

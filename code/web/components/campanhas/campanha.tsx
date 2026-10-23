@@ -29,6 +29,7 @@ import {
   useAcao,
   useDados,
 } from "@/components/conhecimento/comum";
+import { Cara } from "@/components/atendimento/ui";
 import { Botao } from "@/components/ui/botao";
 import { useSessao } from "@/lib/sessao";
 import { contactadas, NECESSIDADES, TIPOS, type Campanha, type Destinatario } from "./tipos";
@@ -290,7 +291,10 @@ function Pessoa({ p, onMudou, simples }: { p: Destinatario; onMudou: () => void;
   if (simples) {
     return (
       <li className="flex flex-wrap items-center gap-x-4 gap-y-1 px-5 py-2.5 text-sm">
-        <span className="font-semibold text-tinta">{p.nome}</span>
+        <span className="flex items-center gap-2 font-semibold text-tinta">
+          <Cara telefone={p.telefone} tamanho={26} />
+          {p.nome}
+        </span>
         <span className="text-tinta-3">{p.freguesia ?? ""}</span>
         <span className="text-tinta-3">{ESTADO_TEXTO[p.estado] ?? p.estado}</span>
         {p.respondido_em && <span className="text-xs text-tinta-3">{haQuanto(p.respondido_em)}</span>}
@@ -301,24 +305,27 @@ function Pessoa({ p, onMudou, simples }: { p: Destinatario; onMudou: () => void;
   return (
     <li className="flex flex-col gap-3 px-5 py-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="flex flex-col gap-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="font-semibold text-tinta">{p.nome}</span>
-            {p.tratado_em && (
-              <Pilula tom="verde" icone={Check}>
-                tratado {haQuanto(p.tratado_em)}
-                {p.tratado_por_nome ? ` · ${p.tratado_por_nome}` : ""}
-              </Pilula>
-            )}
+        <div className="flex items-start gap-3">
+          <Cara telefone={p.telefone} tamanho={44} />
+          <div className="flex flex-col gap-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="font-semibold text-tinta">{p.nome}</span>
+              {p.tratado_em && (
+                <Pilula tom="verde" icone={Check}>
+                  tratado {haQuanto(p.tratado_em)}
+                  {p.tratado_por_nome ? ` · ${p.tratado_por_nome}` : ""}
+                </Pilula>
+              )}
+            </div>
+            <span className="text-[13px] text-tinta-2">
+              {[p.morada, p.freguesia].filter(Boolean).join(" · ") || "Sem morada"}
+              {p.notas ? ` · ${p.notas}` : ""}
+            </span>
+            <span className="text-xs text-tinta-3">
+              {ESTADO_TEXTO[p.estado] ?? p.estado}
+              {p.respondido_em ? ` · ${haQuanto(p.respondido_em)}` : ""}
+            </span>
           </div>
-          <span className="text-[13px] text-tinta-2">
-            {[p.morada, p.freguesia].filter(Boolean).join(" · ") || "Sem morada"}
-            {p.notas ? ` · ${p.notas}` : ""}
-          </span>
-          <span className="text-xs text-tinta-3">
-            {ESTADO_TEXTO[p.estado] ?? p.estado}
-            {p.respondido_em ? ` · ${haQuanto(p.respondido_em)}` : ""}
-          </span>
         </div>
         <div className="flex items-center gap-2">
           {p.telefone && (
