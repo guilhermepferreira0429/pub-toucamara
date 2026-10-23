@@ -282,6 +282,15 @@ describe('Preparar demo (e2e)', () => {
     expect(oc.body.itens.map((o: { id: string }) => o.id)).not.toContain(
       ocorrenciaTeste,
     );
+    // Na Entrada também não (a ocorrência de teste não tem serviço).
+    const ent = await ctx
+      .http()
+      .get('/v1/painel/entrada?limite=100')
+      .set(chefe)
+      .expect(200);
+    expect(ent.body.itens.map((i: { id: string }) => i.id)).not.toContain(
+      ocorrenciaTeste,
+    );
     const estados = new Set(
       oc.body.itens.map((o: { estado: string }) => o.estado),
     );

@@ -162,6 +162,13 @@ const SELECT_ITENS = `
 const MEUS = `(i.tecnico_id = $U OR ($S::uuid IS NOT NULL AND i.servico_id = $S::uuid))`;
 // Por atribuir: sem serviço, ou de um tipo com técnico e ainda sem ele.
 const POR_ATRIBUIR = `(i.servico_id IS NULL OR (i.atribui_tecnico AND i.tecnico_id IS NULL))`;
+// O que o "Preparar demo" escondeu (conversas e ocorrências de testes) não entra.
+const VISIVEL = `NOT EXISTS (
+    SELECT 1 FROM passagens_humano ph JOIN conversas cv ON cv.id = ph.conversa_id
+    WHERE i.tipo = 'passagem' AND ph.id = i.id AND cv.oculto_em IS NOT NULL)
+  AND NOT EXISTS (
+    SELECT 1 FROM ocorrencias oc
+    WHERE i.tipo = 'ocorrencia' AND oc.id = i.id AND oc.oculto_em IS NOT NULL)`;
 
 /**
  * Caixa de entrada única: passagens a humano, email geral, processos novos,
@@ -193,7 +200,7 @@ export class EntradaService {
       params.push(v);
       return `$${params.length}`;
     };
-    const onde = ['i.municipio_id = $1'];
+    const onde = ['i.municipio_id = $1', VISIVEL];
     if (f.canal) onde.push(`i.canal = ${p(f.canal)}`);
     if (f.tipo) onde.push(`i.tipo = ${p(f.tipo)}`);
     if (f.servico_id) onde.push(`i.servico_id = ${p(f.servico_id)}`);
@@ -236,7 +243,7 @@ export class EntradaService {
     }>(
       `SELECT i.tipo, i.canal, i.urgente, ${POR_ATRIBUIR} AS por_atribuir, count(*)::int AS n
        FROM entrada_itens i
-       WHERE i.municipio_id = $1
+       WHERE i.municipio_id = $1 AND ${VISIVEL}
          AND (NOT $2 OR ${MEUS.replace('$U', '$3').replaceAll('$S', '$4')})
        GROUP BY 1, 2, 3, 4`,
       [municipioId, meus, u.id, u.servicoId ?? null],
