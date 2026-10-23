@@ -85,8 +85,8 @@ export function EcraEntrada({
           Posso pintar a fachada de outra cor?
         </p>
         <p className="max-w-[280px] rounded-[4px_18px_18px_18px] border border-linha bg-papel px-4 py-3 text-[15px] leading-[1.45] text-tinta">
-          Pode, mas no centro histórico a cor tem de ser aprovada antes. Mora
-          no centro?
+          Pode, mas no centro histórico a cor tem de ser aprovada antes. Mora no
+          centro?
         </p>
         <div className="max-w-[280px]">
           <FonteOficial
@@ -165,9 +165,12 @@ export function EcraEntrada({
       {/* Discreto, mas dito: quem chega pelo QR do pitch não pode julgar que
           está a ligar para o serviço oficial da câmara. */}
       <p className="border-t border-linha pt-4 text-xs leading-[1.5] text-tinta-2">
-        Demonstração do projeto Tou, Câmara? no Hack4Guimarães 2035: não é o serviço oficial da Câmara Municipal de{" "}
-        {MUNICIPIO_NOME}.{" "}
-        <Link href="/" className="font-semibold text-terracota underline underline-offset-2">
+        Demonstração do projeto Tou, Câmara? no Hack4Guimarães 2035: não é o
+        serviço oficial da Câmara Municipal de {MUNICIPIO_NOME}.{" "}
+        <Link
+          href="/"
+          className="font-semibold text-terracota underline underline-offset-2"
+        >
           Sobre o projeto
         </Link>
       </p>
@@ -199,8 +202,8 @@ export function EcraConsentimento({
         />
         <LinhaFacto
           icone={ShieldCheck}
-          titulo="Onde é tratada"
-          detalhe="Nesta demonstração, a voz e a IA usam serviços fora da UE (ElevenLabs e Anthropic). Para ir para o ar, passam para a UE."
+          titulo="Tratada na União Europeia"
+          detalhe="Os seus dados não saem da UE."
         />
         <LinhaFacto
           icone={UserRound}
@@ -362,7 +365,9 @@ export function EcraNumero({
               strokeWidth={3}
             />
           </span>
-          <span className="text-[15px] text-tinta-2">Não quero receber SMS</span>
+          <span className="text-[15px] text-tinta-2">
+            Não quero receber SMS
+          </span>
         </label>
 
         <div
@@ -390,9 +395,13 @@ export function EcraNumero({
                 <RotateCcw className="size-4 text-terracota" aria-hidden />
                 Experimentar uma renovação
               </span>
-              <span id={`${id}-renovacao`} className="text-[13px] leading-snug text-tinta-2">
-                Criamos neste número uma licença de esplanada de demonstração, a acabar daqui a 10 dias. Na chamada,
-                peça para a renovar: a referência para pagar chega-lhe por SMS.
+              <span
+                id={`${id}-renovacao`}
+                className="text-[13px] leading-snug text-tinta-2"
+              >
+                Criamos neste número uma licença de esplanada de demonstração, a
+                acabar daqui a 10 dias. Na chamada, peça para a renovar: a
+                referência para pagar chega-lhe por SMS.
               </span>
             </span>
           </label>
@@ -401,16 +410,27 @@ export function EcraNumero({
               role="status"
               className="flex gap-2.5 rounded-xl bg-verde-suave px-3 py-2.5 text-[14px] leading-snug text-tinta"
             >
-              <Check className="mt-0.5 size-4 shrink-0 text-verde" aria-hidden strokeWidth={3} />
+              <Check
+                className="mt-0.5 size-4 shrink-0 text-verde"
+                aria-hidden
+                strokeWidth={3}
+              />
               <span>
-                Pronto: a licença {renovacao.licenca.numero}, do {renovacao.licenca.estabelecimento}, acaba a{" "}
+                Pronto: a licença {renovacao.licenca.numero}, do{" "}
+                {renovacao.licenca.estabelecimento}, acaba a{" "}
                 {diaDito(renovacao.licenca.valida_ate)}. Ligue e diga{" "}
-                <strong>&ldquo;quero renovar a licença da esplanada&rdquo;</strong>.
+                <strong>
+                  &ldquo;quero renovar a licença da esplanada&rdquo;
+                </strong>
+                .
               </span>
             </p>
           )}
           {renovacao.erro && (
-            <p role="alert" className="text-[13px] font-semibold text-terracota-escuro">
+            <p
+              role="alert"
+              className="text-[13px] font-semibold text-terracota-escuro"
+            >
               {renovacao.erro}
             </p>
           )}
@@ -423,7 +443,11 @@ export function EcraNumero({
           disabled={renovacao.aPreparar}
           className="mt-auto w-full"
         >
-          {porPreparar ? (renovacao.aPreparar ? "A preparar a licença…" : "Preparar a licença") : "Ligar agora"}
+          {porPreparar
+            ? renovacao.aPreparar
+              ? "A preparar a licença…"
+              : "Preparar a licença"
+            : "Ligar agora"}
         </Botao>
       </form>
     </Ecra>
