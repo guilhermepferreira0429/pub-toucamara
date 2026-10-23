@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import { CENTRO_OMISSAO } from "@/components/mapa/config";
 import { MapaCidade } from "@/components/mapa/mapa-cidade";
 import type { PontoMapa } from "@/components/mapa/tipos";
 import { ESTADO_COR, ESTADO_ROTULO, num, type Pin } from "./tipos";
@@ -47,8 +48,10 @@ export default function MapaOcorrencias({ pins, enquadrar, selecionado, onSeleci
       rotulo="Mapa das ocorrências"
       className="size-full"
       pontos={pontos}
-      centro={{ lat: 39.6, lng: -8.0 }}
-      zoom={7}
+      // Sem ocorrências com coordenadas (ou antes de chegarem), o centro do
+      // concelho, e não o país inteiro; com pontos, enquadra-os.
+      centro={CENTRO_OMISSAO}
+      zoom={13}
       enquadrar={pontosEnquadrar}
       enquadrarUmaVez
       selecionado={selecionado}
