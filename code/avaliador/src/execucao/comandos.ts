@@ -129,8 +129,8 @@ export const comandos: Comando[] = [
   {
     nome: 'sistemas preparar-base',
     descricao:
-      'Cria os sistemas habituais (o nosso chat e voz por município e a assistente do site) se não existirem.',
-    uso: '[--municipios guimaraes]',
+      'Cria os sistemas habituais (o nosso chat e voz por município e o assistente do site) se não existirem.',
+    uso: '[--municipios guimaraes,matosinhos]',
     async correr(a) {
       const m = texto(a, 'municipios');
       const r = await prepararBase(

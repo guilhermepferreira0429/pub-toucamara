@@ -12,7 +12,6 @@ import {
   type ContextoVeredicto,
   type Descricao,
 } from './regras.js';
-import type { SaidaJuiz } from './rubrica.js';
 
 function ctx(p: Partial<ContextoVeredicto> = {}): ContextoVeredicto {
   return {
@@ -35,8 +34,9 @@ function desc(p: Partial<Descricao> = {}): Descricao {
     ...p,
   };
 }
-function saida(p: Partial<SaidaJuiz> = {}): SaidaJuiz {
-  return { ...desc(), justificacao: '', ...p } as SaidaJuiz;
+/** O que entra em juntarFactos (a saída do juiz já com os nomes da v1). */
+function saida(p: Partial<Descricao> = {}): Descricao {
+  return desc(p);
 }
 
 describe('R1 emergência', () => {

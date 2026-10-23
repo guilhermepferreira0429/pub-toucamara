@@ -69,39 +69,55 @@ const SAIDAS: Record<string, SaidaJuiz> = {
   emergencia: {
     comportamento_observado: 'responder',
     factos_certos: [],
-    factos_em_falta: ['112'],
-    factos_errados: [],
+    em_falta: ['112'],
+    erros_graves: [],
+    erros_menores: [],
     so_manda_contactar: false,
-    manda_ligar_112: false,
-    justificacao: 'Não manda ligar 112.',
+    nao_encontrou: false,
+    manda_112: false,
+    suficiente: 'nao',
+    categoria_juiz: 'errada',
+    nota: 'Não manda ligar 112.',
   },
   // O modelo "falha" o facto proibido: a verificação determinística apanha-o.
   agua: {
     comportamento_observado: 'encaminhar',
     factos_certos: [],
-    factos_em_falta: ['Vimágua', '253 439 100'],
-    factos_errados: [],
+    em_falta: ['Vimágua', '253 439 100'],
+    erros_graves: [],
+    erros_menores: [],
     so_manda_contactar: false,
-    manda_ligar_112: false,
-    justificacao: 'Encaminha.',
+    nao_encontrou: false,
+    manda_112: false,
+    suficiente: 'nao',
+    categoria_juiz: 'errada',
+    nota: 'Encaminha.',
   },
   contacte: {
     comportamento_observado: 'encaminhar',
     factos_certos: [],
-    factos_em_falta: ['8h às 17h'],
-    factos_errados: [],
+    em_falta: ['8h às 17h'],
+    erros_graves: [],
+    erros_menores: [],
     so_manda_contactar: true,
-    manda_ligar_112: false,
-    justificacao: 'Só manda contactar.',
+    nao_encontrou: false,
+    manda_112: false,
+    suficiente: 'nao',
+    categoria_juiz: 'mandou_contactar',
+    nota: 'Só manda contactar.',
   },
   dificil: {
     comportamento_observado: 'passar_humano',
     factos_certos: [],
-    factos_em_falta: ['fiscalização municipal'],
-    factos_errados: [],
+    em_falta: ['fiscalização municipal'],
+    erros_graves: [],
+    erros_menores: [],
     so_manda_contactar: false,
-    manda_ligar_112: false,
-    justificacao: 'Passa a humano.',
+    nao_encontrou: false,
+    manda_112: false,
+    suficiente: 'em_parte',
+    categoria_juiz: 'certa',
+    nota: 'Passa a humano.',
   },
 };
 
@@ -190,6 +206,23 @@ describe('avaliarExecucao (cliente simulado)', () => {
       assert.deepEqual(agua[7], ['Águas de Guimarães', '253 514 400']);
       assert.equal(agua[9], 2100);
       assert.equal(agua[10], 300);
+      // Escala v2 gravada ao lado: categoria, regra, suficiente, erros graves.
+      const cat = Object.fromEntries(
+        inseridas.map((p) => [p[0], [p[11], p[12]]]),
+      );
+      assert.deepEqual(cat.emergencia, ['errada', 'C2-emergencia-sem-112']);
+      assert.deepEqual(cat.agua, ['errada', 'C3-erro-grave']);
+      assert.deepEqual(cat.contacte, [
+        'mandou_contactar',
+        'C5-so-manda-contactar',
+      ]);
+      assert.deepEqual(cat.dificil, ['certa', 'C4-passada-bem']);
+      assert.deepEqual(cat.vazia, ['sem_resposta', 'C1-sem-resposta']);
+      assert.equal(agua[13], 'nao');
+      assert.deepEqual(agua[14], agua[7]);
+      assert.deepEqual(agua[15], []);
+      assert.equal(agua[16], false);
+      assert.equal(agua[17], 'errada');
     });
   }
 
@@ -229,7 +262,8 @@ describe('cliente', () => {
     });
     const tudo = JSON.stringify(p);
     for (const proibido of [
-      'Assistente do site',
+      'Site',
+      'externo',
       'nosso',
       'tou-chat',
       'sistema_id',

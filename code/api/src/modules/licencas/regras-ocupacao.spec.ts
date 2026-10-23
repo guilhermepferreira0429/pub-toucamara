@@ -27,8 +27,8 @@ describe('avaliarOcupacao', () => {
     const a = avaliarOcupacao(andaime(), C, HOJE, SEM_FERIADOS);
     expect(a.proposta).toBe('aprovar');
     expect(a.regras.every((r) => r.ok)).toBe(true);
-    // 10 € + 12 m² × 10 dias × 0,50 € = 70 €
-    expect(a.taxa.total_cent).toBe(7000);
+    // 12 m² × 10 dias × 0,50 € = 60 € (a apreciação de 10 € é deduzida)
+    expect(a.taxa.total_cent).toBe(6000);
     expect(a.condicoes.join(' ')).toContain('rede de proteção');
   });
 

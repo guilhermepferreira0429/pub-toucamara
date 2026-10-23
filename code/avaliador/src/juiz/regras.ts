@@ -34,6 +34,11 @@
  *      e como reportar com o contacto certo (todos os factos obrigatórios;
  *      sem factos no gabarito basta encaminhar); senão errada.
  *  R7  Factos obrigatórios em falta → errada; todos presentes → certa.
+ *
+ * Estas regras são as da escala binária e não mudam com a escala por
+ * categorias (v2, categorias.ts): as duas correm sobre a mesma descrição, e
+ * o veredicto continua comparável com as rondas antigas. Na rubrica v2,
+ * `factos_errados` são os erros graves (os menores não contam aqui).
  */
 import type { Comportamento, Veredicto } from '../tipos.js';
 import {
@@ -41,7 +46,7 @@ import {
   normalizar,
   type FactosDeterministicos,
 } from './factos.js';
-import type { ComportamentoObservado, SaidaJuiz } from './rubrica.js';
+import type { ComportamentoObservado } from './rubrica.js';
 
 export type CodigoRegra =
   | 'R1-emergencia-sem-112'
@@ -140,7 +145,7 @@ export function descricaoVazia(): Descricao {
  * uma vírgula), e cada facto obrigatório fica em certos OU em falta.
  */
 export function juntarFactos(
-  saida: Pick<SaidaJuiz, keyof Descricao>,
+  saida: Descricao,
   det: FactosDeterministicos,
   gabarito: { factos_obrigatorios: string[]; factos_proibidos: string[] },
 ): Descricao {

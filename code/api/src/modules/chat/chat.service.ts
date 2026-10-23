@@ -594,10 +594,16 @@ export class ChatService {
     texto: string,
   ): Promise<string> {
     const [t] = await this.db.query<{ id: string }>(
-      `INSERT INTO conversa_turnos (conversa_id, ordem, papel, texto)
-       SELECT $1, coalesce(max(ordem) + 1, 0), $2, $3
-       FROM conversa_turnos WHERE conversa_id = $1
-       RETURNING id`,
+      `WITH t AS (
+         INSERT INTO conversa_turnos (conversa_id, ordem, papel, texto)
+         SELECT $1, coalesce(max(ordem) + 1, 0), $2, $3
+         FROM conversa_turnos WHERE conversa_id = $1
+         RETURNING id
+       ), a AS (
+         -- Para o fecho por inatividade (chat-fim.service.ts).
+         UPDATE conversas SET ultima_atividade_em = now() WHERE id = $1
+       )
+       SELECT id FROM t`,
       [conversaId, papel, texto],
     );
     return String(t.id);

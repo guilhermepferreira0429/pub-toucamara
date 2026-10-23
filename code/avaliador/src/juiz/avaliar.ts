@@ -1,20 +1,26 @@
 /*
  * `avaliar --execucao <id>`: passa as respostas de uma execução pelo juiz e
- * grava as avaliações. O modelo descreve; as regras (regras.ts) decidem.
+ * grava as avaliações. O modelo descreve; as regras decidem: o veredicto
+ * binário (regras.ts) e a categoria da escala v2 (categorias.ts), as duas a
+ * partir da mesma descrição.
  */
 import { bd, type Q } from '../bd.js';
 import type { Comportamento } from '../tipos.js';
 import type { ClienteJuiz, ResultadoChamada } from './cliente.js';
 import { somarUso, usoVazio, type Uso } from './custo.js';
+import {
+  decidirCategoria,
+  juntarDescricao,
+  saidaVazia,
+  type DecisaoCategoria,
+  type DescricaoV2,
+} from './categorias.js';
 import { verificarFactos } from './factos.js';
 import {
   decidirVeredicto,
-  descricaoVazia,
-  juntarFactos,
   justificacaoComRegra,
   semResposta,
   type Decisao,
-  type Descricao,
 } from './regras.js';
 import { RUBRICA_VERSAO, type EntradaJuiz } from './rubrica.js';
 
@@ -32,6 +38,8 @@ export interface ItemAvaliar {
   gabarito_resposta: string | null;
   factos_obrigatorios: string[] | null;
   factos_proibidos: string[] | null;
+  /** Obrigatórios marcados S (escala v2); null ou vazio: todos essenciais. */
+  factos_secundarios?: string[] | null;
 }
 
 /*
@@ -49,7 +57,7 @@ export async function respostasParaAvaliar(
     `SELECT r.id AS resposta_id, r.texto, r.erro,
             p.texto AS pergunta, p.idioma, p.categoria, p.comportamento, p.entidade_esperada,
             g.id AS gabarito_id, g.resposta AS gabarito_resposta,
-            g.factos_obrigatorios, g.factos_proibidos
+            g.factos_obrigatorios, g.factos_proibidos, g.factos_secundarios
        FROM avaliacao.respostas r
        JOIN avaliacao.execucoes e ON e.id = r.execucao_id
        JOIN avaliacao.sistemas s ON s.id = e.sistema_id
@@ -81,6 +89,7 @@ export function entradaDe(i: ItemAvaliar): EntradaJuiz {
       resposta: i.gabarito_resposta ?? '',
       factos_obrigatorios: i.factos_obrigatorios ?? [],
       factos_proibidos: i.factos_proibidos ?? [],
+      factos_secundarios: i.factos_secundarios ?? [],
     },
     resposta: i.texto ?? '',
   };
@@ -88,7 +97,8 @@ export function entradaDe(i: ItemAvaliar): EntradaJuiz {
 
 export interface Avaliacao {
   decisao: Decisao;
-  descricao: Descricao;
+  categoria: DecisaoCategoria;
+  descricao: DescricaoV2;
   justificacao: string;
 }
 
@@ -102,24 +112,26 @@ export function concluir(
     factos_proibidos: i.factos_proibidos ?? [],
   };
   const det = verificarFactos(i.texto ?? '', gab);
-  const base = saidaJuiz?.ok
-    ? saidaJuiz.saida
-    : { ...descricaoVazia(), justificacao: 'Sem resposta: não foi ao juiz.' };
-  const descricao = juntarFactos(base, det, gab);
-  const decisao = decidirVeredicto(
-    {
-      comportamento_esperado: i.comportamento,
-      categoria: i.categoria,
-      factos_obrigatorios: gab.factos_obrigatorios,
-      texto: i.texto,
-      erro: i.erro,
-    },
+  const saida = saidaJuiz?.ok ? saidaJuiz.saida : saidaVazia();
+  const descricao = juntarDescricao(saida, det, gab);
+  const ctx = {
+    comportamento_esperado: i.comportamento,
+    categoria: i.categoria,
+    factos_obrigatorios: gab.factos_obrigatorios,
+    texto: i.texto,
+    erro: i.erro,
+  };
+  const decisao = decidirVeredicto(ctx, descricao);
+  const categoria = decidirCategoria(
+    { ...ctx, factos_secundarios: i.factos_secundarios ?? [] },
     descricao,
   );
   return {
     decisao,
+    categoria,
     descricao,
-    justificacao: justificacaoComRegra(decisao.regra, base.justificacao),
+    // A regra binária fica no início, como antes (os relatórios leem-na).
+    justificacao: justificacaoComRegra(decisao.regra, saida.nota),
   };
 }
 
@@ -133,8 +145,10 @@ async function gravar(
     `INSERT INTO avaliacao.avaliacoes
        (resposta_id, rubrica_versao, gabarito_id, veredicto, comportamento_observado,
         factos_certos, factos_em_falta, factos_errados, justificacao, avaliador,
-        tokens_entrada, tokens_saida)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'juiz',$10,$11)`,
+        tokens_entrada, tokens_saida,
+        categoria, regra_categoria, suficiente, erros_graves, erros_menores,
+        nao_encontrou, categoria_juiz)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'juiz',$10,$11,$12,$13,$14,$15,$16,$17,$18)`,
     [
       i.resposta_id,
       RUBRICA_VERSAO,
@@ -148,6 +162,14 @@ async function gravar(
       // Entrada inclui a parte lida/escrita da cache (só há duas colunas).
       uso ? uso.entrada + uso.cache_escrita + uso.cache_leitura : null,
       uso ? uso.saida : null,
+      a.categoria.categoria,
+      a.categoria.regra,
+      a.descricao.suficiente,
+      // Os mesmos que factos_errados: nas avaliações v2 são os erros graves.
+      a.descricao.factos_errados,
+      a.descricao.erros_menores,
+      a.descricao.nao_encontrou,
+      a.descricao.categoria_juiz,
     ],
   );
 }

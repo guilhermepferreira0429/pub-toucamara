@@ -1,4 +1,4 @@
-import { HttpStatus, Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { ErroApi } from '../../common/erros.js';
 import { Cursor, pagina } from '../../common/paginacao.js';
 import type { UtilizadorPainel } from '../../common/pedido.js';
@@ -87,6 +87,8 @@ export function exigirEquipaInterna(u: UtilizadorPainel): void {
  */
 @Injectable()
 export class PainelConhecimentoService {
+  private readonly logger = new Logger(PainelConhecimentoService.name);
+
   constructor(
     private readonly db: DatabaseService,
     private readonly jobs: JobsService,
@@ -130,7 +132,75 @@ export class PainelConhecimentoService {
         [municipioId],
       ),
     ]);
-    return { temas, resumo };
+    const avaliacao = await this.avaliacaoPorTema(municipioId);
+    return { temas, resumo, avaliacao };
+  }
+
+  /**
+   * O que o agente sabe responder, medido: a última avaliação do chat com a
+   * escala por categorias (as mesmas perguntas, julgadas às cegas contra
+   * respostas de referência). Por categoria de pergunta (os nomes são os dos
+   * temas) e no total. null sem nenhuma avaliação com categorias (ou antes da
+   * migração 0101).
+   *
+   * - respondidas: tudo menos "não encontrou", "só manda contactar",
+   *   "inconclusiva" e "sem resposta" (a cobertura);
+   * - certas: certa + maioritariamente certa (a qualidade, sobre as respondidas).
+   */
+  private async avaliacaoPorTema(municipioId: string) {
+    try {
+      const linhas = await this.db.query<{
+        categoria: string | null;
+        terminada_em: Date | null;
+        total: number;
+        respondidas: number;
+        certas: number;
+        suficiente_sim: number;
+        nota: string | number | null;
+      }>(
+        `WITH ultima AS (
+           SELECT e.id
+           FROM avaliacao.execucoes e
+           JOIN avaliacao.sistemas s ON s.id = e.sistema_id
+           WHERE s.nosso AND s.adaptador = 'tou-chat' AND s.municipio_id = $1
+             AND e.estado = 'terminada' AND NOT e.amostra
+             AND NOT coalesce((s.config->>'demonstracao')::boolean, false)
+             AND EXISTS (SELECT 1 FROM avaliacao.resultados_categorias rc
+                         WHERE rc.execucao_id = e.id AND rc.categoria IS NULL AND rc.total > 0)
+           ORDER BY e.terminada_em DESC NULLS LAST, e.id DESC
+           LIMIT 1
+         )
+         SELECT rc.categoria, rc.terminada_em, rc.total,
+                (rc.total - rc.nao_encontrou - rc.mandou_contactar - rc.inconclusiva - rc.sem_resposta)::int AS respondidas,
+                (rc.certa + rc.maioritariamente_certa)::int AS certas,
+                rc.suficiente_sim, rc.nota
+         FROM avaliacao.resultados_categorias rc
+         JOIN ultima u ON u.id = rc.execucao_id`,
+        [municipioId],
+      );
+      const total = linhas.find((l) => l.categoria === null);
+      if (!total || !total.total) return null;
+      const resumo = (l: (typeof linhas)[number]) => ({
+        total: l.total,
+        respondidas: l.respondidas,
+        certas: l.certas,
+        suficiente_sim: l.suficiente_sim,
+        nota: l.nota == null ? null : Number(l.nota),
+      });
+      return {
+        medida_em: total.terminada_em,
+        total: resumo(total),
+        por_categoria: Object.fromEntries(
+          linhas
+            .filter((l) => l.categoria !== null && l.total > 0)
+            .map((l) => [l.categoria as string, resumo(l)]),
+        ),
+      };
+    } catch (e) {
+      // Sem a migração 0101 (resultados_categorias), o mapa fica sem a medida.
+      this.logger.warn(`Avaliação por tema indisponível: ${(e as Error).message}`);
+      return null;
+    }
   }
 
   // -------------------------------------------------------------------------

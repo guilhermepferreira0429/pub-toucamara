@@ -13,7 +13,26 @@ export interface TemaMapa {
   respostas_total: number;
 }
 
+/** Resultado da avaliação (escala por categorias) num tema ou no total. */
+export interface MedidaAvaliacao {
+  total: number;
+  /** Respondeu (não disse que não encontrou, não mandou só contactar). */
+  respondidas: number;
+  /** Certas ou maioritariamente certas. */
+  certas: number;
+  suficiente_sim: number;
+  nota: number | null;
+}
+
+export interface AvaliacaoMapa {
+  medida_em: string | null;
+  total: MedidaAvaliacao;
+  /** Pela categoria da pergunta, que tem o nome do tema. */
+  por_categoria: Record<string, MedidaAvaliacao>;
+}
+
 export interface Mapa {
+  avaliacao?: AvaliacaoMapa | null;
   temas: TemaMapa[];
   resumo: {
     respostas_no_ar: number;

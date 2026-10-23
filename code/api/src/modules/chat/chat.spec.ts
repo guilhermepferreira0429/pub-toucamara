@@ -47,6 +47,24 @@ describe('cartaoDe', () => {
     });
   });
 
+  it('uma fonte por página e no máximo três', () => {
+    const r = fontesDe({
+      respostas: [],
+      trechos: [
+        fonte('a', 'https://x/form', 'Formulários'),
+        fonte('b', 'https://x/form', 'Atendimento'),
+        fonte('c', 'https://x/2'),
+        fonte('d', 'https://x/3'),
+        fonte('e', 'https://x/4'),
+      ],
+    });
+    expect(r.map((f) => f.url)).toEqual([
+      'https://x/form',
+      'https://x/2',
+      'https://x/3',
+    ]);
+  });
+
   it('sem fonte não há cartão', () => {
     expect(
       cartaoDe('procurar_conhecimento', {

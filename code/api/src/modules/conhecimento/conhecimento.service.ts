@@ -47,14 +47,16 @@ export interface ResultadoPesquisa {
  *
  * - `similaridadeMinima`: um resultado só por vetores (cosseno = 1 − distância)
  *   abaixo disto não conta. Os vizinhos mais próximos existem sempre; sem
- *   limiar nunca haveria `sem_fonte`. 0,5 serve para voyage-3.5 e bge-m3.
+ *   limiar nunca haveria `sem_fonte`. Com o bge-m3 nesta base, os trechos
+ *   certos ficam entre 0,49 e 0,67 (diagnóstico de 23/10: o artigo das obras
+ *   de escassa relevância a "anexo no quintal" deu 0,491): 0,45.
  * - `textoMinimo`: ts_rank_cd normalizado (0..1) abaixo disto não conta. A
  *   consulta é OU de lexemas, por isso uma palavra solta já acerta.
  *
  * `sem_fonte` = nenhuma resposta curada e nenhum trecho acima dos limiares.
  */
 export const LIMIARES = {
-  similaridadeMinima: 0.5,
+  similaridadeMinima: Number(process.env.CONHECIMENTO_SIMILARIDADE_MINIMA) || 0.45,
   textoMinimo: 0.01,
 };
 
@@ -174,6 +176,46 @@ export class ConhecimentoService {
         pontuacao: arredondar(pontuacao),
       }));
 
+    return {
+      sem_fonte: respostas.length === 0 && trechos.length === 0,
+      respostas,
+      trechos,
+    };
+  }
+
+  /**
+   * Várias formulações da mesma pergunta (a da pessoa e as "como a câmara
+   * escreveria", que o agente manda em `termos`), fundidas por RRF. A pessoa
+   * diz "anexo no quintal"; a lei diz "obras de escassa relevância
+   * urbanística": só com as duas se encontra o artigo. Cada consulta é a
+   * pesquisa híbrida normal; as listas fundem-se pela posição.
+   */
+  async procurarVarias(
+    municipioId: string,
+    consultas: string[],
+    limite = 5,
+  ): Promise<ResultadoPesquisa> {
+    const unicas = [
+      ...new Set(consultas.map((c) => c.trim()).filter((c) => c.length >= 2)),
+    ].slice(0, 4);
+    if (unicas.length <= 1) {
+      return this.procurar(municipioId, unicas[0] ?? consultas[0], limite);
+    }
+    const resultados = await Promise.all(
+      unicas.map((c) => this.procurar(municipioId, c, Math.max(limite, 5))),
+    );
+    const respostas = rrf(
+      resultados.map((r) => r.respostas),
+      (r) => r.resposta_id,
+    )
+      .slice(0, MAX_RESPOSTAS)
+      .map(({ item }) => item);
+    const trechos = rrf(
+      resultados.map((r) => r.trechos),
+      (t) => t.trecho_id,
+    )
+      .slice(0, limite)
+      .map(({ item, pontuacao }) => ({ ...item, pontuacao: arredondar(pontuacao) }));
     return {
       sem_fonte: respostas.length === 0 && trechos.length === 0,
       respostas,

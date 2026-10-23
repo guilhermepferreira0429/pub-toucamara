@@ -178,7 +178,7 @@ function CartaoFonte({
       {cartao.fontes.map((f) => (
         <FonteOficial
           key={`${f.url}#${f.referencia ?? ""}`}
-          documento={f.referencia ? `${f.titulo}, ${f.referencia}` : f.titulo}
+          documento={f.referencia && f.referencia !== f.titulo ? `${f.titulo}, ${f.referencia}` : f.titulo}
           data={f.entidade || undefined}
           url={f.url}
         />

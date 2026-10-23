@@ -36,7 +36,7 @@ ON CONFLICT (id) DO UPDATE SET
 INSERT INTO agente_config (municipio_id, nome, saudacao, trata_por, idiomas, versao, elevenlabs_agent_id, ritmo)
 VALUES ('a1000000-0000-4000-8000-000000000001', 'Patrício Brito',
         'Olá, sou o Patrício Brito, assistente automático da Câmara de Guimarães. Em que posso ajudar?',
-        'você', '{pt-PT,en,es,fr}', 'v1', 'agent_3701m5fr6907fjk9qe1v5qpxmnpd', 'rapido')
+        'você', '{pt-PT,en,es,fr}', 'v1', 'agent_2701m5k39kppejms1h00mxa13j0e', 'rapido')
 ON CONFLICT (municipio_id) DO UPDATE SET
   nome = EXCLUDED.nome, saudacao = EXCLUDED.saudacao, trata_por = EXCLUDED.trata_por, ritmo = EXCLUDED.ritmo,
   idiomas = EXCLUDED.idiomas, elevenlabs_agent_id = EXCLUDED.elevenlabs_agent_id;

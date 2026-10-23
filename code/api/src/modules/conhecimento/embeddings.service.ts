@@ -20,8 +20,19 @@ const MODELO_OLLAMA = 'bge-m3';
  * é lento com lotes grandes: em produção EMBEDDINGS_LOTE=8.
  */
 const LOTE = Number(process.env.EMBEDDINGS_LOTE) || 64;
-/** Pesquisa durante a chamada: se não vier a tempo, segue só com texto. */
-export const TIMEOUT_PERGUNTA_MS = 250;
+/**
+ * Pesquisa durante a conversa: se não vier a tempo, segue só com texto.
+ * Com o Ollama em CPU, 250 ms podem não chegar para o bge-m3 (ver
+ * env/prod/docker/embeddings-diagnostico.sh): EMBEDDINGS_TIMEOUT_PERGUNTA_MS.
+ */
+export const TIMEOUT_PERGUNTA_MS =
+  Number(process.env.EMBEDDINGS_TIMEOUT_PERGUNTA_MS) || 250;
+/**
+ * Só se EMBEDDINGS_KEEP_ALIVE estiver definido: um keep_alive no pedido
+ * sobrepõe-se ao OLLAMA_KEEP_ALIVE do contentor (-1, sempre carregado, no
+ * docker-compose de produção).
+ */
+const OLLAMA_KEEP_ALIVE = process.env.EMBEDDINGS_KEEP_ALIVE || undefined;
 /** Ingestão e reindexação: fora da chamada, pode esperar mais (EMBEDDINGS_TIMEOUT_LOTE_MS). */
 const TIMEOUT_LOTE_MS = Number(process.env.EMBEDDINGS_TIMEOUT_LOTE_MS) || 30_000;
 
@@ -157,7 +168,11 @@ export class EmbeddingsService {
   ): Promise<number[][]> {
     const corpo = await pedirJson(
       `${this.cfg.url}/api/embed`,
-      { model: this.modelo, input: textos },
+      {
+        model: this.modelo,
+        input: textos,
+        ...(OLLAMA_KEEP_ALIVE ? { keep_alive: OLLAMA_KEEP_ALIVE } : {}),
+      },
       timeoutMs,
     );
     const v = (corpo as { embeddings?: number[][] }).embeddings;

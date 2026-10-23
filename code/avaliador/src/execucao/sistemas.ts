@@ -1,13 +1,15 @@
 /*
  * Os sistemas avaliados (`avaliacao.sistemas`): criar, listar e preparar os
- * habituais (o nosso agente em chat e voz por município e a assistente do site).
+ * habituais (o nosso agente em chat e voz por município e o assistente do site).
  */
 import { bd, type Q } from '../bd.js';
+import { configExterno } from '../sistemas/externo-config.js';
 import type { Sistema, TipoAdaptador } from '../tipos.js';
 
 export const ADAPTADORES: TipoAdaptador[] = [
   'tou-chat',
   'tou-voz',
+  'externo',
   'manual',
 ];
 
@@ -85,6 +87,11 @@ export async function criarSistema(
   if (config === null || typeof config !== 'object' || Array.isArray(config))
     throw new Error('--config tem de ser um objeto JSON.');
   // Erros de config apanham-se já, não à primeira pergunta.
+  if (n.adaptador === 'externo') configExterno(config);
+  if (n.adaptador === 'externo' && !n.url)
+    throw new Error(
+      'Um sistema externo precisa de --url (a página com o widget).',
+    );
   const mid = n.municipio ? await municipioId(n.municipio, q) : null;
   const [s] = await q.query<Sistema>(
     `INSERT INTO avaliacao.sistemas (nome, municipio_id, adaptador, url, config, nosso)
@@ -129,17 +136,20 @@ export function listarSistemas(q: Q = bd): Promise<LinhaSistema[]> {
 /** Nomes para quando o município ainda não está na BD. */
 const NOMES: Record<string, string> = {
   guimaraes: 'Guimarães',
+  matosinhos: 'Matosinhos',
 };
 
-/**
- * A assistente que a câmara já tem no site. As respostas dela entram com
- * `importar-respostas` (adaptador manual) e passam pelo mesmo juiz.
- */
+/** Os assistentes externos que conhecemos (seletores por omissão em externo-config.ts). */
 export const EXTERNOS = [
   {
     nome: 'Assistente do site · Guimarães',
     slug: 'guimaraes',
     url: 'https://www.cm-guimaraes.pt',
+  },
+  {
+    nome: 'Assistente do site · Matosinhos',
+    slug: 'matosinhos',
+    url: 'https://www.cm-matosinhos.pt',
   },
 ];
 
@@ -151,11 +161,11 @@ export interface ResultadoPreparar {
 
 /**
  * Cria, se ainda não existirem: "Tou, Câmara? · <município> · chat" e
- * "… · voz" para cada município pedido, e a assistente do site. O nosso leva
+ * "… · voz" para cada município pedido, e o assistente do site. O nosso leva
  * `config.slug`, para funcionar mesmo antes de o município existir na BD.
  */
 export async function prepararBase(
-  slugs: string[] = ['guimaraes'],
+  slugs: string[] = ['guimaraes', 'matosinhos'],
   q: Q = bd,
 ): Promise<ResultadoPreparar> {
   const r: ResultadoPreparar = { criados: [], existentes: [], avisos: [] };
@@ -201,7 +211,7 @@ export async function prepararBase(
     novos.push({
       nome: e.nome,
       slug: e.slug,
-      adaptador: 'manual',
+      adaptador: 'externo',
       url: e.url,
       config: {},
       nosso: false,

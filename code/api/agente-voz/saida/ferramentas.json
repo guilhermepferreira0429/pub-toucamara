@@ -800,6 +800,33 @@
           "description": "Parâmetros de resposta_emergencia."
         }
       }
+    },
+    {
+      "type": "webhook",
+      "name": "retirar_familiar",
+      "description": "Quando já não quer o familiar a acompanhar: o link dele deixa de funcionar.",
+      "response_timeout_secs": 20,
+      "tool_error_handling_mode": "passthrough",
+      "api_schema": {
+        "url": "${API_URL}/v1/agent/tools/retirar_familiar",
+        "method": "POST",
+        "content_type": "application/json",
+        "request_headers": {
+          "X-Agente-Segredo": {
+            "secret_id": "${SEGREDO:toucamara_agente_segredo}"
+          },
+          "X-Municipio": "${MUNICIPIO}",
+          "X-Conversa-Id": {
+            "variable_name": "system__conversation_id"
+          },
+          "X-Telefone": {
+            "variable_name": "system__caller_id"
+          },
+          "X-Telefone-Web": {
+            "variable_name": "telefone"
+          }
+        }
+      }
     }
   ],
   "avisos": []

@@ -110,7 +110,17 @@ function texto(v: unknown): string | null {
   return typeof v === 'string' && v.trim() ? v : null;
 }
 
-/** As fontes de um resultado de `procurar_conhecimento`, sem repetidos. */
+/**
+ * Cartões de fonte por resposta: mais do que isto e aparecem páginas que só
+ * vieram na pesquisa e não foram usadas (ex.: "Convocados à Mesa" numa
+ * pergunta sobre esplanadas).
+ */
+const MAX_FONTES = 3;
+
+/**
+ * As fontes de um resultado de `procurar_conhecimento`, uma por página (vários
+ * trechos da mesma página davam cartões repetidos), pela ordem da pesquisa.
+ */
 export function fontesDe(resultado: unknown): FonteCartao[] {
   const r = objeto(resultado);
   const brutas = [
@@ -124,15 +134,15 @@ export function fontesDe(resultado: unknown): FonteCartao[] {
     const url = texto(f.url);
     if (!titulo || !url) continue;
     const referencia = texto(f.referencia);
-    const chave = `${url}#${referencia ?? ''}`;
-    if (vistas.has(chave)) continue;
-    vistas.add(chave);
+    if (vistas.has(url)) continue;
+    vistas.add(url);
     fontes.push({
       titulo,
       url,
       entidade: texto(f.entidade) ?? '',
       referencia,
     });
+    if (fontes.length >= MAX_FONTES) break;
   }
   return fontes;
 }

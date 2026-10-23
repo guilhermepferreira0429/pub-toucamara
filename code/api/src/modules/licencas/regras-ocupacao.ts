@@ -138,14 +138,17 @@ export type PedidoOcupacao = z.output<typeof entradaOcupacao>;
 export function taxaOcupacao(p: PedidoOcupacao, c: ConfigOcupacao) {
   const quantidade = Math.round(p.area_m2 * p.dias * 100) / 100;
   const variavel = Math.round(quantidade * c.taxa_m2_dia_cent);
+  // Tabela de taxas: a taxa de apreciação é deduzida na de ocupação, por isso
+  // paga-se a maior das duas (não a soma).
+  const base = variavel >= c.taxa_base_cent ? 0 : c.taxa_base_cent;
   const linhas = [
     {
       codigo: 'OVP',
-      descricao: 'Ocupação da via pública · apreciação',
+      descricao: 'Ocupação da via pública · apreciação (deduzida na ocupação)',
       unidade: 'fixo' as const,
       quantidade: 1,
       valor_unitario_cent: c.taxa_base_cent,
-      valor_cent: c.taxa_base_cent,
+      valor_cent: base,
     },
     {
       codigo: 'OVP-M2',

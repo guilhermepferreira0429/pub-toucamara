@@ -20,6 +20,7 @@ import {
   JOB_DESCOBRIR,
 } from './descoberta.service.js';
 import { EmbeddingsService } from './embeddings.service.js';
+import { ReordenarService } from './reordenar.service.js';
 import { DadosReindexar, IndexacaoService } from './indexacao.service.js';
 import {
   DadosIngestao,
@@ -65,6 +66,7 @@ import { DadosPropor, PropostasService } from './propostas.service.js';
     AvaliacaoPublicaController,
   ],
   providers: [
+    ReordenarService,
     ConhecimentoService,
     EmbeddingsService,
     IndexacaoService,
@@ -94,6 +96,7 @@ export class ConhecimentoModule implements OnModuleInit {
     private readonly indexacao: IndexacaoService,
     private readonly melhorias: MelhoriasService,
     private readonly simples: LinguagemSimplesService,
+    private readonly reordenar: ReordenarService,
   ) {}
 
   onModuleInit() {
@@ -102,6 +105,7 @@ export class ConhecimentoModule implements OnModuleInit {
         this.conhecimento,
         this.conversas,
         this.simples,
+        this.reordenar,
       ),
     );
 

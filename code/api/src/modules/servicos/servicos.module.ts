@@ -37,9 +37,15 @@ export class ServicosModule implements OnModuleInit {
   ) {}
 
   onModuleInit() {
+    // Os serviços da V4 (escolas, reservas, estacionamento, habitação,
+    // cemitérios, animais, água) funcionam sobre dados de demonstração: só
+    // chegam aos agentes com SERVICOS_V4=true. Sem isso o agente não oferece
+    // inscrições nem reservas que a câmara não faz por este canal.
+    const agentes = process.env.SERVICOS_V4 === 'true' ? undefined : [];
     this.registo.registar(
       ferramenta({
         nome: 'outros_servicos',
+        agentes,
         descricao:
           'Escolas, reservas, estacionamento, habitação municipal, cemitérios, animais, água. Sem área: as ações de cada área; com área: os campos a perguntar.',
         entrada: entradaOutrosServicos,
@@ -48,6 +54,7 @@ export class ServicosModule implements OnModuleInit {
       }),
       ferramenta({
         nome: 'pedir_servico',
+        agentes,
         descricao:
           'Corre uma ação de outros_servicos. Se faltar ou estiver mal um campo, devolve em_falta/invalidos.',
         entrada: entradaPedirServico,

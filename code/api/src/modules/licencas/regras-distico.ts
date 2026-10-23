@@ -98,7 +98,7 @@ export const entradaDistico = z.object({
   morada_comprovada: z
     .boolean()
     .describe(
-      'Se a morada está no cartão de cidadão (ou tem atestado de residência da junta).',
+      'Se tem a certidão de domicílio fiscal com esta morada (Portal das Finanças).',
     ),
   viatura_em_nome: z
     .boolean()
@@ -160,7 +160,7 @@ export function avaliarDistico(
       'morada',
       p.morada_comprovada,
       p.morada_comprovada
-        ? 'A morada está no cartão de cidadão (ou há atestado de residência).'
+        ? 'A morada está na certidão de domicílio fiscal.'
         : 'A morada não está comprovada: é preciso o atestado de residência da junta.',
     );
   }

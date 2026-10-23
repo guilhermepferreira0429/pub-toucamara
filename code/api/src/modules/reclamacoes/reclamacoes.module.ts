@@ -31,7 +31,7 @@ export class ReclamacoesModule implements OnModuleInit {
       ferramenta({
         nome: 'registar_reclamacao',
         descricao:
-          'Só para uma reclamação FORMAL (Livro de Reclamações) sobre um serviço, funcionário ou atendimento da câmara; não para problemas na rua (registar_ocorrencia), pedidos ou dúvidas. Se não for claro, pergunta. ' +
+          'Só para uma reclamação FORMAL (registada pela câmara, com prazo de resposta; não é o Livro de Reclamações oficial nem o substitui) sobre um serviço, funcionário ou atendimento da câmara; não para problemas na rua (registar_ocorrencia), pedidos ou dúvidas. Se não for claro, pergunta. ' +
           'Pergunta o nome, o serviço, o que aconteceu e o que pede. Fica com número e prazo legal de resposta.',
         entrada: entradaRegistar,
         executar: (ctx, e) => this.reclamacoes.registarPeloAgente(ctx, e),

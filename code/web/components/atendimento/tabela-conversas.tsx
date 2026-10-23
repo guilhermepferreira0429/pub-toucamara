@@ -32,7 +32,7 @@ export function TabelaConversas({
           const ca = canal(c.canal);
           const Icone = ca.icone;
           const fonte = c.fonte
-            ? c.fonte.referencia
+            ? c.fonte.referencia && c.fonte.referencia !== c.fonte.titulo
               ? `${c.fonte.titulo}, ${c.fonte.referencia}`
               : c.fonte.titulo
             : null;
@@ -153,7 +153,7 @@ export function TabelaConversas({
                       <span className="line-clamp-1">
                         {c.fonte ? (
                           <span className="font-medium text-tinta">
-                            {c.fonte.referencia
+                            {c.fonte.referencia && c.fonte.referencia !== c.fonte.titulo
                               ? `${c.fonte.titulo}, ${c.fonte.referencia}`
                               : c.fonte.titulo}
                           </span>

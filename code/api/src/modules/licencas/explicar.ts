@@ -174,7 +174,7 @@ export function frasesRegras(tipo: TipoLicenca, config: unknown): FraseRegra[] {
               {
                 id: 'morada',
                 texto:
-                  'A morada tem de estar no cartão de cidadão ou num atestado de residência da junta.',
+                  'A morada tem de estar na certidão de domicílio fiscal (Portal das Finanças).',
               },
             ]
           : []),

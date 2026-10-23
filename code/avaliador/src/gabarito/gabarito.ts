@@ -172,6 +172,7 @@ interface LinhaGabarito extends ConteudoGabarito {
   pergunta_id: string;
   municipio_id: string;
   estado: string;
+  factos_secundarios: string[];
 }
 
 /**
@@ -197,7 +198,7 @@ export function aplicarRevisao(
       }
       const [g] = await tx.query<LinhaGabarito>(
         `SELECT id, pergunta_id, municipio_id, estado, resposta, factos_obrigatorios,
-                factos_proibidos, fontes
+                factos_proibidos, fontes, factos_secundarios
          FROM avaliacao.gabarito WHERE id = $1`,
         [it.gabarito_id],
       );
@@ -231,6 +232,8 @@ export function aplicarRevisao(
       if (g.estado === 'aprovado') {
         // Editar um aprovado cria uma versão nova: as avaliações já feitas
         // apontam para o id antigo e têm de continuar a dizer o que o juiz viu.
+        // A classificação E/S passa para a versão nova nos factos que ficam
+        // iguais; um facto novo ou reescrito conta como E até ser classificado.
         await tx.query(
           `UPDATE avaliacao.gabarito SET estado = 'rejeitado' WHERE id = $1`,
           [g.id],
@@ -238,8 +241,9 @@ export function aplicarRevisao(
         await tx.query(
           `INSERT INTO avaliacao.gabarito
              (pergunta_id, municipio_id, versao, resposta, factos_obrigatorios,
-              factos_proibidos, fontes, estado, proposto_por, aprovado_por, aprovado_em)
-           SELECT $1, $2, coalesce(max(versao), 0) + 1, $3, $4, $5, $6, 'aprovado', $7, $7, now()
+              factos_proibidos, fontes, estado, proposto_por, aprovado_por, aprovado_em,
+              factos_secundarios)
+           SELECT $1, $2, coalesce(max(versao), 0) + 1, $3, $4, $5, $6, 'aprovado', $7, $7, now(), $8
            FROM avaliacao.gabarito WHERE pergunta_id = $1 AND municipio_id = $2`,
           [
             g.pergunta_id,
@@ -249,6 +253,9 @@ export function aplicarRevisao(
             novo.factos_proibidos,
             JSON.stringify(novo.fontes),
             por,
+            (g.factos_secundarios ?? []).filter((f) =>
+              novo.factos_obrigatorios.includes(f),
+            ),
           ],
         );
       } else {

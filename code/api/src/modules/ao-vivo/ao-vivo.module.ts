@@ -45,6 +45,8 @@ export class AoVivoModule implements OnModuleInit {
     this.registo.registar(
       ferramenta({
         nome: 'retirar_familiar',
+        // Nas chamadas da câmara também se pode juntar um familiar.
+        agentes: ['entrada', 'saida', 'chat'],
         descricao:
           'Quando já não quer o familiar a acompanhar: o link dele deixa de funcionar.',
         entrada: z.object({}),

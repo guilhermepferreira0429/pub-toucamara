@@ -4,6 +4,12 @@ import { config } from '../config.js';
 import { escolherConjunto, municipioPorSlug } from '../perguntas/conjuntos.js';
 import type { Args, Comando } from '../tipos.js';
 import {
+  gabaritosParaClassificar,
+  gravarEssenciais,
+  lerEssenciais,
+  planearEssenciais,
+} from './essenciais.js';
+import {
   dominiosOficiais,
   entidadesDoMunicipio,
   procurarContexto,
@@ -221,4 +227,49 @@ const estado: Comando = {
   },
 };
 
-export const comandos: Comando[] = [propor, exportar, importar, estado];
+const USO_ESSENCIAIS =
+  '<essenciais.json> --municipio <slug> [--conjunto <nome>] [--seco]';
+
+const essenciais: Comando = {
+  nome: 'gabarito essenciais',
+  descricao:
+    'Importa a classificação E/S dos factos obrigatórios (escala v2) para os gabaritos aprovados. Sem classificação, todos os factos contam como E. --seco: só mostra o que mudava.',
+  uso: USO_ESSENCIAIS,
+  async correr(a) {
+    const ficheiro = a.posicionais[0];
+    if (!ficheiro)
+      throw new Error(
+        `Falta o ficheiro. Uso: gabarito essenciais ${USO_ESSENCIAIS}`,
+      );
+    const classificacao = lerEssenciais(await readFile(ficheiro, 'utf8'));
+    const municipio = await municipioPorSlug(
+      obrigatoria(a, 'municipio', USO_ESSENCIAIS),
+    );
+    const conjunto = await escolherConjunto(opcao(a, 'conjunto'), municipio.id);
+    const plano = planearEssenciais(
+      classificacao,
+      await gabaritosParaClassificar(conjunto.id, municipio.id),
+    );
+    const mudam = plano.atualizacoes.filter((x) => x.mudou).length;
+    const nS = plano.atualizacoes.reduce((n, x) => n + x.secundarios.length, 0);
+    console.log(
+      `${conjunto.nome} v${conjunto.versao} · ${municipio.nome}: ${plano.atualizacoes.length} perguntas classificadas (${nS} factos S), ${mudam} mudam.`,
+    );
+    for (const x of plano.avisos) console.log(`  aviso: ${x}`);
+    if (a.opcoes.seco === true) console.log('--seco: nada gravado.');
+    else console.log(`Gravadas: ${await gravarEssenciais(plano)}.`);
+    if (plano.erros.length) {
+      console.log(`Não aplicadas (${plano.erros.length}):`);
+      for (const e of plano.erros) console.log(`  ${e}`);
+      process.exitCode = 1;
+    }
+  },
+};
+
+export const comandos: Comando[] = [
+  propor,
+  exportar,
+  importar,
+  estado,
+  essenciais,
+];

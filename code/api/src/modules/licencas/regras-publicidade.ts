@@ -278,7 +278,7 @@ export function avaliarPublicidade(
     );
   }
   if (p.suporte === 'tabuleta' || p.suporte === 'toldo') {
-    condicoes.push('Pelo menos 2,20 m livres entre o passeio e o anúncio.');
+    condicoes.push('Pelo menos 2,40 m livres entre o passeio e o anúncio (ROEPP).');
   }
   if (p.suporte === 'cavalete') {
     condicoes.push('Deixar sempre 1,20 m de passeio livres para peões.');

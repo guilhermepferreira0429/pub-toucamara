@@ -82,3 +82,14 @@ export function mesmoFacto(
   const [curto, longo] = a.length < b.length ? [a, b] : [b, a];
   return longo.includes(curto) && curto.length >= 0.6 * longo.length;
 }
+
+/**
+ * Escala v2: um facto obrigatório é secundário só se está marcado S. Tudo o
+ * resto é essencial, incluindo os factos sem classificação (um gabarito
+ * editado depois de classificado, ou nunca classificado): na dúvida, o facto
+ * conta, que é o lado seguro.
+ */
+export function ehSecundario(facto: string, secundarios: string[]): boolean {
+  const f = normalizar(facto);
+  return !!f && secundarios.some((s) => normalizar(s) === f);
+}

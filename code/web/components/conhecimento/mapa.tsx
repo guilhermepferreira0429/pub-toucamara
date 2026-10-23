@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { Cartao, Estado, numero, pct, quando, useDados, type Pagina } from "./comum";
-import type { Contradicao, Entidade, Fontes, Mapa, Qualidade, TemaMapa } from "./tipos";
+import type { AvaliacaoMapa, Contradicao, Entidade, Fontes, Mapa, MedidaAvaliacao, Qualidade, TemaMapa } from "./tipos";
 
 /** Anel de percentagem (destaque escuro do mapa). */
 function Anel({ valor, rotulo }: { valor: number | null; rotulo: string }) {
@@ -54,6 +54,28 @@ function parteNoAr(t: TemaMapa): number | null {
   return t.respostas_total ? Math.round((t.respostas_no_ar / t.respostas_total) * 100) : null;
 }
 
+const normalizar = (s: string) =>
+  s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+
+/** A medida da avaliação para o tema (a categoria das perguntas com o mesmo nome). */
+function medidaDoTema(t: TemaMapa, a: AvaliacaoMapa | null | undefined): MedidaAvaliacao | null {
+  if (!a) return null;
+  const n = normalizar(t.nome);
+  const chave = Object.keys(a.por_categoria).find((k) => normalizar(k) === n);
+  return chave ? a.por_categoria[chave] : null;
+}
+
+/**
+ * Quanto o agente sabe responder neste tema (0–100): com avaliação, a parte
+ * das perguntas do tema com resposta certa ou maioritariamente certa; sem
+ * avaliação para o tema, a parte das respostas preparadas que está no ar.
+ */
+function sabeResponder(t: TemaMapa, a: AvaliacaoMapa | null | undefined): number | null {
+  const m = medidaDoTema(t, a);
+  if (m && m.total) return Math.round((m.certas / m.total) * 100);
+  return parteNoAr(t);
+}
+
 function corDoTema(p: number | null) {
   if (p === null || p < 50) return { fundo: "bg-terracota", texto: "text-white", sub: "text-white/80" };
   if (p < 80) return { fundo: "bg-ambar-suave", texto: "text-ambar", sub: "text-tinta-2" };
@@ -68,7 +90,7 @@ const LEGENDA = [
   { rotulo: "menos de 50%", cor: "bg-terracota" },
 ];
 
-function Mosaico({ temas }: { temas: TemaMapa[] }) {
+function Mosaico({ temas, avaliacao }: { temas: TemaMapa[]; avaliacao?: AvaliacaoMapa | null }) {
   const visiveis = temas.filter((t) => t.conversas_30d > 0 || t.respostas_total > 0).slice(0, 14);
   if (!visiveis.length) {
     return (
@@ -82,7 +104,7 @@ function Mosaico({ temas }: { temas: TemaMapa[] }) {
     // `sm`: o mosaico de 6 colunas, com o tamanho a seguir as conversas.
     <ul className="flex flex-col gap-1.5 sm:grid sm:grid-flow-row-dense sm:auto-rows-[104px] sm:grid-cols-6">
       {visiveis.map((t, i) => {
-        const p = parteNoAr(t);
+        const p = sabeResponder(t, avaliacao);
         const cor = corDoTema(p);
         const grande = i === 0;
         const medio = i > 0 && i < 3;
@@ -177,7 +199,27 @@ export function MapaConhecimento() {
   const comResposta = m.temas
     .filter((t) => t.respostas_no_ar > 0)
     .reduce((s, t) => s + t.conversas_30d, 0);
-  const cobertura = totalConversas ? Math.round((comResposta / totalConversas) * 100) : null;
+  const coberturaRespostas = totalConversas ? Math.round((comResposta / totalConversas) * 100) : null;
+
+  // Com avaliação: medido. "Sabe responder" = respostas certas ou
+  // maioritariamente certas, pesadas pelo que os munícipes perguntaram nos
+  // últimos 30 dias (sem conversas, o total do teste); "Cobertura" = parte das
+  // perguntas a que respondeu; "Qualidade" = das que respondeu, as certas ou
+  // maioritariamente certas.
+  const av = m.avaliacao;
+  const pesados = m.temas
+    .map((t) => ({ c: t.conversas_30d, md: medidaDoTema(t, av) }))
+    .filter((x) => x.c > 0 && x.md && x.md.total > 0);
+  const pesoTotal = pesados.reduce((s, x) => s + x.c, 0);
+  const sabe = av
+    ? pesoTotal
+      ? Math.round(pesados.reduce((s, x) => s + x.c * (x.md!.certas / x.md!.total), 0) / pesoTotal * 100)
+      : Math.round((av.total.certas / av.total.total) * 100)
+    : coberturaRespostas;
+  const cobertura = av ? Math.round((av.total.respondidas / av.total.total) * 100) : coberturaRespostas;
+  const qualidadeMedida = av && av.total.respondidas
+    ? Math.round((av.total.certas / av.total.respondidas) * 100)
+    : null;
 
   const lista = fontes.dados?.itens ?? [];
   const emDia = lista.length
@@ -204,14 +246,16 @@ export function MapaConhecimento() {
           </p>
           <div className="flex items-center gap-3.5">
             <span className="font-display text-[56px] leading-none font-extrabold text-white sm:text-[80px]">
-              {pct(cobertura)}
+              {pct(sabe)}
             </span>
             <span className="font-display text-lg leading-tight font-semibold whitespace-pre-line text-white/80 sm:text-[22px]">
               {"do que os munícipes\nlhe perguntam"}
             </span>
           </div>
           <p className="text-[13px] text-white/60">
-            {plural(m.resumo.respostas_no_ar, "resposta", "respostas")} no ar ·{" "}
+            {av
+              ? `Medido no teste de ${numero(av.total.total)} perguntas${av.medida_em ? ` (${quando(av.medida_em)})` : ""}, julgadas às cegas · `
+              : `${plural(m.resumo.respostas_no_ar, "resposta", "respostas")} no ar · `}
             {plural(m.resumo.fontes, "fonte", "fontes")} de{" "}
             {plural(porEntidade.size, "entidade", "entidades")} do concelho
             {ingestao ? ` · lidas ${quando(ingestao.iniciada_em)}` : ""}
@@ -219,7 +263,7 @@ export function MapaConhecimento() {
         </div>
         <div className="grid w-full grid-cols-3 gap-3 sm:flex sm:w-auto sm:gap-7">
           <Anel valor={cobertura} rotulo="Cobertura" />
-          <Anel valor={qualidade.dados?.ultima?.taxa ?? null} rotulo="Qualidade" />
+          <Anel valor={qualidadeMedida ?? qualidade.dados?.ultima?.taxa ?? null} rotulo="Qualidade" />
           <Anel valor={emDia} rotulo="Fontes em dia" />
         </div>
       </section>
@@ -232,8 +276,10 @@ export function MapaConhecimento() {
               O que perguntam, e se sabemos responder
             </h2>
             <p className="text-[13px] text-tinta-2">
-              O tamanho segue o número de conversas dos últimos 30 dias. A cor é a parte das
-              respostas do tema que está no ar.
+              O tamanho segue o número de conversas dos últimos 30 dias.{" "}
+              {m.avaliacao
+                ? "A cor é a parte das perguntas de teste do tema com resposta certa ou maioritariamente certa."
+                : "A cor é a parte das respostas do tema que está no ar."}
             </p>
           </div>
           <ul className="flex flex-wrap gap-3.5" aria-label="Legenda">
@@ -245,7 +291,7 @@ export function MapaConhecimento() {
             ))}
           </ul>
         </div>
-        <Mosaico temas={m.temas} />
+        <Mosaico temas={m.temas} avaliacao={m.avaliacao} />
       </Cartao>
 
       {/* Fontes e esta noite */}

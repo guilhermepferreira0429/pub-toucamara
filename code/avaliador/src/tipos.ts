@@ -1,5 +1,6 @@
 /*
- * Tipos partilhados entre as partes do avaliador (ver o README). Mudar isto mexe
+ * Tipos partilhados entre as partes do avaliador (ver a spec em
+ * docs/arquivo/superpowers/specs/2026-10-19-avaliador-design.md). Mudar isto mexe
  * em todas as partes: acrescentar é seguro, alterar não.
  */
 
@@ -23,7 +24,29 @@ export const VEREDICTOS = [
 ] as const;
 export type Veredicto = (typeof VEREDICTOS)[number];
 
-export type TipoAdaptador = 'tou-chat' | 'tou-voz' | 'manual';
+/*
+ * Escala por categorias (v2, docs/avaliacao/escala/escala.md). Ordem da mais
+ * baixa para a mais alta: é a ordem que decide quando dois juízes discordam
+ * (conta a mais baixa até uma pessoa decidir).
+ */
+export const CATEGORIAS = [
+  'errada',
+  'sem_resposta',
+  'mandou_contactar',
+  'nao_encontrou',
+  'inconclusiva',
+  'maioritariamente_errada',
+  'parcialmente_certa',
+  'maioritariamente_certa',
+  'certa',
+] as const;
+export type Categoria = (typeof CATEGORIAS)[number];
+
+/** "A resposta chega para o munícipe?", independente da categoria. */
+export const SUFICIENTE = ['sim', 'em_parte', 'nao'] as const;
+export type Suficiente = (typeof SUFICIENTE)[number];
+
+export type TipoAdaptador = 'tou-chat' | 'tou-voz' | 'externo' | 'manual';
 
 /** Uma pergunta como está em `avaliacao.perguntas`. */
 export interface Pergunta {
@@ -46,6 +69,8 @@ export interface Gabarito {
   resposta: string;
   factos_obrigatorios: string[];
   factos_proibidos: string[];
+  /** Factos obrigatórios marcados S (escala v2); os outros são essenciais. */
+  factos_secundarios?: string[];
   fontes: { titulo: string; url: string }[];
   versao: number;
 }
@@ -65,7 +90,7 @@ export interface Sistema {
 export interface RespostaSistema {
   texto: string;
   latencia_ms: number;
-  /** PNG (adaptadores com browser): guarda-se em PASTA_SAIDA e a chave vai para `respostas.captura_key`. */
+  /** PNG (externo): guarda-se em PASTA_SAIDA e a chave vai para `respostas.captura_key`. */
   captura?: Buffer;
   /** Só o nosso agente. */
   ferramentas?: string[];
@@ -80,9 +105,9 @@ export interface RespostaSistema {
  */
 export interface Adaptador {
   perguntar(p: { texto: string; idioma: string }): Promise<RespostaSistema>;
-  /** Pausa entre perguntas em ms (o nosso: 0; sistemas de outros: ritmo de pessoa). */
+  /** Pausa entre perguntas em ms (o nosso: 0; externo: 20–40 s). */
   pausa(): number;
-  /** Quantas perguntas em paralelo (o nosso: 4; voz e sistemas de outros: 1). */
+  /** Quantas perguntas em paralelo (o nosso: 4; externo e voz: 1). */
   paralelo: number;
   /** Libertar recursos (browser, ligações). */
   fechar?(): Promise<void>;
