@@ -18,7 +18,7 @@ const esquema = z.object({
 
 const SISTEMA = `Recebes a pergunta de um munícipe a uma câmara municipal portuguesa e uma lista de trechos de fontes oficiais (câmara, empresas municipais, leis), cada um com um código T1, T2, …
 
-Escolhe os trechos que ajudam a responder à pergunta, mesmo que digam as coisas com outras palavras (a pessoa diz "anexo no quintal", a lei diz "obras de escassa relevância urbanística"; a pessoa diz "roupa velha", a fonte diz "resíduos têxteis"). Ordena-os do mais útil para o menos útil. Deixa de fora listas de links, notícias e trechos que só partilham palavras soltas com a pergunta.
+Escolhe os trechos que ajudam a responder à pergunta, mesmo que digam as coisas com outras palavras (a pessoa diz "rampa para a garagem", a fonte diz "rebaixamento de lancil"; a pessoa diz "furo no quintal", a fonte diz "captação de águas subterrâneas"). Ordena-os do mais útil para o menos útil. Deixa de fora listas de links, notícias e trechos que só partilham palavras soltas com a pergunta.
 
 Devolve só os códigos. Se nenhum ajudar, devolve a lista vazia.`;
 

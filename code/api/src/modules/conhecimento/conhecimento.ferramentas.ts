@@ -43,7 +43,7 @@ export function ferramentasConhecimento(
           .max(3)
           .optional()
           .describe(
-            '1 a 3 formulações como as fontes oficiais escreveriam (termos técnicos ou administrativos e a entidade), ex.: "obras de escassa relevância urbanística", "atestado de residência junta de freguesia", "resíduos têxteis Vitrus".',
+            '1 a 3 formulações como as fontes oficiais escreveriam (termos técnicos ou administrativos e a entidade), ex.: "rebaixamento de lancil", "captação de águas subterrâneas", "toponímia junta de freguesia".',
           ),
         limite: z
           .number()
