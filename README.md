@@ -145,7 +145,7 @@ flowchart LR
 - **Dados pessoais tirados antes da IA** (`code/api/src/ia/minimizar.ts`): emails, IBAN, cartões, telefones e NIF passam a uma etiqueta onde não fazem falta.
 - **Texto de fora é dado, nunca instrução** (`code/api/src/ia/nao-confiavel.ts`): páginas, emails, cartas e o que o munícipe diz entram delimitados, com um marcador que o texto não consegue adivinhar.
 - **Números na fonte** (`code/api/src/modules/conhecimento/numeros-na-fonte.ts`): cada valor de uma resposta é procurado nos trechos citados; os que não estão aparecem marcados no painel e contam nos testes.
-- **Avaliador** (`code/avaliador`): 180 perguntas de teste, cada uma com a resposta certa escrita a partir das fontes oficiais e revista por uma pessoa. Dois juízes automáticos, às cegas, comparam e explicam cada veredicto; onde discordam, decide um terceiro que verifica nas fontes. Na avaliação de 22 e 23 de outubro (quarta ronda), **em 108 das 180 perguntas o munícipe sai a saber o que fazer**, e em mais 47 fica ajudado; quando responde, 85% das respostas estão certas ou quase, e só 5 em 180 têm um erro grave. Das 25 que não ajudam, 16 dizem que não encontraram a informação, em vez de inventar. As mesmas perguntas, feitas ao assistente que a câmara já tem no site: 15 em 180. Resultados abertos em [/avaliacao](https://toucamara.descortina.pt/avaliacao).
+- **Avaliador** (`code/avaliador`): 180 perguntas de teste, cada uma com a resposta certa escrita a partir das fontes oficiais e revista por uma pessoa. Dois juízes automáticos, às cegas, comparam e explicam cada veredicto; onde discordam, decide um terceiro que verifica nas fontes. Na avaliação de 22 e 23 de outubro (quinta ronda), **em 113 das 180 perguntas o munícipe sai a saber o que fazer**, e em mais 53 fica ajudado; quando responde, 87% das respostas estão certas ou quase, e só 5 em 180 têm um erro grave. Das 14 que não ajudam, 7 dizem que não encontraram a informação, em vez de inventar. As mesmas perguntas, feitas ao assistente que a câmara já tem no site: 15 em 180. Resultados abertos em [/avaliacao](https://toucamara.descortina.pt/avaliacao).
 - **Custos:** o custo de cada atendimento aparece no painel, com um limite mensal.
 
 ## O que é real e o que é simulado
@@ -196,7 +196,7 @@ Sem chaves de IA, de voz ou de SMS a API arranca na mesma; os SMS para os telefo
 | --- | --- |
 | API | **1 685 testes unitários** (Jest) em 146 ficheiros, a passar |
 | Ponta a ponta | **79 conjuntos** de testes da API contra um PostgreSQL real (`npm run test:e2e`), incluindo a preparação da demonstração, que tem de dar os mesmos números quando corre duas vezes |
-| Assistente | O avaliador: 180 perguntas, resposta certa revista por uma pessoa, dois juízes às cegas e um terceiro a desempatar; 108 das 180 saem a saber o que fazer. Resultados em [/avaliacao](https://toucamara.descortina.pt/avaliacao) |
+| Assistente | O avaliador: 180 perguntas, resposta certa revista por uma pessoa, dois juízes às cegas e um terceiro a desempatar; 113 das 180 saem a saber o que fazer. Resultados em [/avaliacao](https://toucamara.descortina.pt/avaliacao) |
 | Acessibilidade | Playwright com axe-core: 0 erros automáticos em 42 páginas, WCAG 2.1 AA ([`docs/ACESSIBILIDADE.md`](docs/ACESSIBILIDADE.md), com o que ainda falta) |
 | Web | TypeScript estrito e ESLint |
 
