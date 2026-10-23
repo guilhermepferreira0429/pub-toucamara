@@ -34,7 +34,7 @@ export function guiaoMunicipe(d: Dados): Cena[] {
               tipo: 'capa',
               video: 'municipe',
               titulo: 'Uma renovação, do princípio ao fim',
-              sub: 'A câmara liga primeiro · renova na chamada · SMS com a referência',
+              sub: 'A câmara avisa por SMS · renova na chamada · paga pelo link',
               captura: 'municipe_chamada_06',
             },
           ],
