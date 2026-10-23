@@ -21,6 +21,7 @@ import {
 } from '../antecipacoes/antecipacoes.demo.js';
 import { ArmazenamentoService } from '../armazenamento/armazenamento.service.js';
 import { AuditoriaService } from '../auditoria/auditoria.service.js';
+import { CampanhasService } from '../campanhas/campanhas.service.js';
 import { CartasService } from '../cartas/cartas.service.js';
 import {
   AvisosZonaService,
@@ -93,6 +94,7 @@ import {
   DemoConhecimentoService,
 } from './demo-conhecimento.service.js';
 import { FONTES_DEMO, RESPOSTAS_DEMO } from './demo.conhecimento.js';
+import { CAMPANHA_CALOR, CUIDADO, MAIS_OCORRENCIAS } from './demo.volume.js';
 
 export interface OpcoesPreparar {
   limpar_testes?: boolean;
@@ -185,14 +187,22 @@ export function passosDemo(): Passo[] {
     },
     {
       passo: 'ocorrencias',
-      rotulo: 'Ocorrências com fotografia (um buraco reportado 3 vezes)',
+      rotulo:
+        'Ocorrências com fotografia (um buraco reportado 3 vezes) e mais avisos pelas freguesias',
       chaves: [
         'ocorrencia:buraco_1',
         'ocorrencia:buraco_2',
         'ocorrencia:buraco_3',
         'ocorrencia:candeeiro',
         'ocorrencia:contentor',
+        ...MAIS_OCORRENCIAS.map((o) => `ocorrencia:${o.chave}`),
       ],
+    },
+    {
+      passo: 'acao_social',
+      rotulo:
+        'Ação social: pessoas inscritas (com consentimento) e uma campanha de onda de calor já feita',
+      chaves: [...CUIDADO.map((p) => `cuidado:${p.chave}`), 'campanha:calor'],
     },
     {
       passo: 'licencas',
@@ -696,6 +706,7 @@ export class DemoService {
       ['numeracao', async () => void (await this.acertos.numeracao(m))],
       ['cartas', () => this.cartas(ctx)],
       ['ocorrencias', () => this.ocorrencias(ctx)],
+      ['acao_social', () => this.acaoSocial(ctx)],
       ['licencas', () => this.licencas(ctx)],
       ['agora', () => this.agora(ctx)],
       ['linguagem_simples', () => this.linguagemSimples(ctx)],
@@ -1480,6 +1491,161 @@ export class DemoService {
         );
       },
     );
+
+    // O volume: avisos pelas freguesias, sem conversa (vieram pela app ou
+    // por uma chamada antiga), em vários estados.
+    const horas = ['08:20', '10:45', '13:10', '17:35', '21:50'];
+    for (const [i, o] of MAIS_OCORRENCIAS.entries()) {
+      await this.umaVez(
+        c.m,
+        `ocorrencia:${o.chave}`,
+        'ocorrencia',
+        async () => {
+          const pessoa = c.pessoa(o.pessoa);
+          await svc.registar(
+            c.ctx('telefone', null, o.pessoa),
+            {
+              categoria: c.categorias.get(o.categoria) ?? o.categoria,
+              descricao: o.descricao,
+              morada: o.morada,
+            },
+            { coords: { lat: o.lat, lng: o.lng }, semSms: true },
+          );
+          const [nova] = await this.db.query<{ id: string }>(
+            `SELECT id FROM ocorrencias
+           WHERE municipio_id = $1 AND municipe_id = $2 AND descricao = $3
+           ORDER BY criada_em DESC LIMIT 1`,
+            [c.m.id, pessoa.id, o.descricao],
+          );
+          if (!nova) return null;
+          await this.db.query(
+            'UPDATE ocorrencias SET criada_em = $2 WHERE id = $1',
+            [
+              nova.id,
+              instanteDemo(c.agora, c.m.fuso, o.dias, horas[i % horas.length]),
+            ],
+          );
+          if (o.estado === 'com_equipa') {
+            await svc.alterar(c.m, c.u, nova.id, {
+              estado: 'com_equipa',
+              prevista_para: diaDemo(c.agora, c.m.fuso, 1 + (i % 4)),
+            });
+          } else if (o.estado === 'resolvida') {
+            await svc.alterar(c.m, c.u, nova.id, { estado: 'resolvida' });
+            await this.db.query(
+              `UPDATE ocorrencias
+             SET resolvida_em = least(criada_em + make_interval(days => $2, hours => 5), now() - interval '1 hour')
+             WHERE id = $1`,
+              [nova.id, 1 + (i % 3)],
+            );
+          }
+          // A linha do tempo com as datas do aviso, não as da preparação.
+          await this.db.query(
+            `UPDATE ocorrencia_eventos e SET em = CASE
+             WHEN e.tipo = 'registada' THEN o.criada_em
+             ELSE coalesce(o.resolvida_em, least(o.criada_em + interval '4 hours', now())) END
+           FROM ocorrencias o WHERE o.id = e.ocorrencia_id AND o.id = $1`,
+            [nova.id],
+          );
+          c.contar('ocorrencias');
+          return nova.id;
+        },
+      );
+    }
+  }
+
+  /**
+   * Ação social: as pessoas inscritas (com consentimento) e uma campanha de
+   * onda de calor de há dois dias, já terminada: quem está bem, quem
+   * precisa de ajuda (uma já tratada) e quem não atendeu.
+   */
+  private async acaoSocial(c: Preparacao) {
+    const campanhas = this.svc(CampanhasService);
+    const contactos = new Map<string, { id: string; municipe: string }>();
+    for (const [i, p] of CUIDADO.entries()) {
+      const id = await this.umaVez(
+        c.m,
+        `cuidado:${p.chave}`,
+        'contacto_cuidado',
+        async () => {
+          const r = await campanhas.criarContacto(c.m, c.u, {
+            nome: p.nome,
+            telefone: telefoneDemo(p.telefone),
+            morada: p.morada,
+            freguesia: p.freguesia,
+            notas: p.notas,
+            consentimento_origem: i % 3 === 0 ? 'balcao' : 'acao_social',
+          });
+          await this.db.query(
+            `UPDATE contactos_cuidado SET consentimento_em = now() - make_interval(days => $2),
+             criado_em = now() - make_interval(days => $2)
+           WHERE id = $1`,
+            [r.id, 40 + i * 13],
+          );
+          c.contar('contactos_cuidado');
+          return r.id;
+        },
+      );
+      if (!id) continue;
+      const [cc] = await this.db.query<{ municipe_id: string }>(
+        'SELECT municipe_id FROM contactos_cuidado WHERE id = $1',
+        [id],
+      );
+      if (cc) contactos.set(p.chave, { id, municipe: cc.municipe_id });
+    }
+
+    await this.umaVez(c.m, 'campanha:calor', 'campanha', async () => {
+      if (!contactos.size) return null;
+      const feita = instanteDemo(
+        c.agora,
+        c.m.fuso,
+        CAMPANHA_CALOR.dias,
+        '10:00',
+      );
+      return this.db.transaction(async (tx) => {
+        const [camp] = await tx.query<{ id: string }>(
+          `INSERT INTO campanhas (municipio_id, tipo, titulo, mensagem, perguntas, sms_recurso,
+             estado, criada_por, criada_em, terminada_em)
+           VALUES ($1, 'onda_calor', $2, $3, $4, $5, 'terminada', $6, $7, $7::timestamptz + interval '3 hours')
+           RETURNING id`,
+          [
+            c.m.id,
+            CAMPANHA_CALOR.titulo,
+            CAMPANHA_CALOR.mensagem,
+            JSON.stringify(CAMPANHA_CALOR.perguntas),
+            CAMPANHA_CALOR.sms_recurso,
+            c.funcionario?.id ?? null,
+            feita,
+          ],
+        );
+        for (const [i, p] of CUIDADO.entries()) {
+          const ct = contactos.get(p.chave);
+          if (!ct) continue;
+          const respondido = new Date(feita.getTime() + (8 + i * 9) * 60_000);
+          await tx.query(
+            `INSERT INTO campanha_destinatarios (campanha_id, contacto_id, municipe_id, estado,
+               necessidades, nota, respondido_em, tratado_em, tratado_por, tratado_nota)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+            [
+              camp.id,
+              ct.id,
+              ct.municipe,
+              p.calor.estado,
+              p.calor.necessidades ?? [],
+              p.calor.nota ?? null,
+              p.calor.estado === 'nao_atendeu' ? null : respondido,
+              p.calor.tratado
+                ? new Date(respondido.getTime() + 95 * 60_000)
+                : null,
+              p.calor.tratado ? (c.funcionario?.id ?? null) : null,
+              p.calor.tratado ?? null,
+            ],
+          );
+        }
+        c.contar('campanhas');
+        return camp.id;
+      });
+    });
   }
 
   /** A ilustração de demonstração, se houver armazenamento (S3). */

@@ -10,6 +10,8 @@
  * (demo.regras.ts); NIF fictícios válidos no algoritmo.
  */
 
+import { MAIS_PESSOAS, MAIS_PROCESSOS, agendaMais } from './demo.volume.js';
+
 export type Canal = 'telefone' | 'chat' | 'sms' | 'whatsapp';
 export type Resultado =
   'resolvida' | 'passada_funcionario' | 'sem_resposta' | 'marcacao';
@@ -44,6 +46,7 @@ export const PESSOAS: PessoaDemo[] = [
   { chave: 'paulo', nome: 'Paulo Nogueira', telefone: 118 },
   { chave: 'marta', nome: 'Marta Rocha', telefone: 119 },
   { chave: 'jorge', nome: 'Jorge Abreu', telefone: 120 },
+  ...MAIS_PESSOAS,
 ];
 
 /**
@@ -745,20 +748,22 @@ const AGENDA_GERAL: [string, string, Canal, number, string][] = [
 
 export const CONVERSAS: ConversaDemo[] = [
   ...ESPECIAIS,
-  ...AGENDA_GERAL.map(([modelo, pessoa, canal, dias, hora], i) => {
-    const m = MODELOS[modelo];
-    return {
-      chave: `geral_${String(i + 1).padStart(2, '0')}`,
-      pessoa,
-      canal,
-      dias,
-      hora,
-      tema: m.tema,
-      resultado: m.resultado,
-      resumo: m.resumo,
-      turnos: m.turnos,
-    };
-  }),
+  ...[...AGENDA_GERAL, ...agendaMais()].map(
+    ([modelo, pessoa, canal, dias, hora], i) => {
+      const m = MODELOS[modelo];
+      return {
+        chave: `geral_${String(i + 1).padStart(2, '0')}`,
+        pessoa,
+        canal,
+        dias,
+        hora,
+        tema: m.tema,
+        resultado: m.resultado,
+        resumo: m.resumo,
+        turnos: m.turnos,
+      };
+    },
+  ),
 ];
 
 // ---------------------------------------------------------------------------
@@ -834,6 +839,7 @@ export const PROCESSOS: ProcessoDemo[] = [
     decidido_ha_dias: 4,
     taxa_cent: 6470,
   },
+  ...MAIS_PROCESSOS,
 ];
 
 // ---------------------------------------------------------------------------

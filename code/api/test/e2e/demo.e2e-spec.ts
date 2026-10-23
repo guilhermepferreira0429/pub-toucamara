@@ -196,10 +196,15 @@ describe('Preparar demo (e2e)', () => {
       r.body.passos.every((p: { a_criar: number }) => p.a_criar === 0),
     ).toBe(true);
     expect(r.body.criados).toMatchObject({
-      conversas: 45,
+      // 45 com história + 135 do volume (últimos 30 dias).
+      conversas: 180,
       licencas: 3,
-      // 4 noutras fases + 3 das antecipações + 3 da análise por tipo de operação.
-      processos: 10,
+      // 12 noutras fases + 3 das antecipações + 3 da análise por tipo de operação.
+      processos: 18,
+      // 5 com conversa + 26 pelas freguesias.
+      ocorrencias: 31,
+      contactos_cuidado: 12,
+      campanhas: 1,
     });
     const antecipacoes = await linhas(
       ctx.db,
