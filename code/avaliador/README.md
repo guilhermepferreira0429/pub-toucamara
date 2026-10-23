@@ -1,6 +1,6 @@
 # Avaliador
 
-Avalia o nosso agente (chat e voz) e as assistentes que as câmaras já têm nos sites, com as mesmas perguntas, o mesmo gabarito e o mesmo juiz. Design: [`docs/superpowers/specs/2026-10-19-avaliador-design.md`](../../docs/arquivo/superpowers/specs/2026-10-19-avaliador-design.md).
+Avalia o nosso agente (chat e voz) e a assistente que a câmara já tem no site, com as mesmas perguntas, o mesmo gabarito e o mesmo juiz.
 
 **Como o juiz decide:**
 - cada pergunta tem uma resposta certa (o gabarito), escrita a partir das fontes oficiais e aprovada por uma pessoa;
@@ -31,7 +31,7 @@ bun run test
 ```bash
 # 1. Perguntas (as 180 base) e sistemas
 bun run avaliador perguntas importar src/perguntas/perguntas-base.json
-bun run avaliador sistemas preparar-base --municipios guimaraes,matosinhos
+bun run avaliador sistemas preparar-base --municipios guimaraes
 
 # 2. Gabarito do município: o Claude propõe, uma pessoa revê
 bun run avaliador gabarito propor --municipio guimaraes
@@ -40,7 +40,7 @@ bun run avaliador gabarito importar revisao.md --por "Nome"
 
 # 3. Executar e avaliar
 bun run avaliador executar --sistema "Tou, Câmara? · Guimarães · chat" --motivo pitch
-bun run avaliador executar --sistema "<assistente do site> · Guimarães" --motivo pitch   # ritmo de pessoa: ~2 h para 180
+bun run avaliador importar-respostas --sistema "Assistente do site · Guimarães" respostas.csv   # as respostas dela (pergunta;resposta)
 bun run avaliador repetir-erros --execucao <id>       # volta a perguntar só as que deram erro
 bun run avaliador avaliar --execucao <id> [--lote]
 
@@ -48,7 +48,7 @@ bun run avaliador avaliar --execucao <id> [--lote]
 bun run avaliador calibrar exportar --execucoes <id,id> > calibrar.md
 bun run avaliador calibrar importar calibrar.md --por "Nome"
 bun run avaliador relatorio comparar --execucoes <id,id> --pdf
-bun run avaliador relatorio auditoria --municipio matosinhos --pdf
+bun run avaliador relatorio auditoria --municipio guimaraes --pdf
 bun run avaliador relatorio pitch
 ```
 
@@ -62,7 +62,7 @@ Outros comandos (`bun run avaliador ajuda` mostra todos):
 | `calibrar concordancia --execucoes <id,id>` | Acordo juiz × pessoa (kappa de Cohen) e as discordâncias |
 | `pedidos trabalhar [--uma-vez]` | Trata os pedidos que chegam da API ("Correr teste agora" no painel, fontes mudadas, versão nova do agente): executa e avalia. No servidor fica a correr |
 
-Sistemas sem adaptador: `importar-respostas --sistema <nome> respostas.csv` (`pergunta;resposta`).
+Sistemas sem adaptador (como a assistente do site): `importar-respostas --sistema <nome> respostas.csv` (`pergunta;resposta`).
 
 ## Regras de uso dos sistemas de outros
 

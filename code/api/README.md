@@ -1,6 +1,6 @@
 # API Tou, Câmara?
 
-NestJS + Postgres 17 (pgvector) com SQL à mão. O plano original, o modelo de dados e as rotas estão em [`docs/PLANS/api-e-modelo-de-dados.md`](../../docs/arquivo/PLANS/api-e-modelo-de-dados.md). É um documento histórico: o código já vai muito além. A lista de rotas atual está em `GET /v1/docs` (OpenAPI).
+NestJS + Postgres 17 (pgvector) com SQL à mão. A lista de rotas está em `GET /v1/docs` (OpenAPI).
 
 IA: o Claude da Anthropic fora da chamada (resumos, classificação, juiz da qualidade; `ANTHROPIC_MODEL`). A voz é um agente no ElevenLabs que chama as ferramentas desta API (ver [`agente-voz/README.md`](agente-voz/README.md)).
 

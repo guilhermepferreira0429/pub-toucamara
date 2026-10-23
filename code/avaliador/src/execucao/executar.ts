@@ -59,7 +59,7 @@ export interface OpcoesExecucao {
   semGabarito?: boolean;
   /** Correr mesmo que tenha havido execução externa nas últimas 24 h. */
   forcar?: boolean;
-  /** externo: browser visível. */
+  /** Adaptadores com browser: visível. */
   ver?: boolean;
   /** Outro adaptador (testes, scripts). */
   adaptador?: Adaptador;

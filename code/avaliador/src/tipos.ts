@@ -1,6 +1,5 @@
 /*
- * Tipos partilhados entre as partes do avaliador (ver a spec em
- * docs/arquivo/superpowers/specs/2026-10-19-avaliador-design.md). Mudar isto mexe
+ * Tipos partilhados entre as partes do avaliador (ver o README). Mudar isto mexe
  * em todas as partes: acrescentar é seguro, alterar não.
  */
 
@@ -24,7 +23,7 @@ export const VEREDICTOS = [
 ] as const;
 export type Veredicto = (typeof VEREDICTOS)[number];
 
-export type TipoAdaptador = 'tou-chat' | 'tou-voz' | 'externo' | 'manual';
+export type TipoAdaptador = 'tou-chat' | 'tou-voz' | 'manual';
 
 /** Uma pergunta como está em `avaliacao.perguntas`. */
 export interface Pergunta {
@@ -66,7 +65,7 @@ export interface Sistema {
 export interface RespostaSistema {
   texto: string;
   latencia_ms: number;
-  /** PNG (externo): guarda-se em PASTA_SAIDA e a chave vai para `respostas.captura_key`. */
+  /** PNG (adaptadores com browser): guarda-se em PASTA_SAIDA e a chave vai para `respostas.captura_key`. */
   captura?: Buffer;
   /** Só o nosso agente. */
   ferramentas?: string[];
@@ -81,9 +80,9 @@ export interface RespostaSistema {
  */
 export interface Adaptador {
   perguntar(p: { texto: string; idioma: string }): Promise<RespostaSistema>;
-  /** Pausa entre perguntas em ms (o nosso: 0; externo: 20–40 s). */
+  /** Pausa entre perguntas em ms (o nosso: 0; sistemas de outros: ritmo de pessoa). */
   pausa(): number;
-  /** Quantas perguntas em paralelo (o nosso: 4; externo e voz: 1). */
+  /** Quantas perguntas em paralelo (o nosso: 4; voz e sistemas de outros: 1). */
   paralelo: number;
   /** Libertar recursos (browser, ligações). */
   fechar?(): Promise<void>;

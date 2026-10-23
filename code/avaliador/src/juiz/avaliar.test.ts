@@ -229,8 +229,7 @@ describe('cliente', () => {
     });
     const tudo = JSON.stringify(p);
     for (const proibido of [
-      'Site',
-      'externo',
+      'Assistente do site',
       'nosso',
       'tou-chat',
       'sistema_id',
