@@ -1828,6 +1828,8 @@ export class DemoService {
 
     // Avisos por zona: criados pelo serviço (rascunho, com os afetados) e
     // dados como enviados SEM SMS (é demonstração: só aparecem no /agora).
+    // O texto conta com o link: tem de caber em 4 partes com o domínio de
+    // produção, não só com o localhost.
     const aviso = (
       chave: string,
       e: {
@@ -1872,14 +1874,14 @@ export class DemoService {
       });
     await aviso('obras', {
       titulo: 'Obras na Rua de Santo António',
-      mensagem: `Repavimentação da Rua de Santo António, entre o Largo do Toural e a Rua D. João I. Trânsito condicionado das 8h às 18h até ${ate(4)}. Aviso de demonstração.`,
+      mensagem: `Repavimentação entre o Largo do Toural e a Rua D. João I. Trânsito condicionado das 8h às 18h até ${ate(4)}. Aviso de demonstração.`,
       tipo: 'obras',
       ponto: PONTOS.santo_antonio,
       descricao: 'Rua de Santo António',
       ha_dias: 2,
     });
     await aviso('agua', {
-      titulo: 'Corte de água programado na Alameda de São Dâmaso',
+      titulo: 'Corte de água na Alameda de São Dâmaso',
       mensagem: `Corte de água na Alameda de São Dâmaso: ${dataDita(dia(1))}, das 9h às 13h, para reparar uma conduta (Vimágua). Aviso de demonstração.`,
       tipo: 'agua',
       ponto: PONTOS.sao_damaso,

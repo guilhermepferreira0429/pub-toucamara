@@ -16,6 +16,7 @@ import {
   useAcao,
   useDados,
 } from "@/components/conhecimento/comum";
+import { ErroBloco } from "@/components/atendimento/ui";
 import { AExpirar } from "@/components/licencas/a-expirar";
 import { IndicadorExcecoes } from "@/components/licencas/excecoes";
 import { InfoTipo, RegrasTipo, TipoLicenca } from "@/components/licencas/regras-tipo";
@@ -87,6 +88,15 @@ const ESTADOS: Record<Estado, { rotulo: string; tom: "verde" | "ambar" | "terrac
 
 const FILTROS: (Estado | "todas")[] = ["todas", "por_aprovar", "para_tecnico", "a_pagar", "emitida", "recusada"];
 
+function Numero({ rotulo, valor, destaque }: { rotulo: string; valor: number; destaque?: boolean }) {
+  return (
+    <Cartao className={`px-4 py-3 ${destaque && valor > 0 ? "border-terracota" : ""}`}>
+      <Rotulo>{rotulo}</Rotulo>
+      <p className="font-display text-2xl font-bold text-tinta">{valor}</p>
+    </Cartao>
+  );
+}
+
 export function PaginaLicencas() {
   const { pode } = useSessao();
   const [filtro, setFiltro] = useState<Estado | "todas">("todas");
@@ -116,6 +126,15 @@ export function PaginaLicencas() {
         titulo="Licenças"
         descricao="O agente verifica as regras enquanto a pessoa está ao telefone. Dentro das regras, a taxa paga-se logo e aqui só falta um clique. Fora das regras, chega ao técnico já analisado."
       />
+      {d.dados && (
+        <div className="grid grid-cols-2 gap-3 px-4 sm:px-10 pb-5 md:grid-cols-5">
+          <Numero rotulo="Pagas, por aprovar" valor={d.dados.contagens.por_aprovar} destaque />
+          <Numero rotulo="Para técnico" valor={d.dados.contagens.para_tecnico} destaque />
+          <Numero rotulo="À espera do pagamento" valor={d.dados.contagens.a_pagar} />
+          <Numero rotulo="Emitidas" valor={d.dados.contagens.emitida} />
+          <Numero rotulo="Recusadas" valor={d.dados.contagens.recusada} />
+        </div>
+      )}
       <div className="flex gap-1 overflow-x-auto px-4 pb-4 sm:px-10 [&>*]:shrink-0 [&>*]:whitespace-nowrap" role="tablist" aria-label="Vista">
         {(
           [
@@ -192,10 +211,10 @@ export function PaginaLicencas() {
           <AExpirar tipo={tipo} />
         ) : (
           <div className="flex min-w-0 flex-col gap-4">
+            {d.erro && <ErroBloco mensagem={d.erro.message} tentar={d.recarregar} />}
             <Estado
               aCarregar={d.aCarregar}
-              erro={d.erro}
-              vazio={d.dados?.licencas.length === 0}
+              vazio={!d.erro && d.dados?.licencas.length === 0}
               textoVazio="Ainda não há pedidos. Ligue para a linha e peça uma licença: de ruído para uma festa, um andaime, uma esplanada, o dístico de residente, uma placa publicitária ou um arraial."
             >
               {(d.dados?.licencas ?? []).map((l) => (
