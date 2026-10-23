@@ -199,8 +199,8 @@ export function EcraConsentimento({
         />
         <LinhaFacto
           icone={ShieldCheck}
-          titulo="Tratada na União Europeia"
-          detalhe="Os seus dados não saem da UE."
+          titulo="Onde é tratada"
+          detalhe="Nesta demonstração, a voz e a IA usam serviços fora da UE (ElevenLabs e Anthropic). Para ir para o ar, passam para a UE."
         />
         <LinhaFacto
           icone={UserRound}
