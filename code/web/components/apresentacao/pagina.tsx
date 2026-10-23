@@ -523,6 +523,28 @@ export function PaginaApresentacao() {
               ))}
             </ul>
           </div>
+          {/* O caso que mostra a diferença: não informa, trata (com os dados de demonstração). */}
+          <div className="flex flex-col gap-4 rounded-3xl border-2 border-terracota bg-papel p-6 sm:flex-row sm:items-center sm:gap-8 sm:p-8">
+            <div className="flex flex-1 flex-col gap-2">
+              <p className="text-[13px] font-bold uppercase tracking-[1.4px] text-terracota">Experimente uma renovação</p>
+              <p className="font-display text-[22px] font-bold leading-tight">
+                Não diz onde renovar: renova.
+              </p>
+              <p className="text-[15px] leading-relaxed text-tinta-2">
+                Ligue e, quando pedir o número, escreva <strong className="text-tinta">910 000 106</strong> (o Manuel
+                Pereira, do Café Pereira). Diga &ldquo;quero renovar a licença da esplanada&rdquo;. O agente encontra a
+                licença que acaba daqui a 5 dias, confirma os dados, volta a ver as regras, calcula a taxa e dá a
+                referência para pagar.
+              </p>
+            </div>
+            <Link
+              href="/ligar"
+              className="inline-flex min-h-12 shrink-0 items-center gap-2 self-start rounded-full bg-terracota px-6 text-[16px] font-bold text-white hover:bg-terracota-escuro sm:self-center"
+            >
+              <Phone className="size-5" aria-hidden />
+              Ligar e renovar
+            </Link>
+          </div>
         </Secao>
 
         {/* Como funciona */}
