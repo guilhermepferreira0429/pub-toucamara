@@ -482,8 +482,9 @@ export class AssistenteService {
       const chefes = await this.db.query<{ id: string; nome: string }>(
         `SELECT id, nome FROM utilizadores
          WHERE municipio_id = $1 AND perfil = 'chefe_divisao' AND ativo
+           AND lower(email) <> $2 -- o acesso do júri não é uma pessoa a quem perguntar
          ORDER BY nome LIMIT 2`,
-        [m.id],
+        [m.id, (process.env.JURI_EMAIL || '').trim().toLowerCase()],
       );
       for (const c of chefes) {
         if (!vistos.has(c.id)) {
