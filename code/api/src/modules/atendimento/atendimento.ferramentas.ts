@@ -14,6 +14,48 @@ export function limparNif(nif: string): string {
   return nif.replace(/\D/g, '');
 }
 
+/**
+ * Porque é que um NIF ditado não serve, dito de forma que a pessoa perceba o
+ * que fazer: com algarismos a menos (o fim perde-se muitas vezes ao telefone)
+ * pede só os que faltam; com 9 que não conferem, é o número que está errado,
+ * não a audição. null se o NIF é válido.
+ */
+export function nifPorConfirmar(nif: string): {
+  motivo: 'nif_incompleto' | 'nif_a_mais' | 'nif_nao_confere';
+  algarismos: number;
+  dizer: string;
+} | null {
+  const n = nif.length;
+  if (n < 9) {
+    const faltam = 9 - n;
+    return {
+      motivo: 'nif_incompleto',
+      algarismos: n,
+      dizer:
+        faltam === 1
+          ? 'Apanhei oito algarismos e o NIF tem nove. Qual é o último?'
+          : `Apanhei ${n} algarismos e o NIF tem nove. Pode dizer os que faltam?`,
+    };
+  }
+  if (n > 9) {
+    return {
+      motivo: 'nif_a_mais',
+      algarismos: n,
+      dizer:
+        'Ouvi algarismos a mais: o NIF tem nove. Pode dizê-lo outra vez, em três grupos de três?',
+    };
+  }
+  if (!nifValido(nif)) {
+    return {
+      motivo: 'nif_nao_confere',
+      algarismos: n,
+      dizer:
+        'Esse NIF não confere: o último algarismo não bate certo com os outros oito. Pode confirmar no cartão de cidadão ou numa fatura?',
+    };
+  }
+  return null;
+}
+
 export function ferramentasAtendimento(
   encaminhamento: EncaminhamentoService,
   passagens: PassagensService,
@@ -43,15 +85,17 @@ export function ferramentasAtendimento(
     ferramenta({
       nome: 'identificar_municipe',
       descricao:
-        'Só quando é preciso saber quem é (processos, pedidos em nome dela), depois de pedir o NIF. Devolve o nome; nif_invalido → pede para repetir devagar.',
+        'Só quando é preciso saber quem é (processos, pedidos em nome dela), depois de pedir o NIF. Manda os algarismos que ouviste, mesmo que faltem: a resposta diz quantos faltam ou se o NIF não confere. Devolve o nome.',
       agentes: ['entrada', 'saida', 'chat'],
       entrada: z.object({
         nif: z
           .string()
           .trim()
-          .min(9)
+          .min(1)
           .max(20)
-          .describe('O NIF dito (9 algarismos).'),
+          .describe(
+            'Os algarismos do NIF que ouviste, juntando os de várias frases (deve ter 9).',
+          ),
         nome: z
           .string()
           .trim()
@@ -62,14 +106,8 @@ export function ferramentasAtendimento(
       }),
       async executar(ctx, { nif: dito, nome }) {
         const nif = limparNif(dito);
-        if (!nifValido(nif)) {
-          return {
-            identificado: false,
-            motivo: 'nif_invalido',
-            dizer:
-              'Esse número de contribuinte não parece estar certo. Pode repetir, devagar?',
-          };
-        }
+        const r = nifPorConfirmar(nif);
+        if (r) return { identificado: false, ...r };
         const m = ctx.municipio.id;
         let municipe: Municipe | null = await municipes.porNif(m, nif);
         let associado = false;

@@ -1,4 +1,4 @@
-import { limparNif } from './atendimento.ferramentas.js';
+import { limparNif, nifPorConfirmar } from './atendimento.ferramentas.js';
 import {
   ContactoDito,
   eEmergencia,
@@ -105,5 +105,29 @@ describe('passagem', () => {
   it('NIF ditado com espaços ou prefixo', () => {
     expect(limparNif('123 456 789')).toBe('123456789');
     expect(limparNif('PT123456789')).toBe('123456789');
+  });
+});
+
+describe('NIF ditado ao telefone', () => {
+  it('válido: segue', () => {
+    expect(nifPorConfirmar('213456788')).toBeNull();
+  });
+
+  it('com o último algarismo perdido: pede só esse', () => {
+    expect(nifPorConfirmar(limparNif('212 345 67'))).toMatchObject({
+      motivo: 'nif_incompleto',
+      algarismos: 8,
+    });
+    expect(nifPorConfirmar('21234567')?.dizer).toMatch(/último/);
+  });
+
+  it('nove que não conferem: o número está errado, não a audição', () => {
+    expect(nifPorConfirmar('213456789')).toMatchObject({
+      motivo: 'nif_nao_confere',
+    });
+  });
+
+  it('algarismos a mais', () => {
+    expect(nifPorConfirmar('2134567880')?.motivo).toBe('nif_a_mais');
   });
 });
