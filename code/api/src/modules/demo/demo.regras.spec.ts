@@ -12,6 +12,7 @@ import {
   diaDemo,
   escolherResposta,
   eTelefoneDemonstracao,
+  instanteConversaDemo,
   instanteDemo,
   nifDemo,
   numeracaoContinua,
@@ -57,6 +58,18 @@ describe('demo · regras', () => {
     expect(diaDemo(agora, 'Europe/Lisbon', 5)).toBe('2026-10-27');
     // Quinta 22 → o próximo sábado a pelo menos 10 dias é 7 de novembro.
     expect(proximoDiaSemana(agora, 'Europe/Lisbon', 6, 10)).toBe('2026-11-07');
+  });
+
+  it('conversas: uma de hoje a uma hora que ainda não chegou fica ontem, à mesma hora', () => {
+    const agora = new Date('2026-10-23T05:37:00Z'); // 06:37 em Lisboa
+    const c = (dias: number, hhmm: string) =>
+      instanteConversaDemo(agora, 'Europe/Lisbon', dias, hhmm).toISOString();
+    // Ainda não chegou: ontem às 09:45 (e não de madrugada, "agora").
+    expect(c(0, '09:45')).toBe('2026-10-22T08:45:00.000Z');
+    // Já passou: fica hoje.
+    expect(c(0, '06:00')).toBe('2026-10-23T05:00:00.000Z');
+    // Outros dias: como estão.
+    expect(c(3, '21:30')).toBe('2026-10-20T20:30:00.000Z');
   });
 
   it('conteúdo coerente: chaves válidas e únicas, pessoas que existem', () => {

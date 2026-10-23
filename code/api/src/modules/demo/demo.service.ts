@@ -81,6 +81,7 @@ import {
 import {
   demoAtiva,
   diaDemo,
+  instanteConversaDemo,
   instanteDemo,
   nifDemo,
   proximoDiaSemana,
@@ -919,12 +920,11 @@ export class DemoService {
     i: number,
   ): Promise<string> {
     const pessoa = c.pessoa(conv.pessoa);
-    const inicio = instanteDemo(
+    const inicio = instanteConversaDemo(
       c.agora,
       c.m.fuso,
       conv.dias,
       conv.hora,
-      25 + i * 11,
     );
     const hora = Number(horaLocal(inicio, c.m.fuso).slice(0, 2));
     const semana = new Date(

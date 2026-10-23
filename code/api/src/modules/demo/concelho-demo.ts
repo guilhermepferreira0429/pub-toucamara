@@ -1,7 +1,7 @@
 import type { Tx } from '../../database/database.service.js';
 import { diaLocal, horaLocal } from '../marcacoes/vagas.js';
 import type { Canal, Resultado, Tema, Turno } from './demo.conteudo.js';
-import { instanteDemo } from './demo.regras.js';
+import { instanteConversaDemo } from './demo.regras.js';
 
 /*
  * "Pergunte ao concelho" na demonstração: conversas anónimas (sem munícipe)
@@ -569,13 +569,7 @@ export async function criarConversaConcelho(
   conv: ConversaConcelhoDemo,
   i: number,
 ): Promise<string> {
-  const inicio = instanteDemo(
-    o.agora,
-    o.fuso,
-    conv.dias,
-    conv.hora,
-    40 + i * 7,
-  );
+  const inicio = instanteConversaDemo(o.agora, o.fuso, conv.dias, conv.hora);
   const hora = Number(horaLocal(inicio, o.fuso).slice(0, 2));
   const semana = new Date(`${diaLocal(inicio, o.fuso)}T12:00:00Z`).getUTCDay();
   const foraDeHoras = hora < 9 || hora >= 17 || semana === 0 || semana === 6;

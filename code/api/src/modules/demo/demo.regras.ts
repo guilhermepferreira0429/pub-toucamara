@@ -85,6 +85,28 @@ export function instanteDemo(
   return t;
 }
 
+/**
+ * O instante de uma conversa de demonstração: "há `dias` dias, às `hhmm`".
+ * Uma conversa de hoje cuja hora ainda não chegou passa para ontem à mesma
+ * hora (e não para "agora"): seja qual for a hora a que se prepara, as
+ * conversas ficam a horas reais e o "com o balcão fechado" e o pico do
+ * gráfico batem certo.
+ */
+export function instanteConversaDemo(
+  agora: Date,
+  fuso: string,
+  dias: number,
+  hhmm: string,
+): Date {
+  const em = (n: number) => {
+    const d = new Date(`${diaLocal(agora, fuso)}T12:00:00Z`);
+    d.setUTCDate(d.getUTCDate() - n);
+    return instanteLocal(d.toISOString().slice(0, 10), hhmm, fuso);
+  };
+  const t = em(dias);
+  return t.getTime() > agora.getTime() - 60_000 ? em(dias + 1) : t;
+}
+
 /** O dia local daqui a `dias` dias (negativo = passado), 'AAAA-MM-DD'. */
 export function diaDemo(agora: Date, fuso: string, dias: number): string {
   const d = new Date(`${diaLocal(agora, fuso)}T12:00:00Z`);
