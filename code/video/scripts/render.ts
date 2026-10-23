@@ -4,6 +4,7 @@
  *   npm run render                         → out/tou-camara.mp4
  *   npm run render -- out/rascunho.mp4
  *   npm run render -- --stills=0,450,1800  → out/stills/<frame>.png
+ *   npm run render -- --4k                 → out/tou-camara-4k.mp4 (3840×2160, para o YouTube)
  *
  * Usa o Chromium de /opt/pw-browsers quando existe (ou CHROME=...); senão o
  * Remotion descarrega o seu.
@@ -28,7 +29,11 @@ function chrome(): string | null {
 
 const args = process.argv.slice(2);
 const stills = args.find((a) => a.startsWith('--stills='))?.slice(9);
-const saida = args.find((a) => !a.startsWith('--')) ?? join(RAIZ, 'out', 'tou-camara.mp4');
+// Em 4K o YouTube guarda o vídeo com mais qualidade (o texto dos ecrãs fica
+// legível); as capturas estão a 2x, por isso têm detalhe para isso.
+const k4 = args.includes('--4k');
+const saida =
+  args.find((a) => !a.startsWith('--')) ?? join(RAIZ, 'out', k4 ? 'tou-camara-4k.mp4' : 'tou-camara.mp4');
 
 const serveUrl = await bundle({ entryPoint: join(RAIZ, 'src', 'index.ts') });
 const browserExecutable = chrome();
@@ -53,7 +58,8 @@ if (stills) {
     serveUrl,
     composition,
     codec: 'h264',
-    crf: 18,
+    crf: k4 ? 20 : 18,
+    scale: k4 ? 2 : 1,
     outputLocation: saida,
     browserExecutable,
     onProgress: ({ progress }) => {
