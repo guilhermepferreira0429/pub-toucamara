@@ -1,12 +1,12 @@
 import { BadgeCheck } from "lucide-react";
 
-/** O logótipo: o nome com o ponto de interrogação num balão de fala. */
-export function Logo({ tamanho = 28 }: { tamanho?: number }) {
+/** O logótipo: o nome com o ponto de interrogação num balão de fala. `claro` sobre fundos escuros. */
+export function Logo({ tamanho = 28, claro = false }: { tamanho?: number; claro?: boolean }) {
   const balao = Math.round(tamanho * 1.07);
   return (
     <span className="inline-flex items-center gap-1" aria-label="Tou, Câmara?">
       <span
-        className="font-display font-extrabold text-tinta"
+        className={`font-display font-extrabold ${claro ? "text-papel" : "text-tinta"}`}
         style={{ fontSize: tamanho, letterSpacing: tamanho * -0.028 }}
       >
         Tou, Câmara

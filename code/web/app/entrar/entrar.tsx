@@ -1,6 +1,19 @@
 "use client";
 
-import { KeyRound, Mail } from "lucide-react";
+import {
+  ArrowLeft,
+  BadgeCheck,
+  ClipboardCheck,
+  Eye,
+  KeyRound,
+  LoaderCircle,
+  Mail,
+  MailCheck,
+  MapPin,
+  MessagesSquare,
+  type LucideIcon,
+} from "lucide-react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Botao } from "@/components/ui/botao";
@@ -106,46 +119,171 @@ function Formulario() {
   }
 
   return (
-    <main className="flex min-h-dvh items-center justify-center bg-creme px-6">
-      <div className="flex w-full max-w-sm flex-col gap-8">
-        <Logo />
-        {estado === "a_entrar" ? (
-          <p className="text-tinta-2">A entrar…</p>
-        ) : estado === "enviado" ? (
-          <div className="flex flex-col gap-2">
-            <h1 className="font-display text-2xl font-bold">Veja o seu email</h1>
-            <p className="text-sm text-tinta-2">
-              Se {email} tiver acesso ao painel, enviámos um link para entrar.
-              É válido durante 15 minutos.
+    <main className="flex min-h-dvh bg-creme">
+      <PainelMarca />
+      <div className="flex flex-1 flex-col px-6 py-8 sm:px-10">
+        <div className="flex items-center justify-between gap-4">
+          <span className="lg:hidden">
+            <Logo tamanho={24} />
+          </span>
+          <Link
+            href="/"
+            className="ml-auto inline-flex items-center gap-1.5 text-[14px] font-semibold text-tinta-2 hover:text-tinta"
+          >
+            <ArrowLeft className="size-4" aria-hidden />
+            Sobre o projeto
+          </Link>
+        </div>
+
+        <div className="flex flex-1 items-center justify-center py-10">
+          <div className="w-full max-w-[440px]">
+            {estado === "a_entrar" ? (
+              <Cartao>
+                <div role="status" className="flex flex-col items-center gap-4 py-6 text-center">
+                  <LoaderCircle className="size-9 animate-spin text-terracota" aria-hidden />
+                  <p className="font-display text-xl font-bold text-tinta">A entrar no painel…</p>
+                  <p className="text-[14px] text-tinta-2">Só um momento.</p>
+                </div>
+              </Cartao>
+            ) : estado === "enviado" ? (
+              <Cartao>
+                <div className="flex flex-col gap-5">
+                  <span className="flex size-12 items-center justify-center rounded-2xl bg-verde-suave text-verde">
+                    <MailCheck className="size-6" aria-hidden />
+                  </span>
+                  <div className="flex flex-col gap-2">
+                    <h1 className="font-display text-[28px] font-bold leading-tight tracking-[-0.5px] text-tinta">
+                      Veja o seu email
+                    </h1>
+                    <p className="text-[15px] leading-relaxed text-tinta-2">
+                      Se <span className="font-semibold text-tinta">{email}</span> tiver acesso ao painel, enviámos um
+                      link para entrar. É válido durante 15 minutos e só funciona uma vez.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setEstado("inicio")}
+                    className="self-start text-[14px] font-semibold text-terracota-escuro underline underline-offset-2"
+                  >
+                    Usar outro email
+                  </button>
+                </div>
+              </Cartao>
+            ) : (
+              <Cartao>
+                <form onSubmit={pedirLink} className="flex flex-col gap-5">
+                  <div className="flex flex-col gap-2">
+                    <h1 className="font-display text-[30px] font-bold leading-tight tracking-[-0.6px] text-tinta">
+                      Entrar no painel
+                    </h1>
+                    <p className="text-[15px] leading-relaxed text-tinta-2">
+                      Para quem trabalha na câmara. Sem palavras-passe: recebe um link no email de trabalho.
+                    </p>
+                  </div>
+                  <BotoesOidc />
+                  <label className="flex flex-col gap-1.5 text-[14px] font-semibold text-tinta">
+                    Email de trabalho
+                    <span className="flex h-13 items-center gap-2.5 rounded-xl border border-linha bg-creme px-3.5 transition-colors focus-within:border-terracota focus-within:bg-papel">
+                      <Mail className="size-[18px] text-tinta-3" aria-hidden />
+                      <input
+                        type="email"
+                        required
+                        autoComplete="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        className="w-full bg-transparent text-base font-normal text-tinta outline-none placeholder:text-tinta-3"
+                        placeholder="nome@cm-guimaraes.pt"
+                      />
+                    </span>
+                  </label>
+                  {erro && (
+                    <p role="alert" className="rounded-xl bg-terracota-suave/60 px-3.5 py-2.5 text-[14px] text-terracota-escuro">
+                      {erro}
+                    </p>
+                  )}
+                  <Botao type="submit" tamanho="grande" disabled={estado === "a_enviar"} className="w-full">
+                    {estado === "a_enviar" ? "A enviar…" : "Enviar link para entrar"}
+                  </Botao>
+                </form>
+                <div className="mt-6 flex gap-3 rounded-2xl bg-creme-2/70 p-4">
+                  <Eye className="mt-0.5 size-5 shrink-0 text-tinta-2" aria-hidden />
+                  <p className="text-[13px] leading-relaxed text-tinta-2">
+                    <span className="font-semibold text-tinta">Júri do Hack4Guimarães?</span> Use o link ou o email que
+                    lhe enviámos: entra logo, só para ver, até 28 de outubro.
+                  </p>
+                </div>
+              </Cartao>
+            )}
+            <p className="mt-6 text-center text-[13px] text-tinta-2">
+              É munícipe?{" "}
+              <Link href="/ligar" className="font-semibold text-terracota-escuro underline underline-offset-2">
+                Ligue à câmara
+              </Link>{" "}
+              ou{" "}
+              <Link href="/chat" className="font-semibold text-terracota-escuro underline underline-offset-2">
+                escreva no chat
+              </Link>
+              .
             </p>
           </div>
-        ) : (
-          <form onSubmit={pedirLink} className="flex flex-col gap-4">
-            <h1 className="font-display text-2xl font-bold">Entrar no painel</h1>
-            <BotoesOidc />
-            <label className="flex flex-col gap-1.5 text-sm font-medium text-tinta-2">
-              Email de trabalho
-              <span className="flex h-12 items-center gap-2 rounded-xl border border-linha bg-papel px-3">
-                <Mail className="size-4 text-tinta-3" aria-hidden />
-                <input
-                  type="email"
-                  required
-                  autoComplete="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full bg-transparent text-base text-tinta outline-none"
-                  placeholder="nome@cm-guimaraes.pt"
-                />
-              </span>
-            </label>
-            {erro && <p className="text-sm text-terracota-escuro">{erro}</p>}
-            <Botao type="submit" disabled={estado === "a_enviar"}>
-              {estado === "a_enviar" ? "A enviar…" : "Enviar link para entrar"}
-            </Botao>
-          </form>
-        )}
+        </div>
       </div>
     </main>
+  );
+}
+
+function Cartao({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="rounded-[28px] border border-linha bg-papel p-7 shadow-[0_30px_60px_-45px_rgba(21,38,59,0.45)] sm:p-9">
+      {children}
+    </div>
+  );
+}
+
+const O_QUE_HA: [LucideIcon, string, string][] = [
+  [MessagesSquare, "Conversas", "O que o agente resolveu sozinho e o que passou a uma pessoa, com a fonte."],
+  [ClipboardCheck, "Pedidos já preenchidos", "Requerimentos e licenças que chegam com os dados confirmados."],
+  [MapPin, "Ocorrências", "Com fotografia, morada e o que fazer a seguir."],
+  [BadgeCheck, "Avaliação à vista", "As mesmas perguntas, a resposta certa e o veredicto."],
+];
+
+/** No computador, à esquerda: a marca e o que se encontra lá dentro. */
+function PainelMarca() {
+  return (
+    <aside className="relative hidden w-[46%] max-w-[640px] flex-col justify-between overflow-hidden bg-tinta px-14 py-12 text-papel lg:flex">
+      {/* O balão da marca, grande e desfocado, como fundo. */}
+      <span
+        aria-hidden
+        className="absolute -right-24 -bottom-24 size-[420px] rounded-[210px_210px_210px_40px] bg-terracota/25 blur-[2px]"
+      />
+      <Link href="/" className="relative w-fit">
+        <Logo tamanho={30} claro />
+      </Link>
+      <div className="relative flex flex-col gap-8">
+        <div className="flex flex-col gap-3">
+          <p className="text-[12px] font-bold uppercase tracking-[1.4px] text-terracota-suave">Painel da câmara</p>
+          <h2 className="font-display text-[42px] font-extrabold leading-[1.05] tracking-[-1.2px]">
+            O atendimento inteiro, num só sítio.
+          </h2>
+        </div>
+        <ul className="flex flex-col gap-5">
+          {O_QUE_HA.map(([Icone, titulo, texto]) => (
+            <li key={titulo} className="flex gap-4">
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-white/10">
+                <Icone className="size-5 text-terracota-suave" aria-hidden />
+              </span>
+              <span className="flex flex-col gap-0.5">
+                <span className="text-[16px] font-semibold">{titulo}</span>
+                <span className="text-[14px] leading-relaxed text-papel/75">{texto}</span>
+              </span>
+            </li>
+          ))}
+        </ul>
+      </div>
+      <p className="relative text-[13px] text-papel/70">
+        Demonstração do Hack4Guimarães 2035.
+      </p>
+    </aside>
   );
 }
 
