@@ -1,0 +1,3 @@
+out/
+# Geradas por `npm run capturar` (mudam a cada captura).
+public/capturas/
