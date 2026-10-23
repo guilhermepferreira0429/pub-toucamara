@@ -1,7 +1,7 @@
 /*
  * Custo estimado de cada chamada à IA, pela tabela dos fornecedores de
- * outubro de 2026. É uma
- * estimativa para o painel e para os limites: a fatura é a do fornecedor.
+ * outubro de 2026. É uma estimativa para o painel e para os limites: a
+ * fatura é a do fornecedor.
  * Em dólares por milhão de tokens; o resultado em microdólares.
  */
 
