@@ -62,6 +62,22 @@ export type Cartao =
       responderAte: string | null;
       dizer: string | null;
     }
+  | {
+      tipo: "licenca";
+      numero: string;
+      /** A licença que esta renova (renovar_licenca), ou null. */
+      renova: string | null;
+      aprovada: boolean;
+      emitida: boolean;
+      taxa: string | null;
+      pagamento: {
+        metodo: string | null;
+        entidade: string | null;
+        referencia: string | null;
+        mbway: string | null;
+        teste: boolean;
+      } | null;
+    }
   | { tipo: "emergencia" };
 
 export interface Feito {
@@ -130,6 +146,9 @@ export const A_FAZER: Record<string, string> = {
   agendar_recolha: "A marcar a recolha…",
   cancelar_marcacao: "A cancelar a marcação…",
   simular_taxa: "A calcular a taxa…",
+  campos_da_licenca: "A ver o que a licença pede…",
+  pedir_licenca: "A verificar as regras da licença…",
+  renovar_licenca: "A ver as suas licenças…",
   criar_pagamento: "A preparar o pagamento…",
   encaminhar: "A ver quem trata disto…",
   passar_a_humano: "A passar a um funcionário…",
@@ -404,6 +423,48 @@ function aplicarResultado(
           icone: "marcacao",
           titulo: quando,
           detalhe: onde || "Atendimento marcado",
+        }),
+      };
+    }
+
+    case "pedir_licenca":
+    case "renovar_licenca": {
+      // Só quando o pedido ficou feito (antes disso, os dados ou a escolha).
+      const numero = str(r.numero);
+      if (r.pedida !== true || !numero) return base;
+      const pg = obj(r.pagamento);
+      const mbway = obj(pg?.mbway);
+      const renova = str(r.renova);
+      const aprovada = r.proposta === "aprovar";
+      return {
+        ...base,
+        smsEnviado: base.smsEnviado || pg?.sms_enviado === true,
+        cartao: {
+          tipo: "licenca",
+          numero,
+          renova,
+          aprovada,
+          emitida: r.emitida === true,
+          taxa: str(r.taxa),
+          pagamento: pg
+            ? {
+                metodo: str(pg.metodo),
+                entidade: str(pg.entidade),
+                referencia: str(pg.referencia),
+                mbway: str(mbway?.telemovel),
+                teste: pg.modo_teste === true,
+              }
+            : null,
+        },
+        feitos: juntarFeito(base.feitos, {
+          chave: `licenca:${numero}`,
+          icone: "requerimento",
+          titulo: renova ? `Renovação pedida: ${numero}` : `Licença pedida: ${numero}`,
+          detalhe: aprovada
+            ? str(r.taxa)
+              ? `Cumpre as regras · taxa de ${str(r.taxa)}`
+              : "Cumpre as regras"
+            : "Vai ser vista por um técnico",
         }),
       };
     }

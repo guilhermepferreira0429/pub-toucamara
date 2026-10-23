@@ -1626,9 +1626,10 @@ export class DemoService {
       )) as { numero: string };
       const l = await doNumero(r.numero);
       await pagarEEmitir(l);
-      // Para os alertas: a licença começou há um mês e acaba daqui a 5 dias.
-      const acaba = diaDemo(c.agora, c.m.fuso, 5);
-      const comecou = diaDemo(c.agora, c.m.fuso, -25);
+      // Para os alertas e a renovação: começou há 20 dias e acaba daqui a 10
+      // (a renovação começa a seguir e tem de ter 5 dias úteis de antecedência).
+      const acaba = diaDemo(c.agora, c.m.fuso, 10);
+      const comecou = diaDemo(c.agora, c.m.fuso, -20);
       await this.db.query(
         `UPDATE licencas SET valida_ate = $2::date,
            dados = jsonb_set(dados, '{data_inicio}', to_jsonb($3::text))

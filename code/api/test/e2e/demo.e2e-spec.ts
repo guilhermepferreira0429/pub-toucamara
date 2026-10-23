@@ -302,7 +302,10 @@ describe('Preparar demo (e2e)', () => {
       [await demoId('licenca:esplanada')],
     );
     expect(esplanada.estado).toBe('emitida');
-    expect(esplanada.dias).toBeLessThanOrEqual(7);
+    // Acaba daqui a 10 dias: dá para a renovação começar a seguir com os 5
+    // dias úteis de antecedência que a regra pede.
+    expect(esplanada.dias).toBeGreaterThanOrEqual(9);
+    expect(esplanada.dias).toBeLessThanOrEqual(11);
 
     const porta = await linha(
       ctx.db,

@@ -2,15 +2,15 @@
 
 import {
   ArrowLeft,
-  BadgeCheck,
-  ClipboardCheck,
+  ChartColumn,
   Eye,
+  Inbox,
   KeyRound,
   LoaderCircle,
   Mail,
   MailCheck,
-  MapPin,
-  MessagesSquare,
+  PhoneOutgoing,
+  Scale,
   type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
@@ -241,21 +241,24 @@ function Cartao({ children }: { children: React.ReactNode }) {
 }
 
 const O_QUE_HA: [LucideIcon, string, string][] = [
-  [MessagesSquare, "Conversas", "O que o agente resolveu sozinho e o que passou a uma pessoa, com a fonte."],
-  [ClipboardCheck, "Pedidos já preenchidos", "Requerimentos e licenças que chegam com os dados confirmados."],
-  [MapPin, "Ocorrências", "Com fotografia, morada e o que fazer a seguir."],
-  [BadgeCheck, "Avaliação à vista", "As mesmas perguntas, a resposta certa e o veredicto."],
+  [Inbox, "Tudo numa só entrada", "Telefone, chat, email e balcão, com cada pedido já no serviço certo."],
+  [PhoneOutgoing, "A câmara liga primeiro", "Avisa antes de um prazo acabar e renova as licenças na chamada."],
+  [Scale, "Decide o que é simples", "O que cumpre as regras sai na hora. A equipa fica com as exceções."],
+  [ChartColumn, "A chefia vê tudo", "Onde param os processos, o que sentem os munícipes e o resumo do dia."],
 ];
 
 /** No computador, à esquerda: a marca e o que se encontra lá dentro. */
 function PainelMarca() {
   return (
-    <aside className="relative hidden w-[46%] max-w-[640px] flex-col justify-between overflow-hidden bg-tinta px-14 py-12 text-papel lg:flex">
-      {/* O balão da marca, grande e desfocado, como fundo. */}
-      <span
-        aria-hidden
-        className="absolute -right-24 -bottom-24 size-[420px] rounded-[210px_210px_210px_40px] bg-terracota/25 blur-[2px]"
-      />
+    <aside className="relative isolate hidden w-[46%] max-w-[640px] flex-col justify-between overflow-hidden bg-tinta px-14 py-12 text-papel lg:flex">
+      {/* Fundo: um brilho terracota em baixo, uma grelha de pontos que se desvanece e o balão da marca em contorno. */}
+      <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_90%_105%,rgba(184,74,36,0.5),transparent_55%),radial-gradient(circle_at_0%_0%,rgba(255,255,255,0.07),transparent_45%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(rgba(255,255,255,0.1)_1px,transparent_1px)] [background-size:24px_24px] [mask-image:linear-gradient(to_bottom,black,transparent_75%)]" />
+        <span className="absolute -right-24 -bottom-32 flex size-[460px] items-center justify-center rounded-[230px_230px_230px_52px] border-[1.5px] border-white/10 font-display text-[300px] font-extrabold leading-none text-white/[0.05]">
+          ?
+        </span>
+      </div>
       <Link href="/" className="relative w-fit">
         <Logo tamanho={30} claro />
       </Link>
@@ -263,8 +266,11 @@ function PainelMarca() {
         <div className="flex flex-col gap-3">
           <p className="text-[12px] font-bold uppercase tracking-[1.4px] text-terracota-suave">Painel da câmara</p>
           <h2 className="font-display text-[42px] font-extrabold leading-[1.05] tracking-[-1.2px]">
-            O atendimento inteiro, num só sítio.
+            A câmara inteira, numa só plataforma.
           </h2>
+          <p className="text-[17px] leading-relaxed text-papel/80">
+            Uma porta para o munícipe. Um sistema para a câmara.
+          </p>
         </div>
         <ul className="flex flex-col gap-5">
           {O_QUE_HA.map(([Icone, titulo, texto]) => (

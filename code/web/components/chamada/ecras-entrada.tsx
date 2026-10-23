@@ -241,6 +241,23 @@ export function telemovelValido(digitos: string): boolean {
   return /^9[1236]\d{7}$/.test(digitos);
 }
 
+/** A licença de demonstração para experimentar uma renovação (API: public/demo/…/renovacao). */
+export interface LicencaParaRenovar {
+  numero: string;
+  valida_ate: string;
+  estabelecimento: string;
+  ja_existia: boolean;
+}
+
+/** "2 de novembro" a partir de AAAA-MM-DD. */
+function diaDito(iso: string): string {
+  return new Date(`${iso}T12:00:00Z`).toLocaleDateString("pt-PT", {
+    day: "numeric",
+    month: "long",
+    timeZone: "UTC",
+  });
+}
+
 export function EcraNumero({
   digitos,
   semSms,
@@ -248,6 +265,7 @@ export function EcraNumero({
   onSemSms,
   onVoltar,
   onLigar,
+  renovacao,
 }: {
   digitos: string;
   semSms: boolean;
@@ -255,11 +273,20 @@ export function EcraNumero({
   onSemSms: (v: boolean) => void;
   onVoltar: () => void;
   onLigar: () => void;
+  renovacao: {
+    ativa: boolean;
+    licenca: LicencaParaRenovar | null;
+    aPreparar: boolean;
+    erro: string | null;
+    onAtiva: (v: boolean) => void;
+    onPreparar: () => void;
+  };
 }) {
   const id = useId();
   const [tentou, setTentou] = useState(false);
   const invalido = !semSms && !telemovelValido(digitos);
   const mostrarErro = tentou && invalido;
+  const porPreparar = renovacao.ativa && !renovacao.licenca;
 
   return (
     <Ecra className="gap-7">
@@ -274,7 +301,9 @@ export function EcraNumero({
         onSubmit={(e) => {
           e.preventDefault();
           setTentou(true);
-          if (!invalido) onLigar();
+          if (invalido || renovacao.aPreparar) return;
+          if (porPreparar) renovacao.onPreparar();
+          else onLigar();
         }}
       >
         <div className="flex flex-col gap-2">
@@ -336,13 +365,65 @@ export function EcraNumero({
           <span className="text-[15px] text-tinta-2">Não quero receber SMS</span>
         </label>
 
+        <div
+          className={`flex flex-col gap-3 rounded-2xl border-[1.5px] p-4 ${
+            renovacao.ativa ? "border-terracota bg-papel" : "border-linha"
+          }`}
+        >
+          <label className="flex cursor-pointer items-start gap-3">
+            <span className="relative mt-0.5 flex size-[22px] shrink-0">
+              <input
+                type="checkbox"
+                checked={renovacao.ativa}
+                onChange={(e) => renovacao.onAtiva(e.target.checked)}
+                aria-describedby={`${id}-renovacao`}
+                className="peer size-[22px] cursor-pointer appearance-none rounded-md border-[1.5px] border-tinta-3 bg-papel checked:border-terracota checked:bg-terracota"
+              />
+              <Check
+                aria-hidden
+                className="pointer-events-none absolute inset-0 m-auto hidden size-4 text-white peer-checked:block"
+                strokeWidth={3}
+              />
+            </span>
+            <span className="flex flex-col gap-1">
+              <span className="flex items-center gap-2 text-[15px] font-semibold text-tinta">
+                <RotateCcw className="size-4 text-terracota" aria-hidden />
+                Experimentar uma renovação
+              </span>
+              <span id={`${id}-renovacao`} className="text-[13px] leading-snug text-tinta-2">
+                Criamos neste número uma licença de esplanada de demonstração, a acabar daqui a 10 dias. Na chamada,
+                peça para a renovar: a referência para pagar chega-lhe por SMS.
+              </span>
+            </span>
+          </label>
+          {renovacao.licenca && (
+            <p
+              role="status"
+              className="flex gap-2.5 rounded-xl bg-verde-suave px-3 py-2.5 text-[14px] leading-snug text-tinta"
+            >
+              <Check className="mt-0.5 size-4 shrink-0 text-verde" aria-hidden strokeWidth={3} />
+              <span>
+                Pronto: a licença {renovacao.licenca.numero}, do {renovacao.licenca.estabelecimento}, acaba a{" "}
+                {diaDito(renovacao.licenca.valida_ate)}. Ligue e diga{" "}
+                <strong>&ldquo;quero renovar a licença da esplanada&rdquo;</strong>.
+              </span>
+            </p>
+          )}
+          {renovacao.erro && (
+            <p role="alert" className="text-[13px] font-semibold text-terracota-escuro">
+              {renovacao.erro}
+            </p>
+          )}
+        </div>
+
         <Botao
           type="submit"
           tamanho="grande"
-          icone={Phone}
+          icone={porPreparar ? RotateCcw : Phone}
+          disabled={renovacao.aPreparar}
           className="mt-auto w-full"
         >
-          Ligar agora
+          {porPreparar ? (renovacao.aPreparar ? "A preparar a licença…" : "Preparar a licença") : "Ligar agora"}
         </Botao>
       </form>
     </Ecra>

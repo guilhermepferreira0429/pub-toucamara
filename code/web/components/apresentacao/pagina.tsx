@@ -525,14 +525,14 @@ export function PaginaApresentacao() {
                 Não diz onde renovar: renova.
               </p>
               <p className="text-[15px] leading-relaxed text-tinta-2">
-                Ligue e, quando pedir o número, escreva <strong className="text-tinta">910 000 106</strong> (o Manuel
-                Pereira, do Café Pereira). Diga &ldquo;quero renovar a licença da esplanada&rdquo;. O agente encontra a
-                licença que acaba daqui a 5 dias, confirma os dados, volta a ver as regras, calcula a taxa e dá a
-                referência para pagar.
+                Ligue com o seu número e marque <strong className="text-tinta">&ldquo;Experimentar uma
+                renovação&rdquo;</strong>: criamos em seu nome uma licença de esplanada de demonstração, a acabar daqui a
+                10 dias. Diga &ldquo;quero renovar a licença da esplanada&rdquo;. O assistente encontra-a, confirma os
+                dados, volta a ver as regras, calcula a taxa e manda-lhe a referência para pagar por SMS.
               </p>
             </div>
             <Link
-              href="/ligar"
+              href="/ligar?experimentar=renovacao"
               className="inline-flex min-h-12 shrink-0 items-center gap-2 self-start rounded-full bg-terracota px-6 text-[16px] font-bold text-white hover:bg-terracota-escuro sm:self-center"
             >
               <Phone className="size-5" aria-hidden />

@@ -10,6 +10,7 @@ import {
   FileCheck2,
   MapPinCheck,
   Phone,
+  RotateCcw,
   ShieldCheck,
   Siren,
   TriangleAlert,
@@ -353,6 +354,39 @@ function Marcacao({ c }: { c: Extract<Cartao, { tipo: "marcacao" }> }) {
   );
 }
 
+function Licenca({ c }: { c: Extract<Cartao, { tipo: "licenca" }> }) {
+  const titulo = c.renova ? "Renovação pedida" : "Licença pedida";
+  const pg = c.pagamento;
+  return (
+    <Moldura cor={c.aprovada ? "verde" : "terracota"} rotulo={titulo}>
+      <Topo
+        icone={c.renova ? RotateCcw : FileCheck2}
+        cor={c.aprovada ? "verde" : "terracota"}
+        titulo={titulo}
+        subtitulo={c.renova ? `Renova a ${c.renova}` : undefined}
+        direita={c.numero}
+        mono
+      />
+      <Linha
+        k="Regras"
+        v={c.aprovada ? "Cumpre todas" : "Vai ser vista por um técnico, que responde por SMS"}
+      />
+      {c.taxa && <Linha k="Taxa" v={c.taxa} />}
+      {pg?.referencia && pg.entidade && (
+        <Linha k="Multibanco" v={`Entidade ${pg.entidade} · Ref. ${pg.referencia}`} />
+      )}
+      {pg?.mbway && <Linha k="MB WAY" v={`Pedido enviado para ${pg.mbway}`} />}
+      {pg && (
+        <Linha
+          k="Depois de pagar"
+          v={`A licença segue por SMS, com um código QR${pg.teste ? " (pagamento de teste: nada é cobrado)" : ""}.`}
+        />
+      )}
+      {!pg && c.emitida && <Linha k="Licença" v="Emitida: segue por SMS, com um código QR." />}
+    </Moldura>
+  );
+}
+
 function Emergencia() {
   return (
     <section
@@ -392,6 +426,8 @@ export function CartaoAoVivo({
       return <Recolha c={cartao} />;
     case "marcacao":
       return <Marcacao c={cartao} />;
+    case "licenca":
+      return <Licenca c={cartao} />;
     case "emergencia":
       return <Emergencia />;
     default:

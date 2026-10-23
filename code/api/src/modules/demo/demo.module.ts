@@ -1,4 +1,12 @@
-import { Body, Controller, Get, HttpCode, Module, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  Module,
+  Param,
+  Post,
+} from '@nestjs/common';
 import { z } from 'zod';
 import { MunicipioAtual, UtilizadorAtual } from '../../common/pedido.js';
 import type { UtilizadorPainel } from '../../common/pedido.js';
@@ -8,6 +16,7 @@ import type { Municipio } from '../municipios/municipios.service.js';
 import { DemoAcertosService } from './demo-acertos.service.js';
 import { DemoConhecimentoService } from './demo-conhecimento.service.js';
 import { DemoService } from './demo.service.js';
+import { DemoVisitanteService } from './demo-visitante.service.js';
 
 const esquemaPreparar = z.object({
   /** Esconder do painel as conversas e ocorrências dos testes (reversível). */
@@ -55,10 +64,36 @@ export class DemoController {
   }
 }
 
+const esquemaRenovacao = z.object({ telefone: z.string().min(9).max(20) });
+
+/**
+ * "Experimentar uma renovação" no /ligar: uma licença de esplanada de
+ * demonstração no número de quem experimenta (só com a demonstração ligada).
+ */
+@Controller('public/demo')
+export class DemoPublicoController {
+  constructor(private readonly visitante: DemoVisitanteService) {}
+
+  /** { telefone } → a licença a renovar (a mesma, se já havia uma). */
+  @Post(':municipio/renovacao')
+  @HttpCode(201)
+  renovacao(@Param('municipio') slug: string, @Body() body: unknown) {
+    return this.visitante.licencaParaRenovar(
+      slug,
+      validar(esquemaRenovacao, body ?? {}).telefone,
+    );
+  }
+}
+
 /** A câmara de demonstração pronta com um botão (e `npm run demo:preparar`). */
 @Module({
-  controllers: [DemoController],
-  providers: [DemoService, DemoConhecimentoService, DemoAcertosService],
+  controllers: [DemoController, DemoPublicoController],
+  providers: [
+    DemoService,
+    DemoConhecimentoService,
+    DemoAcertosService,
+    DemoVisitanteService,
+  ],
   exports: [DemoService],
 })
 export class DemoModule {}

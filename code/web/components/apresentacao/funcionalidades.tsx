@@ -254,7 +254,7 @@ export const DESTAQUES: Destaque[] = [
     titulo: "Renova a licença na chamada",
     texto: "Avisa antes de acabar e, na mesma chamada, confirma os dados, volta a ver as regras, calcula a taxa e dá a referência para pagar.",
     estado: "demo",
-    experimentar: { href: "/ligar", texto: "Ligar com o 910 000 106" },
+    experimentar: { href: "/ligar?experimentar=renovacao", texto: "Experimentar com o seu número" },
   },
   {
     icone: PhoneOutgoing,

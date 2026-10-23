@@ -2,6 +2,7 @@
 
 import { ConversationProvider, useConversation } from "@elevenlabs/react";
 import { useCallback, useEffect, useReducer, useRef, useState } from "react";
+import { api, ErroApi } from "@/lib/api";
 import { useTranscricaoAoVivo, type Injetar } from "./ao-vivo";
 import { AGENTE_ID, MUNICIPIO } from "./config";
 import { FaixaAoVivo } from "./faixa-ao-vivo";
@@ -12,6 +13,7 @@ import {
   EcraMicrofone,
   EcraNumero,
   EcraSemMicrofone,
+  type LicencaParaRenovar,
 } from "./ecras-entrada";
 import { EcraCaiu, EcraTerminada } from "./ecras-fim";
 import { ESTADO_INICIAL, reduzir } from "./registo";
@@ -57,6 +59,35 @@ function Fluxo() {
 
   const [digitos, setDigitos] = useState("");
   const [semSms, setSemSms] = useState(false);
+  // "Experimentar uma renovação" (/ligar?experimentar=renovacao): uma licença
+  // de demonstração no número da pessoa, para os SMS da renovação lhe chegarem.
+  const [renovacao, setRenovacao] = useState(
+    () =>
+      typeof window !== "undefined" &&
+      new URLSearchParams(window.location.search).get("experimentar") === "renovacao",
+  );
+  const [licenca, setLicenca] = useState<LicencaParaRenovar | null>(null);
+  const [aPreparar, setAPreparar] = useState(false);
+  const [erroPreparar, setErroPreparar] = useState<string | null>(null);
+
+  /** Prepara a licença antes da chamada; a chamada começa noutro toque. */
+  const prepararRenovacao = async () => {
+    setAPreparar(true);
+    setErroPreparar(null);
+    try {
+      setLicenca(
+        await api<LicencaParaRenovar>(`/v1/public/demo/${MUNICIPIO}/renovacao`, {
+          corpo: { telefone: digitos },
+        }),
+      );
+    } catch (e) {
+      setErroPreparar(
+        e instanceof ErroApi ? e.message : "Não foi possível preparar a licença. Tente outra vez.",
+      );
+    } finally {
+      setAPreparar(false);
+    }
+  };
   const [estado, despachar] = useReducer(reduzir, ESTADO_INICIAL);
   const [aLigar, setALigar] = useState(false);
   const [chegouALigar, setChegouALigar] = useState(false);
@@ -242,10 +273,28 @@ function Fluxo() {
         <EcraNumero
           digitos={digitos}
           semSms={semSms}
-          onDigitos={setDigitos}
-          onSemSms={setSemSms}
+          onDigitos={(d) => {
+            setDigitos(d);
+            setLicenca(null);
+          }}
+          onSemSms={(v) => {
+            setSemSms(v);
+            if (v) setRenovacao(false);
+          }}
           onVoltar={() => ir("consentimento")}
           onLigar={ligar}
+          renovacao={{
+            ativa: renovacao,
+            licenca,
+            aPreparar,
+            erro: erroPreparar,
+            onAtiva: (v) => {
+              setRenovacao(v);
+              setErroPreparar(null);
+              if (v) setSemSms(false);
+            },
+            onPreparar: prepararRenovacao,
+          }}
         />
       );
     case "microfone":
