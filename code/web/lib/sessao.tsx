@@ -170,6 +170,9 @@ export function SessaoProvider({ children }: { children: React.ReactNode }) {
         } catch (e) {
           // Sessão expirada: volta ao ecrã de entrar.
           if (e instanceof ErroApi && e.codigo === "nao_autenticado") sair();
+          // Acesso do júri: avisa de forma visível (o erro de cada ecrã pode ficar longe do botão).
+          if (e instanceof ErroApi && e.codigo === "so_leitura" && typeof window !== "undefined")
+            window.dispatchEvent(new CustomEvent("tou:so-leitura"));
           throw e;
         }
       },
@@ -185,6 +188,9 @@ export function SessaoProvider({ children }: { children: React.ReactNode }) {
           });
         } catch (e) {
           if (e instanceof ErroApi && e.codigo === "nao_autenticado") sair();
+          // Acesso do júri: avisa de forma visível (o erro de cada ecrã pode ficar longe do botão).
+          if (e instanceof ErroApi && e.codigo === "so_leitura" && typeof window !== "undefined")
+            window.dispatchEvent(new CustomEvent("tou:so-leitura"));
           throw e;
         }
       },

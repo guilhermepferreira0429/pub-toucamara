@@ -44,7 +44,7 @@ function Anel({ valor, rotulo }: { valor: number | null; rotulo: string }) {
           {pct(valor)}
         </span>
       </div>
-      <span className="text-xs font-semibold text-white/80">{rotulo}</span>
+      <span className="text-center text-xs font-semibold text-white/80">{rotulo}</span>
     </div>
   );
 }
@@ -261,7 +261,7 @@ export function MapaConhecimento() {
         </div>
         <div className="grid w-full grid-cols-3 gap-3 sm:flex sm:w-auto sm:gap-7">
           <Anel valor={cobertura} rotulo="Cobertura" />
-          <Anel valor={qualidadeMedida ?? qualidade.dados?.ultima?.taxa ?? null} rotulo="Qualidade" />
+          <Anel valor={qualidadeMedida ?? qualidade.dados?.ultima?.taxa ?? null} rotulo="Certas quando responde" />
           <Anel valor={emDia} rotulo="Fontes em dia" />
         </div>
       </section>

@@ -15,7 +15,7 @@ import { MunicipioAtual, UtilizadorAtual } from '../../common/pedido.js';
 import type { UtilizadorPainel } from '../../common/pedido.js';
 import { validar } from '../../common/validacao.js';
 import { AuditoriaService } from '../auditoria/auditoria.service.js';
-import { Painel } from '../auth/painel.guard.js';
+import { Painel, SoConsulta } from '../auth/painel.guard.js';
 import type { Municipio } from '../municipios/municipios.service.js';
 import { hojeNoFuso, lerPeriodo } from '../painel/periodos.js';
 import { janelaAte } from './diario.js';
@@ -66,6 +66,8 @@ export class RelatoriosController {
    * das 24 horas até `ate` (ISO com fuso; por omissão agora).
    */
   @Post('gerar')
+  // O júri (acesso só de leitura) também pode gerar e ver o relatório: não altera dados do município.
+  @SoConsulta()
   @HttpCode(200)
   async gerar(
     @MunicipioAtual() m: Municipio,
@@ -74,6 +76,8 @@ export class RelatoriosController {
     @Ip() ip: string,
   ) {
     const pedido = validar(esquemaGerar, body);
+    // Só de leitura (júri): gera e mostra, nunca envia por email.
+    if (u.soLeitura) pedido.enviar = false;
     if (pedido.tipo === 'diario') {
       const janela = janelaAte(
         pedido.ate ? new Date(pedido.ate) : new Date(),

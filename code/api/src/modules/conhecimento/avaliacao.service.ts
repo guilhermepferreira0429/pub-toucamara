@@ -692,7 +692,7 @@ export class AvaliacaoService {
 
   /** Última amostra de voz (`tou-voz`) terminada, com a latência média. */
   private async ultimaVoz(municipioId: string) {
-    const [v] = await this.db.query<{ taxa: number | null }>(
+    const [v] = await this.db.query<{ taxa: number | null; execucao_id: string }>(
       `SELECT e.id AS execucao_id, s.nome AS sistema, e.agente_versao, e.amostra,
               e.iniciada_em, e.terminada_em, ${COLUNAS_RESULTADO},
               (SELECT round(avg(x.latencia_ms))::int FROM avaliacao.respostas x
@@ -702,11 +702,15 @@ export class AvaliacaoService {
        LEFT JOIN avaliacao.resultados r ON r.execucao_id = e.id AND r.categoria IS NULL
        WHERE s.nosso AND s.adaptador = 'tou-voz' AND s.municipio_id = $1
          AND e.estado = 'terminada'
-       ORDER BY e.terminada_em DESC NULLS LAST, e.id DESC
+       ORDER BY ${COM_CONSENSO} DESC, e.terminada_em DESC NULLS LAST, e.id DESC
        LIMIT 1`,
       [municipioId],
     );
-    return v ? { ...v, passou: passou(v.taxa) } : null;
+    if (!v) return null;
+    // A mesma medida do chat: certas ou maioritariamente certas / todas (escala v2), quando houver.
+    const [t] = await this.totaisV2([v.execucao_id]);
+    const taxa = t ? t.taxa : v.taxa;
+    return { ...v, taxa, passou: passou(taxa) };
   }
 }
 

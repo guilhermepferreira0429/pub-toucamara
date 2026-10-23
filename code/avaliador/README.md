@@ -18,7 +18,7 @@ Os resultados medidos estão públicos em [`/avaliacao`](https://toucamara.desco
 
 Dados no esquema `avaliacao` do Postgres da API (migrações `0022` e `0101`, a da escala v2: colunas novas em `avaliacoes` e `gabarito.factos_secundarios`, vista `resultados_categorias`). A API lê os resultados para três sítios:
 - o painel (Qualidade);
-- o bloqueio de publicação (≥ 80%);
+- o bloqueio de publicação (≥ 75%);
 - a página pública `/avaliacao` (`GET /v1/public/avaliacao/:municipio`, só execuções medidas, nunca as de demonstração).
 
 ## Arrancar

@@ -710,11 +710,11 @@ export function PaginaApresentacao() {
                 ["180 perguntas de teste", "Das que os munícipes fazem no dia a dia, em todas as áreas da câmara."],
                 ["A resposta certa, com a fonte", "Para cada pergunta, a resposta certa escrita a partir das fontes oficiais e revista por uma pessoa."],
                 [
-                  "Um juiz automático",
-                  "Compara cada resposta com a certa e explica o veredicto. Passar a um funcionário numa pergunta difícil conta como certo; inventar conta como errado.",
+                  "Dois juízes automáticos",
+                  "Às cegas, comparam cada resposta com a certa e explicam o veredicto; onde discordam, um terceiro verifica nas fontes oficiais. Passar a um funcionário numa pergunta difícil conta como certo; inventar conta como errado.",
                 ],
-                ["Comparação justa", "As mesmas perguntas, feitas à assistente do site da câmara, avaliadas pelo mesmo juiz."],
-                ["Um travão", "Nenhuma versão nova do assistente é publicada sem acertar em pelo menos 8 de cada 10."],
+                ["Comparação justa", "As mesmas perguntas, feitas à assistente do site da câmara, avaliadas pelos mesmos juízes."],
+                ["Um travão", "Nenhuma versão nova do assistente é publicada sem acertar em pelo menos 3 de cada 4 (75%)."],
               ].map(([t, d], i) => (
                 <li key={t} className="flex gap-4">
                   <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-verde font-display text-[14px] font-bold text-white">

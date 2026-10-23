@@ -89,14 +89,44 @@ function FaixaJuri({ ate }: { ate?: string }) {
         timeZone: "Europe/Lisbon",
       })
     : null;
+  // Quando o júri carrega num botão que alteraria dados, a API recusa (so_leitura) e aparece este aviso fixo.
+  const [aviso, setAviso] = useState(false);
+  useEffect(() => {
+    let t: ReturnType<typeof setTimeout> | undefined;
+    const mostrar = () => {
+      setAviso(true);
+      if (t) clearTimeout(t);
+      t = setTimeout(() => setAviso(false), 4500);
+    };
+    window.addEventListener("tou:so-leitura", mostrar);
+    return () => {
+      window.removeEventListener("tou:so-leitura", mostrar);
+      if (t) clearTimeout(t);
+    };
+  }, []);
   return (
-    <div role="note" className="flex items-start gap-2.5 bg-tinta px-4 py-2.5 text-[14px] leading-snug text-papel sm:px-6">
-      <Eye className="mt-0.5 size-4 shrink-0 text-terracota-suave" aria-hidden />
-      <p>
-        <span className="font-semibold">Acesso do júri, só de leitura.</span> Pode ver todo o painel; as alterações
-        estão desligadas.{quando ? ` Válido até ${quando}.` : ""}
-      </p>
-    </div>
+    <>
+      <div role="note" className="flex items-start gap-2.5 bg-tinta px-4 py-2.5 text-[14px] leading-snug text-papel sm:px-6">
+        <Eye className="mt-0.5 size-4 shrink-0 text-terracota-suave" aria-hidden />
+        <p>
+          <span className="font-semibold">Acesso do júri, só de leitura.</span> Pode ver todo o painel; as alterações
+          estão desligadas.{quando ? ` Válido até ${quando}.` : ""}
+        </p>
+      </div>
+      {aviso && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="fixed bottom-5 left-1/2 z-50 flex max-w-[92vw] -translate-x-1/2 items-start gap-2.5 rounded-2xl bg-tinta px-4 py-3 text-[14px] leading-snug text-papel shadow-lg"
+        >
+          <Eye className="mt-0.5 size-4 shrink-0 text-terracota-suave" aria-hidden />
+          <p>
+            <span className="font-semibold">Esta ação alteraria dados.</span> No acesso do júri está desligada: pode ver
+            tudo, mas não alterar.
+          </p>
+        </div>
+      )}
+    </>
   );
 }
 

@@ -223,7 +223,7 @@ export const AREAS: Area[] = [
     icone: ShieldCheck,
     itens: [
       ["Regras públicas", "As regras que decidem cada pedido à vista de todos, com histórico e o “porquê” de cada decisão.", "real"],
-      ["Avaliação aberta", "Perguntas de teste, resposta certa e veredicto de um juiz, à vista em /avaliacao.", "real"],
+      ["Avaliação aberta", "Perguntas de teste, resposta certa e veredicto de dois juízes às cegas (e um terceiro a desempatar), à vista em /avaliacao.", "real"],
       ["As perguntas da câmara", "Cada câmara junta as que mais recebe, e o assistente só vai para o ar quando passa nelas.", "real"],
       ["Números verificados", "Valores e prazos ditos pelo assistente confirmados na fonte.", "real"],
       ["Dados abertos", "Indicadores e conjuntos de dados em CSV e JSON, com histórico.", "api"],
