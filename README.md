@@ -16,7 +16,7 @@
 <p align="center">
   <a href="https://toucamara.descortina.pt"><img alt="em produção: toucamara.descortina.pt" src="https://img.shields.io/badge/em%20produ%C3%A7%C3%A3o-toucamara.descortina.pt-3F6E4A?style=flat-square"></a>
   <img alt="Hack4Guimarães 2035: Falar com a câmara sem burocracia" src="https://img.shields.io/badge/Hack4Guimar%C3%A3es%202035-Falar%20com%20a%20c%C3%A2mara%20sem%20burocracia-15263B?style=flat-square">
-  <img alt="testes: 1 675 unitários · 79 de ponta a ponta" src="https://img.shields.io/badge/testes-1%20675%20unit%C3%A1rios%20%C2%B7%2079%20de%20ponta%20a%20ponta-3F6E4A?style=flat-square">
+  <img alt="testes: 1 685 unitários · 79 de ponta a ponta" src="https://img.shields.io/badge/testes-1%20685%20unit%C3%A1rios%20%C2%B7%2079%20de%20ponta%20a%20ponta-3F6E4A?style=flat-square">
   <img alt="acessibilidade: WCAG 2.1 AA · 0 erros em 42 páginas" src="https://img.shields.io/badge/acessibilidade-WCAG%202.1%20AA%20%C2%B7%200%20erros%20em%2042%20p%C3%A1ginas-3F6E4A?style=flat-square">
   <img alt="avaliador: 180 perguntas com resposta revista" src="https://img.shields.io/badge/avaliador-180%20perguntas%20com%20resposta%20revista-B84A24?style=flat-square">
   <br>
@@ -194,7 +194,7 @@ Sem chaves de IA, de voz ou de SMS a API arranca na mesma; os SMS para os telefo
 
 | Parte | Testes |
 | --- | --- |
-| API | **1 675 testes unitários** (Jest) em 146 ficheiros, a passar |
+| API | **1 685 testes unitários** (Jest) em 146 ficheiros, a passar |
 | Ponta a ponta | **79 conjuntos** de testes da API contra um PostgreSQL real (`npm run test:e2e`), incluindo a preparação da demonstração, que tem de dar os mesmos números quando corre duas vezes |
 | Assistente | O avaliador: 180 perguntas, resposta certa revista por uma pessoa, dois juízes às cegas e um terceiro a desempatar; 82 das 180 saem a saber o que fazer. Resultados em [/avaliacao](https://toucamara.descortina.pt/avaliacao) |
 | Acessibilidade | Playwright com axe-core: 0 erros automáticos em 42 páginas, WCAG 2.1 AA ([`docs/ACESSIBILIDADE.md`](docs/ACESSIBILIDADE.md), com o que ainda falta) |
