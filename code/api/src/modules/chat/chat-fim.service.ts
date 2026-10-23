@@ -4,15 +4,17 @@ import { JobsService } from '../../jobs/jobs.service.js';
 import { FILA_RESUMIR } from '../conversas/fim-chamada.service.js';
 
 export const FILA_FECHAR_CHATS = 'fechar_chats';
-/** Sem mensagens há este tempo, a conversa de chat dá-se por terminada. */
+/** Sem atividade há este tempo, a conversa (chat, chamada, SMS, WhatsApp) dá-se por terminada. */
 export const INATIVIDADE_CHAT_MIN = 30;
 /** Por volta do job: as conversas antigas fecham em poucas voltas, sem picos. */
 const LOTE = 200;
 
 /**
- * O chat não tem "desligar": sem isto, todas as conversas ficavam "Em curso"
- * e sem resumo no painel. A cada 5 minutos, as conversas de chat sem
- * mensagens há 30 minutos passam a terminadas (à hora da última mensagem),
+ * O chat não tem "desligar", e numa chamada o fim pode não chegar (webhook do
+ * fim da chamada perdido, ligação que cai): sem isto ficavam "Em curso" e sem
+ * resumo no painel. A cada 5 minutos, as conversas de chat, telefone, SMS e
+ * WhatsApp sem atividade há 30 minutos (última mensagem, ou o início se não
+ * houver registo de atividade) passam a terminadas (a essa hora),
  * com o resultado por omissão (resolvida se o munícipe escreveu, caiu se
  * não), e vão para o mesmo resumo das chamadas, que afina o resultado.
  *
@@ -45,7 +47,7 @@ export class ChatFimService implements OnModuleInit {
                 EXISTS (SELECT 1 FROM avaliacao.respostas r
                         WHERE r.bruto ->> 'sessao' = c.provider_id) AS avaliador
          FROM conversas c
-         WHERE c.canal = 'chat' AND c.terminada_em IS NULL
+         WHERE c.canal IN ('chat', 'telefone', 'sms', 'whatsapp') AND c.terminada_em IS NULL
            AND coalesce(c.ultima_atividade_em, c.iniciada_em) < now() - make_interval(mins => $1)
          ORDER BY coalesce(c.ultima_atividade_em, c.iniciada_em)
          LIMIT $2
@@ -53,7 +55,7 @@ export class ChatFimService implements OnModuleInit {
        )
        UPDATE conversas c SET
          terminada_em = a.fim,
-         duracao_s = greatest(0, extract(epoch FROM a.fim - c.iniciada_em))::integer,
+         duracao_s = coalesce(c.duracao_s, greatest(0, extract(epoch FROM a.fim - c.iniciada_em))::integer),
          resultado = CASE WHEN c.resultado = 'em_curso'
                           THEN (CASE WHEN a.falou THEN 'resolvida' ELSE 'caiu' END)::resultado_conv
                           ELSE c.resultado END,
@@ -75,7 +77,7 @@ export class ChatFimService implements OnModuleInit {
     }
     if (linhas.length) {
       this.logger.log(
-        `Chats fechados por inatividade: ${linhas.length} (${resumos} para resumo).`,
+        `Conversas fechadas por inatividade: ${linhas.length} (${resumos} para resumo).`,
       );
     }
     return { fechadas: linhas.length, resumos };
