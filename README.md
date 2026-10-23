@@ -95,6 +95,10 @@ Mas a resposta é só o princípio. Depois vem o requerimento, os documentos que
 
 As pessoas, conversas e processos do painel são **dados de demonstração**, fictícios e com telefones da gama de teste, que nunca recebem SMS nem chamadas.
 
+<p align="center"><img src="docs/img/telemovel.jpg" alt="Três ecrãs no telemóvel: ligar à câmara no browser, o chat com a fonte de cada resposta e as regras públicas de uma licença de esplanada" width="100%"></p>
+
+O munícipe chega quase sempre pelo telemóvel, a partir do link do SMS. As páginas públicas estão pensadas para o ecrã pequeno e têm, no topo, «Ouvir esta página» e «Letra e contraste».
+
 ## O que faz
 
 | O quê | Onde | Como |
