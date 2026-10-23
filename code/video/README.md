@@ -84,7 +84,7 @@ primeiro tempo forte (`src/unico/ritmo.ts`).
 
 - Resultados, não funcionalidades, em português de Portugal.
 - Cada número é o que está no ecrã (vem de `src/dados.gerado.json`); os da
-  avaliação são os da ronda final (`docs/avaliacao/escala`).
+  avaliação são os da ronda final (à vista em toucamara.descortina.pt/avaliacao).
 - O selo "Dados de demonstração" fica em todas as cenas com dados de
   demonstração; a chamada diz que é simulada. A câmara nunca passa pelas
   zonas proibidas das capturas (o render recusa-se).

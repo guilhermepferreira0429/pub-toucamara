@@ -21,7 +21,7 @@ A descrição e o esquema de cada ferramenta vão no contexto de **todas** as re
 |---|---|---|---|
 | Antes (um só agente, out. 2026) | 53 | ≈ 15 400 | ≈ 2 500 |
 | Entrada (22/10) | 48 | ≈ 8 556 | ≈ 2 766 |
-| Saída (22/10) | 16 | ≈ 2 293 | ≈ 1 957 |
+| Saída (22/10) | 17 | ≈ 2 293 | ≈ 1 957 |
 
 Para não voltar a crescer:
 - **Descrição = quando usar + o que devolve**, em 1–2 frases, mais só o que é próprio dessa ferramenta. As regras gerais (diz o "dizer", segue a "instrucao", pergunta o que falta, confirma antes de agir, valores de demonstração, pagamentos de teste, erros) estão **uma vez** em `src/ferramentas/regras-gerais.ts` e entram nos prompts da voz, do chat e da porta para IAs.
@@ -82,7 +82,7 @@ Opções: `--municipio <slug>` (por omissão `guimaraes`), `--agente-entrada <id
 - [ ] Criar o segundo agente no ElevenLabs (saída), pôr o id em `agente_config.elevenlabs_agent_id_saida` e sincronizar outra vez
 - [ ] Abrir `/ligar` (com `NEXT_PUBLIC_ELEVENLABS_AGENT_ID` = o agente de **entrada**) e testar três ferramentas que não estavam no agente:
   - [ ] **`o_que_posso_fazer`**: "Quero fazer um anexo de 15 m² no quintal, na Rua de Santo António, 12": diz se é isento, comunicação prévia ou licença, com a fonte
-  - [ ] **`campos_da_licenca` + `pedir_licenca`**: "Vou fazer uma festa no sábado, das 20h à meia-noite, com música": pergunta os campos um a um, confirma os dados lendo-os de volta e diz que vai SMS
+  - [ ] **`campos_da_licenca` + `pedir_licenca`**: "Vou fazer uma festa no sábado, das 20h à meia-noite, com música": pergunta os campos um a um, confirma os dados lendo-os de volta e diz que segue por SMS
   - [ ] **`que_apoios_tenho`**: "Tenho 70 anos e a renda está difícil": diz os apoios e pergunta se quer pedir (`pedir_apoio`)
 - [ ] Ver no painel (Conversas → ficha) que as ferramentas ficaram ligadas à conversa e que o SMS do fim ficou gravado
 

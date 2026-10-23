@@ -37,7 +37,7 @@
   <a href="https://toucamara.descortina.pt/ligar"><strong>Ligar no browser</strong></a> ·
   <a href="https://toucamara.descortina.pt/ligar?experimentar=renovacao"><strong>Renovar uma licença com o seu telemóvel</strong></a> ·
   <a href="https://toucamara.descortina.pt/funcionalidades"><strong>As 90 funcionalidades</strong></a> ·
-  <a href="#arrancar"><strong>Arrancar</strong></a>
+  <a href="#arrancar-em-local"><strong>Arrancar</strong></a>
 </p>
 
 <p align="center"><em>Guilherme Ferreira e David Vieira · Hack4Guimarães 2035 · Desafio «Falar com a câmara sem burocracia»</em></p>
@@ -71,7 +71,7 @@ Mas a resposta é só o princípio. Depois vem o requerimento, os documentos que
 
 **Um sistema para a câmara.** Telefone, chat, email e balcão chegam à mesma entrada, com cada pedido no serviço e no técnico certos. O que cumpre regras públicas decide-se sozinho, com o porquê; o resto chega ao técnico já analisado, com o regulamento aplicável e o rascunho do ofício. A chefia vê onde param os processos e pergunta pelos números em linguagem normal.
 
-**O que propomos:** um piloto em Guimarães para medir a taxa de acerto com chamadas reais, os técnicos validarem as regras dos projetos de obras e ligar os sistemas que a câmara já tem.
+**O que propomos:** um piloto em Guimarães para medir a taxa de acerto com chamadas reais, pôr os técnicos a validar as regras dos projetos de obras e ligar os sistemas que a câmara já tem.
 
 ## Como se vê
 

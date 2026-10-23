@@ -33,7 +33,7 @@ lib/
 
 Para pessoas de todas as idades: letra grande (e ajustável em Definições, por cima da do telemóvel), alto contraste (tinta sobre creme, ≥ 7:1 no texto principal), alvos de toque ≥ 48 dp (os principais 56 dp), nomes para leitores de ecrã (`Semantics`) e frases sem jargão.
 
-1. **Entrar**: número de telemóvel → código de 6 algarismos por SMS → entrar. Explica porquê o telemóvel e o que fica guardado (só a chave da sessão, cifrada). O município é o da app (`--dart-define=MUNICIPIO`).
+1. **Entrar**: número de telemóvel → código de 6 algarismos por SMS → entrar. Explica porque pede o telemóvel e o que fica guardado (só a chave da sessão, cifrada). O município é o da app (`--dart-define=MUNICIPIO`).
 2. **Início**: emergências no topo, quatro atalhos grandes (Falar com a câmara, Ligar, Reportar um problema, Os meus assuntos) e "O que se passa perto de si" (resumo do feed `/agora`).
 3. **Perto de mim**: o feed da câmara em lista ou mapa (flutter_map), filtros por tipo, "perto de mim" com a localização e a distância (300 m a 5 km), detalhe de cada item e **Avisar-me** (à volta do sítio do item, de onde estou ou na freguesia).
 4. **Os meus assuntos**: Processos (fase em palavras simples, o que falta da sua parte, prazo, pagamento, decisão em PDF e a linha do tempo), Licenças (QR para verificar e PDF), Pagamentos (referência Multibanco e o link para MB WAY/pagar; os de teste vêm marcados), Marcações (e recolhas), Reclamações e Ocorrências reportadas (estado e fotografias, também as "do depois" da equipa). O que a app não mostra abre a página do site.
