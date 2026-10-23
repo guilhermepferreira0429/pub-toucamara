@@ -89,7 +89,7 @@ A11Y_URL=http://localhost:3000 A11Y_TOKEN=<token de links_magicos> \
 | `/painel/conversas/[id]` | 0/2/1 (38) | 0/0/0 | não → ok | — |
 | **Total** | **1/39/3 (565)** | **0/0/0** | 22 → 8 páginas | 23 → 0 |
 
-¹ A violação crítica (`label` nos botões de opção) vinha de dados mal semeados por mim na BD
+¹ A violação crítica (`label` nos botões de opção) vinha de dados mal semeados por nós na BD
 (opções sem texto), não do código; corrigidos os dados, desapareceu.
 ² Os botões de zoom do mapa passaram a 44 px; os links de atribuição do mapa (texto) estão isentos.
 ³ Eram inputs de ficheiro escondidos (`sr-only`), não alvos reais; o script passou a ignorá-los.

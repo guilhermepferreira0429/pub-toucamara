@@ -12,7 +12,7 @@ Nenhum segredo neste ficheiro: as variáveis estão documentadas em
 
 ## Entregar o pedido em nome da pessoa
 
-Fonte: `docs/material/Tou, Câmara — Funcionalidades que tiram trabalho.pdf`
+Fonte: a lista de funcionalidades do projeto
 ("Entregar o pedido em nome da pessoa — Submeter no balcão online. Depois de
 confirmar, o agente entrega. 🔜 precisa de autenticação com Chave Móvel
 Digital"; "Entregar documentos com validade legal em nome do munícipe só
@@ -125,7 +125,7 @@ Variáveis: `ENTREGA_SUBMISSAO=balcao`, `BALCAO_URL`, `BALCAO_CREDENCIAL`.
 
 ## Avisos de emergência: números de toda a zona
 
-Fonte: `docs/arquivo/A_MEIO.md` (linha "Avisos de emergência em massa": falta "a
+Fonte: o registo do que falta do projeto (linha "Avisos de emergência em massa": falta "a
 fonte externa com os números de toda a zona (operadores / cell broadcast /
 ANEPC-SMPC)" e "acordo com a Proteção Civil ou operadores").
 
