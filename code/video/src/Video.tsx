@@ -93,7 +93,7 @@ function Entrada({ primeiro, children }: { primeiro: boolean; children: React.Re
 // Uma captura do painel, com a câmara a mover-se e a zona em foco
 // ---------------------------------------------------------------------------
 
-function Painel({
+export function Painel({
   plano,
   dados,
   duracao,
@@ -204,7 +204,7 @@ const ESCALA_RECORTE = 1.6;
 /** Altura máxima de um cartão (acima das legendas). */
 const ALTURA_COLUNA = 660;
 
-function EcraRecortes({
+export function EcraRecortes({
   recortes,
   dados,
   duracao,
@@ -325,7 +325,7 @@ function EcraRecortes({
 // Cartões de título
 // ---------------------------------------------------------------------------
 
-function Marca({ cor, tamanho = 44 }: { cor: string; tamanho?: number }) {
+export function Marca({ cor, tamanho = 44 }: { cor: string; tamanho?: number }) {
   return (
     <div
       style={{

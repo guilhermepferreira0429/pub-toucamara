@@ -7,6 +7,9 @@ import { guiaoMunicipe } from './guiao-municipe';
 import { FPS, linhaDoTempo } from './tempos';
 import type { Dados, VozGerada } from './tipos';
 import { Video } from './Video';
+import { guiaoUnico, proibidasUnico } from './unico/guiao';
+import { TOTAL_F } from './unico/ritmo';
+import { Unico } from './unico/Unico';
 
 const dados = dadosGerados as unknown as Dados;
 const voz = vozGerada as unknown as Record<string, VozGerada>;
@@ -40,6 +43,25 @@ export function Root() {
           />
         );
       })}
+      {dados.municipe ? <ComposicaoUnica dados={dados} /> : null}
     </>
+  );
+}
+
+/** O vídeo único: sem voz, com música (src/unico). */
+function ComposicaoUnica({ dados }: { dados: Dados }) {
+  const tomas = guiaoUnico(dados);
+  const erros = proibidasUnico(tomas, dados);
+  if (erros.length) throw new Error(`Zonas proibidas em TouCamara:\n${erros.join('\n')}`);
+  return (
+    <Composition
+      id="TouCamara"
+      component={Unico}
+      durationInFrames={TOTAL_F}
+      fps={FPS}
+      width={LARGURA}
+      height={ALTURA}
+      defaultProps={{ tomas, dados }}
+    />
   );
 }

@@ -59,7 +59,7 @@ export function Selo({ esquerda, texto = 'Dados de demonstração' }: { esquerda
 const ECRA_ALTURA = 880;
 const ECRA_LARGURA = Math.round((390 / 844) * ECRA_ALTURA);
 
-function Moldura({ children, escala = 1 }: { children: ReactNode; escala?: number }) {
+export function Moldura({ children, escala = 1 }: { children: ReactNode; escala?: number }) {
   return (
     <div
       style={{
@@ -88,7 +88,7 @@ function Moldura({ children, escala = 1 }: { children: ReactNode; escala?: numbe
   );
 }
 
-function EcraCaptura({
+export function EcraCaptura({
   dados,
   captura,
   y = 0,
@@ -202,86 +202,93 @@ export function EcraSms({
 }) {
   const f = useCurrentFrame();
   void duracao;
-  const n = visual.mensagens.length;
   return (
     <AbsoluteFill style={{ backgroundColor: COR.creme, fontFamily: TEXTO }}>
       <AbsoluteFill style={{ flexDirection: 'row', alignItems: 'center', gap: 110, paddingLeft: 250 }}>
         <div style={aparece(f, 0)}>
           <Moldura>
-            <div style={{ position: 'absolute', inset: 0, background: '#FFFFFF' }}>
-              <div
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  gap: 8,
-                  padding: '44px 0 18px',
-                  borderBottom: '1px solid #E6E6E6',
-                  background: '#F7F7F7',
-                }}
-              >
-                <div
-                  style={{
-                    width: 64,
-                    height: 64,
-                    borderRadius: 32,
-                    background: COR.terracota,
-                    color: '#fff',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontFamily: TITULO,
-                    fontWeight: 800,
-                    fontSize: 30,
-                  }}
-                >
-                  ?
-                </div>
-                <div style={{ fontSize: 20, fontWeight: 600, color: '#111' }}>{REMETENTE}</div>
-              </div>
-              <div
-                style={{
-                  position: 'absolute',
-                  left: 0,
-                  right: 0,
-                  bottom: 30,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 16,
-                  padding: '0 18px',
-                }}
-              >
-                {visual.mensagens.map((m, i) => {
-                  const ultima = i === n - 1;
-                  return (
-                    <div
-                      key={i}
-                      style={{
-                        ...(ultima ? aparece(f, 10) : {}),
-                        alignSelf: 'flex-start',
-                        maxWidth: '88%',
-                        background: '#E9E9EB',
-                        color: '#111',
-                        borderRadius: 22,
-                        borderBottomLeftRadius: 6,
-                        padding: '14px 18px',
-                        fontSize: 21,
-                        lineHeight: 1.35,
-                        overflowWrap: 'anywhere',
-                      }}
-                    >
-                      {m}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
+            <SmsConteudo mensagens={visual.mensagens} f={f} />
           </Moldura>
         </div>
         <TextoAoLado titulo={visual.titulo} texto={visual.texto} f={f} />
       </AbsoluteFill>
       {selo ? <Selo esquerda={false} /> : null}
     </AbsoluteFill>
+  );
+}
+
+/** O ecrã de mensagens do telemóvel, com os SMS da câmara (o último a entrar). */
+export function SmsConteudo({ mensagens, f }: { mensagens: string[]; f: number }) {
+  const n = mensagens.length;
+  return (
+    <div style={{ position: 'absolute', inset: 0, background: '#FFFFFF' }}>
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: 8,
+          padding: '44px 0 18px',
+          borderBottom: '1px solid #E6E6E6',
+          background: '#F7F7F7',
+        }}
+      >
+        <div
+          style={{
+            width: 64,
+            height: 64,
+            borderRadius: 32,
+            background: COR.terracota,
+            color: '#fff',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontFamily: TITULO,
+            fontWeight: 800,
+            fontSize: 30,
+          }}
+        >
+          ?
+        </div>
+        <div style={{ fontSize: 20, fontWeight: 600, color: '#111' }}>{REMETENTE}</div>
+      </div>
+      <div
+        style={{
+          position: 'absolute',
+          left: 0,
+          right: 0,
+          bottom: 30,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 16,
+          padding: '0 18px',
+        }}
+      >
+        {mensagens.map((m, i) => {
+          const ultima = i === n - 1;
+          return (
+            <div
+              key={i}
+              style={{
+                ...(ultima ? aparece(f, 10) : {}),
+                alignSelf: 'flex-start',
+                maxWidth: '88%',
+                background: '#E9E9EB',
+                color: '#111',
+                borderRadius: 22,
+                borderBottomLeftRadius: 6,
+                padding: '14px 18px',
+                fontSize: 21,
+                lineHeight: 1.35,
+                overflowWrap: 'anywhere',
+              }}
+            >
+              {m}
+            </div>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 

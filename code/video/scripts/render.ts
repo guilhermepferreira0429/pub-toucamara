@@ -4,6 +4,7 @@
  *   npm run render                         → out/painel.mp4
  *   npm run render -- out/rascunho.mp4
  *   npm run render -- --stills=0,450,1800  → out/stills/<frame>.png
+ *   npm run render -- --video=unico        → out/unico.mp4 (sem voz, com música)
  *
  * Usa o Chromium de /opt/pw-browsers quando existe (ou CHROME=...); senão o
  * Remotion descarrega o seu.
@@ -33,6 +34,8 @@ function chrome(): string | null {
 const VIDEOS = {
   painel: { id: 'Painel', guiao },
   municipe: { id: 'Municipe', guiao: guiaoMunicipe },
+  // O vídeo único, sem voz e com música (src/unico): a duração é a da música.
+  unico: { id: 'TouCamara', guiao: null },
 } as const;
 
 const args = process.argv.slice(2);
@@ -46,9 +49,12 @@ const voz = JSON.parse(readFileSync(join(RAIZ, 'src', 'voz.gerado.json'), 'utf8'
   string,
   VozGerada
 >;
-const { total, avisos } = linhaDoTempo(VIDEOS[nome].guiao(dados), voz);
-console.log(`Duração: ${(total / 30).toFixed(1)} s (${total} frames)`);
-if (avisos.length) console.log(`Avisos:\n  ${avisos.join('\n  ')}`);
+const g = VIDEOS[nome].guiao;
+if (g) {
+  const { total, avisos } = linhaDoTempo(g(dados), voz);
+  console.log(`Duração: ${(total / 30).toFixed(1)} s (${total} frames)`);
+  if (avisos.length) console.log(`Avisos:\n  ${avisos.join('\n  ')}`);
+}
 
 const serveUrl = await bundle({ entryPoint: join(RAIZ, 'src', 'index.ts') });
 const browserExecutable = chrome();

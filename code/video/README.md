@@ -11,18 +11,30 @@ próprio assistente (ElevenLabs) a contar o que fez.
   princípio ao fim. O aviso por SMS, a chamada no `/ligar` (com o ElevenLabs
   simulado e as ferramentas verdadeiras da API), o SMS do pagamento, a página
   de pagamento em modo de teste, a licença com o QR e o painel.
+- **Único** (`TouCamara`, 98 segundos): os dois juntos, sem voz e com
+  música, a cortar nos tempos fortes. O munícipe, o lado da câmara, a
+  avaliação e o fecho. É o vídeo da entrega.
 
 | | |
 |---|---|
 | `src/guiao.ts`, `src/guiao-municipe.ts` | O que se diz e o que se mostra, cena a cena. Os números vêm das capturas |
 | `scripts/capturar.mjs` | `npm run capturar [-- --video=painel,municipe]`: capturas e números → `public/capturas/`, `src/dados.gerado.json` |
 | `scripts/voz.ts` | `npm run voz`: um MP3 por bloco dos guiões → `public/voz/`, `src/voz.gerado.json` |
-| `scripts/render.ts` | `npm run render -- --video=painel\|municipe` → `out/<nome>.mp4` (ou `--stills=0,300` para imagens soltas) |
+| `src/unico/` | O vídeo único: `guiao.ts` (as tomas, em compassos), `ritmo.ts` (o relógio da música), `Unico.tsx` |
+| `scripts/musica.mjs` | `node scripts/musica.mjs`: descarrega a música e corta-a em frases de 8 compassos → `public/musica/` |
+| `scripts/render.ts` | `npm run render -- --video=painel\|municipe\|unico` → `out/<nome>.mp4` (ou `--stills=0,300` para imagens soltas) |
 | `scripts/poster.ts` | `npm run poster`: as capas a 1920×1080 (a partir de `docs/anexos-taikai/capas`) → `out/<nome>-capa.png` |
 | `npm run estudio` | O Remotion Studio, para ver e afinar |
 
 Sem voz gerada, o vídeo faz-se na mesma, sem som e com as durações estimadas
 pelo número de palavras. A legenda é sempre a do texto que se diz.
+
+A música do vídeo único é "Voxel Revolution", de Kevin MacLeod
+(incompetech.com), com licença
+[Creative Commons Atribuição 4.0](https://creativecommons.org/licenses/by/4.0/):
+o crédito aparece no fim do vídeo. Os cortes de imagem contam com a música
+cortada por `scripts/musica.mjs`; mudar a música obriga a medir outra vez o
+andamento e o primeiro tempo forte (`src/unico/ritmo.ts`).
 
 ## Do zero ao MP4
 
