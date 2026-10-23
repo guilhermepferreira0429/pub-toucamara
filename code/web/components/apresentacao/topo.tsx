@@ -2,6 +2,7 @@ import { LayoutDashboard } from "lucide-react";
 import { MUNICIPIO } from "@/components/chamada/config";
 import Link from "next/link";
 import { Logo } from "@/components/ui/marca";
+import { MenuTopo } from "./menu-topo";
 
 /** O cabeçalho das páginas de apresentação (/ e /avaliacao): logótipo, ligações e o painel. */
 export function TopoApresentacao({ links }: { links: { href: string; nome: string }[] }) {
@@ -15,24 +16,31 @@ export function TopoApresentacao({ links }: { links: { href: string; nome: strin
       </a>
       <header className="sticky top-0 z-40 border-b border-linha/80 bg-creme/90 backdrop-blur">
         <div className="mx-auto flex h-16 w-full max-w-[1120px] items-center justify-between gap-4 px-5 sm:px-8">
-          <Link href="/" aria-label="Tou, Câmara?, início" className="flex min-h-11 items-center">
+          <Link href="/" aria-label="Tou, Câmara?, início" className="flex min-h-11 shrink-0 items-center">
             <Logo tamanho={22} />
           </Link>
-          <nav aria-label="Secções" className="hidden items-center gap-6 lg:flex">
+          <nav aria-label="Secções" className="hidden items-center gap-5 xl:flex">
             {links.map((s) => (
-              <a key={s.href} href={s.href} className="text-[14px] font-medium text-tinta-2 hover:text-tinta">
+              <a
+                key={s.href}
+                href={s.href}
+                className="whitespace-nowrap text-[14px] font-medium text-tinta-2 hover:text-tinta"
+              >
                 {s.nome}
               </a>
             ))}
           </nav>
-          <Link
-            href="/entrar"
-            className="inline-flex min-h-10 items-center gap-2 rounded-full border border-tinta px-4 text-[14px] font-semibold text-tinta transition-colors hover:bg-tinta hover:text-papel"
-          >
-            <LayoutDashboard className="size-4" aria-hidden />
-            <span className="hidden sm:inline">Painel da câmara</span>
-            <span className="sm:hidden">Painel</span>
-          </Link>
+          <div className="flex shrink-0 items-center gap-1 sm:gap-2">
+            <MenuTopo links={links} />
+            <Link
+              href="/entrar"
+              className="inline-flex min-h-10 items-center gap-2 whitespace-nowrap rounded-full border border-tinta px-4 text-[14px] font-semibold text-tinta transition-colors hover:bg-tinta hover:text-papel"
+            >
+              <LayoutDashboard className="size-4" aria-hidden />
+              <span className="hidden sm:inline">Painel da câmara</span>
+              <span className="sm:hidden">Painel</span>
+            </Link>
+          </div>
         </div>
       </header>
     </>

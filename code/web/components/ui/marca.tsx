@@ -6,7 +6,7 @@ export function Logo({ tamanho = 28, claro = false }: { tamanho?: number; claro?
   return (
     <span className="inline-flex items-center gap-1" aria-label="Tou, Câmara?">
       <span
-        className={`font-display font-extrabold ${claro ? "text-papel" : "text-tinta"}`}
+        className={`whitespace-nowrap font-display font-extrabold ${claro ? "text-papel" : "text-tinta"}`}
         style={{ fontSize: tamanho, letterSpacing: tamanho * -0.028 }}
       >
         Tou, Câmara
