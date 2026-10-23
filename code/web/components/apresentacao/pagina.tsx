@@ -35,7 +35,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { MUNICIPIO } from "@/components/chamada/config";
-import { FonteOficial, Logo } from "@/components/ui/marca";
+import { Logo } from "@/components/ui/marca";
 import { AREAS, GrelhaDestaques, TOTAL_FUNCIONALIDADES } from "./funcionalidades";
 import { NumerosAvaliacao } from "./numeros-avaliacao";
 import { Lista, Secao } from "./secao";
@@ -381,35 +381,65 @@ function CartaoAcesso({ a, destaque = false }: { a: Acesso; destaque?: boolean }
   );
 }
 
-/** Uma conversa de exemplo no topo: a pergunta, a resposta com fonte e o SMS do fim. */
-function ConversaExemplo() {
+/** O exemplo do topo: a câmara liga primeiro, renova na chamada e decide pelas regras. */
+const PASSOS_EXEMPLO: { icone: LucideIcon; cor: string; rotulo: string }[] = [
+  { icone: PhoneOutgoing, cor: "bg-terracota text-white", rotulo: "A câmara liga primeiro" },
+  { icone: RotateCcw, cor: "bg-verde text-white", rotulo: "Renovada na chamada" },
+  { icone: Scale, cor: "bg-tinta text-papel", rotulo: "No painel da câmara" },
+];
+
+function Passo({ n, children }: { n: number; children: React.ReactNode }) {
+  const { icone: Icone, cor, rotulo } = PASSOS_EXEMPLO[n];
+  const ultimo = n === PASSOS_EXEMPLO.length - 1;
+  return (
+    <li className="relative flex gap-3.5">
+      {!ultimo && <span aria-hidden className="absolute left-[17px] top-10 bottom-0 w-px bg-linha" />}
+      <span className={`relative flex size-9 shrink-0 items-center justify-center rounded-full ${cor}`}>
+        <Icone className="size-4" aria-hidden />
+      </span>
+      <div className={`flex min-w-0 flex-1 flex-col gap-2 ${ultimo ? "" : "pb-5"}`}>
+        <span className="pt-2 text-[12px] font-bold uppercase tracking-[1px] text-tinta-2">{rotulo}</span>
+        {children}
+      </div>
+    </li>
+  );
+}
+
+function ExemploRenovacao() {
   return (
     <div className="relative isolate mx-auto w-full max-w-[440px]">
       <div className="absolute -inset-4 -z-10 rotate-2 rounded-[36px] bg-terracota-suave/70" aria-hidden />
-      <div className="flex flex-col gap-3 rounded-[28px] border border-linha bg-papel p-5 shadow-[0_24px_60px_-28px_rgba(21,38,59,0.45)] sm:p-6">
+      <div className="flex flex-col gap-4 rounded-[28px] border border-linha bg-papel p-5 shadow-[0_24px_60px_-28px_rgba(21,38,59,0.45)] sm:p-6">
         <div className="flex items-center justify-between border-b border-linha pb-3">
           <Logo tamanho={18} />
           <span className="rounded-full bg-creme-2 px-2.5 py-1 text-[11px] font-semibold text-tinta-2">Exemplo</span>
         </div>
-        <p className="ml-auto max-w-[85%] rounded-2xl rounded-br-md bg-tinta px-4 py-3 text-[14px] leading-snug text-papel">
-          Quero mudar os azulejos e a bancada da cozinha. Preciso de licença?
-        </p>
-        <div className="flex max-w-[92%] flex-col gap-2.5 rounded-2xl rounded-bl-md bg-creme px-4 py-3">
-          <p className="text-[14px] leading-snug text-tinta">
-            Não precisa. Obras no interior que não mexam na estrutura, na fachada nem no telhado estão isentas de licença
-            e de comunicação prévia.
-          </p>
-          <FonteOficial documento="Regime Jurídico da Urbanização e da Edificação, artigo 6.º" />
-        </div>
-        <div className="mt-1 flex items-start gap-3 rounded-2xl border border-dashed border-linha p-3">
-          <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-verde-suave">
-            <Send className="size-4 text-verde" aria-hidden />
-          </span>
-          <p className="text-[13px] leading-snug text-tinta-2">
-            <span className="font-semibold text-tinta">No fim da chamada, um SMS</span> com o resumo e um link para o que
-            tem de fazer.
-          </p>
-        </div>
+        <ol className="flex flex-col">
+          <Passo n={0}>
+            <p className="max-w-[92%] rounded-2xl rounded-tl-md bg-creme px-3.5 py-2.5 text-[14px] leading-snug text-tinta">
+              A licença da sua esplanada acaba daqui a 10 dias. Quer renová-la já?
+            </p>
+            <p className="ml-auto max-w-[80%] rounded-2xl rounded-br-md bg-tinta px-3.5 py-2.5 text-[14px] leading-snug text-papel">
+              Quero, com as mesmas mesas.
+            </p>
+          </Passo>
+          <Passo n={1}>
+            <p className="text-[14px] leading-snug text-tinta">
+              Volta a ver as regras e calcula a taxa. Cumpre todas.
+            </p>
+            <span className="flex items-center gap-2.5 self-start rounded-xl border border-dashed border-linha px-3 py-2 text-[13px] text-tinta-2">
+              <Send className="size-4 shrink-0 text-verde" aria-hidden />
+              <span>
+                <span className="font-semibold text-tinta">SMS</span> com a referência para pagar
+              </span>
+            </span>
+          </Passo>
+          <Passo n={2}>
+            <p className="text-[14px] leading-snug text-tinta">
+              Decidida pelas regras públicas, sem passar por ninguém. A equipa fica com as exceções.
+            </p>
+          </Passo>
+        </ol>
       </div>
     </div>
   );
@@ -435,14 +465,18 @@ export function PaginaApresentacao() {
                 <span className="size-2 rounded-full bg-terracota" aria-hidden />
                 Hack4Guimarães 2035 · Falar com a câmara sem burocracia
               </span>
-              <h1 className="font-display text-[48px] font-extrabold leading-[1.02] tracking-[-1.8px] text-tinta sm:text-[64px]">
-                A câmara que <span className="text-terracota">atende</span>.
-              </h1>
+              <div className="flex flex-col gap-4">
+                <h1 className="font-display text-[44px] font-extrabold leading-[1.02] tracking-[-1.6px] text-tinta sm:text-[60px]">
+                  A câmara inteira, <span className="text-terracota">numa só plataforma</span>.
+                </h1>
+                <p className="font-display text-[21px] font-bold leading-snug text-tinta sm:text-[24px]">
+                  Uma porta para o munícipe. Um sistema para a câmara.
+                </p>
+              </div>
               <p className="max-w-[560px] text-[18px] leading-relaxed text-tinta-2">
-                Um assistente que atende os munícipes de Guimarães por telefone, chat, SMS e app, responde só com
-                informação oficial e trata do assunto na conversa. E não espera que liguem: avisa antes de um prazo
-                acabar, renova a licença e liga a quem está sozinho numa onda de calor. Por trás, a câmara inteira
-                num só painel.
+                Os munícipes de Guimarães falam com a câmara por telefone, chat, SMS ou app e saem da conversa com o
+                assunto tratado, sempre com informação oficial. E a câmara não espera que liguem: avisa antes de um
+                prazo acabar, renova a licença e liga a quem está sozinho numa onda de calor.
               </p>
               <div className="flex flex-wrap gap-3">
                 <Link
@@ -468,7 +502,7 @@ export function PaginaApresentacao() {
                 .
               </p>
             </div>
-            <ConversaExemplo />
+            <ExemploRenovacao />
           </div>
         </section>
 
