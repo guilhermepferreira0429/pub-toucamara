@@ -284,7 +284,7 @@ const TECNOLOGIA: { peca: string; como: string; icone: LucideIcon }[] = [
 const CONFIANCA: { titulo: string; texto: string; icone: LucideIcon }[] = [
   {
     titulo: "Testes",
-    texto: "Cerca de 1 660 testes unitários e 79 conjuntos de testes de ponta a ponta na API, além das 180 perguntas do avaliador.",
+    texto: "1 675 testes unitários e 79 conjuntos de testes de ponta a ponta na API, além das 180 perguntas do avaliador.",
     icone: CircleCheck,
   },
   {
