@@ -42,7 +42,7 @@ const LINKS = [
   { href: "#concelho", nome: "O concelho" },
   { href: "#o-pais", nome: "O país" },
   { href: "#plataforma", nome: "Aberta" },
-  { href: "#mais-servicos", nome: "Mais serviços" },
+  { href: "#a-seguir", nome: "A seguir" },
   { href: "#para-la-chegar", nome: "Para lá chegar" },
 ];
 
@@ -230,9 +230,10 @@ export function PaginaVisao() {
                 Amanhã, a câmara que <span className="text-terracota">não esquece</span>.
               </h1>
               <p className="max-w-[580px] text-[18px] leading-relaxed text-tinta-2">
-                O Tou, Câmara? já atende, resolve e liga primeiro. A ambição é maior: uma câmara que se lembra de cada
-                pessoa, decide o que é simples na hora, aprende com cada conversa e chega ao país inteiro. Esta página diz
-                para onde vamos; o que já existe está marcado como tal.
+                O Tou, Câmara? já é a câmara inteira numa só plataforma: uma porta para o munícipe e um sistema para a
+                câmara. A ambição é maior: uma câmara que se lembra de cada pessoa, decide o que é simples na hora, aprende
+                com cada conversa e chega ao país inteiro. Esta página diz para onde vamos; o que já existe está marcado
+                como tal.
               </p>
             </div>
             <div className="flex flex-col gap-5 rounded-[28px] border border-linha bg-papel p-7 sm:p-9">
@@ -414,10 +415,10 @@ export function PaginaVisao() {
         </Secao>
 
         <Secao
-          id="mais-servicos"
-          rotulo="Mais serviços"
-          titulo="O que a câmara faz, cada vez mais pelo telefone."
-          sub="Hoje o assistente já trata de pedidos, licenças, marcações, ocorrências, apoios e dos serviços municipais. Estas são as ideias seguintes: ainda não existem."
+          id="a-seguir"
+          rotulo="A seguir"
+          titulo="O que falta para a plataforma ficar completa."
+          sub="Hoje já trata de pedidos, licenças, marcações, ocorrências, apoios e dos serviços municipais, e dá à chefia os números, o resumo diário e as perguntas em linguagem normal. Faltam mais serviços para o munícipe e mais dados para a câmara decidir. Isto ainda não existe, e dizemo-lo."
           fundo="bg-papel"
         >
           <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
