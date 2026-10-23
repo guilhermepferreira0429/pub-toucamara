@@ -586,6 +586,9 @@ export function PaginaApresentacao() {
               >
                 A câmara que não espera que liguem.
               </h2>
+              <p className="font-display text-[20px] font-bold leading-snug text-terracota-suave">
+                A relação com a câmara não começa quando a pessoa liga, nem acaba quando desliga.
+              </p>
               <p className="text-[17px] leading-relaxed text-papel/80">
                 Um assistente que só responde fica à espera da pergunta. Este sabe o que está a acabar, o que falta e
                 quem precisa, e contacta primeiro: chamada do assistente nos casos importantes, SMS nos outros.
@@ -680,7 +683,7 @@ export function PaginaApresentacao() {
           id="destaques"
           rotulo="Destaques"
           titulo="Muito mais do que um chat."
-          sub={`Por trás da conversa está a câmara inteira: ${TOTAL_FUNCIONALIDADES} funcionalidades, do atendimento à chefia, cada uma com o seu estado.`}
+          sub={`A chamada é só a parte que se ouve. Por trás está a câmara inteira: ${TOTAL_FUNCIONALIDADES} funcionalidades, do atendimento à chefia, cada uma com o seu estado.`}
           fundo="bg-papel"
         >
           <GrelhaDestaques fundoCartao="bg-creme" />
