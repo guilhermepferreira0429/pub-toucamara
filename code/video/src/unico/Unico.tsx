@@ -746,7 +746,7 @@ function Mosaico({
   const { fps } = useVideoConfig();
   const L = 520;
   const A = Math.round((L * 9) / 16);
-  const zoom = interpolate(f, [tempo(4), tempo(12)], [1, 1.1], clamp);
+  const zoom = interpolate(f, [tempo(3), tempo(8)], [1, 1.08], clamp);
   return (
     <AbsoluteFill style={{ backgroundColor: COR.creme, alignItems: 'center', justifyContent: 'center' }}>
       <div
@@ -795,7 +795,7 @@ function Mosaico({
         })}
       </div>
       <AbsoluteFill style={{ alignItems: 'center', justifyContent: 'center' }}>
-        <Entra atraso={tempo(6)}>
+        <Entra atraso={tempo(3.5)}>
           <div
             style={{
               background: COR.tinta,

@@ -6,7 +6,7 @@ import { frameDoCompasso, TOTAL_F } from './ritmo';
  * O vídeo único (TouCamara): sem voz, com música, cortes nos tempos fortes.
  * Primeiro o munícipe (uma renovação, do aviso à licença), depois o lado da
  * câmara, a prova (a avaliação) e o fecho. Cada toma dura um número de
- * compassos; a soma dá os 48 compassos da música cortada.
+ * compassos; a soma dá os 64 compassos da música.
  *
  * As regras do vídeo do painel continuam: o selo "Dados de demonstração"
  * em tudo o que vem da demonstração, a chamada diz que é simulada, e a
@@ -153,7 +153,7 @@ export function guiaoUnico(d: Dados): Toma[] {
     // ------------------------------------------- 1.ª entrada: o munícipe
     {
       id: 'aviso',
-      compassos: 1,
+      compassos: 2,
       entrada: 'varrer',
       selo: true,
       plano: { tipo: 'sms', mensagens: [m.sms.aviso ?? ''] },
@@ -161,7 +161,7 @@ export function guiaoUnico(d: Dados): Toma[] {
     },
     {
       id: 'chamada_a',
-      compassos: 2,
+      compassos: 4,
       selo: true,
       simulada: true,
       plano: {
@@ -175,7 +175,7 @@ export function guiaoUnico(d: Dados): Toma[] {
     },
     {
       id: 'chamada_b',
-      compassos: 1,
+      compassos: 2,
       selo: true,
       simulada: true,
       plano: {
@@ -189,7 +189,7 @@ export function guiaoUnico(d: Dados): Toma[] {
     },
     {
       id: 'pagamento',
-      compassos: 1,
+      compassos: 2,
       selo: true,
       plano: { tipo: 'telemovel', captura: 'municipe_pagamento', de: 0, para: 220 },
       rotulo: { antes: '2 · O pagamento', titulo: 'Paga pelo link do SMS.', texto: 'Modo de teste: nada é cobrado.' },
@@ -203,14 +203,14 @@ export function guiaoUnico(d: Dados): Toma[] {
     },
     {
       id: 'licenca',
-      compassos: 1,
+      compassos: 2,
       selo: true,
       plano: { tipo: 'telemovel', captura: 'municipe_licenca', de: 0, para: 700 },
       rotulo: { antes: '3 · A licença', titulo: 'Emitida, com QR.', texto: 'Chega por SMS.' },
     },
     {
       id: 'licenca_painel',
-      compassos: 1,
+      compassos: 3,
       selo: true,
       plano: {
         tipo: 'pagina',
@@ -244,7 +244,7 @@ export function guiaoUnico(d: Dados): Toma[] {
     },
     {
       id: 'tratou',
-      compassos: 1,
+      compassos: 2,
       selo: true,
       plano: {
         tipo: 'pagina',
@@ -257,7 +257,7 @@ export function guiaoUnico(d: Dados): Toma[] {
     },
     {
       id: 'ao_vivo',
-      compassos: 1,
+      compassos: 2,
       selo: true,
       simulada: true,
       plano: { tipo: 'pagina', captura: 'chamada_04', de: { seguir: 'ultima', x: 630, w: 1270 } },
@@ -275,8 +275,10 @@ export function guiaoUnico(d: Dados): Toma[] {
         para: { rect: { x: 1060, y: 120, w: 840, h: 473 } },
         foco: 'alerta',
       },
-      rotulo: { antes: 'Pessoa vulnerável', titulo: 'Vive sozinha: a filha acompanha, com autorização.' },
+      rotulo: { antes: 'Pessoa vulnerável', titulo: 'Vive sozinha: a filha acompanha.' },
     },
+
+    // ------------------------------------------------ a pausa a meio
     {
       id: 'passagem',
       compassos: 2,
@@ -284,8 +286,6 @@ export function guiaoUnico(d: Dados): Toma[] {
       plano: { tipo: 'pagina', captura: 'passagem', de: 'ecra', para: { zona: 'caso', margem: 140 }, foco: 'caso' },
       rotulo: { antes: 'Quando não sabe', titulo: 'Não inventa. Passa a um funcionário, com o caso resumido.' },
     },
-
-    // ------------------------------------------------ a pausa a meio
     {
       id: 'entrada',
       compassos: 2,
@@ -294,37 +294,8 @@ export function guiaoUnico(d: Dados): Toma[] {
       rotulo: { antes: 'Entrada única', titulo: 'Telefone, chat, email e balcão, no mesmo sítio.' },
     },
     {
-      id: 'processo',
-      compassos: 1,
-      selo: true,
-      plano: { tipo: 'pagina', captura: 'processo', de: 'ecra', para: { rect: { x: 230, y: 0, w: 1100, h: 619 } } },
-      rotulo: { antes: 'Processos', titulo: 'O pedido chega à câmara organizado.' },
-    },
-    {
-      id: 'apoio',
-      compassos: 1,
-      selo: true,
-      plano: {
-        tipo: 'recortes',
-        antes: 'Ao técnico, já verificado',
-        titulo: `${d.processo.numero} · Porta na cozinha`,
-        itens: ['apoio_documentos', 'apoio_termo', 'apoio_pdm'],
-        lado: 'apoio_regra',
-      },
-    },
-    {
-      id: 'ocorrencia',
-      compassos: 1,
-      selo: true,
-      plano: { tipo: 'pagina', captura: 'ocorrencia', de: 'ecra', para: { zona: 'mapa', margem: 10 } },
-      rotulo: {
-        antes: 'Ocorrências',
-        titulo: `${d.ocorrencia.avisos === 3 ? 'Três' : d.ocorrencia.avisos} avisos do mesmo buraco: uma ocorrência só.`,
-      },
-    },
-    {
       id: 'calor',
-      compassos: 1,
+      compassos: 2,
       selo: true,
       plano: { tipo: 'pagina', captura: 'campanha', de: 'ecra', para: { zona: 'contagens', margem: 80 }, foco: 'contagens' },
       rotulo: {
@@ -347,16 +318,40 @@ export function guiaoUnico(d: Dados): Toma[] {
       },
     },
 
-    // ------------------------------------------ 2.ª entrada: a prova
+    // ------------------------------------------ 2.ª entrada: os processos
     {
-      id: 'avaliacao',
+      id: 'processo',
       compassos: 2,
       entrada: 'clarao',
-      plano: { tipo: 'avaliacao' },
+      selo: true,
+      plano: { tipo: 'pagina', captura: 'processo', de: 'ecra', para: { rect: { x: 230, y: 0, w: 1100, h: 619 } } },
+      rotulo: { antes: 'Processos', titulo: 'O pedido chega à câmara organizado.' },
+    },
+    {
+      id: 'apoio',
+      compassos: 2,
+      selo: true,
+      plano: {
+        tipo: 'recortes',
+        antes: 'Ao técnico, já verificado',
+        titulo: `${d.processo.numero} · Porta na cozinha`,
+        itens: ['apoio_documentos', 'apoio_termo', 'apoio_pdm'],
+        lado: 'apoio_regra',
+      },
+    },
+    {
+      id: 'ocorrencia',
+      compassos: 2,
+      selo: true,
+      plano: { tipo: 'pagina', captura: 'ocorrencia', de: 'ecra', para: { zona: 'mapa', margem: 10 } },
+      rotulo: {
+        antes: 'Ocorrências',
+        titulo: `${d.ocorrencia.avisos === 3 ? 'Três' : d.ocorrencia.avisos} avisos do mesmo buraco: uma ocorrência só.`,
+      },
     },
     {
       id: 'fonte',
-      compassos: 1,
+      compassos: 2,
       plano: {
         tipo: 'pagina',
         captura: 'trailer_ligar',
@@ -365,6 +360,14 @@ export function guiaoUnico(d: Dados): Toma[] {
         foco: { x: 968, y: 406, w: 368, h: 328 },
       },
       rotulo: { antes: 'Com fonte', titulo: 'Cada resposta diz de onde vem.' },
+    },
+
+    // ------------------------------------------------ a prova
+    {
+      id: 'avaliacao',
+      compassos: 3,
+      entrada: 'clarao',
+      plano: { tipo: 'avaliacao' },
     },
     {
       id: 'nao_sabe',
@@ -377,22 +380,22 @@ export function guiaoUnico(d: Dados): Toma[] {
     },
     {
       id: 'provas',
-      compassos: 1,
+      compassos: 2,
       plano: {
         tipo: 'palavras',
         fundo: 'terracota',
         pequeno: true,
         linhas: [
           [{ t: 'Em produção', tempo: 0 }],
-          [{ t: 'Mais de 1 600 testes', tempo: 0.75 }],
-          [{ t: 'Acessível: WCAG 2.1 AA', tempo: 1.5 }],
-          [{ t: `${AVALIACAO.perguntas} perguntas de teste`, tempo: 2.25 }],
+          [{ t: 'Mais de 1 600 testes', tempo: 1 }],
+          [{ t: 'Acessível: WCAG 2.1 AA', tempo: 2 }],
+          [{ t: `${AVALIACAO.perguntas} perguntas de teste`, tempo: 3 }],
         ],
       },
     },
     {
       id: 'mosaico',
-      compassos: 3,
+      compassos: 2,
       selo: true,
       plano: {
         tipo: 'mosaico',
@@ -410,7 +413,7 @@ export function guiaoUnico(d: Dados): Toma[] {
 
     // ------------------------------------------------------------ fecho
     { id: 'fecho', compassos: 4, entrada: 'varrer', plano: { tipo: 'fecho' } },
-    // O último vai até ao fim da música (o que sobra depois do compasso 48).
+    // O último vai até ao fim da música.
     { id: 'experimente', compassos: 4, plano: { tipo: 'experimente' } },
   ];
 }
@@ -433,7 +436,7 @@ export function linhaUnica(tomas: Toma[]): { tomas: TomaTempo[]; total: number }
     const ate = i === tomas.length - 1 ? TOTAL_F : frameDoCompasso(k);
     return { toma, de, duracao: ate - de, desvio };
   });
-  if (k !== 48) throw new Error(`O vídeo único tem ${k} compassos; a música cortada tem 48.`);
+  if (k !== 64) throw new Error(`O vídeo único tem ${k} compassos; a música tem 64.`);
   return { tomas: r, total: TOTAL_F };
 }
 

@@ -1,6 +1,6 @@
 # Vídeo
 
-O vídeo da entrega (`TouCamara`, 98 segundos), feito com
+O vídeo da entrega (`TouCamara`, cerca de 2 min 10 s), feito com
 [Remotion](https://www.remotion.dev/): capturas das páginas verdadeiras, com
 os dados de demonstração, sem voz e com música, a cortar nos tempos fortes.
 Primeiro o munícipe (uma renovação, do aviso por SMS à licença com o QR),
@@ -12,16 +12,16 @@ depois o lado da câmara, a avaliação e o fecho.
 | `src/unico/ritmo.ts`, `src/unico/Unico.tsx` | O relógio da música e as tomas (texto aos tempos, cortes, varrimentos) |
 | `src/pecas.tsx`, `src/visuais.tsx` | Uma página do painel com a câmara a mover-se, os recortes, o telemóvel, os SMS e os selos |
 | `scripts/capturar.mjs` | `npm run capturar`: capturas e números → `public/capturas/`, `src/dados.gerado.json` |
-| `scripts/musica.mjs` | `node scripts/musica.mjs`: descarrega a música e corta-a em frases de 8 compassos → `public/musica/` |
+| `scripts/musica.mjs` | `node scripts/musica.mjs`: descarrega a música → `public/musica/` (inteira: 64 compassos) |
 | `scripts/render.ts` | `npm run render` → `out/tou-camara.mp4` (ou `-- --stills=0,300` para imagens soltas) |
 | `scripts/poster.ts`, `src/unico/Miniatura.tsx` | `npm run poster`: a miniatura do YouTube → `out/tou-camara-miniatura.png` (1920×1080) e `.jpg` (1280×720) |
 | `npm run estudio` | O Remotion Studio, para ver e afinar |
 
 A música é "Voxel Revolution", de Kevin MacLeod (incompetech.com), com
 licença [Creative Commons Atribuição 4.0](https://creativecommons.org/licenses/by/4.0/):
-o crédito aparece no fim do vídeo. Os cortes de imagem contam com a música
-cortada por `scripts/musica.mjs`; mudar a música obriga a medir outra vez o
-andamento e o primeiro tempo forte (`src/unico/ritmo.ts`).
+o crédito aparece no fim do vídeo. Os cortes de imagem contam com os 64
+compassos da música; mudar a música obriga a medir outra vez o andamento e o
+primeiro tempo forte (`src/unico/ritmo.ts`).
 
 ## Do zero ao MP4
 

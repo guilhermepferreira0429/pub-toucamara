@@ -1,12 +1,12 @@
 /*
- * O relógio do vídeo único: tudo em compassos da música, já cortada por
- * scripts/musica.mjs (122 BPM, 4 tempos por compasso, o primeiro tempo
+ * O relógio do vídeo único: tudo em compassos da música (preparada por
+ * scripts/musica.mjs; 122 BPM, 4 tempos por compasso, o primeiro tempo
  * forte aos 0,4807 s). Os cortes de imagem caem nos tempos fortes.
  */
 export const FPS = 30;
 export const MUSICA = 'musica/voxel-revolution.mp3';
-/** Duração do ficheiro cortado (s). */
-export const MUSICA_S = 98.48;
+/** Duração do ficheiro da música (s). */
+export const MUSICA_S = 129.88;
 export const TEMPO_S = 60 / 122;
 export const COMPASSO_S = 4 * TEMPO_S;
 export const INICIO_S = 0.4807;

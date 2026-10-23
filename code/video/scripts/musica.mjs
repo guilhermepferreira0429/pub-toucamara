@@ -7,11 +7,9 @@
  *   node scripts/musica.mjs        → public/musica/voxel-revolution.mp3
  *
  * A faixa tem 122 BPM e o primeiro tempo forte aos 0,4807 s (medido no
- * original). Corta-se em fronteiras de frase de 8 compassos, para caber em
- * ~98 s e acabar no fim verdadeiro da música:
- *   compassos 0–15 (intro e primeira entrada), 24–47 (a pausa a meio e a
- *   segunda entrada) e 56 até ao fim.
- * Os tempos do vídeo (src/dinamico/ritmo.ts) contam com estes cortes.
+ * original): 64 compassos, cerca de 2 min 10 s. Usa-se inteira, do
+ * princípio ao fim verdadeiro; os tempos do vídeo (src/unico/ritmo.ts)
+ * contam com isso.
  */
 import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
@@ -24,14 +22,9 @@ const URL_ORIGINAL =
 const ORIGINAL = join(RAIZ, 'out', 'musica', 'voxel-revolution-original.mp3');
 const SAIDA = join(RAIZ, 'public', 'musica', 'voxel-revolution.mp3');
 
-const INICIO = 0.4807;
-const COMPASSO = (4 * 60) / 122;
-const t = (k) => INICIO + k * COMPASSO;
-const TROCOS = [
-  [0, t(16)],
-  [t(24), t(48)],
-  [t(56), null],
-];
+// Um só troço: a faixa inteira (para cortar, juntar troços em fronteiras
+// de frase de 8 compassos e acertar os compassos em src/unico/guiao.ts).
+const TROCOS = [[0, null]];
 
 if (!existsSync(ORIGINAL)) {
   mkdirSync(dirname(ORIGINAL), { recursive: true });
