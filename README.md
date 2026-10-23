@@ -16,7 +16,7 @@
 <p align="center">
   <a href="https://toucamara.descortina.pt"><img alt="em produção: toucamara.descortina.pt" src="https://img.shields.io/badge/em%20produ%C3%A7%C3%A3o-toucamara.descortina.pt-3F6E4A?style=flat-square"></a>
   <img alt="Hack4Guimarães 2035: Falar com a câmara sem burocracia" src="https://img.shields.io/badge/Hack4Guimar%C3%A3es%202035-Falar%20com%20a%20c%C3%A2mara%20sem%20burocracia-15263B?style=flat-square">
-  <img alt="testes: 1 685 unitários · 79 de ponta a ponta" src="https://img.shields.io/badge/testes-1%20685%20unit%C3%A1rios%20%C2%B7%2079%20de%20ponta%20a%20ponta-3F6E4A?style=flat-square">
+  <img alt="testes: mais de 1 600 unitários · 79 de ponta a ponta" src="https://img.shields.io/badge/testes-mais%20de%201%20600%20unit%C3%A1rios%20%C2%B7%2079%20de%20ponta%20a%20ponta-3F6E4A?style=flat-square">
   <img alt="acessibilidade: WCAG 2.1 AA · 0 erros em 42 páginas" src="https://img.shields.io/badge/acessibilidade-WCAG%202.1%20AA%20%C2%B7%200%20erros%20em%2042%20p%C3%A1ginas-3F6E4A?style=flat-square">
   <img alt="avaliador: 180 perguntas com resposta revista" src="https://img.shields.io/badge/avaliador-180%20perguntas%20com%20resposta%20revista-B84A24?style=flat-square">
   <br>
@@ -195,7 +195,7 @@ Sem chaves de IA, de voz ou de SMS a API arranca na mesma; os SMS para os telefo
 
 | Parte | Testes |
 | --- | --- |
-| API | **1 685 testes unitários** (Jest) em 146 ficheiros, a passar |
+| API | **Mais de 1 600 testes unitários** (Jest) em 149 ficheiros, a passar |
 | Ponta a ponta | **79 conjuntos** de testes da API contra um PostgreSQL real (`npm run test:e2e`), incluindo a preparação da demonstração, que tem de dar os mesmos números quando corre duas vezes |
 | Assistente | O avaliador: 180 perguntas, resposta certa revista por uma pessoa, dois juízes às cegas e um terceiro a desempatar; 113 das 180 saem a saber o que fazer. Resultados em [/avaliacao](https://toucamara.descortina.pt/avaliacao) |
 | Acessibilidade | Playwright com axe-core: 0 erros automáticos em 42 páginas, WCAG 2.1 AA ([`docs/ACESSIBILIDADE.md`](docs/ACESSIBILIDADE.md), com o que ainda falta) |
@@ -207,7 +207,7 @@ Sem chaves de IA, de voz ou de SMS a API arranca na mesma; os SMS para os telefo
 code/api/        API central (NestJS): ações do assistente, webhooks, chat, painel, páginas públicas, tarefas
 code/web/        Painel da câmara, chat, chamada no browser (/ligar) e as páginas dos links do SMS (Next.js)
 code/mobile/     App do munícipe e app da equipa de campo (Flutter)
-code/avaliador/  As perguntas de teste, a resposta certa e o juiz
+code/avaliador/  As perguntas de teste, a resposta certa e os juízes
 env/             Docker para desenvolvimento e testes
 docs/            Acessibilidade, mapas, credenciais externas e as regras dos projetos para os técnicos validarem
 ```
@@ -233,7 +233,7 @@ Quase tudo o que falta é acesso, não código: o fluxo já existe e está à es
 | O que falta | Já existe | Para fechar |
 | --- | --- | --- |
 | Sem número de telefone português | Assistente de voz, início e fim da chamada, chamadas feitas pela câmara | Comprar o número e ligá-lo ao assistente |
-| Taxa de acerto medida só com perguntas de teste | Avaliador com 180 perguntas e juiz | Medir com chamadas reais no piloto |
+| Taxa de acerto medida só com perguntas de teste | Avaliador com 180 perguntas e dois juízes às cegas | Medir com chamadas reais no piloto |
 | Regras dos projetos de obras escritas por nós | As regras, com o artigo de cada uma ([`docs/VALIDAR_REGRAS_PROJETOS.md`](docs/VALIDAR_REGRAS_PROJETOS.md)) | Os técnicos da câmara validarem |
 | Sistemas da câmara simulados | Ligações à gestão documental, aos pagamentos e à empresa da água, em modo de teste | Saber que sistemas a câmara usa e ter acesso; contrato com um fornecedor de pagamentos |
 | Chave Móvel Digital simulada | Entregar o pedido em nome da pessoa, de ponta a ponta | Credenciação na AMA e acesso ao balcão online |
