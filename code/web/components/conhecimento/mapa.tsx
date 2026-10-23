@@ -102,7 +102,7 @@ function Mosaico({ temas, avaliacao }: { temas: TemaMapa[]; avaliacao?: Avaliaca
   return (
     // Telemóvel (abaixo de `sm`): uma lista, um tema por linha. A partir de
     // `sm`: o mosaico de 6 colunas, com o tamanho a seguir as conversas.
-    <ul className="flex flex-col gap-1.5 sm:grid sm:grid-flow-row-dense sm:auto-rows-[104px] sm:grid-cols-6">
+    <ul className="flex flex-col gap-1.5 sm:grid sm:grid-flow-row-dense sm:auto-rows-[minmax(104px,auto)] sm:grid-cols-6">
       {visiveis.map((t, i) => {
         const p = sabeResponder(t, avaliacao);
         const cor = corDoTema(p);
