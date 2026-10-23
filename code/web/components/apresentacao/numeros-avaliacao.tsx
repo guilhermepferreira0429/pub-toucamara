@@ -69,13 +69,13 @@ export function NumerosAvaliacao() {
           {pct(d.nosso!.taxa)}
         </span>
         <span className="pb-2 text-[16px] leading-snug text-tinta-2">
-          de respostas certas ou bem passadas a um funcionário,
+          de respostas certas ou maioritariamente certas, julgadas às cegas por dois juízes,
           <br className="hidden sm:block" /> em {d.nosso!.total} perguntas de teste.
         </span>
       </div>
       {c && (
         <div className="flex flex-col gap-3 border-t border-linha pt-5">
-          <p className="text-[14px] font-semibold text-tinta">Nas mesmas {c.perguntas} perguntas, com o mesmo juiz:</p>
+          <p className="text-[14px] font-semibold text-tinta">Nas mesmas {c.perguntas} perguntas, com os mesmos juízes:</p>
           <Barra rotulo="Tou, Câmara?" taxa={c.nosso.taxa} cor="bg-verde" />
           <Barra rotulo={d.outro_nome} taxa={c.outro.taxa} cor="bg-tinta-3" />
         </div>

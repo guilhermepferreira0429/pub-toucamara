@@ -14,12 +14,13 @@ import { TopoApresentacao } from "./topo";
  * a fonte e o veredicto do juiz. Sem resultados, não mostra números.
  */
 
-type Veredicto = "certa" | "passada_bem" | "errada" | "sem_resposta";
+type Veredicto = "certa" | "passada_bem" | "parcial" | "errada" | "sem_resposta";
 
 interface Resumo {
   terminada_em: string | null;
   total: number;
   certas: number;
+  incompletas?: number;
   passadas_bem: number;
   erradas: number;
   sem_resposta: number;
@@ -60,6 +61,7 @@ interface Dados {
 const VEREDICTO: Record<Veredicto | "por_avaliar", { nome: string; classe: string }> = {
   certa: { nome: "Certa", classe: "bg-verde-suave text-verde" },
   passada_bem: { nome: "Passada a um funcionário", classe: "bg-verde-suave text-verde" },
+  parcial: { nome: "Incompleta", classe: "bg-ambar-suave text-ambar" },
   errada: { nome: "Incorreta", classe: "bg-terracota-suave text-terracota-escuro" },
   sem_resposta: { nome: "Sem resposta", classe: "bg-ambar-suave text-ambar" },
   por_avaliar: { nome: "Por avaliar", classe: "bg-creme-2 text-tinta-2" },
@@ -80,8 +82,8 @@ type Filtro = "todas" | "acertos" | "incorretas" | "diferencas";
 
 const FILTROS: { id: Filtro; nome: string }[] = [
   { id: "todas", nome: "Todas" },
-  { id: "acertos", nome: "Certas ou passadas" },
-  { id: "incorretas", nome: "Incorretas ou sem resposta" },
+  { id: "acertos", nome: "Certas" },
+  { id: "incorretas", nome: "Incompletas, incorretas ou sem resposta" },
   { id: "diferencas", nome: "Resultados diferentes" },
 ];
 
@@ -267,7 +269,8 @@ export function PaginaAvaliacao() {
       if (tema && p.categoria !== tema) return false;
       if (q && !p.pergunta.toLowerCase().includes(q)) return false;
       if (filtro === "acertos") return acertou(p.veredicto);
-      if (filtro === "incorretas") return p.veredicto === "errada" || p.veredicto === "sem_resposta";
+      if (filtro === "incorretas")
+        return p.veredicto === "errada" || p.veredicto === "sem_resposta" || p.veredicto === "parcial";
       if (filtro === "diferencas")
         return !!p.veredicto && !!p.outro?.veredicto && acertou(p.veredicto) !== acertou(p.outro.veredicto);
       return true;
@@ -302,8 +305,9 @@ export function PaginaAvaliacao() {
             </h1>
             <p className="text-[17px] leading-relaxed text-tinta-2">
               Perguntas que os munícipes fazem no dia a dia. Para cada uma, a resposta certa foi escrita a partir das
-              fontes oficiais e revista por uma pessoa. Um juiz automático compara cada resposta com a certa e explica o
-              veredicto. Passar a um funcionário numa pergunta difícil conta como certo; inventar conta como errado.
+              fontes oficiais e revista por uma pessoa. Dois juízes independentes, às cegas, comparam cada resposta com a
+              certa; onde discordam, um terceiro verifica nas fontes oficiais. Passar a um funcionário numa pergunta difícil
+              conta como certo; inventar conta como errado.
             </p>
           </div>
 
@@ -335,14 +339,14 @@ export function PaginaAvaliacao() {
                       {pct(d.nosso!.taxa)}
                     </span>
                     <span className="text-[15px] leading-relaxed text-papel/80">
-                      de respostas certas ou bem passadas a um funcionário, em {d.nosso!.total} perguntas avaliadas
+                      de respostas certas ou maioritariamente certas, em {d.nosso!.total} perguntas julgadas por dois juízes, às cegas
                       {d.nosso!.terminada_em ? `, a ${data(d.nosso!.terminada_em)}` : ""}.
                     </span>
                     <dl className="mt-auto grid grid-cols-2 gap-3 border-t border-white/15 pt-4 text-[14px] sm:grid-cols-4">
                       {(
                         [
-                          ["Certas", d.nosso!.certas],
-                          ["Passadas", d.nosso!.passadas_bem],
+                          ["Certas", d.nosso!.certas + d.nosso!.passadas_bem],
+                          ["Incompletas", d.nosso!.incompletas ?? 0],
                           ["Incorretas", d.nosso!.erradas],
                           ["Sem resposta", d.nosso!.sem_resposta],
                         ] as const
@@ -358,7 +362,7 @@ export function PaginaAvaliacao() {
                     {d.comparacao ? (
                       <div className="flex flex-col gap-3">
                         <p className="text-[15px] font-semibold text-tinta">
-                          Nas mesmas {d.comparacao.perguntas} perguntas, com o mesmo juiz, o Tou, Câmara? e{" "}
+                          Nas mesmas {d.comparacao.perguntas} perguntas, com os mesmos juízes, o Tou, Câmara? e{" "}
                           {minusculaInicial(d.outro_nome)}:
                         </p>
                         <Barra rotulo="Tou, Câmara?" taxa={d.comparacao.nosso.taxa} cor="bg-verde" />
@@ -457,8 +461,10 @@ export function PaginaAvaliacao() {
                 </section>
 
                 <p className="max-w-[760px] text-[14px] leading-relaxed text-tinta-3">
-                  Como se conta: a taxa é o número de respostas certas ou bem passadas a um funcionário a dividir pelas
-                  respostas avaliadas. Na comparação contam só as perguntas avaliadas nos dois assistentes. Nas respostas
+                  Como se conta: cada resposta é classificada numa escala de nove categorias, de certa a errada, por dois
+                  juízes independentes que não sabem de que assistente é; onde discordam, decide um terceiro que verifica
+                  nas fontes oficiais. A taxa é o número de respostas certas ou maioritariamente certas a dividir pelas
+                  respostas julgadas. Na comparação contam só as perguntas avaliadas nos dois assistentes. Nas respostas
                   da assistente do site, o nome dela aparece como [nome].
                 </p>
               </>

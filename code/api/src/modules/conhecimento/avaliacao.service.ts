@@ -64,6 +64,23 @@ const COLUNAS_RESULTADO = `r.total, r.certas, r.passadas_bem, r.erradas, r.sem_r
  */
 const SO_MEDIDOS = `NOT coalesce((s.config->>'demonstracao')::boolean, false)`;
 
+/** A execução tem avaliação na escala por categorias (v2: dois juízes + desempate, ou o juiz v2). */
+const COM_CATEGORIAS = `EXISTS (SELECT 1 FROM avaliacao.resultados_categorias rc
+  WHERE rc.execucao_id = e.id AND rc.categoria IS NULL AND rc.total > 0)`;
+
+/**
+ * Na página pública, a categoria v2 de cada resposta em 4 grupos: certa (certa ou maioritariamente
+ * certa), parcial (parcialmente certa), errada (errada ou maioritariamente errada) e sem_resposta
+ * (não encontrou, só mandou contactar, inconclusiva, sem resposta).
+ */
+export function veredictoPublico(categoria: string | null, veredicto: string | null): string | null {
+  if (!categoria) return veredicto;
+  if (categoria === 'certa' || categoria === 'maioritariamente_certa') return 'certa';
+  if (categoria === 'parcialmente_certa') return 'parcial';
+  if (categoria === 'errada' || categoria === 'maioritariamente_errada') return 'errada';
+  return 'sem_resposta';
+}
+
 /** Como a página pública chama o assistente atual do município (nunca pelo nome). */
 export function nomeOutroPublico(municipio: string): string {
   return `A assistente do site da Câmara Municipal de ${municipio}`;
@@ -74,6 +91,8 @@ export interface ResumoPublico {
   terminada_em: Date | null;
   total: number;
   certas: number;
+  /** Escala v2: parcialmente certas (falta algo essencial). 0 na rubrica antiga. */
+  incompletas?: number;
   passadas_bem: number;
   erradas: number;
   sem_resposta: number;
@@ -322,7 +341,7 @@ export class AvaliacaoService {
        LEFT JOIN avaliacao.resultados r ON r.execucao_id = e.id AND r.categoria IS NULL
        WHERE s.nosso AND s.adaptador = 'tou-chat' AND s.municipio_id = $1
          AND e.estado = 'terminada' AND NOT e.amostra AND ${SO_MEDIDOS}
-       ORDER BY e.terminada_em DESC NULLS LAST, e.id DESC
+       ORDER BY ${COM_CATEGORIAS} DESC, e.terminada_em DESC NULLS LAST, e.id DESC
        LIMIT 1`,
       [municipio.id],
     );
@@ -352,7 +371,7 @@ export class AvaliacaoService {
        LEFT JOIN avaliacao.resultados r ON r.execucao_id = e.id AND r.categoria IS NULL
        WHERE NOT s.nosso AND s.municipio_id = $1
          AND e.estado = 'terminada' AND NOT e.amostra AND ${SO_MEDIDOS}
-       ORDER BY (e.conjunto_id = $2) DESC, e.terminada_em DESC NULLS LAST, e.id DESC
+       ORDER BY (e.conjunto_id = $2) DESC, ${COM_CATEGORIAS} DESC, e.terminada_em DESC NULLS LAST, e.id DESC
        LIMIT 1`,
       [municipio.id, nosso.conjunto_id],
     );
@@ -363,27 +382,36 @@ export class AvaliacaoService {
         total: number;
         taxa: number | null;
       }>(
-        `SELECT r.categoria, r.total, r.taxa::float8 AS taxa
+        `SELECT r.categoria,
+                coalesce(nullif(rc.total, 0), r.total) AS total,
+                CASE WHEN rc.total > 0
+                     THEN round(100.0 * (rc.certa + rc.maioritariamente_certa) / rc.total, 2)::float8
+                     ELSE r.taxa::float8 END AS taxa
          FROM avaliacao.resultados r
+         LEFT JOIN avaliacao.resultados_categorias rc
+                ON rc.execucao_id = r.execucao_id AND rc.categoria = r.categoria
          WHERE r.execucao_id = $1 AND r.categoria IS NOT NULL
          ORDER BY r.categoria`,
         [nosso.execucao_id],
       ),
       this.db.query<
         Omit<PerguntaPublica, 'outro'> & {
+          categoria_v2: string | null;
+          outro_categoria_v2: string | null;
           outro_resposta: string | null;
           outro_veredicto: string | null;
           outro_justificacao: string | null;
         }
       >(
         `SELECT p.ordem, p.categoria, p.texto AS pergunta, p.comportamento,
-                r.texto AS resposta, f.veredicto, f.justificacao,
+                r.texto AS resposta, f.veredicto, coalesce(fc.justificacao, f.justificacao) AS justificacao,
+                fc.categoria AS categoria_v2, foc.categoria AS outro_categoria_v2,
                 coalesce(f.factos_em_falta, '{}') AS factos_em_falta,
                 coalesce(f.factos_errados, '{}') AS factos_errados,
                 coalesce(g.resposta, ga.resposta) AS resposta_certa,
                 coalesce(g.fontes, ga.fontes, '[]'::jsonb) AS fontes,
                 ro.texto AS outro_resposta, fo.veredicto AS outro_veredicto,
-                fo.justificacao AS outro_justificacao
+                coalesce(foc.justificacao, fo.justificacao) AS outro_justificacao
          FROM avaliacao.respostas r
          JOIN avaliacao.perguntas p ON p.id = r.pergunta_id
          LEFT JOIN avaliacao.avaliacao_final f ON f.resposta_id = r.id
@@ -393,6 +421,8 @@ export class AvaliacaoService {
          LEFT JOIN avaliacao.respostas ro ON ro.execucao_id = $2
               AND ro.pergunta_id = p.id AND ro.erro IS NULL
          LEFT JOIN avaliacao.avaliacao_final fo ON fo.resposta_id = ro.id
+         LEFT JOIN avaliacao.avaliacao_final_categoria fc ON fc.resposta_id = r.id
+         LEFT JOIN avaliacao.avaliacao_final_categoria foc ON foc.resposta_id = ro.id
          WHERE r.execucao_id = $1 AND r.erro IS NULL
          ORDER BY p.ordem`,
         [nosso.execucao_id, outro?.execucao_id ?? null, municipio.id],
@@ -403,13 +433,21 @@ export class AvaliacaoService {
       ? [...nomesATapar(outro.sistema), ...this.taparSempre]
       : [];
     const perguntas: PerguntaPublica[] = linhas.map(
-      ({ outro_resposta, outro_veredicto, outro_justificacao, ...p }) => ({
+      ({
+        outro_resposta,
+        outro_veredicto,
+        outro_justificacao,
+        categoria_v2,
+        outro_categoria_v2,
+        ...p
+      }) => ({
         ...p,
+        veredicto: veredictoPublico(categoria_v2, p.veredicto),
         outro:
-          outro_resposta !== null || outro_veredicto !== null
+          outro_resposta !== null || outro_veredicto !== null || outro_categoria_v2 !== null
             ? {
                 resposta: anonimizar(outro_resposta, tapar),
-                veredicto: outro_veredicto,
+                veredicto: veredictoPublico(outro_categoria_v2, outro_veredicto),
                 justificacao: anonimizar(outro_justificacao, tapar),
               }
             : null,
@@ -447,10 +485,45 @@ export class AvaliacaoService {
       taxa,
     });
 
+    // Com a escala v2, os totais saem das categorias (a mesma conta do painel e da apresentação):
+    // taxa = certas ou maioritariamente certas / respostas julgadas.
+    const v2 = async (execucaoId: string, r: ResumoPublico): Promise<ResumoPublico> => {
+      const [c] = await this.db.query<{
+        total: number;
+        certas: number;
+        incompletas: number;
+        erradas: number;
+        sem_resposta: number;
+        por_avaliar: number;
+      }>(
+        `SELECT total, (certa + maioritariamente_certa)::int AS certas, parcialmente_certa AS incompletas,
+                (errada + maioritariamente_errada)::int AS erradas,
+                (nao_encontrou + mandou_contactar + inconclusiva + sem_resposta)::int AS sem_resposta,
+                por_avaliar
+         FROM avaliacao.resultados_categorias
+         WHERE execucao_id = $1 AND categoria IS NULL AND total > 0`,
+        [execucaoId],
+      );
+      if (!c) return r;
+      return {
+        terminada_em: r.terminada_em,
+        total: c.total,
+        certas: c.certas,
+        incompletas: c.incompletas,
+        passadas_bem: 0,
+        erradas: c.erradas,
+        sem_resposta: c.sem_resposta,
+        por_avaliar: c.por_avaliar,
+        taxa: Math.round((10_000 * c.certas) / c.total) / 100,
+      };
+    };
+    const nossoResumo = await v2(nosso.execucao_id, resumo(nosso));
+    const outroResumo = outro ? await v2(outro.execucao_id, resumo(outro)) : null;
+
     return {
       ...base,
-      nosso: { ...resumo(nosso), passou: passou(nosso.taxa) },
-      outro: outro ? resumo(outro) : null,
+      nosso: { ...nossoResumo, passou: passou(nossoResumo.taxa) },
+      outro: outroResumo,
       comparacao,
       categorias,
       perguntas,
