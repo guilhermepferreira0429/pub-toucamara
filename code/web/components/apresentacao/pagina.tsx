@@ -8,6 +8,7 @@ import {
   FileText,
   FlaskConical,
   Globe,
+  Hourglass,
   KeyRound,
   Landmark,
   LayoutDashboard,
@@ -18,6 +19,8 @@ import {
   MessageSquare,
   Mic,
   Phone,
+  PhoneOutgoing,
+  RotateCcw,
   Route,
   Scale,
   Send,
@@ -26,13 +29,16 @@ import {
   Smartphone,
   Sparkles,
   Store,
+  Sun,
   UserRound,
   type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
 import { MUNICIPIO } from "@/components/chamada/config";
 import { FonteOficial, Logo } from "@/components/ui/marca";
+import { AREAS, GrelhaDestaques, TOTAL_FUNCIONALIDADES } from "./funcionalidades";
 import { NumerosAvaliacao } from "./numeros-avaliacao";
+import { Lista, Secao } from "./secao";
 import { RodapeApresentacao, TopoApresentacao } from "./topo";
 
 /*
@@ -47,7 +53,7 @@ const VIDEO_URL = process.env.NEXT_PUBLIC_VIDEO_URL ?? "";
 
 const SECOES = [
   { id: "experimentar", nome: "Experimentar" },
-  { id: "como-funciona", nome: "Como funciona" },
+  { id: "liga-primeiro", nome: "Liga primeiro" },
   { id: "avaliacao", nome: "Avaliação" },
   { id: "real", nome: "Real e simulado" },
   { id: "proximos-passos", nome: "Próximos passos" },
@@ -147,9 +153,43 @@ const ACESSOS: Acesso[] = [
 
 const NUMEROS: [string, string][] = [
   ["24 h", "a atender, todos os dias"],
-  ["180", "perguntas de teste no avaliador"],
+  [String(TOTAL_FUNCIONALIDADES), "funcionalidades, do atendimento à chefia"],
   ["48", "ações que o assistente faz durante a chamada"],
-  ["0", "erros automáticos de acessibilidade em 42 páginas"],
+  ["180", "perguntas de teste no avaliador"],
+];
+
+/** A câmara que liga primeiro: o que acontece sem ninguém ligar (tudo existe; ver /funcionalidades). */
+const LIGA_PRIMEIRO: { quando: string; faz: string; icone: LucideIcon }[] = [
+  {
+    quando: "Uma licença está a acabar",
+    faz: "Avisa e, na chamada, renova: confirma os dados, volta a ver as regras, calcula a taxa e dá a referência.",
+    icone: RotateCcw,
+  },
+  {
+    quando: "O prazo de uma audiência prévia está a acabar",
+    faz: "Liga antes, para a pessoa não perder o prazo para responder.",
+    icone: Hourglass,
+  },
+  {
+    quando: "Falta um documento no processo",
+    faz: "Manda um SMS com o link para enviar a foto do documento.",
+    icone: FileText,
+  },
+  {
+    quando: "Há uma onda de calor",
+    faz: "Liga às pessoas que vivem sozinhas e se inscreveram, e pergunta se estão bem.",
+    icone: Sun,
+  },
+  {
+    quando: "Há obras numa rua amanhã",
+    faz: "Avisa por SMS só quem perguntou por aquela rua.",
+    icone: MapPin,
+  },
+  {
+    quando: "O buraco que alguém reportou foi tapado",
+    faz: "Manda um SMS a dizer que ficou resolvido.",
+    icone: CircleCheck,
+  },
 ];
 
 const PERGUNTAS = [
@@ -306,53 +346,6 @@ export const PILOTO = [
   "Acordo com a Proteção Civil para os avisos de emergência",
 ];
 
-export function Secao({
-  id,
-  rotulo,
-  titulo,
-  sub,
-  children,
-  fundo = "",
-}: {
-  id: string;
-  rotulo: string;
-  titulo: string;
-  sub?: string;
-  children: React.ReactNode;
-  fundo?: string;
-}) {
-  return (
-    <section id={id} aria-labelledby={`${id}-titulo`} className={`scroll-mt-20 ${fundo}`}>
-      <div className="mx-auto flex w-full max-w-[1120px] flex-col gap-10 px-5 py-20 sm:px-8 lg:py-24">
-        <div className="flex max-w-[720px] flex-col gap-3">
-          <span className="text-[13px] font-bold uppercase tracking-[1.4px] text-terracota">{rotulo}</span>
-          <h2
-            id={`${id}-titulo`}
-            className="font-display text-[32px] font-extrabold leading-[1.1] tracking-[-0.8px] text-tinta sm:text-[40px]"
-          >
-            {titulo}
-          </h2>
-          {sub && <p className="text-[17px] leading-relaxed text-tinta-2">{sub}</p>}
-        </div>
-        {children}
-      </div>
-    </section>
-  );
-}
-
-export function Lista({ itens, icone: Icone, cor }: { itens: string[]; icone: LucideIcon; cor: string }) {
-  return (
-    <ul className="flex flex-col gap-3">
-      {itens.map((t) => (
-        <li key={t} className="flex gap-3 text-[15px] leading-relaxed text-tinta-2">
-          <Icone className={`mt-1 size-4 shrink-0 ${cor}`} aria-hidden />
-          <span>{t}</span>
-        </li>
-      ))}
-    </ul>
-  );
-}
-
 function CartaoAcesso({ a, destaque = false }: { a: Acesso; destaque?: boolean }) {
   const Icone = a.icone;
   const conteudo = (
@@ -446,9 +439,10 @@ export function PaginaApresentacao() {
                 A câmara que <span className="text-terracota">atende</span>.
               </h1>
               <p className="max-w-[560px] text-[18px] leading-relaxed text-tinta-2">
-                Um assistente que atende os munícipes de Guimarães por telefone, chat, SMS e app. Responde só com
-                informação oficial e trata do assunto durante a conversa. No fim, a pessoa recebe um SMS com o que tem
-                de fazer. A câmara vê tudo num painel.
+                Um assistente que atende os munícipes de Guimarães por telefone, chat, SMS e app, responde só com
+                informação oficial e trata do assunto na conversa. E não espera que liguem: avisa antes de um prazo
+                acabar, renova a licença e liga a quem está sozinho numa onda de calor. Por trás, a câmara inteira
+                num só painel.
               </p>
               <div className="flex flex-wrap gap-3">
                 <Link
@@ -547,6 +541,56 @@ export function PaginaApresentacao() {
           </div>
         </Secao>
 
+        {/* A câmara que liga primeiro */}
+        <section id="liga-primeiro" aria-labelledby="liga-primeiro-titulo" className="scroll-mt-20 bg-tinta text-papel">
+          <div className="mx-auto grid w-full max-w-[1120px] gap-12 px-5 py-20 sm:px-8 lg:grid-cols-[1fr_1.35fr] lg:py-24">
+            <div className="flex flex-col gap-5">
+              <span className="text-[13px] font-bold uppercase tracking-[1.4px] text-terracota-suave">Liga primeiro</span>
+              <h2
+                id="liga-primeiro-titulo"
+                className="font-display text-[32px] font-extrabold leading-[1.1] tracking-[-0.8px] sm:text-[44px]"
+              >
+                A câmara que não espera que liguem.
+              </h2>
+              <p className="text-[17px] leading-relaxed text-papel/80">
+                Um assistente que só responde fica à espera da pergunta. Este sabe o que está a acabar, o que falta e
+                quem precisa, e contacta primeiro: chamada do assistente nos casos importantes, SMS nos outros.
+              </p>
+              <span className="inline-flex items-center gap-3 self-start rounded-2xl bg-white/10 px-4 py-3 text-[15px]">
+                <PhoneOutgoing className="size-5 shrink-0 text-terracota-suave" aria-hidden />
+                <span>
+                  <strong className="font-semibold text-papel">{AREAS[0].itens.length} situações</strong>
+                  <span className="text-papel/75"> em que a câmara liga ou avisa primeiro.</span>
+                </span>
+              </span>
+              <Link
+                href="/funcionalidades#liga-primeiro"
+                className="inline-flex items-center gap-2 self-start text-[16px] font-semibold text-papel underline underline-offset-4 hover:text-terracota-suave"
+              >
+                Ver todas
+                <ArrowRight className="size-4" aria-hidden />
+              </Link>
+            </div>
+            <ol className="grid gap-3 sm:grid-cols-2">
+              {LIGA_PRIMEIRO.map((l) => {
+                const Icone = l.icone;
+                return (
+                  <li key={l.quando} className="flex flex-col gap-3 rounded-3xl bg-white/[0.07] p-5 ring-1 ring-white/10">
+                    <span className="flex items-center gap-3">
+                      <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-terracota text-white">
+                        <Icone className="size-4" aria-hidden />
+                      </span>
+                      <span className="text-[13px] font-bold uppercase tracking-[0.8px] text-terracota-suave">Quando</span>
+                    </span>
+                    <span className="font-display text-[18px] font-bold leading-snug">{l.quando}</span>
+                    <span className="text-[14px] leading-relaxed text-papel/75">{l.faz}</span>
+                  </li>
+                );
+              })}
+            </ol>
+          </div>
+        </section>
+
         {/* Como funciona */}
         <Secao
           id="como-funciona"
@@ -595,6 +639,24 @@ export function PaginaApresentacao() {
             Também trata de escolas, habitação municipal, reservas de equipamentos e bilhetes, estacionamento e multas,
             água, cemitérios, animais e juntas de freguesia, para já com dados de demonstração.
           </p>
+        </Secao>
+
+        {/* Muito mais do que um chat */}
+        <Secao
+          id="destaques"
+          rotulo="Destaques"
+          titulo="Muito mais do que um chat."
+          sub={`Por trás da conversa está a câmara inteira: ${TOTAL_FUNCIONALIDADES} funcionalidades, do atendimento à chefia, cada uma com o seu estado.`}
+          fundo="bg-papel"
+        >
+          <GrelhaDestaques fundoCartao="bg-creme" />
+          <Link
+            href="/funcionalidades"
+            className="inline-flex min-h-12 items-center gap-2 self-start rounded-full bg-tinta px-6 text-[16px] font-bold text-papel hover:bg-tinta-2"
+          >
+            Ver as {TOTAL_FUNCIONALIDADES} funcionalidades
+            <ArrowRight className="size-4" aria-hidden />
+          </Link>
         </Secao>
 
         {/* Avaliação */}
