@@ -32,7 +32,7 @@
 </p>
 
 <p align="center">
-  <a href="https://youtu.be/8j2ooH05E3I"><strong>Ver o vídeo</strong></a> ·
+  <a href="https://youtu.be/6iG1kqmgrpw"><strong>Ver o vídeo</strong></a> ·
   <a href="https://toucamara.descortina.pt"><strong>Experimentar</strong></a> ·
   <a href="https://toucamara.descortina.pt/ligar"><strong>Ligar no browser</strong></a> ·
   <a href="https://toucamara.descortina.pt/ligar?experimentar=renovacao"><strong>Renovar uma licença com o seu telemóvel</strong></a> ·
