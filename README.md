@@ -51,11 +51,9 @@
   <img src="docs/img/inicio.jpg" alt="A página de entrada do Tou, Câmara?: a câmara inteira, numa só plataforma, com a renovação de uma licença feita na chamada" width="100%">
 </p>
 
-## Índice
+**Nesta página:** [Porque é difícil](#porque-é-difícil-falar-com-a-câmara) · [A chamada é só a parte que se ouve](#a-chamada-é-só-a-parte-que-se-ouve) · [Como se vê](#como-se-vê) · [O que faz](#o-que-faz) · [Só responde com fonte](#só-responde-com-fonte) · [Real e simulado](#o-que-é-real-e-o-que-é-simulado) · [Como está feito](#como-está-feito) · [Tecnologias](#tecnologias) · [Arrancar em local](#arrancar-em-local) · [Como sabemos que funciona](#como-sabemos-que-funciona) · [O repositório](#o-repositório) · [No ar](#no-ar) · [Dados pessoais](#dados-pessoais-e-segurança) · [Próximos passos](#próximos-passos) · [Mais documentos](#mais-documentos)
 
-[O problema](#o-problema) · [A resposta](#a-resposta-a-chamada-é-só-a-parte-que-se-ouve) · [Em imagens](#em-imagens) · [O que faz](#o-que-faz) · [IA com rédea curta](#ia-com-rédea-curta) · [Real, demonstração e teste](#o-que-é-real-o-que-é-demonstração-e-o-que-está-em-modo-de-teste) · [Arquitetura](#arquitetura) · [Stack](#stack) · [Arrancar](#arrancar) · [Testes](#testes-e-qualidade) · [Estrutura](#estrutura-do-repositório) · [Produção](#produção) · [Segurança e RGPD](#segurança-e-rgpd) · [Limitações e roteiro](#limitações-conhecidas-e-roteiro) · [Documentação](#documentação)
-
-## O problema
+## Porque é difícil falar com a câmara
 
 Saber que licença é precisa, que documentos entregar e em que ponto está um processo obriga hoje a ir ao balcão, mandar um email ou telefonar, e só no horário de atendimento.
 A informação existe, mas está espalhada: Guimarães tem mais de 20 sites de entidades municipais e associadas (rodapé de [cm-guimaraes.pt](https://www.cm-guimaraes.pt)).
@@ -64,7 +62,7 @@ A informação existe, mas está espalhada: Guimarães tem mais de 20 sites de e
 
 Mas a resposta é só o princípio. Depois vem o requerimento, os documentos que faltam, o prazo que passa sem aviso, a licença que caduca, o buraco que três pessoas reportam três vezes. **A relação com a câmara não começa quando a pessoa liga, nem acaba quando desliga.**
 
-## A resposta: a chamada é só a parte que se ouve
+## A chamada é só a parte que se ouve
 
 **Uma porta para o munícipe.** Liga, escreve no chat ou manda um SMS, a qualquer hora. O assistente responde com a fonte oficial (o documento, o artigo e a data), preenche o requerimento durante a conversa, regista a ocorrência com a morada, marca o atendimento, diz em que ponto está o processo e manda a referência para pagar. Quando é preciso uma pessoa, passa a um funcionário com o caso resumido. Numa emergência, o 112.
 
@@ -74,7 +72,7 @@ Mas a resposta é só o princípio. Depois vem o requerimento, os documentos que
 
 **O que propomos:** um piloto em Guimarães para medir a taxa de acerto com chamadas reais, os técnicos validarem as regras dos projetos de obras e ligar os sistemas que a câmara já tem.
 
-## Em imagens
+## Como se vê
 
 <table>
   <tr>
@@ -99,7 +97,7 @@ As pessoas, conversas e processos do painel são **dados de demonstração**, fi
 
 ## O que faz
 
-| Funcionalidade | Onde | Em resumo |
+| O quê | Onde | Como |
 | --- | --- | --- |
 | **Chamada por voz** | `/ligar` | No browser, sem instalar nada. 48 ações durante a chamada; aviso de gravação no início; resumo por SMS no fim |
 | **Chat** | `/chat` | O mesmo assistente, por escrito, com a fonte de cada resposta |
@@ -122,7 +120,7 @@ As pessoas, conversas e processos do painel são **dados de demonstração**, fi
 
 A lista completa, com o estado de cada uma, está em [/funcionalidades](https://toucamara.descortina.pt/funcionalidades).
 
-## IA com rédea curta
+## Só responde com fonte
 
 O assistente procura nas fontes oficiais antes de responder e **não inventa**: sem fonte, passa a um funcionário. As decisões com regras públicas são do código, não do modelo.
 
@@ -138,15 +136,15 @@ flowchart LR
     R --> V["No painel e nos testes:<br/>cada número conferido com a fonte"]
 ```
 
-- **O que a IA faz:** percebe o pedido, procura e explica em linguagem simples, preenche o requerimento na conversa, resume o caso para o funcionário, lê documentos e projetos e escreve o rascunho do ofício.
-- **O que a IA não faz:** decidir licenças nem zonas do PDM (são regras públicas em código, com o porquê), responder sem fonte, nem receber dados pessoais de que não precisa.
+- **O assistente trata de:** perceber o pedido, procurar e explicar em linguagem simples, preencher o requerimento na conversa, resumir o caso para o funcionário, ler documentos e projetos e escrever o rascunho do ofício.
+- **O assistente não decide:** licenças e zonas do PDM decidem-se por regras públicas no código, com o porquê; sem fonte, não há resposta; e os dados pessoais de que não precisa nem lhe chegam.
 - **Dados pessoais tirados antes da IA** (`code/api/src/ia/minimizar.ts`): emails, IBAN, cartões, telefones e NIF passam a uma etiqueta onde não fazem falta.
 - **Texto de fora é dado, nunca instrução** (`code/api/src/ia/nao-confiavel.ts`): páginas, emails, cartas e o que o munícipe diz entram delimitados, com um marcador que o texto não consegue adivinhar.
 - **Números na fonte** (`code/api/src/modules/conhecimento/numeros-na-fonte.ts`): cada valor de uma resposta é procurado nos trechos citados; os que não estão aparecem marcados no painel e contam nos testes.
 - **Avaliador** (`code/avaliador`): 180 perguntas de teste, cada uma com a resposta certa escrita a partir das fontes oficiais e revista por uma pessoa. Um juiz automático compara e explica cada veredicto: passar a um funcionário numa pergunta difícil conta como certo, inventar conta como errado. As mesmas perguntas são feitas ao assistente que a câmara já tem no site. Resultados abertos em [/avaliacao](https://toucamara.descortina.pt/avaliacao).
 - **Custos:** o custo de cada atendimento aparece no painel, com um limite mensal.
 
-## O que é real, o que é demonstração e o que está em modo de teste
+## O que é real e o que é simulado
 
 | | |
 | --- | --- |
@@ -155,15 +153,15 @@ flowchart LR
 | **Dados de demonstração** | Pessoas e conversas do painel, escolas, habitação, estacionamento, reservas, cemitérios, animais, turismo, juntas, apoios, os valores das licenças e as zonas do PDM |
 | **Ainda não** | Número de telefone português: a demonstração é por chamada no browser |
 
-## Arquitetura
+## Como está feito
 
 <p align="center"><img src="docs/img/arquitetura.jpg" alt="Arquitetura: o munícipe (voz, chat, SMS, app, assistentes de IA, WhatsApp em teste), a API central em NestJS com as 48 ações, regras públicas, processos, Liga primeiro, conhecimento e privacidade, os serviços (Claude, ElevenLabs, Twilio, PostgreSQL 17, ficheiros) e a câmara (painel, apoio ao técnico, chefia, juntas, app da equipa de campo)" width="100%"></p>
 
 Uma só API (`code/api`) serve o assistente de voz, o chat, o SMS, o painel, as páginas públicas e as tarefas agendadas. A voz é do ElevenLabs, que chama as ações da API (`code/api/agente-voz/` gera os agentes a partir do código). A inteligência artificial é o Claude, da Anthropic. Os SMS saem pelo Twilio. Cada câmara e cada junta só vê os seus dados, por segurança ao nível da linha na base de dados.
 
-## Stack
+## Tecnologias
 
-| Camada | Escolha |
+| Parte | Com quê |
 | --- | --- |
 | API | NestJS 11 (TypeScript), SQL à mão sobre `pg`, zod, pg-boss para as tarefas agendadas |
 | Base de dados | PostgreSQL 17 com pgvector (pesquisa por texto e por vetores, juntas por RRF), segurança por linha |
@@ -177,7 +175,7 @@ Uma só API (`code/api`) serve o assistente de voz, o chat, o SMS, o painel, as 
 | Avaliador | TypeScript (bun) |
 | Deploy | Docker, Caddy com HTTPS |
 
-## Arrancar
+## Arrancar em local
 
 ```bash
 docker compose -f env/dev/docker-compose.yml up -d    # Postgres 17 + pgvector na porta 54330
@@ -188,9 +186,9 @@ cd code/web && cp .env.example .env.local && bun install && bun run dev
 
 Sem chaves de IA, de voz ou de SMS a API arranca na mesma; os SMS para os telefones de teste ficam gravados e não saem. Cada pasta tem o seu README com os pormenores (testes, variáveis, agente de voz, apps).
 
-## Testes e qualidade
+## Como sabemos que funciona
 
-| Área | O que corre |
+| Parte | Testes |
 | --- | --- |
 | API | **1 675 testes unitários** (Jest) em 146 ficheiros, a passar |
 | Ponta a ponta | **79 conjuntos** de testes da API contra um PostgreSQL real (`npm run test:e2e`), incluindo a preparação da demonstração, que tem de dar os mesmos números quando corre duas vezes |
@@ -198,7 +196,7 @@ Sem chaves de IA, de voz ou de SMS a API arranca na mesma; os SMS para os telefo
 | Acessibilidade | Playwright com axe-core: 0 erros automáticos em 42 páginas, WCAG 2.1 AA ([`docs/ACESSIBILIDADE.md`](docs/ACESSIBILIDADE.md), com o que ainda falta) |
 | Web | TypeScript estrito e ESLint |
 
-## Estrutura do repositório
+## O repositório
 
 ```
 code/api/        API central (NestJS): ações do assistente, webhooks, chat, painel, páginas públicas, tarefas
@@ -209,11 +207,11 @@ env/             Docker para desenvolvimento e testes
 docs/            Acessibilidade, mapas, credenciais externas e as regras dos projetos para os técnicos validarem
 ```
 
-## Produção
+## No ar
 
 Em produção em **[toucamara.descortina.pt](https://toucamara.descortina.pt)**, com Docker numa VPS e o Caddy a dar o HTTPS. A API corre as migrações no arranque. A demonstração prepara-se a partir do painel, de forma idempotente: correr duas vezes não duplica nada, e numa câmara com fontes próprias não mexe nas fontes, nas respostas nem nas avaliações.
 
-## Segurança e RGPD
+## Dados pessoais e segurança
 
 - **Aviso de gravação** no início de cada chamada, com a opção de não gravar.
 - **NIF cifrado** na base de dados; **registo de acessos** a dados pessoais; dados **apagados no fim do prazo** de retenção.
@@ -223,11 +221,11 @@ Em produção em **[toucamara.descortina.pt](https://toucamara.descortina.pt)**,
 - **Ação social com consentimento:** só se liga a quem se inscreveu, com a data e a origem do consentimento.
 - **Telefones de teste** (+351 910 000 xxx): nunca recebem SMS nem chamadas; é com eles que a demonstração funciona.
 
-## Limitações conhecidas e roteiro
+## Próximos passos
 
 Quase tudo o que falta é acesso, não código: o fluxo já existe e está à espera de uma credencial ou de um acordo.
 
-| Limitação | Já existe | Próximo passo |
+| O que falta | Já existe | Para fechar |
 | --- | --- | --- |
 | Sem número de telefone português | Assistente de voz, início e fim da chamada, chamadas feitas pela câmara | Comprar o número e ligá-lo ao assistente |
 | Taxa de acerto medida só com perguntas de teste | Avaliador com 180 perguntas e juiz | Medir com chamadas reais no piloto |
@@ -239,18 +237,16 @@ Quase tudo o que falta é acesso, não código: o fluxo já existe e está à es
 | IA ainda pela API da Anthropic | O Claude, com dados pessoais minimizados | Amazon Bedrock, com processamento na UE |
 | Acessibilidade por acabar | 0 erros automáticos em 42 páginas | Vídeos em Língua Gestual Portuguesa e scroll lateral de algumas páginas do painel a 320 px |
 
-## Documentação
+## Mais documentos
 
-| Para quê | Onde |
-| --- | --- |
-| Acessibilidade: o que foi testado e o que falta | [`docs/ACESSIBILIDADE.md`](docs/ACESSIBILIDADE.md) |
-| Mapas: Mapbox e a alternativa sem token | [`docs/MAPAS.md`](docs/MAPAS.md) |
-| Credenciais externas: o que é preciso para cada ligação | [`docs/CREDENCIAIS_EXTERNAS.md`](docs/CREDENCIAIS_EXTERNAS.md) |
-| Regras dos projetos de obras, para os técnicos validarem | [`docs/VALIDAR_REGRAS_PROJETOS.md`](docs/VALIDAR_REGRAS_PROJETOS.md) |
-| Cada parte do código | O README de cada pasta em `code/` |
+- [`docs/ACESSIBILIDADE.md`](docs/ACESSIBILIDADE.md): o que foi testado e o que ainda falta.
+- [`docs/MAPAS.md`](docs/MAPAS.md): o Mapbox e a alternativa sem token.
+- [`docs/CREDENCIAIS_EXTERNAS.md`](docs/CREDENCIAIS_EXTERNAS.md): o que é preciso para cada ligação a sistemas de fora.
+- [`docs/VALIDAR_REGRAS_PROJETOS.md`](docs/VALIDAR_REGRAS_PROJETOS.md): as regras dos projetos de obras, para os técnicos validarem.
+- O README de cada pasta em `code/`, com os pormenores de cada parte.
 
-## Créditos e licença
+## Equipa
 
-Tipografia: Bricolage Grotesque e Inter (SIL Open Font License). Mapas: Mapbox e OpenStreetMap.
-As pessoas da demonstração são fictícias.
-Direitos reservados à equipa: o repositório é público, mas não tem ficheiro de licença.
+Guilherme Ferreira e David Vieira, desenvolvimento técnico.
+
+Letras Bricolage Grotesque e Inter (SIL Open Font License); mapas do Mapbox e do OpenStreetMap. As pessoas da demonstração são inventadas. O código está aberto para consulta, sem licença de utilização.
