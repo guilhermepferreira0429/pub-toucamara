@@ -42,7 +42,6 @@ As variáveis `NEXT_PUBLIC_*` ficam no build: depois de as mudar é preciso volt
 | `/ligar` | Chamada ao agente pelo browser (basta autorizar o microfone); `/ligar/qr` mostra o QR code |
 | `/chat` | Chat com o agente |
 | `/avaliacao` | Resultados públicos do avaliador: cada pergunta, a resposta, a resposta certa e o veredicto |
-| `/portal` | Exemplo do chat dentro de uma página do site da câmara |
 | `/regras`, `/agora/[municipio]`, `/visitar` | Regras públicas das licenças, o que se passa perto de si, turismo |
 | `/resumo/[codigo]`, `/processo/…`, `/requerimento/…`, `/ocorrencia/…`, `/marcacao/…`, `/pagamento/…`, … | Páginas que os links do SMS abrem (em `app/(municipe)`) |
 | `/entrar` | Entrada no painel por link mágico; `/entrar?juri=<chave>` é o acesso do júri, só de leitura |

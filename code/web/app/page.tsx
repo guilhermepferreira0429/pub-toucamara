@@ -7,7 +7,7 @@ export const metadata: Metadata = {
     "Uma porta para o munícipe, um sistema para a câmara: o munícipe trata do assunto numa conversa, a câmara liga primeiro e decide na hora o que é simples.",
 };
 
-/** A raiz do site: a apresentação do projeto, com os links para experimentar. O portal com o chat está em /portal. */
+/** A raiz do site: a apresentação do projeto, com os links para experimentar. */
 export default function Pagina() {
   return <PaginaApresentacao />;
 }
