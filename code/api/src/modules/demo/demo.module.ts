@@ -16,6 +16,8 @@ const esquemaPreparar = z.object({
   confirmar: z.boolean().optional(),
   /** Acertar os dados de base com nomes de teste (por omissão sim). */
   acertar_base: z.boolean().optional(),
+  // Mexer nas fontes, respostas e avaliações; por omissão só sem fontes próprias.
+  conhecimento: z.boolean().optional(),
 });
 
 /**

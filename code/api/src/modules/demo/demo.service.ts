@@ -103,7 +103,22 @@ export interface OpcoesPreparar {
    * Por omissão sim; os testes automáticos, que contam com o seed, não.
    */
   acertar_base?: boolean;
+  /**
+   * Mexer no conhecimento: fontes e regulamento de demonstração, respostas,
+   * alteração, contradição, emails e os testes de qualidade de
+   * demonstração. Por omissão só numa câmara sem fontes próprias: numa
+   * câmara real (com as suas fontes e avaliações medidas) a demo junta o
+   * resto (pessoas, pedidos, ocorrências, contactos…) sem lhes tocar.
+   */
+  conhecimento?: boolean;
 }
+
+/** Os passos que mexem em fontes, respostas ou avaliações. */
+const PASSOS_CONHECIMENTO = new Set([
+  'conhecimento',
+  'linguagem_simples',
+  'qualidade',
+]);
 
 interface Passo {
   passo: string;
@@ -427,7 +442,21 @@ export class DemoService {
   // Plano (o ensaio) e estado
   // -------------------------------------------------------------------
 
-  private async plano(m: Municipio, limpar: boolean) {
+  /** A câmara já tem fontes que não foram criadas pela demonstração? */
+  private async temConhecimentoReal(m: Municipio): Promise<boolean> {
+    const [r] = await this.db.query<{ tem: boolean }>(
+      `SELECT EXISTS (
+         SELECT 1 FROM fontes f
+         WHERE f.municipio_id = $1
+           AND NOT EXISTS (SELECT 1 FROM demo_registos d
+                           WHERE d.municipio_id = f.municipio_id AND d.tipo = 'fonte'
+                             AND d.objeto_id = f.id)) AS tem`,
+      [m.id],
+    );
+    return !!r?.tem;
+  }
+
+  private async plano(m: Municipio, limpar: boolean, conhecimento = true) {
     const existentes = new Set(
       (
         await this.db.query<{ chave: string }>(
@@ -438,12 +467,14 @@ export class DemoService {
     );
     const passos = passosDemo().map((p) => {
       const ja = p.chaves.filter((c) => existentes.has(c)).length;
+      const salta = !conhecimento && PASSOS_CONHECIMENTO.has(p.passo);
       return {
         passo: p.passo,
         rotulo: p.rotulo,
         total: p.chaves.length,
         ja_existem: ja,
-        a_criar: p.chaves.length - ja,
+        a_criar: salta ? 0 : p.chaves.length - ja,
+        ...(salta ? { salta: true } : {}),
       };
     });
     return {
@@ -626,11 +657,13 @@ export class DemoService {
   async preparar(m: Municipio, u: UtilizadorPainel, o: OpcoesPreparar = {}) {
     this.exigirAtiva();
     const limpar = !!o.limpar_testes;
+    const conhecimento = o.conhecimento ?? !(await this.temConhecimentoReal(m));
     if (!o.confirmar) {
       return {
         ensaio: true,
         municipio: { slug: m.slug, nome: m.nome },
-        ...(await this.plano(m, limpar)),
+        conhecimento,
+        ...(await this.plano(m, limpar, conhecimento)),
         nota: 'Ensaio: nada foi alterado. Repita com confirmar: true para executar.',
       };
     }
@@ -686,6 +719,9 @@ export class DemoService {
       ['acertos', acertar],
     ];
     for (const [nome, correr] of passos) {
+      // Numa câmara com fontes próprias, as fontes, as respostas e as
+      // avaliações ficam como estão (a demo não as contamina).
+      if (!conhecimento && PASSOS_CONHECIMENTO.has(nome)) continue;
       try {
         await correr();
       } catch (e) {
@@ -695,8 +731,9 @@ export class DemoService {
       }
     }
 
-    const estado = await this.plano(m, false);
+    const estado = await this.plano(m, false, conhecimento);
     const resumo = {
+      conhecimento,
       criados: ctx.criados,
       total_registos: estado.ja_existem,
       ocultados,

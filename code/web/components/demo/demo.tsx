@@ -34,6 +34,8 @@ interface PassoPlano {
   total: number;
   ja_existem: number;
   a_criar: number;
+  /** Numa câmara com fontes próprias, o conhecimento e as avaliações ficam como estão. */
+  salta?: boolean;
 }
 
 interface Contas {
@@ -57,6 +59,8 @@ interface EstadoDemo {
 
 interface Ensaio {
   ensaio: true;
+  /** false: a câmara tem fontes próprias e a demo não lhes toca. */
+  conhecimento?: boolean;
   passos: PassoPlano[];
   a_criar: number;
   ja_existem: number;
@@ -199,12 +203,18 @@ export function PaginaDemo() {
                   {ensaio && (
                     <div className="flex flex-col gap-4 rounded-xl border border-linha bg-creme p-4">
                       <Rotulo>Ensaio · nada foi alterado</Rotulo>
+                      {ensaio.conhecimento === false && (
+                        <p className="rounded-lg bg-verde-suave px-3 py-2 text-sm text-tinta">
+                          Esta câmara já tem fontes próprias: as fontes, as respostas e os testes de qualidade ficam
+                          como estão. Junta-se o resto (pessoas, pedidos, ocorrências, contactos, serviços).
+                        </p>
+                      )}
                       <ul className="flex flex-col gap-1.5 text-sm text-tinta-2">
                         {ensaio.passos.map((p) => (
                           <li key={p.passo} className="flex items-start justify-between gap-4">
-                            <span>{p.rotulo}</span>
+                            <span className={p.salta ? "text-tinta-3 line-through" : ""}>{p.rotulo}</span>
                             <span className="shrink-0 font-semibold text-tinta">
-                              {p.a_criar ? `criar ${p.a_criar}` : "já existe"}
+                              {p.salta ? "não mexe" : p.a_criar ? `criar ${p.a_criar}` : "já existe"}
                             </span>
                           </li>
                         ))}

@@ -28,12 +28,14 @@ describe('Preparar demo (e2e)', () => {
 
   // Sem acertar a base: os outros testes contam com o seed ("Águas do
   // Concelho", "Chefe Teste"). O acerto da base testa-se à parte, no fim.
+  // Com o conhecimento: o seed tem uma fonte própria e, sem isto, a demo
+  // não lhe tocava (ver o teste "numa câmara com fontes próprias").
   const preparar = (corpo: object) =>
     ctx
       .http()
       .post('/v1/painel/demo/preparar')
       .set(chefe)
-      .send({ acertar_base: false, ...corpo });
+      .send({ acertar_base: false, conhecimento: true, ...corpo });
 
   /** Os números que não podem mudar numa segunda preparação. */
   const numeros = async () =>
@@ -130,6 +132,35 @@ describe('Preparar demo (e2e)', () => {
       delete process.env.DEMO_ATIVA;
     }
     expect(await numeros()).toMatchObject({ registos: 0 });
+  });
+
+  it('numa câmara com fontes próprias, não mexe em fontes, respostas nem avaliações', async () => {
+    // O seed tem uma fonte que não é da demo: por omissão, o conhecimento fica.
+    const r = await ctx
+      .http()
+      .post('/v1/painel/demo/preparar')
+      .set(chefe)
+      .send({ acertar_base: false })
+      .expect(200);
+    expect(r.body).toMatchObject({ ensaio: true, conhecimento: false });
+    const passos = r.body.passos as {
+      passo: string;
+      salta?: boolean;
+      a_criar: number;
+    }[];
+    for (const nome of ['conhecimento', 'linguagem_simples', 'qualidade']) {
+      expect(passos.find((p) => p.passo === nome)).toMatchObject({
+        salta: true,
+        a_criar: 0,
+      });
+    }
+    // O resto continua: pessoas, pedidos, ocorrências, licenças…
+    expect(
+      passos.find((p) => p.passo === 'ocorrencias')?.a_criar,
+    ).toBeGreaterThan(0);
+    expect(passos.find((p) => p.passo === 'licencas')?.a_criar).toBeGreaterThan(
+      0,
+    );
   });
 
   it('o ensaio diz o que faria e não muda nada', async () => {
