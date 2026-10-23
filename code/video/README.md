@@ -14,7 +14,7 @@ depois o lado da câmara, a avaliação e o fecho.
 | `scripts/capturar.mjs` | `npm run capturar`: capturas e números → `public/capturas/`, `src/dados.gerado.json` |
 | `scripts/musica.mjs` | `node scripts/musica.mjs`: descarrega a música e corta-a em frases de 8 compassos → `public/musica/` |
 | `scripts/render.ts` | `npm run render` → `out/tou-camara.mp4` (ou `-- --stills=0,300` para imagens soltas) |
-| `scripts/poster.ts` | `npm run poster`: a capa a 1920×1080 (de `docs/anexos-taikai/capas`) → `out/tou-camara-capa.png`, para a miniatura do YouTube |
+| `scripts/poster.ts`, `src/unico/Miniatura.tsx` | `npm run poster`: a miniatura do YouTube → `out/tou-camara-miniatura.png` (1920×1080) e `.jpg` (1280×720) |
 | `npm run estudio` | O Remotion Studio, para ver e afinar |
 
 A música é "Voxel Revolution", de Kevin MacLeod (incompetech.com), com

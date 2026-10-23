@@ -1,9 +1,10 @@
-import { Composition } from 'remotion';
+import { Composition, Still } from 'remotion';
 import dadosGerados from './dados.gerado.json';
 import { ALTURA, LARGURA } from './camara';
 import type { Dados } from './tipos';
 import { guiaoUnico, proibidasUnico } from './unico/guiao';
 import { FPS, TOTAL_F } from './unico/ritmo';
+import { Miniatura } from './unico/Miniatura';
 import { Unico } from './unico/Unico';
 
 const dados = dadosGerados as unknown as Dados;
@@ -19,14 +20,17 @@ export function Root() {
   const erros = proibidasUnico(tomas, dados);
   if (erros.length) throw new Error(`Zonas proibidas:\n${erros.join('\n')}`);
   return (
-    <Composition
-      id="TouCamara"
-      component={Unico}
-      durationInFrames={TOTAL_F}
-      fps={FPS}
-      width={LARGURA}
-      height={ALTURA}
-      defaultProps={{ tomas, dados }}
-    />
+    <>
+      <Composition
+        id="TouCamara"
+        component={Unico}
+        durationInFrames={TOTAL_F}
+        fps={FPS}
+        width={LARGURA}
+        height={ALTURA}
+        defaultProps={{ tomas, dados }}
+      />
+      <Still id="Miniatura" component={Miniatura} width={LARGURA} height={ALTURA} defaultProps={{ dados }} />
+    </>
   );
 }
