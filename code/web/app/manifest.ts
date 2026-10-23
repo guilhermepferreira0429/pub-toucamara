@@ -5,7 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "Tou, Câmara?",
     short_name: "Tou, Câmara?",
-    description: "O atendimento municipal que nunca está ocupado.",
+    description: "A câmara inteira, numa só plataforma.",
     lang: "pt-PT",
     start_url: "/",
     display: "standalone",

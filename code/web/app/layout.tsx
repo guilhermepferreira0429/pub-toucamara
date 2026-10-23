@@ -23,7 +23,7 @@ const jetbrains = JetBrains_Mono({
 });
 
 const DESCRICAO =
-  "O atendimento municipal que nunca está ocupado: telefone, chat, SMS e app, só com informação oficial, e um painel para a câmara.";
+  "A câmara inteira, numa só plataforma: o munícipe trata do assunto numa conversa, a câmara liga primeiro e decide na hora o que é simples.";
 
 export const metadata: Metadata = {
   // Os links absolutos (imagem de partilha) usam o endereço público do site.
@@ -36,7 +36,7 @@ export const metadata: Metadata = {
     type: "website",
     locale: "pt_PT",
     siteName: "Tou, Câmara?",
-    title: "Tou, Câmara? · A câmara que atende",
+    title: "Tou, Câmara? · A câmara inteira, numa só plataforma",
     description: DESCRICAO,
   },
   twitter: { card: "summary_large_image" },
