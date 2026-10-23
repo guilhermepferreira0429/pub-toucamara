@@ -109,7 +109,8 @@ export class PainelConhecimentoService {
       this.db.query(
         `SELECT t.id AS tema_id, t.nome, t.pai_id,
                 (SELECT count(*) FROM conversas c
-                 WHERE c.tema_id = t.id AND c.iniciada_em > now() - interval '30 days')::int AS conversas_30d,
+                 WHERE c.tema_id = t.id AND c.oculto_em IS NULL
+                   AND c.iniciada_em > now() - interval '30 days')::int AS conversas_30d,
                 (SELECT count(*) FROM respostas r
                  WHERE r.tema_id = t.id AND r.estado = 'no_ar')::int AS respostas_no_ar,
                 (SELECT count(*) FROM respostas r

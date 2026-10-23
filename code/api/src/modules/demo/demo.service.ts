@@ -76,6 +76,7 @@ import {
   ProcessoDemo,
   REGULAMENTO,
   TEMAS,
+  TEMAS_EQUIVALENTES,
   Tema,
 } from './demo.conteudo.js';
 import {
@@ -805,9 +806,12 @@ export class DemoService {
     c.funcionario =
       c.u.municipioId === c.m.id ? c.u : await this.funcionario(c.m);
     for (const [k, nome] of Object.entries(TEMAS)) {
+      // Primeiro o tema real equivalente (se a câmara o tiver), depois o da demo.
+      const nomes = [...TEMAS_EQUIVALENTES[k as Tema], nome];
       const [t] = await this.db.query<{ id: string }>(
-        'SELECT id FROM temas WHERE municipio_id = $1 AND lower(nome) = lower($2)',
-        [c.m.id, nome],
+        `SELECT id FROM temas WHERE municipio_id = $1 AND lower(nome) = ANY($2::text[])
+         ORDER BY array_position($2::text[], lower(nome)) LIMIT 1`,
+        [c.m.id, nomes.map((n) => n.toLowerCase())],
       );
       if (t) {
         c.temas.set(k as Tema, t.id);

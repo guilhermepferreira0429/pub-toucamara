@@ -107,6 +107,24 @@ export const TEMAS = {
   desporto: 'Desporto e piscinas',
 } as const;
 export type Tema = keyof typeof TEMAS;
+/**
+ * Nomes que o mesmo tema tem nos temas reais de uma câmara (as categorias das perguntas da avaliação). Numa
+ * câmara que já os tem, as conversas da demo entram nesses temas, para o mapa do conhecimento juntar as
+ * conversas à medida da avaliação; sem eles, cria-se o tema da demo (TEMAS).
+ */
+export const TEMAS_EQUIVALENTES: Record<Tema, string[]> = {
+  obras: ['Obras e urbanismo'],
+  agua: [],
+  ruido: ['Licenças de atividade, comércio e espaço público'],
+  vias: ['Ocorrências na via pública'],
+  residuos: ['Lixo, ambiente e limpeza'],
+  balcao: ['Atendimento, documentos e contactos'],
+  social: ['Educação e ação social'],
+  comercio: ['Licenças de atividade, comércio e espaço público'],
+  iluminacao: ['Ocorrências na via pública'],
+  eventos: ['Cultura, desporto e eventos'],
+  desporto: ['Cultura, desporto e eventos'],
+};
 
 export interface Turno {
   papel: 'municipe' | 'agente';
