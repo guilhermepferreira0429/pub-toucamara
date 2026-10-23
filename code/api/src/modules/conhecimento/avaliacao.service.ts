@@ -246,6 +246,40 @@ export class AvaliacaoService {
     );
   }
 
+  /**
+   * Totais na escala por categorias (v2) das execuções que a têm: certas = certa + maioritariamente
+   * certa; erradas = parcialmente certa + maioritariamente errada + errada; sem resposta = não encontrou,
+   * só mandou contactar, inconclusiva, sem resposta; taxa = certas / julgadas. É a medida do painel, da
+   * página pública e da apresentação; sem categorias, fica a rubrica antiga.
+   */
+  private async totaisV2(ids: string[], categorias = false) {
+    if (!ids.length) return [];
+    return this.db.query<{
+      execucao_id: string;
+      categoria: string | null;
+      total: number;
+      certas: number;
+      incompletas: number;
+      erradas: number;
+      sem_resposta: number;
+      por_responder: number;
+      por_avaliar: number;
+      taxa: number;
+    }>(
+      `SELECT execucao_id, categoria, total, (certa + maioritariamente_certa)::int AS certas,
+              parcialmente_certa AS incompletas,
+              (parcialmente_certa + errada + maioritariamente_errada)::int AS erradas,
+              (nao_encontrou + mandou_contactar + inconclusiva + sem_resposta)::int AS sem_resposta,
+              por_responder, por_avaliar,
+              round(100.0 * (certa + maioritariamente_certa) / total, 2)::float8 AS taxa
+       FROM avaliacao.resultados_categorias
+       WHERE execucao_id = ANY($1::uuid[]) AND total > 0
+         AND ${categorias ? 'categoria IS NOT NULL' : 'categoria IS NULL'}
+       ORDER BY taxa ASC, categoria`,
+      [ids],
+    );
+  }
+
   async qualidade(municipioId: string) {
     const todas = await this.db.query<ResumoExecucao>(
       `SELECT e.id AS execucao_id, s.nome AS sistema, e.agente_versao, e.motivo,
@@ -260,6 +294,23 @@ export class AvaliacaoService {
        LIMIT 40`,
       [municipioId],
     );
+    const v2 = new Map(
+      (await this.totaisV2(todas.map((e) => e.execucao_id))).map((t) => [t.execucao_id, t]),
+    );
+    for (const e of todas) {
+      const t = v2.get(e.execucao_id);
+      if (!t) continue;
+      Object.assign(e, {
+        total: t.total,
+        certas: t.certas,
+        passadas_bem: 0,
+        erradas: t.erradas,
+        sem_resposta: t.sem_resposta,
+        por_responder: t.por_responder,
+        por_avaliar: t.por_avaliar,
+        taxa: t.taxa,
+      });
+    }
     const ultimas = execucoesDoPainel(todas);
     const [estado, voz, pedidos] = await Promise.all([
       this.estadoPublicacao(municipioId),
@@ -278,13 +329,17 @@ export class AvaliacaoService {
     const u = ultimas[0];
     if (u) {
       const [categorias, linhas, nums] = await Promise.all([
-        this.db.query(
-          `SELECT r.categoria, ${COLUNAS_RESULTADO}
-           FROM avaliacao.resultados r
-           WHERE r.execucao_id = $1 AND r.categoria IS NOT NULL
-           ORDER BY r.taxa ASC NULLS LAST, r.categoria`,
-          [u.execucao_id],
-        ),
+        v2.has(u.execucao_id)
+          ? this.totaisV2([u.execucao_id], true).then((l) =>
+              l.map(({ execucao_id: _id, incompletas: _i, ...c }) => ({ ...c, passadas_bem: 0 })),
+            )
+          : this.db.query(
+              `SELECT r.categoria, ${COLUNAS_RESULTADO}
+               FROM avaliacao.resultados r
+               WHERE r.execucao_id = $1 AND r.categoria IS NOT NULL
+               ORDER BY r.taxa ASC NULLS LAST, r.categoria`,
+              [u.execucao_id],
+            ),
         this.erradas(municipioId, u.execucao_id),
         this.numerosSemFonte(municipioId, u.execucao_id),
       ]);
@@ -580,8 +635,12 @@ export class AvaliacaoService {
     return this.db.query(
       `SELECT r.id AS resposta_id, p.id AS pergunta_id, p.ordem, p.categoria,
               p.texto AS pergunta, p.comportamento, r.texto AS resposta,
-              f.veredicto, coalesce(g.resposta, ga.resposta) AS gabarito,
-              f.factos_em_falta, f.factos_errados, f.justificacao, f.avaliador,
+              CASE WHEN fc.categoria IN ('nao_encontrou', 'mandou_contactar', 'inconclusiva', 'sem_resposta')
+                   THEN 'sem_resposta' WHEN fc.categoria IS NOT NULL THEN 'errada' ELSE f.veredicto END AS veredicto,
+              fc.categoria AS categoria_v2,
+              coalesce(g.resposta, ga.resposta) AS gabarito,
+              f.factos_em_falta, f.factos_errados, coalesce(fc.justificacao, f.justificacao) AS justificacao,
+              coalesce(fc.avaliador, f.avaliador) AS avaliador,
               r.latencia_ms, r.respondida_em
        FROM avaliacao.respostas r
        JOIN avaliacao.perguntas p ON p.id = r.pergunta_id
@@ -589,8 +648,11 @@ export class AvaliacaoService {
        LEFT JOIN avaliacao.gabarito g ON g.id = f.gabarito_id
        LEFT JOIN avaliacao.gabarito ga ON f.gabarito_id IS NULL AND ga.pergunta_id = p.id
             AND ga.municipio_id = $2 AND ga.estado = 'aprovado'
+       LEFT JOIN avaliacao.avaliacao_final_categoria fc ON fc.resposta_id = r.id
        WHERE r.execucao_id = $1 AND r.erro IS NULL
-         AND f.veredicto IN ('errada', 'sem_resposta')
+         AND CASE WHEN fc.categoria IS NOT NULL
+                  THEN fc.categoria NOT IN ('certa', 'maioritariamente_certa')
+                  ELSE f.veredicto IN ('errada', 'sem_resposta') END
        ORDER BY p.ordem`,
       [execucaoId, municipioId],
     );

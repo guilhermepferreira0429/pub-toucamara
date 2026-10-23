@@ -211,7 +211,7 @@ export function Qualidade() {
           </p>
           <p className="text-[13px] text-white/80">
             {u
-              ? `${numero(bem)} de ${numero(u.total)} perguntas certas ou bem passadas a um funcionário. Mínimo para ir ao ar: ${d.limiar}%.`
+              ? `${numero(bem)} de ${numero(u.total)} perguntas certas ou maioritariamente certas (escala por categorias, dois juízes). Mínimo para ir ao ar: ${d.limiar}%.`
               : "Quando a equipa Tou, Câmara? correr o avaliador, o resultado aparece aqui."}
           </p>
           {u && (
