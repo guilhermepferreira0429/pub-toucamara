@@ -211,7 +211,8 @@ export interface ConversaLista {
   resumo: string | null;
   revisao: "certa" | "errada" | null;
   tema: { id: string; nome: string | null } | null;
-  municipe: { id: string; nome: string | null; telefone: string | null } | null;
+  /** cara_demo: o n da pessoa fictícia da demonstração (lib/caras.ts), ou null. */
+  municipe: { id: string; nome: string | null; telefone: string | null; cara_demo?: number | null } | null;
   momentos: number;
   /** A primeira fonte citada na conversa, ou null. */
   fonte?: { titulo: string; url: string; referencia: string | null } | null;
@@ -283,6 +284,7 @@ export interface ConversaDetalhe {
     id: string;
     nome: string | null;
     telefone: string | null;
+    cara_demo?: number | null;
     conversas_anteriores: number;
   } | null;
   turnos: Turno[];
@@ -381,6 +383,7 @@ export interface Passagem {
     id: string;
     nome: string | null;
     telefone: string | null;
+    cara_demo?: number | null;
     tem_telefone: boolean;
     tem_email: boolean;
   } | null;

@@ -140,7 +140,7 @@ function ConversaDetalhe({ id }: { id: string }) {
 
       <header className="flex flex-col gap-2">
         <div className="flex flex-wrap items-center gap-3">
-          <Cara telefone={d.municipe?.telefone} tamanho={44} />
+          <Cara n={d.municipe?.cara_demo} tamanho={44} />
           <h1
             id="conversa-titulo"
             className="font-display text-[28px] font-bold tracking-[-0.6px] text-tinta"
@@ -223,7 +223,7 @@ function ConversaDetalhe({ id }: { id: string }) {
               citacoes={citacoesPorTurno.get(t.id) ?? []}
               semFonte={semFontePorTurno.get(t.id) ?? []}
               irPara={comAudio ? (ms) => leitor.current?.irPara(ms) : undefined}
-              telefone={d.municipe?.telefone}
+              cara={d.municipe?.cara_demo}
             />
           ))}
         </section>
@@ -319,15 +319,15 @@ function Fala({
   citacoes,
   semFonte,
   irPara,
-  telefone,
+  cara,
 }: {
   turno: Turno;
   momentos: string[];
   citacoes: Citacao[];
   semFonte: string[];
   irPara?: (ms: number) => void;
-  /** O do munícipe: a cara, se for uma pessoa da demonstração. */
-  telefone?: string | null;
+  /** O `cara_demo` do munícipe: a cara, se for uma pessoa da demonstração. */
+  cara?: number | null;
 }) {
   if (turno.papel === "sistema") {
     return (
@@ -360,8 +360,8 @@ function Fala({
         <span className="flex size-[30px] shrink-0 items-center justify-center rounded-full bg-tinta text-[11px] font-bold text-white">
           {iniciais(nome)}
         </span>
-      ) : caraDemo(telefone) ? (
-        <Cara telefone={telefone} tamanho={30} />
+      ) : caraDemo(null, cara) ? (
+        <Cara n={cara} tamanho={30} />
       ) : (
         <span className="flex size-[30px] shrink-0 items-center justify-center rounded-full bg-creme-2">
           <UserRound className="size-[15px] text-tinta-2" aria-hidden />

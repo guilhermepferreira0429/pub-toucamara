@@ -127,8 +127,17 @@ export function AvatarAgente({ tamanho = 30 }: { tamanho?: 30 | 32 | 34 | 88 }) 
  * A cara de uma pessoa fictícia da demonstração (lib/caras.ts); nada para as
  * outras. Decorativa: o nome está sempre ao lado.
  */
-export function Cara({ telefone, tamanho = 32 }: { telefone: string | null | undefined; tamanho?: number }) {
-  const src = caraDemo(telefone);
+export function Cara({
+  telefone,
+  n,
+  tamanho = 32,
+}: {
+  telefone?: string | null;
+  /** O `cara_demo` da API, quando o telefone vem mascarado. */
+  n?: number | null;
+  tamanho?: number;
+}) {
+  const src = caraDemo(telefone, n);
   if (!src) return null;
   return (
     // eslint-disable-next-line @next/next/no-img-element -- retrato pequeno e estático da demonstração

@@ -140,7 +140,7 @@ export function PassagemDetalhe({ id, aoMudar }: { id: string; aoMudar?: () => v
       <Ficha titulo="Ficha">
         <LinhaFicha campo="Munícipe" largura="w-[90px]">
           <span className="flex items-center gap-2">
-            <Cara telefone={d.municipe?.telefone} tamanho={28} />
+            <Cara n={d.municipe?.cara_demo} tamanho={28} />
             {d.municipe
               ? [d.municipe.nome, d.municipe.telefone].filter(Boolean).join(" · ") || "Sem nome"
               : "Não identificado"}

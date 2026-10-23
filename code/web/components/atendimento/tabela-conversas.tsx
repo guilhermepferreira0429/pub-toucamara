@@ -170,7 +170,7 @@ export function TabelaConversas({
                       )}
                       {mostrarMunicipe && c.municipe && (
                         <span className="flex items-center gap-1.5 text-tinta-3">
-                          <Cara telefone={c.municipe.telefone} tamanho={20} />
+                          <Cara n={c.municipe.cara_demo} tamanho={20} />
                           <span className="line-clamp-1">{c.municipe.nome ?? c.municipe.telefone}</span>
                         </span>
                       )}

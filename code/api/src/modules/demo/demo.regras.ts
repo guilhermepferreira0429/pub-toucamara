@@ -39,6 +39,16 @@ export function eTelefoneDemonstracao(
 }
 
 /**
+ * O n da gama de teste, para o painel pôr a cara da pessoa fictícia (o
+ * telefone vai mascarado); null para os números reais.
+ */
+export function indiceTelefoneDemo(
+  e164: string | null | undefined,
+): number | null {
+  return eTelefoneDemonstracao(e164) ? Number(e164!.slice(-3)) : null;
+}
+
+/**
  * NIF fictício, válido no algoritmo (dígito de controlo certo): 2999990 +
  * dois dígitos + controlo. Serve para testar o fluxo; não é de ninguém
  * conhecido e está marcado como demonstração onde aparece.

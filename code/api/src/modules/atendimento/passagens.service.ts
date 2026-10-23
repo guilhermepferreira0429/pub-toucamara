@@ -8,6 +8,7 @@ import type { ContextoFerramenta } from '../../ferramentas/ferramenta.js';
 import { AuditoriaService } from '../auditoria/auditoria.service.js';
 import { MensagensService } from '../comunicacao/mensagens.service.js';
 import { ConversasService } from '../conversas/conversas.service.js';
+import { indiceTelefoneDemo } from '../demo/demo.regras.js';
 import {
   mascararTelefone,
   MunicipesService,
@@ -91,6 +92,7 @@ function paraPainel(l: LinhaPassagem) {
           id: municipe_id,
           nome: municipe_nome,
           telefone: telefone_e164 ? mascararTelefone(telefone_e164) : null,
+          cara_demo: indiceTelefoneDemo(telefone_e164),
           tem_telefone: !!telefone_e164,
           tem_email: !!email,
         }

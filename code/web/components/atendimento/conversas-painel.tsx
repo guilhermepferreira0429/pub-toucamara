@@ -161,7 +161,7 @@ export function ConversasPainel({ ativa }: { ativa: string }) {
                   >
                     <span className="flex items-center gap-1.5">
                       <span className={`size-[7px] shrink-0 rounded-full ${r.ponto}`} aria-hidden />
-                      <Cara telefone={c.municipe?.telefone} tamanho={24} />
+                      <Cara n={c.municipe?.cara_demo} tamanho={24} />
                       <span className="min-w-0 flex-1 truncate text-sm font-semibold text-tinta">
                         {tituloConversa(c)}
                       </span>

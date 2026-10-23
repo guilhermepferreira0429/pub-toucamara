@@ -694,6 +694,7 @@ describe('Conversas (e2e)', () => {
           id: expect.any(String),
           nome: null,
           telefone: expect.stringContaining('•'),
+          cara_demo: null,
         },
         momentos: 1,
         fonte: null,

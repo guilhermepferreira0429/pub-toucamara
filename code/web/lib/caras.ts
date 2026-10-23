@@ -8,9 +8,12 @@
  */
 const COM_CARA = new Set<number>([]);
 
-export function caraDemo(telefone: string | null | undefined): string | null {
+/**
+ * Pelo telefone inteiro (a ação social recebe-o) ou pelo n que a API manda
+ * quando o telefone vem mascarado (`cara_demo`).
+ */
+export function caraDemo(telefone: string | null | undefined, n?: number | null): string | null {
   const m = /^\+351910000(\d{3})$/.exec((telefone ?? "").replace(/\s/g, ""));
-  if (!m) return null;
-  const n = Number(m[1]);
-  return COM_CARA.has(n) ? `/caras/${n}.webp` : null;
+  const i = m ? Number(m[1]) : n;
+  return i != null && COM_CARA.has(i) ? `/caras/${i}.webp` : null;
 }

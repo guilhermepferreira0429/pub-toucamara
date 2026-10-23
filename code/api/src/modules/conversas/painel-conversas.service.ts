@@ -8,6 +8,7 @@ import { ArmazenamentoService } from '../armazenamento/armazenamento.service.js'
 import { AuditoriaService } from '../auditoria/auditoria.service.js';
 import { LinksCurtosService } from '../comunicacao/links-curtos.service.js';
 import { numerosSemFonteNaConversa } from '../conhecimento/numeros-na-fonte.js';
+import { indiceTelefoneDemo } from '../demo/demo.regras.js';
 import { mascararTelefone } from '../municipes/municipes.service.js';
 import { objetosDaConversa } from './objetos-conversa.js';
 import { resumoCurto } from './retomar.js';
@@ -130,6 +131,7 @@ export class PainelConversasService {
               id: l.municipe_id,
               nome: l.municipe_nome,
               telefone: mascararTelefone(l.telefone),
+              cara_demo: indiceTelefoneDemo(l.telefone),
             }
           : null,
         momentos: l.momentos,
@@ -282,6 +284,7 @@ export class PainelConversasService {
             id: m.id,
             nome: m.nome,
             telefone: mascararTelefone(m.telefone),
+            cara_demo: indiceTelefoneDemo(m.telefone),
             conversas_anteriores: m.conversas_anteriores,
           }
         : null,
