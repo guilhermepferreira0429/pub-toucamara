@@ -341,6 +341,27 @@ describe('recolha das fontes', () => {
       .set(chefe)
       .expect(200);
     expect(arq.body.itens.map((f: { id: string }) => f.id)).toContain(id);
+    expect(arq.body.contagens.arquivadas).toBeGreaterThanOrEqual(1);
+
+    // A vista por omissão do painel: só as que se leem, paginadas, com as
+    // contagens para o aviso das que dão erro.
+    await ctx.db.query(`UPDATE fontes SET estado = 'erro' WHERE id = $1`, [
+      await novaFonte('/partida', { leitura_automatica: false }),
+    ]);
+    const func = await ctx
+      .http()
+      .get('/v1/painel/conhecimento/fontes?estado=funcionais&pagina=1&limite=2')
+      .set(chefe)
+      .expect(200);
+    expect(func.body.itens.length).toBeLessThanOrEqual(2);
+    expect(
+      func.body.itens.every((f: { estado: string }) => f.estado !== 'erro'),
+    ).toBe(true);
+    expect(func.body).toMatchObject({ pagina: 1, limite: 2 });
+    expect(func.body.total).toBe(
+      func.body.contagens.em_dia + func.body.contagens.mudou,
+    );
+    expect(func.body.contagens.erro).toBeGreaterThanOrEqual(1);
 
     await ctx.db.query(
       `UPDATE fontes SET proxima_leitura_em = now() - interval '1 day' WHERE id = $1`,

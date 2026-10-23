@@ -407,6 +407,12 @@ export interface Fontes {
     mudancas: number;
     erros: number;
   } | null;
+  /** O total do filtro (com ?pagina=, os itens são só os dessa página). */
+  total?: number;
+  pagina?: number;
+  limite?: number;
+  /** Por estado, fora as arquivadas (que vêm à parte). */
+  contagens?: { em_dia: number; mudou: number; erro: number; arquivadas: number };
 }
 
 export interface AlteracaoResumo {

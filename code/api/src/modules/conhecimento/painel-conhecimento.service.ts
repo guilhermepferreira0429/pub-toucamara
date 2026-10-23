@@ -198,7 +198,9 @@ export class PainelConhecimentoService {
       };
     } catch (e) {
       // Sem a migração 0101 (resultados_categorias), o mapa fica sem a medida.
-      this.logger.warn(`Avaliação por tema indisponível: ${(e as Error).message}`);
+      this.logger.warn(
+        `Avaliação por tema indisponível: ${(e as Error).message}`,
+      );
       return null;
     }
   }
@@ -1081,9 +1083,30 @@ export class PainelConhecimentoService {
 
   async fontes(
     municipioId: string,
-    f: { estado?: string; entidade_id?: string; arquivadas?: boolean },
+    f: {
+      estado?: string;
+      entidade_id?: string;
+      arquivadas?: boolean;
+      pagina?: number;
+      limite?: number;
+    },
   ) {
-    const [itens, [ultima]] = await Promise.all([
+    // Sem página: a lista toda (até 1000), como o mapa do conhecimento usa.
+    const limite = f.pagina ? (f.limite ?? 50) : 1000;
+    const salto = f.pagina ? (f.pagina - 1) * limite : 0;
+    const filtro = [
+      municipioId,
+      f.estado ?? null,
+      f.entidade_id ?? null,
+      f.arquivadas === true,
+    ];
+    const onde = `fo.municipio_id = $1
+           AND ($2::text IS NULL
+                OR ($2 = 'funcionais' AND fo.estado <> 'erro')
+                OR fo.estado = $2)
+           AND ($3::uuid IS NULL OR fo.entidade_id = $3)
+           AND ((fo.arquivada_em IS NOT NULL) = $4)`;
+    const [itens, [ultima], [conta], [contagens]] = await Promise.all([
       this.db.query(
         `SELECT fo.id, fo.titulo, fo.tipo, fo.url, fo.estado, fo.erro,
                 fo.ultima_leitura_em, fo.leitura_automatica, fo.lingua, fo.demonstracao,
@@ -1107,26 +1130,38 @@ export class PainelConhecimentoService {
                  WHERE a.fonte_id = fo.id AND a.estado = 'por_rever')::int AS alteracoes_por_rever
          FROM fontes fo JOIN entidades e ON e.id = fo.entidade_id
          LEFT JOIN fonte_sites si ON si.id = fo.site_id
-         WHERE fo.municipio_id = $1
-           AND ($2::text IS NULL OR fo.estado = $2)
-           AND ($3::uuid IS NULL OR fo.entidade_id = $3)
-           AND ((fo.arquivada_em IS NOT NULL) = $4)
-         ORDER BY (fo.estado = 'erro') DESC, (fo.estado = 'mudou') DESC, e.nome, fo.titulo
-         LIMIT 1000`,
-        [
-          municipioId,
-          f.estado ?? null,
-          f.entidade_id ?? null,
-          f.arquivadas === true,
-        ],
+         WHERE ${onde}
+         ORDER BY (fo.estado = 'mudou') DESC, (fo.estado = 'erro') ASC, e.nome, fo.titulo, fo.id
+         LIMIT $5 OFFSET $6`,
+        [...filtro, limite, salto],
       ),
       this.db.query(
         `SELECT id, iniciada_em, terminada_em, fontes_lidas, mudancas, erros, detalhes
          FROM ingestoes WHERE municipio_id = $1 ORDER BY iniciada_em DESC LIMIT 1`,
         [municipioId],
       ),
+      this.db.query<{ total: number }>(
+        `SELECT count(*)::int AS total FROM fontes fo WHERE ${onde}`,
+        filtro,
+      ),
+      // Para os filtros e o aviso das que falham (as arquivadas à parte).
+      this.db.query<Record<'em_dia' | 'mudou' | 'erro' | 'arquivadas', number>>(
+        `SELECT count(*) FILTER (WHERE arquivada_em IS NULL AND estado = 'em_dia')::int AS em_dia,
+                count(*) FILTER (WHERE arquivada_em IS NULL AND estado = 'mudou')::int AS mudou,
+                count(*) FILTER (WHERE arquivada_em IS NULL AND estado = 'erro')::int AS erro,
+                count(*) FILTER (WHERE arquivada_em IS NOT NULL)::int AS arquivadas
+         FROM fontes WHERE municipio_id = $1 AND ($2::uuid IS NULL OR entidade_id = $2)`,
+        [municipioId, f.entidade_id ?? null],
+      ),
     ]);
-    return { itens, ultima_ingestao: ultima ?? null };
+    return {
+      itens,
+      ultima_ingestao: ultima ?? null,
+      total: conta.total,
+      pagina: f.pagina ?? 1,
+      limite,
+      contagens,
+    };
   }
 
   async criarFonte(municipioId: string, u: UtilizadorPainel, d: NovaFonte) {

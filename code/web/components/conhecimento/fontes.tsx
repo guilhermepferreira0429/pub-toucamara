@@ -452,21 +452,47 @@ function TabelaFontes({ grupos, acoesDe }: { grupos: GrupoFonte[]; acoesDe: (f: 
   );
 }
 
+/** "funcionais": todas menos as que dão erro ao ler (a vista por omissão). */
+type FiltroFontes = "funcionais" | EstadoFonte | "arquivadas" | "todas";
+
+const POR_PAGINA = 50;
+
 export function Fontes() {
   const { pedido, pode } = useSessao();
-  const [filtro, setFiltro] = useState<"" | EstadoFonte | "arquivadas">("");
+  const [filtro, setFiltroBase] = useState<FiltroFontes>("funcionais");
+  const [pagina, setPagina] = useState(1);
+  const setFiltro = (f: FiltroFontes) => {
+    setFiltroBase(f);
+    setPagina(1);
+  };
   const [nova, setNova] = useState(false);
   const [colar, setColar] = useState<Fonte | null>(null);
   const [editar, setEditar] = useState<Fonte | null>(null);
   const [historico, setHistorico] = useState<Fonte | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
-  const fontes = useDados<TFontes>(
-    `/v1/painel/conhecimento/fontes${filtro === "arquivadas" ? "?arquivadas=true" : filtro ? `?estado=${filtro}` : ""}`,
-  );
+  const consulta = new URLSearchParams({ pagina: String(pagina), limite: String(POR_PAGINA) });
+  if (filtro === "arquivadas") consulta.set("arquivadas", "true");
+  else if (filtro !== "todas") consulta.set("estado", filtro);
+  const fontes = useDados<TFontes>(`/v1/painel/conhecimento/fontes?${consulta}`);
   const ler = useAcao();
   const escrever = pode("conhecimento");
   const i = fontes.dados?.ultima_ingestao;
   const itens = fontes.dados?.itens ?? [];
+  const c = fontes.dados?.contagens;
+  const total = fontes.dados?.total ?? itens.length;
+  const paginas = Math.max(1, Math.ceil(total / POR_PAGINA));
+  const irPara = (p: number) => {
+    setPagina(p);
+    document.getElementById("lista-fontes")?.scrollIntoView({ block: "start" });
+  };
+  const filtros: [FiltroFontes, string, number | undefined][] = [
+    ["funcionais", "Funcionais", c && c.em_dia + c.mudou],
+    ["mudou", ESTADOS.mudou.rotulo, c?.mudou],
+    ["em_dia", ESTADOS.em_dia.rotulo, c?.em_dia],
+    ["erro", ESTADOS.erro.rotulo, c?.erro],
+    ["arquivadas", "Arquivadas", c?.arquivadas],
+    ["todas", "Todas", c && c.em_dia + c.mudou + c.erro],
+  ];
 
   const lerAgora = async (caminho: string, msg: string) => {
     const r = await ler.executar(() => pedido<{ em_fila: boolean }>(caminho, { metodo: "POST" }));
@@ -529,8 +555,8 @@ export function Fontes() {
       <ErroLinha erro={ler.erro} />
       <PainelTurismo aoCarregar={fontes.recarregar} />
 
-      <div className="flex flex-wrap gap-1.5" role="group" aria-label="Filtrar fontes">
-        {(["", "mudou", "erro", "em_dia", "arquivadas"] as const).map((e) => (
+      <div id="lista-fontes" className="flex scroll-mt-4 flex-wrap gap-1.5" role="group" aria-label="Filtrar fontes">
+        {filtros.map(([e, rotulo, n]) => (
           <button
             key={e}
             type="button"
@@ -540,10 +566,31 @@ export function Fontes() {
               filtro === e ? "border-tinta bg-tinta text-white" : "border-linha bg-papel text-tinta-2"
             }`}
           >
-            {e === "arquivadas" ? "Arquivadas" : e ? ESTADOS[e].rotulo : "Todas"}
+            {rotulo}
+            {n !== undefined ? ` · ${numero(n)}` : ""}
           </button>
         ))}
       </div>
+
+      {filtro !== "erro" && !!c?.erro && (
+        <div className="flex flex-wrap items-center gap-3 rounded-xl border border-terracota/40 bg-terracota-suave/40 px-4 py-3">
+          <TriangleAlert className="size-4 shrink-0 text-terracota-escuro" aria-hidden />
+          <p className="min-w-0 flex-1 basis-[260px] text-[13px] text-tinta">
+            <b>
+              {numero(c.erro)} {c.erro === 1 ? "fonte não se consegue ler" : "fontes não se conseguem ler"}
+            </b>
+            : páginas que deixaram de existir, PDFs digitalizados ou páginas só com JavaScript. Cada uma diz o que
+            fazer: mudar o endereço, colar o texto pelo painel ou arquivar.
+          </p>
+          <button
+            type="button"
+            onClick={() => setFiltro("erro")}
+            className="text-[13px] font-semibold text-terracota-escuro underline-offset-2 hover:underline"
+          >
+            Ver as fontes com erro →
+          </button>
+        </div>
+      )}
 
       {itens.some((f) => f.demonstracao) && (
         <FaixaDemonstracao>
@@ -562,6 +609,38 @@ export function Fontes() {
         {/* Computador: uma tabela, com as traduções recolhidas por baixo da página. */}
         <TabelaFontes grupos={grupos} acoesDe={acoesDe} />
       </Estado>
+      {total > POR_PAGINA && (
+        <nav
+          aria-label="Páginas das fontes"
+          className="flex flex-wrap items-center justify-between gap-3 text-[13px] text-tinta-2"
+        >
+          <span>
+            {numero((pagina - 1) * POR_PAGINA + 1)}–{numero(Math.min(pagina * POR_PAGINA, total))} de{" "}
+            {numero(total)}
+          </span>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              disabled={pagina <= 1}
+              onClick={() => irPara(pagina - 1)}
+              className="h-9 rounded-[10px] border border-linha bg-papel px-3 font-semibold text-tinta hover:bg-creme disabled:opacity-40"
+            >
+              ← Anterior
+            </button>
+            <span aria-live="polite">
+              Página {pagina} de {paginas}
+            </span>
+            <button
+              type="button"
+              disabled={pagina >= paginas}
+              onClick={() => irPara(pagina + 1)}
+              className="h-9 rounded-[10px] border border-linha bg-papel px-3 font-semibold text-tinta hover:bg-creme disabled:opacity-40"
+            >
+              Seguinte →
+            </button>
+          </div>
+        </nav>
+      )}
 
       <Sites escrever={escrever} tipos={TIPOS} onMudou={fontes.recarregar} />
 

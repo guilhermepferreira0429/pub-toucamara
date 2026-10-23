@@ -496,10 +496,14 @@ export class PainelConhecimentoController {
   fontes(@MunicipioAtual() m: Municipio, @Query() q: unknown) {
     const f = validar(
       z.object({
-        estado: z.enum(['em_dia', 'mudou', 'erro']).optional(),
+        /** funcionais: todas menos as que dão erro ao ler. */
+        estado: z.enum(['em_dia', 'mudou', 'erro', 'funcionais']).optional(),
         entidade_id: z.uuid().optional(),
         /** true: só as arquivadas (por defeito, só as que se leem). */
         arquivadas: z.stringbool().optional(),
+        /** Com página, a lista vem paginada (limite por página, 50). */
+        pagina: z.coerce.number().int().min(1).optional(),
+        limite: z.coerce.number().int().min(1).max(200).optional(),
       }),
       q,
     );
