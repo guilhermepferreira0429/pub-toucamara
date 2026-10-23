@@ -177,7 +177,8 @@ html[data-contraste="alto"] .zona-municipe a:not([class*="bg-"]) {
    contorno branco onde se escreve (vê-se nos fundos escuros). Só com rato. Fica fora das
    camadas do Tailwind para ganhar ao "cursor-pointer" dos componentes. A ponta da seta está
    em (4, 4); a da mãozinha, na ponta do dedo, em (12, 2); a barra, ao meio, em (8, 12). O que
-   tem "cursor-default", "cursor-grab" ou "cursor-not-allowed" fica com o seu. */
+   está desativado mostra a seta com o sinal de proibido; o que tem "cursor-default" ou
+   "cursor-grab" fica com o seu. */
 @media (pointer: fine) {
   html {
     cursor:
@@ -202,7 +203,7 @@ html[data-contraste="alto"] .zona-municipe a:not([class*="bg-"]) {
       [role="switch"],
       [role="checkbox"],
       .cursor-pointer
-    ):not(.cursor-default, .cursor-grab, .cursor-not-allowed) {
+    ):not(.cursor-default, .cursor-grab, .cursor-not-allowed, :disabled, [aria-disabled="true"]) {
     cursor:
       url("/cursor/links.svg") 12 2,
       pointer;
@@ -221,5 +222,22 @@ html[data-contraste="alto"] .zona-municipe a:not([class*="bg-"]) {
     cursor:
       url("/cursor/texto.svg") 8 12,
       text;
+  }
+
+  /* Proibido: o que não se pode usar agora (desativado, aria-disabled ou com
+     "cursor-not-allowed"). A seta com o sinal terracota, ponta em (4, 4). Vem
+     no fim para ganhar à barra dos campos desativados. */
+  :is(
+    button:disabled,
+    input:disabled,
+    select:disabled,
+    textarea:disabled,
+    fieldset:disabled *,
+    [aria-disabled="true"],
+    .cursor-not-allowed
+  ) {
+    cursor:
+      url("/cursor/proibido.svg") 4 4,
+      not-allowed;
   }
 }
