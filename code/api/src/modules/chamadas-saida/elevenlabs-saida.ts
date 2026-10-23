@@ -42,6 +42,12 @@ export interface PedidoSaida {
   variaveis: Record<string, string>;
   /** O nosso id do munícipe (aparece no histórico do ElevenLabs). */
   utilizador?: string | null;
+  /**
+   * A primeira frase desta chamada (quem fala e porque liga). Sem ela, o
+   * agente de entrada abria com "Em que posso ajudar?" a quem não ligou.
+   * O agente tem de permitir o override de agent.first_message.
+   */
+  primeiraMensagem?: string | null;
 }
 
 export type ResultadoSaida =
@@ -73,6 +79,13 @@ export async function pedirChamada(
     conversation_initiation_client_data: {
       dynamic_variables: p.variaveis,
       ...(p.utilizador ? { user_id: p.utilizador } : {}),
+      ...(p.primeiraMensagem
+        ? {
+            conversation_config_override: {
+              agent: { first_message: p.primeiraMensagem },
+            },
+          }
+        : {}),
     },
     telephony_call_config: { ringing_timeout_secs: TOQUE_S },
   };

@@ -326,6 +326,29 @@ export const MOTIVO_FALADO: Record<MotivoChamada, string> = {
     'a câmara quer avisá-lo de uma data importante antes que seja tarde',
 };
 
+/**
+ * A primeira frase de uma chamada da câmara: quem fala, porque liga e o
+ * aviso de gravação. Quem atende não ligou, por isso não se pergunta
+ * "em que posso ajudar?".
+ */
+export function primeiraFraseSaida(p: {
+  nomeAgente: string | null;
+  municipio: string;
+  motivo: MotivoChamada;
+  numeroProcesso?: string | null;
+  aviso: string;
+}): string {
+  const nome = p.nomeAgente?.trim() || 'Tou, Câmara?';
+  const motivo = MOTIVO_FALADO[p.motivo];
+  const n = p.numeroProcesso?.trim();
+  const sobre = !n
+    ? motivo
+    : motivo.endsWith('o processo')
+      ? `${motivo} ${n}`
+      : `${motivo}, no processo ${n}`;
+  return `Olá, daqui fala o assistente ${nome} da Câmara Municipal de ${p.municipio}. Estou a ligar porque ${sobre}. ${p.aviso}`;
+}
+
 export function variaveisSaida(
   id: string,
   motivo: MotivoChamada,

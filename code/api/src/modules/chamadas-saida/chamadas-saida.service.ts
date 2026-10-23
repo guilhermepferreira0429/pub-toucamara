@@ -17,6 +17,7 @@ import {
 } from '../comunicacao/mensagens.service.js';
 import type { WebhookTranscricao } from '../conversas/elevenlabs.js';
 import { RetomarService } from '../conversas/retomar.service.js';
+import { AVISO_GRAVACAO } from '../conversas/retomar.js';
 import type { Municipio } from '../municipios/municipios.service.js';
 import { MunicipiosService } from '../municipios/municipios.service.js';
 import { diaPorExtenso, emFaltaFalado } from '../processos/avisos.js';
@@ -41,6 +42,7 @@ import {
   lerConfig,
   local,
   MOTIVO_FALADO,
+  primeiraFraseSaida,
   MotivoChamada,
   MotivoSemChamada,
   MOTIVOS_CHAMADA,
@@ -366,10 +368,11 @@ export class ChamadasSaidaService {
           aceita_chamadas: boolean;
           respondido: boolean | null;
           agent_id: string | null;
+          nome_agente: string | null;
           config: unknown;
         }
       >(
-        `SELECT ${COLUNAS}, m.aceita_chamadas,
+        `SELECT ${COLUNAS}, m.aceita_chamadas, a.nome AS nome_agente,
                 (SELECT pe.respondido_em IS NOT NULL FROM processo_pedidos_estado pe
                  WHERE pe.id = c.pedido_id) AS respondido,
                 -- O agente das chamadas da câmara; sem ele, o de entrada.
@@ -451,10 +454,10 @@ export class ChamadasSaidaService {
          WHERE id = $1`,
         [c.id],
       );
-      return { c, agentId: c.agent_id!, config };
+      return { c, agentId: c.agent_id!, config, municipio };
     });
     if (!pronta) return false;
-    const { c, agentId, config } = pronta;
+    const { c, agentId, config, municipio } = pronta;
     // Segunda barreira, mesmo à porta do fornecedor.
     if (destinoSimulado({ destino: c.telefone_e164, simulado: c.simulado }))
       throw new Error(ERRO_SIMULADA);
@@ -477,6 +480,13 @@ export class ChamadasSaidaService {
       para: c.telefone_e164,
       variaveis,
       utilizador: c.municipe_id,
+      primeiraMensagem: primeiraFraseSaida({
+        nomeAgente: c.nome_agente,
+        municipio: municipio.nome,
+        motivo: c.motivo,
+        numeroProcesso: c.contexto?.numero_processo,
+        aviso: AVISO_GRAVACAO,
+      }),
     });
     return this.db.transaction(async (tx) => {
       if (r.ok) {

@@ -322,6 +322,9 @@ export function gerarAgente(
         enable_conversation_initiation_client_data_from_webhook: true,
         conversation_config_override: {
           tts: { voice_id: true, speed: true },
+          // As chamadas da câmara abrem com quem liga e porquê
+          // (chamadas-saida: primeiraFraseSaida), não com a saudação.
+          agent: { first_message: true },
         },
       },
       workspace_overrides: {

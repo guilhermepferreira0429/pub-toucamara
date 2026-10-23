@@ -8,6 +8,7 @@ import {
   dentroDaJanela,
   instanteLocal,
   lerConfig,
+  primeiraFraseSaida,
   proximaJanela,
   telefoneLigavel,
   VARIAVEIS_SAIDA_VAZIAS,
@@ -270,5 +271,45 @@ describe('variáveis dinâmicas', () => {
       (k) => k in VARIAVEIS_VAZIAS,
     );
     expect(comuns).toEqual([]);
+  });
+});
+
+describe('primeira frase de uma chamada da câmara', () => {
+  const base = {
+    nomeAgente: null,
+    municipio: 'Guimarães',
+    aviso: 'Esta chamada é gravada.',
+  };
+
+  it('diz quem liga e porquê, sem perguntar em que pode ajudar', () => {
+    const f = primeiraFraseSaida({
+      ...base,
+      motivo: 'manual',
+      numeroProcesso: 'ESP 2/2026',
+    });
+    expect(f).toBe(
+      'Olá, daqui fala o assistente Tou, Câmara? da Câmara Municipal de Guimarães. Estou a ligar porque o técnico pediu para falar consigo sobre o processo ESP 2/2026. Esta chamada é gravada.',
+    );
+    expect(f).not.toMatch(/em que posso ajudar/i);
+  });
+
+  it('junta o número do processo a qualquer motivo', () => {
+    expect(
+      primeiraFraseSaida({
+        ...base,
+        motivo: 'pedido_documento',
+        numeroProcesso: 'OBR 7/2026',
+      }),
+    ).toContain('porque falta um documento, no processo OBR 7/2026.');
+  });
+
+  it('sem processo fica só o motivo', () => {
+    expect(
+      primeiraFraseSaida({
+        ...base,
+        nomeAgente: 'Vimaranes',
+        motivo: 'campanha',
+      }),
+    ).toContain('assistente Vimaranes da Câmara');
   });
 });
