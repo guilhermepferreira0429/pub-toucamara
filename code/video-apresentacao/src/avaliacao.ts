@@ -17,15 +17,15 @@ export interface Resultados {
 export const avaliacao = {
   data: '22 e 23 de outubro de 2026',
   perguntas: 180,
-  ronda: 3,
+  ronda: 4,
   /** Páginas oficiais e trechos na base do Tou, Câmara? nesta ronda. */
   fontes: 1133,
   trechos: 6780,
   site: { sai: 15, parcial: 60, nao: 105, contactenos: 41 },
-  tou: { sai: 82, parcial: 64, nao: 34, contactenos: 1 },
+  tou: { sai: 108, parcial: 47, nao: 25, contactenos: 1 },
   /** Uma letra por pergunta, pela ordem do questionário: s = sai a saber, p = em parte, n = não ajuda. */
   grelha: {
     site: 'nnnnnpnppnnnpppppnpnnpnnnpnnnppnnppnppppppppnnnnpnnnnppppnppnpnnpppnnnnnnnnnnnnnnnnnpnnppssnpnnnnpnnppnppnnnnnnnnnpsspnpnnnnsnppnsssnsnnssnsnppnnpnpnpnnnnnnsnnnppnpnppnspnnnnnsnnnp',
-    tou: 'ppnnsnppsnpsssnspppnnpsnnpnsnsssnppppppppssppsssspnppspsppsppnpnsspnssssssspspspssnppsnspssppnnpssppsspppsnnspsssnnnsspnsnppsnnpssnnppppnspssssppspppsssspnnspspsssssssssssspspsssss',
+    tou: 'ssnsspsssppssssssssppsnnnppsnsssnpppspsnppsppspssnnppssspsspsnpnssppssssssssspspssssssssnpspspppspspsspsssnnsssssnnnsspnsnsssnspssnsnnspssppsssppspnpsssssppspspssssssssssssnspsssss',
   },
 }

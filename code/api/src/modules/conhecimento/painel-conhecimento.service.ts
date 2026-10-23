@@ -124,8 +124,8 @@ export class PainelConhecimentoService {
            (SELECT count(*) FROM respostas WHERE municipio_id = $1 AND estado = 'no_ar')::int AS respostas_no_ar,
            (SELECT count(*) FROM perguntas_sem_resposta
             WHERE municipio_id = $1 AND estado IN ('nova', 'com_equipa', 'espera_camara'))::int AS sem_resposta_abertas,
-           (SELECT count(*) FROM fontes WHERE municipio_id = $1)::int AS fontes,
-           (SELECT count(*) FROM fontes WHERE municipio_id = $1 AND estado = 'erro')::int AS fontes_com_erro,
+           (SELECT count(*) FROM fontes WHERE municipio_id = $1 AND arquivada_em IS NULL)::int AS fontes,
+           (SELECT count(*) FROM fontes WHERE municipio_id = $1 AND arquivada_em IS NULL AND estado = 'erro')::int AS fontes_com_erro,
            (SELECT count(*) FROM alteracoes a JOIN fontes f ON f.id = a.fonte_id
             WHERE f.municipio_id = $1 AND a.estado = 'por_rever')::int AS alteracoes_por_rever,
            (SELECT count(*) FROM contradicoes WHERE municipio_id = $1 AND estado <> 'resolvida')::int AS contradicoes_abertas`,

@@ -302,7 +302,7 @@ export class ConhecimentoService {
               ts_rank_cd(t.tsv, c.q, 32)::float8 AS pontuacao
        FROM c, trechos t
        ${TRECHO_JUNCOES}
-       WHERE fo.municipio_id = $1 AND e.ativo
+       WHERE fo.municipio_id = $1 AND e.ativo AND fo.arquivada_em IS NULL
          AND t.tsv @@ c.q
          AND fo.lingua = ANY($4::text[])
          AND ${EM_VIGOR('t')} AND ${VERSAO_ATUAL}
@@ -337,7 +337,7 @@ export class ConhecimentoService {
                   (t.embedding <=> $2::vector)::float8 AS distancia
            FROM trechos t
            ${TRECHO_JUNCOES}
-           WHERE fo.municipio_id = $1 AND e.ativo AND t.embedding IS NOT NULL
+           WHERE fo.municipio_id = $1 AND e.ativo AND fo.arquivada_em IS NULL AND t.embedding IS NOT NULL
              AND fo.lingua = ANY($4::text[])
              AND ${EM_VIGOR('t')} AND ${VERSAO_ATUAL}
            ORDER BY t.embedding <=> $2::vector

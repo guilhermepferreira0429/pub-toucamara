@@ -222,9 +222,15 @@ export function MapaConhecimento() {
     : null;
 
   const lista = fontes.dados?.itens ?? [];
-  const emDia = lista.length
-    ? Math.round((lista.filter((f) => f.estado === "em_dia").length / lista.length) * 100)
-    : null;
+  // Fontes em dia: as que leem sem erro (em dia ou com alteração detetada), sobre as ativas (as
+  // arquivadas ficam de fora). Contagens de todas as fontes, não só da primeira página da lista.
+  const cont = fontes.dados?.contagens;
+  const ativas = cont ? cont.em_dia + cont.mudou + cont.erro : 0;
+  const emDia = cont
+    ? ativas ? Math.round(((cont.em_dia + cont.mudou) / ativas) * 100) : null
+    : lista.length
+      ? Math.round((lista.filter((f) => f.estado !== "erro").length / lista.length) * 100)
+      : null;
   const porEntidade = new Map<string, number>();
   for (const f of lista) porEntidade.set(f.entidade, (porEntidade.get(f.entidade) ?? 0) + 1);
   const entidadesComFontes = [...porEntidade.entries()].sort((a, b) => b[1] - a[1]);
