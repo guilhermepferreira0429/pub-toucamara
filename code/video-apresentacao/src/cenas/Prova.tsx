@@ -36,13 +36,13 @@ export function Prova({ dur }: { dur: number }) {
         </div>
         <Entra de={20}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 24, marginTop: 30 }}>
-            <span style={{ minWidth: 150, fontSize: 120, fontWeight: 900, letterSpacing: '-0.05em', color: C.verdeTinta, fontVariantNumeric: 'tabular-nums' }}>{conta(avaliacao.site.sai, avaliacao.tou.sai)}</span>
+            <span style={{ minWidth: 150, textAlign: 'right', fontSize: 120, fontWeight: 900, letterSpacing: '-0.05em', color: C.verdeTinta, fontVariantNumeric: 'tabular-nums' }}>{conta(avaliacao.site.sai, avaliacao.tou.sai)}</span>
             <span style={{ fontSize: 34, fontWeight: 700 }}>saíram a saber o que fazer</span>
           </div>
         </Entra>
         <Entra de={30}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 24 }}>
-            <span style={{ minWidth: 150, fontSize: 120, fontWeight: 900, letterSpacing: '-0.05em', color: C.terracota, fontVariantNumeric: 'tabular-nums' }}>{conta(avaliacao.site.contactenos, avaliacao.tou.contactenos)}</span>
+            <span style={{ minWidth: 150, textAlign: 'right', fontSize: 120, fontWeight: 900, letterSpacing: '-0.05em', color: C.terracota, fontVariantNumeric: 'tabular-nums' }}>{conta(avaliacao.site.contactenos, avaliacao.tou.contactenos)}</span>
             <span style={{ fontSize: 34, fontWeight: 700 }}>acabaram em “contacte-nos”</span>
           </div>
         </Entra>
