@@ -86,16 +86,6 @@ function diasAte(fim: string, agora: string): number {
   return Math.round((dia(fim) - dia(agora)) / 86_400_000);
 }
 
-function trabalho(v: Dados['visao']): string {
-  const itens = [
-    v.ocorrencias && `${v.ocorrencias} ${v.ocorrencias === 1 ? 'ocorrência' : 'ocorrências'}`,
-    v.requerimentos && `${v.requerimentos} ${v.requerimentos === 1 ? 'requerimento' : 'requerimentos'}`,
-    v.consultas && `${v.consultas} ${v.consultas === 1 ? 'consulta de processo' : 'consultas de processos'}`,
-    v.marcacoes && `${v.marcacoes} ${v.marcacoes === 1 ? 'marcação' : 'marcações'}`,
-  ].filter((x): x is string => !!x);
-  return itens.slice(0, 3).join(' · ');
-}
-
 export function guiaoUnico(d: Dados): Toma[] {
   const m = d.municipe;
   if (!m) throw new Error('Falta o munícipe nas capturas: corre npm run capturar -- --video=painel,municipe.');
@@ -110,8 +100,7 @@ export function guiaoUnico(d: Dados): Toma[] {
   const ecra = (n: number) =>
     m.falas.slice(0, n).reduce((cap, f) => f.captura ?? cap, 'municipe_chamada_01');
 
-  // A parte de cima da visão geral, acima do cartão do teste de qualidade.
-  const visaoTopo: Retangulo = { x: 250, y: 20, w: 1100, h: 619 };
+  const ecraInteiro: Retangulo = { x: 0, y: 0, w: 1920, h: 1080 };
 
   return [
     // ---------------------------------------------------------------- intro
@@ -234,24 +223,24 @@ export function guiaoUnico(d: Dados): Toma[] {
     },
 
     // ------------------------------------------------ o lado da câmara
+    // Factos do produto (os mesmos da página inicial), não números da
+    // demonstração: 24 h, as 48 ferramentas do agente de entrada
+    // (code/api/agente-voz) e as 90 funcionalidades de /funcionalidades.
     {
-      id: 'conversas',
+      id: 'sempre',
       compassos: 1,
       entrada: 'clarao',
-      selo: true,
-      plano: { tipo: 'numero', captura: 'visao', fundoRect: visaoTopo, valor: v.conversas, texto: 'conversas atendidas em 7 dias', fundo: 'tinta' },
+      plano: { tipo: 'numero', captura: 'trailer_inicio', fundoRect: ecraInteiro, valor: 24, sufixo: ' h', texto: 'a atender, todos os dias', fundo: 'tinta' },
     },
     {
-      id: 'fora_de_horas',
+      id: 'acoes',
       compassos: 1,
-      selo: true,
-      plano: { tipo: 'numero', captura: 'visao', fundoRect: visaoTopo, valor: v.fora_de_horas_pct, sufixo: '%', texto: 'com o balcão fechado', fundo: 'terracota' },
+      plano: { tipo: 'numero', captura: 'trailer_inicio', fundoRect: ecraInteiro, valor: 48, texto: 'ações que o assistente faz durante a chamada', fundo: 'terracota' },
     },
     {
-      id: 'resolvidas',
+      id: 'funcionalidades',
       compassos: 1,
-      selo: true,
-      plano: { tipo: 'numero', captura: 'visao', fundoRect: visaoTopo, valor: v.resolvidas_pct, sufixo: '%', texto: 'resolvidas sem passar a ninguém', fundo: 'creme' },
+      plano: { tipo: 'numero', captura: 'trailer_inicio', fundoRect: ecraInteiro, valor: 90, texto: 'funcionalidades, do atendimento à chefia', fundo: 'creme' },
     },
     {
       id: 'tratou',
@@ -264,7 +253,7 @@ export function guiaoUnico(d: Dados): Toma[] {
         para: { rect: { x: 870, y: 312, w: 1010, h: 568 } },
         foco: 'tratou',
       },
-      rotulo: { antes: 'E não fica pela resposta', titulo: trabalho(v), cima: true },
+      rotulo: { antes: 'E não fica pela resposta', titulo: 'Regista ocorrências, consulta processos e marca atendimentos.', cima: true },
     },
     {
       id: 'ao_vivo',
