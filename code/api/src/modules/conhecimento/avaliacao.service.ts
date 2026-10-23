@@ -169,7 +169,8 @@ export class AvaliacaoService {
                WHERE s.nosso AND s.adaptador = 'tou-chat' AND s.municipio_id = $1
                ORDER BY s.criado_em LIMIT 1) AS sistema_chat,
               e.id AS execucao_id, e.sistema, e.agente_versao, e.terminada_em,
-              r.taxa::float8 AS taxa, r.total, r.por_avaliar
+              coalesce(q.qualidade, r.taxa)::float8 AS taxa, coalesce(q.total, r.total) AS total,
+              coalesce(q.por_avaliar, r.por_avaliar) AS por_avaliar
        FROM (SELECT $1::uuid AS municipio_id) m
        LEFT JOIN agente_config a ON a.municipio_id = m.municipio_id
        LEFT JOIN LATERAL (
@@ -181,10 +182,18 @@ export class AvaliacaoService {
            AND (c.municipio_id IS NULL OR c.municipio_id = m.municipio_id)
            AND e.estado = 'terminada' AND NOT e.amostra
          -- A da versão atual, se houver; senão a última (para dizer porquê).
-         ORDER BY (e.agente_versao = a.versao) IS TRUE DESC, e.terminada_em DESC NULLS LAST
+         ORDER BY (e.agente_versao = a.versao) IS TRUE DESC, ${COM_CONSENSO} DESC, e.terminada_em DESC NULLS LAST
          LIMIT 1
        ) e ON true
-       LEFT JOIN avaliacao.resultados r ON r.execucao_id = e.id AND r.categoria IS NULL`,
+       LEFT JOIN avaliacao.resultados r ON r.execucao_id = e.id AND r.categoria IS NULL
+       -- Escala v2: a qualidade é a das respostas que deu (certas ou maioritariamente certas / respondidas).
+       LEFT JOIN LATERAL (
+         SELECT rc.total, rc.por_avaliar,
+                round(100.0 * (rc.certa + rc.maioritariamente_certa)
+                      / nullif(rc.total - rc.nao_encontrou - rc.mandou_contactar - rc.inconclusiva - rc.sem_resposta, 0), 2) AS qualidade
+         FROM avaliacao.resultados_categorias rc
+         WHERE rc.execucao_id = e.id AND rc.categoria IS NULL AND rc.total > 0
+       ) q ON true`,
       [municipioId],
     );
     const execucao: ExecucaoGate | null = l?.execucao_id
@@ -274,13 +283,18 @@ export class AvaliacaoService {
       por_responder: number;
       por_avaliar: number;
       taxa: number;
+      respondidas: number;
+      qualidade: number | null;
     }>(
       `SELECT execucao_id, categoria, total, (certa + maioritariamente_certa)::int AS certas,
               parcialmente_certa AS incompletas,
               (parcialmente_certa + errada + maioritariamente_errada)::int AS erradas,
               (nao_encontrou + mandou_contactar + inconclusiva + sem_resposta)::int AS sem_resposta,
               por_responder, por_avaliar,
-              round(100.0 * (certa + maioritariamente_certa) / total, 2)::float8 AS taxa
+              round(100.0 * (certa + maioritariamente_certa) / total, 2)::float8 AS taxa,
+              (total - nao_encontrou - mandou_contactar - inconclusiva - sem_resposta)::int AS respondidas,
+              round(100.0 * (certa + maioritariamente_certa)
+                    / nullif(total - nao_encontrou - mandou_contactar - inconclusiva - sem_resposta, 0), 2)::float8 AS qualidade
        FROM avaliacao.resultados_categorias
        WHERE execucao_id = ANY($1::uuid[]) AND total > 0
          AND ${categorias ? 'categoria IS NOT NULL' : 'categoria IS NULL'}
@@ -318,7 +332,10 @@ export class AvaliacaoService {
         sem_resposta: t.sem_resposta,
         por_responder: t.por_responder,
         por_avaliar: t.por_avaliar,
-        taxa: t.taxa,
+        // Qualidade das respostas dadas; "sabe responder" (certas / todas) vai à parte.
+        taxa: t.qualidade,
+        respondidas: t.respondidas,
+        sabe: t.taxa,
       });
     }
     const ultimas = execucoesDoPainel(todas);
@@ -342,7 +359,12 @@ export class AvaliacaoService {
       const [categorias, linhas, nums] = await Promise.all([
         v2.has(u.execucao_id)
           ? this.totaisV2([u.execucao_id], true).then((l) =>
-              l.map(({ execucao_id: _id, incompletas: _i, ...c }) => ({ ...c, passadas_bem: 0 })),
+              l.map(({ execucao_id: _id, incompletas: _i, qualidade, taxa: sabe, ...c }) => ({
+                ...c,
+                passadas_bem: 0,
+                taxa: qualidade,
+                sabe,
+              })),
             )
           : this.db.query(
               `SELECT r.categoria, ${COLUNAS_RESULTADO}

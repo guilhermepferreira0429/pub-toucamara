@@ -211,7 +211,9 @@ export function Qualidade() {
           </p>
           <p className="text-[13px] text-white/80">
             {u
-              ? `${numero(bem)} de ${numero(u.total)} perguntas certas ou maioritariamente certas (escala por categorias, dois juízes). Mínimo para ir ao ar: ${d.limiar}%.`
+              ? (u as { respondidas?: number }).respondidas != null
+                ? `Das ${numero((u as { respondidas?: number }).respondidas!)} perguntas a que respondeu (de ${numero(u.total)}), ${numero(bem)} certas ou maioritariamente certas: dois juízes às cegas e desempate nas fontes. Sem resposta ou "não encontrei" não contam como certas nem como erradas. Mínimo para ir ao ar: ${d.limiar}%.`
+                : `${numero(bem)} de ${numero(u.total)} perguntas certas ou bem passadas a um funcionário. Mínimo para ir ao ar: ${d.limiar}%.`
               : "Quando a equipa Tou, Câmara? correr o avaliador, o resultado aparece aqui."}
           </p>
           {u && (
