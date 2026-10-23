@@ -53,7 +53,7 @@ export function enquadrar(c: Captura, e: Enquadramento): Retangulo {
   return { x, y, w, h };
 }
 
-function cruza(a: Retangulo, b: Retangulo) {
+export function cruza(a: Retangulo, b: Retangulo) {
   return a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
 }
 

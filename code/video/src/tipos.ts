@@ -47,6 +47,24 @@ export interface Dados {
   };
   falas: { quem: Quem; texto: string; captura: string }[];
   capturas: Record<string, Captura>;
+  /** O vídeo do munícipe (a renovação), se já foi capturado. */
+  municipe?: DadosMunicipe;
+}
+
+export interface DadosMunicipe {
+  estabelecimento: string;
+  telefone: string;
+  numero: string;
+  renovacao: string;
+  estado_renovacao: string | null;
+  valida_ate: string;
+  nova_valida_ate: string | null;
+  taxa: string | null;
+  taxa_cent: number | null;
+  mbway: boolean;
+  aviso: { dias: number; canal: string };
+  sms: { aviso: string | null; pagamento: string | null; emitida: string | null };
+  falas: { quem: Quem; texto: string; captura: string | null }[];
 }
 
 /** Para onde a câmara olha: uma zona da captura, um retângulo ou o ecrã inteiro. */
@@ -94,7 +112,51 @@ export interface Recortes {
   peso?: number;
 }
 
-export type Visual = PlanoPainel | Cartao | Recortes;
+/** O cartão de abertura de cada vídeo, com o desenho da capa (sem o botão de play). */
+export interface Capa {
+  tipo: 'capa';
+  video: 'painel' | 'municipe';
+  titulo: string;
+  sub: string;
+  /** A captura dentro do ecrã (monitor ou telemóvel). */
+  captura: string;
+  /** Recorte da captura (px CSS) que aparece no ecrã. */
+  recorte?: Retangulo;
+  peso?: number;
+}
+
+/** Uma captura do telemóvel numa moldura, com texto ao lado. */
+export interface Telemovel {
+  tipo: 'telemovel';
+  captura: string;
+  /** Desce a página: do y ao y (px CSS), para as páginas compridas. */
+  de?: number;
+  para?: number;
+  titulo?: string;
+  texto?: string;
+  peso?: number;
+}
+
+/** SMS recebidos (o texto é o que a API gravou), num telemóvel. */
+export interface Sms {
+  tipo: 'sms';
+  mensagens: string[];
+  titulo?: string;
+  texto?: string;
+  peso?: number;
+}
+
+/** A chamada: o ecrã verdadeiro no telemóvel e a conversa escrita ao lado. */
+export interface Chamada {
+  tipo: 'chamada';
+  captura: string;
+  falas: { quem: Quem; texto: string }[];
+  /** Índice da fala que se está a ouvir. */
+  atual: number;
+  peso?: number;
+}
+
+export type Visual = PlanoPainel | Cartao | Recortes | Capa | Telemovel | Sms | Chamada;
 
 export type Voz = 'assistente' | 'municipe';
 

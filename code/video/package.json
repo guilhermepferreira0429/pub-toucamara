@@ -8,7 +8,8 @@
     "capturar": "node scripts/capturar.mjs",
     "voz": "tsx scripts/voz.ts",
     "render": "tsx scripts/render.ts",
-    "verificar": "tsc --noEmit"
+    "verificar": "tsc --noEmit",
+    "poster": "tsx scripts/poster.ts"
   },
   "dependencies": {
     "@remotion/cli": "4.0.533",
@@ -22,6 +23,7 @@
     "@remotion/renderer": "4.0.533",
     "@types/node": "26.6.5",
     "@types/react": "19.3.0",
+    "pg": "8.16.3",
     "playwright-core": "1.56.1",
     "tsx": "4.23.15",
     "typescript": "7.0.2"

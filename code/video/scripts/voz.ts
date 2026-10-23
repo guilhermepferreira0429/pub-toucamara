@@ -14,6 +14,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { guiao } from '../src/guiao';
+import { guiaoMunicipe } from '../src/guiao-municipe';
 import { dividirFrases } from '../src/tempos';
 import type { Bloco, Dados, VozGerada } from '../src/tipos';
 
@@ -133,7 +134,11 @@ function frasesAlinhadas(texto: string, al: Alinhamento) {
   return resultado;
 }
 
-const blocos = guiao(dados).flatMap((c) => c.blocos);
+// Os blocos dos vídeos todos (os ids são únicos entre vídeos).
+const blocos = [
+  ...guiao(dados),
+  ...(dados.municipe ? guiaoMunicipe(dados) : []),
+].flatMap((c) => c.blocos);
 let gerados = 0;
 for (const [i, b] of blocos.entries()) {
   if (so.length && !so.includes(b.id)) continue;

@@ -1,4 +1,4 @@
-import { planosProibidos } from './camara';
+import { cruza, planosProibidos } from './camara';
 import type { Bloco, Cena, Dados, Retangulo, Visual } from './tipos';
 
 /*
@@ -69,7 +69,17 @@ export function verificarProibidas(cenas: Cena[], d: Dados): string[] {
       ),
     ),
   );
-  return planosProibidos(planos, d.capturas);
+  // As capas mostram um recorte fixo de uma captura (o painel no monitor).
+  const capas = cenas.flatMap((c) =>
+    c.blocos.flatMap((b) =>
+      b.visual.flatMap((v) => {
+        if (v.tipo !== 'capa' || !v.recorte) return [];
+        const z = d.capturas[v.captura]?.proibidas?.find((p) => cruza(v.recorte!, p));
+        return z ? [`${b.id} (${v.captura}): o recorte da capa toca numa zona proibida`] : [];
+      }),
+    ),
+  );
+  return [...planosProibidos(planos, d.capturas), ...capas];
 }
 
 /**
@@ -128,12 +138,16 @@ export function guiao(d: Dados): Cena[] {
           voz: 'assistente',
           texto:
             'Olá. Sou o assistente da câmara. Atendo a qualquer hora, por telefone, chat e SMS. Isto é o que a câmara vê.',
+          // Com o desenho da capa do vídeo (docs/anexos-taikai/capas), e o
+          // painel verdadeiro no monitor (acima do cartão do teste de qualidade).
           visual: [
             {
-              tipo: 'cartao',
-              marca: true,
-              titulo: 'O que a câmara vê.',
-              depois: 'O painel da câmara, com dados de demonstração.',
+              tipo: 'capa',
+              video: 'painel',
+              titulo: 'O lado da câmara',
+              sub: 'Entrada única · apoio ao técnico · a chefia vê tudo',
+              captura: 'visao',
+              recorte: { x: 260, y: 0, w: 1400, h: 864 },
             },
           ],
           pausa: 0.6,
@@ -177,8 +191,9 @@ export function guiao(d: Dados): Cena[] {
               tipo: 'painel',
               captura: 'visao',
               // Panorâmica ao longo dos números, a acabar acima do cartão do
-              // teste de qualidade.
-              de: { rect: { x: 270, y: 312, w: 1010, h: 568 } },
+              // teste de qualidade. Sem requerimentos, começa nas ocorrências
+              // (não se abre com um zero).
+              de: { rect: { x: v.requerimentos ? 270 : 612, y: 312, w: 1010, h: 568 } },
               para: { rect: { x: 870, y: 312, w: 1010, h: 568 } },
               foco: 'tratou',
             },

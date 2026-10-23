@@ -13,6 +13,7 @@ import {
 import { ALTURA, LARGURA, enquadrar, interpolarRet } from './camara';
 import { COR, TEXTO, TITULO } from './marca';
 import { FUNDIDO, type BlocoTempo, linhaDoTempo } from './tempos';
+import { EcraCapa, EcraChamada, EcraSms, EcraTelemovel, Selo } from './visuais';
 import type { Cartao, Cena, Dados, PlanoPainel, Recortes, VozGerada } from './tipos';
 
 export type PropsVideo = {
@@ -41,6 +42,14 @@ export function Video({ cenas, dados, voz }: PropsVideo) {
                 duracao={v.duracao}
                 selo={v.cena.painel}
               />
+            ) : v.visual.tipo === 'capa' ? (
+              <EcraCapa capa={v.visual} dados={dados} duracao={v.duracao} />
+            ) : v.visual.tipo === 'telemovel' ? (
+              <EcraTelemovel visual={v.visual} dados={dados} duracao={v.duracao} selo={v.cena.painel} />
+            ) : v.visual.tipo === 'sms' ? (
+              <EcraSms visual={v.visual} duracao={v.duracao} selo={v.cena.painel} />
+            ) : v.visual.tipo === 'chamada' ? (
+              <EcraChamada visual={v.visual} dados={dados} selo={v.cena.painel} />
             ) : v.visual.tipo === 'recortes' ? (
               <EcraRecortes
                 recortes={v.visual}
@@ -420,37 +429,6 @@ function CartaoTitulo({ cartao, duracao }: { cartao: Cartao; duracao: number }) 
         ) : null}
       </div>
     </AbsoluteFill>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Selo "Dados de demonstração" (em todas as cenas do painel; muda de lado
-// quando o canto direito tem a zona em foco ou o alerta)
-// ---------------------------------------------------------------------------
-
-function Selo({ esquerda }: { esquerda: boolean }) {
-  return (
-    <div
-      style={{
-        position: 'absolute',
-        top: 28,
-        ...(esquerda ? { left: 32 } : { right: 32 }),
-        display: 'flex',
-        alignItems: 'center',
-        gap: 12,
-        padding: '10px 20px',
-        borderRadius: 999,
-        background: COR.ambarSuave,
-        border: `2px solid ${COR.ambar}`,
-        color: COR.ambar,
-        fontSize: 24,
-        fontWeight: 600,
-        boxShadow: '0 6px 18px rgba(21,38,59,0.12)',
-      }}
-    >
-      <span style={{ width: 12, height: 12, borderRadius: 6, background: COR.ambar }} />
-      Dados de demonstração
-    </div>
   );
 }
 

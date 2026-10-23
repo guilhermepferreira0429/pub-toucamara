@@ -14,6 +14,7 @@ import { fileURLToPath } from 'node:url';
 import { bundle } from '@remotion/bundler';
 import { renderMedia, renderStill, selectComposition } from '@remotion/renderer';
 import { guiao } from '../src/guiao';
+import { guiaoMunicipe } from '../src/guiao-municipe';
 import { linhaDoTempo } from '../src/tempos';
 import type { Dados, VozGerada } from '../src/tipos';
 
@@ -29,16 +30,23 @@ function chrome(): string | null {
   return existsSync(exe) ? exe : null;
 }
 
+const VIDEOS = {
+  painel: { id: 'Painel', guiao },
+  municipe: { id: 'Municipe', guiao: guiaoMunicipe },
+} as const;
+
 const args = process.argv.slice(2);
 const stills = args.find((a) => a.startsWith('--stills='))?.slice(9);
-const saida = args.find((a) => !a.startsWith('--')) ?? join(RAIZ, 'out', 'painel.mp4');
+const nome = (args.find((a) => a.startsWith('--video='))?.slice(8) ?? 'painel') as keyof typeof VIDEOS;
+if (!VIDEOS[nome]) throw new Error(`Vídeo desconhecido: ${nome} (${Object.keys(VIDEOS).join(', ')})`);
+const saida = args.find((a) => !a.startsWith('--')) ?? join(RAIZ, 'out', `${nome}.mp4`);
 
 const dados = JSON.parse(readFileSync(join(RAIZ, 'src', 'dados.gerado.json'), 'utf8')) as Dados;
 const voz = JSON.parse(readFileSync(join(RAIZ, 'src', 'voz.gerado.json'), 'utf8')) as Record<
   string,
   VozGerada
 >;
-const { total, avisos } = linhaDoTempo(guiao(dados), voz);
+const { total, avisos } = linhaDoTempo(VIDEOS[nome].guiao(dados), voz);
 console.log(`Duração: ${(total / 30).toFixed(1)} s (${total} frames)`);
 if (avisos.length) console.log(`Avisos:\n  ${avisos.join('\n  ')}`);
 
@@ -46,12 +54,12 @@ const serveUrl = await bundle({ entryPoint: join(RAIZ, 'src', 'index.ts') });
 const browserExecutable = chrome();
 const composition = await selectComposition({
   serveUrl,
-  id: 'Painel',
+  id: VIDEOS[nome].id,
   browserExecutable,
 });
 
 if (stills) {
-  const pasta = join(RAIZ, 'out', 'stills');
+  const pasta = join(RAIZ, 'out', 'stills', nome);
   mkdirSync(pasta, { recursive: true });
   for (const f of stills.split(',').map(Number)) {
     const output = join(pasta, `${String(f).padStart(5, '0')}.png`);

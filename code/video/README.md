@@ -1,17 +1,24 @@
-# Vídeo do painel
+# Vídeos
 
-O vídeo de demonstração do painel da câmara (cerca de 2 minutos), feito com
-[Remotion](https://www.remotion.dev/): capturas do painel verdadeiro, com os
-dados de demonstração, e a voz do próprio assistente (ElevenLabs) a contar o
-que fez. Há uma cena com uma chamada simulada, em que se ouvem as duas vozes
-enquanto o painel "Ao vivo" se preenche.
+Os vídeos de demonstração, feitos com [Remotion](https://www.remotion.dev/):
+capturas das páginas verdadeiras, com os dados de demonstração, e a voz do
+próprio assistente (ElevenLabs) a contar o que fez.
+
+- **Painel** (`Painel`, cerca de 2 minutos): o lado da câmara. Há uma cena
+  com uma chamada simulada, em que se ouvem as duas vozes enquanto o painel
+  "Ao vivo" se preenche.
+- **Munícipe** (`Municipe`, cerca de 90 segundos): uma renovação, do
+  princípio ao fim. O aviso por SMS, a chamada no `/ligar` (com o ElevenLabs
+  simulado e as ferramentas verdadeiras da API), o SMS do pagamento, a página
+  de pagamento em modo de teste, a licença com o QR e o painel.
 
 | | |
 |---|---|
-| `src/guiao.ts` | O que se diz e o que se mostra, cena a cena. Os números vêm das capturas |
-| `scripts/capturar.mjs` | `npm run capturar`: capturas do painel e os números → `public/capturas/`, `src/dados.gerado.json` |
-| `scripts/voz.ts` | `npm run voz`: um MP3 por bloco do guião → `public/voz/`, `src/voz.gerado.json` |
-| `scripts/render.ts` | `npm run render`: o MP4 em `out/painel.mp4` (ou `-- --stills=0,300` para imagens soltas) |
+| `src/guiao.ts`, `src/guiao-municipe.ts` | O que se diz e o que se mostra, cena a cena. Os números vêm das capturas |
+| `scripts/capturar.mjs` | `npm run capturar [-- --video=painel,municipe]`: capturas e números → `public/capturas/`, `src/dados.gerado.json` |
+| `scripts/voz.ts` | `npm run voz`: um MP3 por bloco dos guiões → `public/voz/`, `src/voz.gerado.json` |
+| `scripts/render.ts` | `npm run render -- --video=painel\|municipe` → `out/<nome>.mp4` (ou `--stills=0,300` para imagens soltas) |
+| `scripts/poster.ts` | `npm run poster`: as capas a 1920×1080 (a partir de `docs/anexos-taikai/capas`) → `out/<nome>-capa.png` |
 | `npm run estudio` | O Remotion Studio, para ver e afinar |
 
 Sem voz gerada, o vídeo faz-se na mesma, sem som e com as durações estimadas
@@ -63,6 +70,14 @@ pelo número de palavras. A legenda é sempre a do texto que se diz.
    números (`LIMPAR=0` salta este passo). Corre-se outra vez sempre que o
    painel muda (por exemplo, com as fotografias das pessoas). Os números da narração mudam com as capturas: a
    voz dos blocos com números diferentes gera-se outra vez no passo seguinte.
+
+   O vídeo do munícipe precisa ainda de `AGENTE_SEGREDO` (o da API, para as
+   ferramentas do agente) e das variáveis da base (`DB_HOST`, `DB_PORT`,
+   `DB_USER`, `DB_PASSWORD`, `DB_NAME`): a licença a renovar é posta a
+   acabar daqui a 10 dias, como no "Experimentar uma renovação" do `/ligar`.
+   Para os links dos SMS levarem o domínio público, a API corre com
+   `WEB_URL=https://toucamara.descortina.pt`; o script abre-os no site local.
+   Cada captura faz uma renovação nova: para a versão final, numa base nova.
 
 4. **Voz** (só gera o que falta ou mudou):
 

@@ -1,8 +1,8 @@
 {
-  "gerado_em": "2026-10-23T04:00:02.766Z",
+  "gerado_em": "2026-10-23T05:07:52.562Z",
   "visao": {
     "conversas": 81,
-    "fora_de_horas_pct": 68,
+    "fora_de_horas_pct": 56,
     "resolvidas_pct": 89,
     "passadas": 8,
     "ocorrencias": 4,
@@ -185,7 +185,7 @@
     "apoio": {
       "ficheiro": "apoio.jpg",
       "largura": 1920,
-      "altura": 2447,
+      "altura": 2097,
       "zonas": {
         "verificacoes": {
           "x": 280,
@@ -227,7 +227,7 @@
         },
         {
           "x": 280,
-          "y": 2339.75,
+          "y": 1989.875,
           "w": 343,
           "h": 83.5
         }
@@ -354,23 +354,16 @@
           "x": 628,
           "y": 144.5,
           "w": 892,
-          "h": 1146
+          "h": 558.5
         },
         "ajuda": {
           "x": 1540,
           "y": 144.5,
           "w": 340,
-          "h": 1013
+          "h": 117
         }
       },
-      "proibidas": [
-        {
-          "x": 1561,
-          "y": 1104.5,
-          "w": 298,
-          "h": 32
-        }
-      ]
+      "proibidas": []
     },
     "chamada_03": {
       "ficheiro": "chamada_03.jpg",
@@ -420,13 +413,13 @@
           "x": 628,
           "y": 144.5,
           "w": 892,
-          "h": 1288
+          "h": 1320
         },
         "ajuda": {
           "x": 1540,
           "y": 144.5,
           "w": 340,
-          "h": 1155
+          "h": 1187
         },
         "alerta": {
           "x": 1597,
@@ -438,7 +431,7 @@
       "proibidas": [
         {
           "x": 1561,
-          "y": 1246.5,
+          "y": 1278.5,
           "w": 298,
           "h": 32
         }
@@ -459,13 +452,13 @@
           "x": 628,
           "y": 144.5,
           "w": 892,
-          "h": 1288
+          "h": 1320
         },
         "ajuda": {
           "x": 1540,
           "y": 144.5,
           "w": 340,
-          "h": 1155
+          "h": 1187
         },
         "alerta": {
           "x": 1597,
@@ -477,7 +470,7 @@
       "proibidas": [
         {
           "x": 1561,
-          "y": 1246.5,
+          "y": 1278.5,
           "w": 298,
           "h": 32
         }
@@ -490,7 +483,7 @@
       "zonas": {
         "ultima": {
           "x": 649,
-          "y": 651.875,
+          "y": 624.875,
           "w": 233.890625,
           "h": 59.296875
         },
@@ -498,13 +491,13 @@
           "x": 628,
           "y": 144.5,
           "w": 892,
-          "h": 1288
+          "h": 1320
         },
         "ajuda": {
           "x": 1540,
           "y": 144.5,
           "w": 340,
-          "h": 1155
+          "h": 1187
         },
         "alerta": {
           "x": 1597,
@@ -516,7 +509,7 @@
       "proibidas": [
         {
           "x": 1561,
-          "y": 1246.5,
+          "y": 1278.5,
           "w": 298,
           "h": 32
         }
@@ -537,13 +530,13 @@
           "x": 628,
           "y": 144.5,
           "w": 892,
-          "h": 1288
+          "h": 1336
         },
         "ajuda": {
           "x": 1540,
           "y": 144.5,
           "w": 340,
-          "h": 1155
+          "h": 1203
         },
         "alerta": {
           "x": 1597,
@@ -555,7 +548,7 @@
       "proibidas": [
         {
           "x": 1561,
-          "y": 1246.5,
+          "y": 1294.5,
           "w": 298,
           "h": 32
         }
@@ -576,13 +569,13 @@
           "x": 628,
           "y": 144.5,
           "w": 892,
-          "h": 1288
+          "h": 1336
         },
         "ajuda": {
           "x": 1540,
           "y": 144.5,
           "w": 340,
-          "h": 1155
+          "h": 1203
         },
         "alerta": {
           "x": 1597,
@@ -594,7 +587,7 @@
       "proibidas": [
         {
           "x": 1561,
-          "y": 1246.5,
+          "y": 1294.5,
           "w": 298,
           "h": 32
         }
@@ -638,6 +631,197 @@
           "h": 32
         }
       ]
+    },
+    "municipe_a_expirar": {
+      "ficheiro": "municipe_a_expirar.jpg",
+      "largura": 1920,
+      "altura": 1080,
+      "zonas": {
+        "linha": {
+          "x": 289,
+          "y": 464.5,
+          "w": 1186,
+          "h": 101
+        }
+      },
+      "proibidas": []
+    },
+    "municipe_ligar": {
+      "ficheiro": "municipe_ligar.jpg",
+      "largura": 390,
+      "altura": 844,
+      "zonas": {},
+      "proibidas": []
+    },
+    "municipe_numero": {
+      "ficheiro": "municipe_numero.jpg",
+      "largura": 390,
+      "altura": 844,
+      "zonas": {},
+      "proibidas": []
+    },
+    "municipe_chamada_01": {
+      "ficheiro": "municipe_chamada_01.jpg",
+      "largura": 390,
+      "altura": 844,
+      "zonas": {},
+      "proibidas": []
+    },
+    "municipe_chamada_02": {
+      "ficheiro": "municipe_chamada_02.jpg",
+      "largura": 390,
+      "altura": 844,
+      "zonas": {},
+      "proibidas": []
+    },
+    "municipe_chamada_03": {
+      "ficheiro": "municipe_chamada_03.jpg",
+      "largura": 390,
+      "altura": 844,
+      "zonas": {},
+      "proibidas": []
+    },
+    "municipe_chamada_04": {
+      "ficheiro": "municipe_chamada_04.jpg",
+      "largura": 390,
+      "altura": 844,
+      "zonas": {},
+      "proibidas": []
+    },
+    "municipe_chamada_05": {
+      "ficheiro": "municipe_chamada_05.jpg",
+      "largura": 390,
+      "altura": 844,
+      "zonas": {},
+      "proibidas": []
+    },
+    "municipe_chamada_06": {
+      "ficheiro": "municipe_chamada_06.jpg",
+      "largura": 390,
+      "altura": 844,
+      "zonas": {},
+      "proibidas": []
+    },
+    "municipe_chamada_07": {
+      "ficheiro": "municipe_chamada_07.jpg",
+      "largura": 390,
+      "altura": 844,
+      "zonas": {},
+      "proibidas": []
+    },
+    "municipe_fim": {
+      "ficheiro": "municipe_fim.jpg",
+      "largura": 390,
+      "altura": 844,
+      "zonas": {},
+      "proibidas": []
+    },
+    "municipe_pagamento": {
+      "ficheiro": "municipe_pagamento.jpg",
+      "largura": 390,
+      "altura": 1488,
+      "zonas": {},
+      "proibidas": []
+    },
+    "municipe_pago": {
+      "ficheiro": "municipe_pago.jpg",
+      "largura": 390,
+      "altura": 1007,
+      "zonas": {},
+      "proibidas": []
+    },
+    "municipe_licenca": {
+      "ficheiro": "municipe_licenca.jpg",
+      "largura": 390,
+      "altura": 2102,
+      "zonas": {},
+      "proibidas": []
+    },
+    "municipe_licencas": {
+      "ficheiro": "municipe_licencas.jpg",
+      "largura": 1920,
+      "altura": 2396,
+      "zonas": {
+        "cartao": {
+          "x": 288,
+          "y": 777.5,
+          "w": 1188,
+          "h": 380.5
+        }
+      },
+      "proibidas": []
+    },
+    "trailer_inicio": {
+      "ficheiro": "trailer_inicio.jpg",
+      "largura": 1920,
+      "altura": 1080,
+      "zonas": {},
+      "proibidas": []
+    },
+    "trailer_ligar": {
+      "ficheiro": "trailer_ligar.jpg",
+      "largura": 1920,
+      "altura": 1080,
+      "zonas": {},
+      "proibidas": []
     }
+  },
+  "municipe": {
+    "estabelecimento": "Café da Praça",
+    "telefone": "+351910000146",
+    "numero": "ESP 2/2026",
+    "renovacao": "ESP 3/2026",
+    "estado_renovacao": "emitida",
+    "valida_ate": "2026-11-02",
+    "nova_valida_ate": "2026-12-02",
+    "taxa": "30,00 €",
+    "taxa_cent": 3000,
+    "mbway": true,
+    "aviso": {
+      "dias": 30,
+      "canal": "sms"
+    },
+    "sms": {
+      "aviso": "Guimaraes: a sua licenca de esplanada ESP 2/2026 é valida até 2 de novembro de 2026. Para renovar, ligue ou escreva-nos e o assistente trata de tudo. https://toucamara.descortina.pt/licenca/3W265H2ESE",
+      "pagamento": "Guimaraes: guia 2026/6, 30,00 €. MB WAY (MODO DE TESTE, nada é cobrado): aceite o pedido em 5 min em https://toucamara.descortina.pt/r/BBCJA9. Ou Multibanco: ent. 99999, ref. 305 488 702, até 06/11/2026.",
+      "emitida": "Guimaraes: a sua licenca de esplanada ESP 3/2026 esta emitida. Documento e QR: https://toucamara.descortina.pt/licenca/3FFA2YFR3H"
+    },
+    "falas": [
+      {
+        "quem": "agente",
+        "texto": "Olá, sou o Patrício Brito, assistente automático da Câmara de Guimarães. Em que posso ajudar?",
+        "captura": "municipe_chamada_01"
+      },
+      {
+        "quem": "municipe",
+        "texto": "Olá. Recebi um SMS a dizer que a licença da esplanada está a acabar. Queria renová-la.",
+        "captura": "municipe_chamada_02"
+      },
+      {
+        "quem": "agente",
+        "texto": "A sua licença da esplanada do Café da Praça é válida até dois de novembro. Renovo com os mesmos dados: dez metros quadrados, quatro mesas e dois metros de passeio livre, por um mês. Mudou alguma coisa?",
+        "captura": "municipe_chamada_04"
+      },
+      {
+        "quem": "municipe",
+        "texto": "Não, está tudo igual.",
+        "captura": "municipe_chamada_05"
+      },
+      {
+        "quem": "agente",
+        "texto": "Verifiquei as regras e o pedido cumpre todas. A taxa é de trinta euros. Mandei-lhe por SMS o pedido MB WAY: é um teste, nada é cobrado. Assim que estiver paga, a licença nova segue por SMS, com um código QR.",
+        "captura": "municipe_chamada_06"
+      },
+      {
+        "quem": "municipe",
+        "texto": "Ótimo. Obrigada!",
+        "captura": null
+      },
+      {
+        "quem": "agente",
+        "texto": "De nada. Vai receber um SMS com o resumo. Até breve!",
+        "captura": "municipe_chamada_07"
+      }
+    ]
   }
 }
