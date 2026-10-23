@@ -569,21 +569,38 @@ export function nomesATapar(sistema: string): string[] {
   return nome.length >= 3 ? [nome] : [];
 }
 
-/** Troca os nomes por "[nome]", palavra inteira e sem olhar a maiúsculas. */
+const escapar = (t: string) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+/** Cada letra aceita maiúscula e minúscula ("[lL][aA]…"). */
+const semCaixa = (t: string) =>
+  [...t]
+    .map((c) =>
+      c.toLowerCase() !== c.toUpperCase()
+        ? `[${c.toLowerCase()}${c.toUpperCase()}]`
+        : escapar(c),
+    )
+    .join('');
+
+/**
+ * Troca os nomes por "[nome]", palavra inteira. Um nome próprio ("Joana")
+ * só com maiúscula inicial e não depois de Santa/Santo/São: o adjetivo
+ * ("indicação clara") e o convento ("Santa Clara") ficam. Uma marca
+ * ("Acme") sai em qualquer caixa.
+ */
 export function anonimizar(
   texto: string | null,
   nomes: string[],
 ): string | null {
   if (texto === null) return null;
-  return nomes.reduce(
-    (t, nome) =>
-      t.replace(
-        new RegExp(
-          `(?<![\\p{L}\\p{N}])${nome.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\p{L}\\p{N}])`,
-          'giu',
-        ),
-        '[nome]',
-      ),
-    texto,
-  );
+  return nomes.reduce((t, nome) => {
+    const proprio = /^\p{Lu}\p{Ll}+$/u.test(nome);
+    const corpo = proprio
+      ? escapar(nome[0]) + semCaixa(nome.slice(1))
+      : semCaixa(nome);
+    const santo = proprio ? '(?<!(?:Santa|Santo|São|S\\.)\\s)' : '';
+    return t.replace(
+      new RegExp(`${santo}(?<![\\p{L}\\p{N}])${corpo}(?![\\p{L}\\p{N}])`, 'gu'),
+      '[nome]',
+    );
+  }, texto);
 }
