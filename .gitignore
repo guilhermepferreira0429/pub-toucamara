@@ -27,3 +27,7 @@ Thumbs.db
 
 # Worktrees temporários dos agentes do Claude Code
 .claude/worktrees/
+
+# Python compilado
+__pycache__/
+*.pyc

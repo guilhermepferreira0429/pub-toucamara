@@ -6,7 +6,6 @@
   "scripts": {
     "estudio": "remotion studio src/index.ts",
     "capturar": "node scripts/capturar.mjs",
-    "voz": "tsx scripts/voz.ts",
     "render": "tsx scripts/render.ts",
     "verificar": "tsc --noEmit",
     "poster": "tsx scripts/poster.ts"

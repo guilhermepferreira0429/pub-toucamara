@@ -1,37 +1,24 @@
-# Vídeos
+# Vídeo
 
-Os vídeos de demonstração, feitos com [Remotion](https://www.remotion.dev/):
-capturas das páginas verdadeiras, com os dados de demonstração, e a voz do
-próprio assistente (ElevenLabs) a contar o que fez.
-
-- **Painel** (`Painel`, cerca de 2 minutos): o lado da câmara. Há uma cena
-  com uma chamada simulada, em que se ouvem as duas vozes enquanto o painel
-  "Ao vivo" se preenche.
-- **Munícipe** (`Municipe`, cerca de 90 segundos): uma renovação, do
-  princípio ao fim. O aviso por SMS, a chamada no `/ligar` (com o ElevenLabs
-  simulado e as ferramentas verdadeiras da API), o SMS do pagamento, a página
-  de pagamento em modo de teste, a licença com o QR e o painel.
-- **Único** (`TouCamara`, 98 segundos): os dois juntos, sem voz e com
-  música, a cortar nos tempos fortes. O munícipe, o lado da câmara, a
-  avaliação e o fecho. É o vídeo da entrega.
+O vídeo da entrega (`TouCamara`, 98 segundos), feito com
+[Remotion](https://www.remotion.dev/): capturas das páginas verdadeiras, com
+os dados de demonstração, sem voz e com música, a cortar nos tempos fortes.
+Primeiro o munícipe (uma renovação, do aviso por SMS à licença com o QR),
+depois o lado da câmara, a avaliação e o fecho.
 
 | | |
 |---|---|
-| `src/guiao.ts`, `src/guiao-municipe.ts` | O que se diz e o que se mostra, cena a cena. Os números vêm das capturas |
-| `scripts/capturar.mjs` | `npm run capturar [-- --video=painel,municipe]`: capturas e números → `public/capturas/`, `src/dados.gerado.json` |
-| `scripts/voz.ts` | `npm run voz`: um MP3 por bloco dos guiões → `public/voz/`, `src/voz.gerado.json` |
-| `src/unico/` | O vídeo único: `guiao.ts` (as tomas, em compassos), `ritmo.ts` (o relógio da música), `Unico.tsx` |
+| `src/unico/guiao.ts` | As tomas, em compassos da música: o que se mostra e o texto por cima. Os números vêm das capturas |
+| `src/unico/ritmo.ts`, `src/unico/Unico.tsx` | O relógio da música e as tomas (texto aos tempos, cortes, varrimentos) |
+| `src/pecas.tsx`, `src/visuais.tsx` | Uma página do painel com a câmara a mover-se, os recortes, o telemóvel, os SMS e os selos |
+| `scripts/capturar.mjs` | `npm run capturar`: capturas e números → `public/capturas/`, `src/dados.gerado.json` |
 | `scripts/musica.mjs` | `node scripts/musica.mjs`: descarrega a música e corta-a em frases de 8 compassos → `public/musica/` |
-| `scripts/render.ts` | `npm run render -- --video=painel\|municipe\|unico` → `out/<nome>.mp4` (ou `--stills=0,300` para imagens soltas) |
-| `scripts/poster.ts` | `npm run poster`: as capas a 1920×1080 (a partir de `docs/anexos-taikai/capas`) → `out/<nome>-capa.png` |
+| `scripts/render.ts` | `npm run render` → `out/tou-camara.mp4` (ou `-- --stills=0,300` para imagens soltas) |
+| `scripts/poster.ts` | `npm run poster`: a capa a 1920×1080 (de `docs/anexos-taikai/capas`) → `out/tou-camara-capa.png`, para a miniatura do YouTube |
 | `npm run estudio` | O Remotion Studio, para ver e afinar |
 
-Sem voz gerada, o vídeo faz-se na mesma, sem som e com as durações estimadas
-pelo número de palavras. A legenda é sempre a do texto que se diz.
-
-A música do vídeo único é "Voxel Revolution", de Kevin MacLeod
-(incompetech.com), com licença
-[Creative Commons Atribuição 4.0](https://creativecommons.org/licenses/by/4.0/):
+A música é "Voxel Revolution", de Kevin MacLeod (incompetech.com), com
+licença [Creative Commons Atribuição 4.0](https://creativecommons.org/licenses/by/4.0/):
 o crédito aparece no fim do vídeo. Os cortes de imagem contam com a música
 cortada por `scripts/musica.mjs`; mudar a música obriga a medir outra vez o
 andamento e o primeiro tempo forte (`src/unico/ritmo.ts`).
@@ -42,8 +29,8 @@ andamento e o primeiro tempo forte (`src/unico/ritmo.ts`).
    preparada. Do seed só entram `01` a `04`: o `05_demonstracao.sql` traz
    outro conjunto de conversas e passagens que não é o da demonstração (e a
    Entrada mostra-as mesmo escondidas). A demonstração conta os dias a partir
-   de quando é preparada: prepare-a de manhã (entre as 10h e as 12h), para as
-   conversas de "hoje" terem horas de expediente.
+   de quando é preparada, a qualquer hora: uma conversa de "hoje" a uma hora
+   que ainda não chegou passa para ontem.
 
    ```bash
    createdb -h localhost -p 54330 -U toucamara toucamara_video
@@ -80,8 +67,8 @@ andamento e o primeiro tempo forte (`src/unico/ritmo.ts`).
    Antes de capturar, o script corre o "Preparar demo" com "limpar testes":
    a chamada simulada da captura anterior fica escondida e não entra nos
    números (`LIMPAR=0` salta este passo). Corre-se outra vez sempre que o
-   painel muda (por exemplo, com as fotografias das pessoas). Os números da narração mudam com as capturas: a
-   voz dos blocos com números diferentes gera-se outra vez no passo seguinte.
+   painel muda (por exemplo, com as fotografias das pessoas). Os números do
+   vídeo mudam com as capturas.
 
    O vídeo do munícipe precisa ainda de `AGENTE_SEGREDO` (o da API, para as
    ferramentas do agente) e das variáveis da base (`DB_HOST`, `DB_PORT`,
@@ -91,26 +78,16 @@ andamento e o primeiro tempo forte (`src/unico/ritmo.ts`).
    `WEB_URL=https://toucamara.descortina.pt`; o script abre-os no site local.
    Cada captura faz uma renovação nova: para a versão final, numa base nova.
 
-4. **Voz** (só gera o que falta ou mudou):
-
-   ```bash
-   ELEVENLABS_API_KEY=... npm run voz
-   ```
-
-   Por omissão, o assistente é a voz `DMcOknq8n1B6XshFIJKJ` e quem liga na
-   chamada é `JGnWZj684pcXmK2SxYIv` (`ELEVENLABS_VOZ_ID`,
-   `ELEVENLABS_VOZ_MUNICIPE` e `ELEVENLABS_MODELO` mudam-nas). Quem liga é
-   uma senhora ("vivo sozinha", "a minha filha"): a voz tem de ser feminina.
-
-5. **Render**: `npm run render` → `out/painel.mp4`.
+4. **Render**: `npm run render` → `out/tou-camara.mp4`.
 
 ## Regras do guião
 
-- Fala o assistente, na primeira pessoa e no masculino, em português de
-  Portugal. Resultados, não funcionalidades.
-- Cada número dito é o que está no ecrã (vem de `src/dados.gerado.json`).
-- O selo "Dados de demonstração" fica em todas as cenas do painel; a chamada
-  diz que é simulada.
+- Resultados, não funcionalidades, em português de Portugal.
+- Cada número é o que está no ecrã (vem de `src/dados.gerado.json`); os da
+  avaliação são os da ronda final (`docs/avaliacao/escala`).
+- O selo "Dados de demonstração" fica em todas as cenas com dados de
+  demonstração; a chamada diz que é simulada. A câmara nunca passa pelas
+  zonas proibidas das capturas (o render recusa-se).
 - Nada que o produto não faça; o que está em modo de teste não se apresenta
   como real.
 

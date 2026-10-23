@@ -13,7 +13,7 @@ import {
 } from 'remotion';
 import { COR, TEXTO, TITULO } from '../marca';
 import type { Dados } from '../tipos';
-import { EcraRecortes, Marca, Painel } from '../Video';
+import { EcraRecortes, Marca, Painel } from '../pecas';
 import { EcraCaptura, Moldura, Selo, SmsConteudo } from '../visuais';
 import {
   AVALIACAO,

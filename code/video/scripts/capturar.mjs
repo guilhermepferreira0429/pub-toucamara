@@ -1,11 +1,11 @@
 /*
- * Capturas para os vídeos, a partir de um painel a correr com a
+ * Capturas para o vídeo, a partir de um painel a correr com a
  * demonstração preparada (ver README). Grava em public/capturas/ as imagens
  * (1920×1080 a 2x; o telemóvel a 390×844 a 3x) e em src/dados.gerado.json
- * os números que a narração diz e as zonas de cada ecrã para onde a câmara
+ * os números que o vídeo mostra e as zonas de cada ecrã para onde a câmara
  * vai. Pode correr-se as vezes que for preciso.
  *
- *   PAINEL_TOKEN=... npm run capturar                       (os três vídeos)
+ *   PAINEL_TOKEN=... npm run capturar                       (tudo: painel, munícipe, trailer)
  *   PAINEL_TOKEN=... npm run capturar -- --video=municipe,trailer
  *
  * Variáveis: WEB_URL (http://localhost:3000), API_URL (http://localhost:3001),

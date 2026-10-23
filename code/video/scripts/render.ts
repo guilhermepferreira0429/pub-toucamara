@@ -1,23 +1,18 @@
 /*
- * Render do vídeo do painel (MP4, H.264).
+ * Render do vídeo (MP4, H.264).
  *
- *   npm run render                         → out/painel.mp4
+ *   npm run render                         → out/tou-camara.mp4
  *   npm run render -- out/rascunho.mp4
  *   npm run render -- --stills=0,450,1800  → out/stills/<frame>.png
- *   npm run render -- --video=unico        → out/unico.mp4 (sem voz, com música)
  *
  * Usa o Chromium de /opt/pw-browsers quando existe (ou CHROME=...); senão o
  * Remotion descarrega o seu.
  */
-import { existsSync, mkdirSync, readFileSync, readdirSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { bundle } from '@remotion/bundler';
 import { renderMedia, renderStill, selectComposition } from '@remotion/renderer';
-import { guiao } from '../src/guiao';
-import { guiaoMunicipe } from '../src/guiao-municipe';
-import { linhaDoTempo } from '../src/tempos';
-import type { Dados, VozGerada } from '../src/tipos';
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -31,41 +26,20 @@ function chrome(): string | null {
   return existsSync(exe) ? exe : null;
 }
 
-const VIDEOS = {
-  painel: { id: 'Painel', guiao },
-  municipe: { id: 'Municipe', guiao: guiaoMunicipe },
-  // O vídeo único, sem voz e com música (src/unico): a duração é a da música.
-  unico: { id: 'TouCamara', guiao: null },
-} as const;
-
 const args = process.argv.slice(2);
 const stills = args.find((a) => a.startsWith('--stills='))?.slice(9);
-const nome = (args.find((a) => a.startsWith('--video='))?.slice(8) ?? 'painel') as keyof typeof VIDEOS;
-if (!VIDEOS[nome]) throw new Error(`Vídeo desconhecido: ${nome} (${Object.keys(VIDEOS).join(', ')})`);
-const saida = args.find((a) => !a.startsWith('--')) ?? join(RAIZ, 'out', `${nome}.mp4`);
-
-const dados = JSON.parse(readFileSync(join(RAIZ, 'src', 'dados.gerado.json'), 'utf8')) as Dados;
-const voz = JSON.parse(readFileSync(join(RAIZ, 'src', 'voz.gerado.json'), 'utf8')) as Record<
-  string,
-  VozGerada
->;
-const g = VIDEOS[nome].guiao;
-if (g) {
-  const { total, avisos } = linhaDoTempo(g(dados), voz);
-  console.log(`Duração: ${(total / 30).toFixed(1)} s (${total} frames)`);
-  if (avisos.length) console.log(`Avisos:\n  ${avisos.join('\n  ')}`);
-}
+const saida = args.find((a) => !a.startsWith('--')) ?? join(RAIZ, 'out', 'tou-camara.mp4');
 
 const serveUrl = await bundle({ entryPoint: join(RAIZ, 'src', 'index.ts') });
 const browserExecutable = chrome();
 const composition = await selectComposition({
   serveUrl,
-  id: VIDEOS[nome].id,
+  id: 'TouCamara',
   browserExecutable,
 });
 
 if (stills) {
-  const pasta = join(RAIZ, 'out', 'stills', nome);
+  const pasta = join(RAIZ, 'out', 'stills');
   mkdirSync(pasta, { recursive: true });
   for (const f of stills.split(',').map(Number)) {
     const output = join(pasta, `${String(f).padStart(5, '0')}.png`);

@@ -88,18 +88,6 @@ export interface PlanoPainel {
   peso?: number;
 }
 
-export interface Cartao {
-  tipo: 'cartao';
-  /** Linha pequena por cima (ex.: a marca). */
-  antes?: string;
-  titulo: string;
-  depois?: string;
-  /** Fundo escuro (o fecho). */
-  escuro?: boolean;
-  marca?: boolean;
-  peso?: number;
-}
-
 /** Recortes do painel (elementos soltos) arrumados num ecrã. */
 export interface Recortes {
   tipo: 'recortes';
@@ -110,86 +98,4 @@ export interface Recortes {
   /** Coluna da direita (opcional). */
   lado?: string;
   peso?: number;
-}
-
-/** O cartão de abertura de cada vídeo, com o desenho da capa (sem o botão de play). */
-export interface Capa {
-  tipo: 'capa';
-  video: 'painel' | 'municipe';
-  titulo: string;
-  sub: string;
-  /** A captura dentro do ecrã (monitor ou telemóvel). */
-  captura: string;
-  /** Recorte da captura (px CSS) que aparece no ecrã. */
-  recorte?: Retangulo;
-  peso?: number;
-}
-
-/** Uma captura do telemóvel numa moldura, com texto ao lado. */
-export interface Telemovel {
-  tipo: 'telemovel';
-  captura: string;
-  /** Desce a página: do y ao y (px CSS), para as páginas compridas. */
-  de?: number;
-  para?: number;
-  titulo?: string;
-  texto?: string;
-  peso?: number;
-}
-
-/** SMS recebidos (o texto é o que a API gravou), num telemóvel. */
-export interface Sms {
-  tipo: 'sms';
-  mensagens: string[];
-  titulo?: string;
-  texto?: string;
-  peso?: number;
-}
-
-/** A chamada: o ecrã verdadeiro no telemóvel e a conversa escrita ao lado. */
-export interface Chamada {
-  tipo: 'chamada';
-  captura: string;
-  falas: { quem: Quem; texto: string }[];
-  /** Índice da fala que se está a ouvir. */
-  atual: number;
-  peso?: number;
-}
-
-export type Visual = PlanoPainel | Cartao | Recortes | Capa | Telemovel | Sms | Chamada;
-
-export type Voz = 'assistente' | 'municipe';
-
-/** Um troço com uma só voz: o que se diz, o que se mostra enquanto se diz. */
-export interface Bloco {
-  /** Nome do ficheiro de voz (public/voz/<id>.mp3). */
-  id: string;
-  voz: Voz;
-  texto: string;
-  /** Rótulo da legenda nas falas da chamada. */
-  quem?: string;
-  visual: Visual[];
-  /** Silêncio depois, em segundos. */
-  pausa?: number;
-  /** Sem legenda (quando o ecrã já mostra a frase). */
-  semLegenda?: boolean;
-  /** Legenda em cima (quando o que importa está no fundo do quadro). */
-  legendaEmCima?: boolean;
-}
-
-export interface Cena {
-  id: string;
-  /** Mostra o selo "Dados de demonstração". */
-  painel: boolean;
-  blocos: Bloco[];
-}
-
-/** O que `npm run voz` escreve em src/voz.gerado.json, por bloco. */
-export interface VozGerada {
-  ficheiro: string;
-  voz_id: string;
-  modelo: string;
-  texto: string;
-  duracao: number;
-  frases: { texto: string; inicio: number; fim: number }[];
 }

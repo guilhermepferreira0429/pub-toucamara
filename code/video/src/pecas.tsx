@@ -1,93 +1,16 @@
 import type { CSSProperties } from 'react';
-import {
-  AbsoluteFill,
-  Audio,
-  Easing,
-  Img,
-  Sequence,
-  interpolate,
-  staticFile,
-  useCurrentFrame,
-  useVideoConfig,
-} from 'remotion';
-import { ALTURA, LARGURA, enquadrar, interpolarRet } from './camara';
-import { COR, TEXTO, TITULO } from './marca';
-import { FUNDIDO, type BlocoTempo, linhaDoTempo } from './tempos';
-import { EcraCapa, EcraChamada, EcraSms, EcraTelemovel, Selo } from './visuais';
-import type { Cartao, Cena, Dados, PlanoPainel, Recortes, VozGerada } from './tipos';
+import { AbsoluteFill, Easing, Img, interpolate, staticFile, useCurrentFrame } from 'remotion';
+import { LARGURA, enquadrar, interpolarRet } from './camara';
+import { COR, TITULO } from './marca';
+import type { Dados, PlanoPainel, Recortes } from './tipos';
+import { Selo } from './visuais';
 
-export type PropsVideo = {
-  cenas: Cena[];
-  dados: Dados;
-  voz: Record<string, VozGerada>;
-};
+/*
+ * Peças do vídeo: uma página do painel com a câmara a mover-se, recortes
+ * da página arrumados num ecrã, e a marca.
+ */
 
 const suave = Easing.bezier(0.45, 0, 0.2, 1);
-
-export function Video({ cenas, dados, voz }: PropsVideo) {
-  const { blocos, visuais } = linhaDoTempo(cenas, voz);
-  return (
-    <AbsoluteFill style={{ backgroundColor: COR.creme, fontFamily: TEXTO }}>
-      {visuais.map((v, i) => (
-        <Sequence
-          key={`v${i}`}
-          from={v.de}
-          durationInFrames={v.duracao + (i < visuais.length - 1 ? FUNDIDO : 0)}
-        >
-          <Entrada primeiro={i === 0}>
-            {v.visual.tipo === 'painel' ? (
-              <Painel
-                plano={v.visual}
-                dados={dados}
-                duracao={v.duracao}
-                selo={v.cena.painel}
-              />
-            ) : v.visual.tipo === 'capa' ? (
-              <EcraCapa capa={v.visual} dados={dados} duracao={v.duracao} />
-            ) : v.visual.tipo === 'telemovel' ? (
-              <EcraTelemovel visual={v.visual} dados={dados} duracao={v.duracao} selo={v.cena.painel} />
-            ) : v.visual.tipo === 'sms' ? (
-              <EcraSms visual={v.visual} duracao={v.duracao} selo={v.cena.painel} />
-            ) : v.visual.tipo === 'chamada' ? (
-              <EcraChamada visual={v.visual} dados={dados} selo={v.cena.painel} />
-            ) : v.visual.tipo === 'recortes' ? (
-              <EcraRecortes
-                recortes={v.visual}
-                dados={dados}
-                duracao={v.duracao}
-                selo={v.cena.painel}
-              />
-            ) : (
-              <CartaoTitulo cartao={v.visual} duracao={v.duracao} />
-            )}
-          </Entrada>
-        </Sequence>
-      ))}
-      {blocos.map((b, i) =>
-        b.audio ? (
-          <Sequence key={`a${i}`} from={b.de} durationInFrames={b.duracao}>
-            <Audio src={staticFile(`voz/${b.audio}`)} />
-          </Sequence>
-        ) : null,
-      )}
-      {blocos.map((b, i) =>
-        b.bloco.semLegenda ? null : (
-          <Sequence key={`l${i}`} from={b.de} durationInFrames={b.duracao}>
-            <Legenda bloco={b} />
-          </Sequence>
-        ),
-      )}
-    </AbsoluteFill>
-  );
-}
-
-function Entrada({ primeiro, children }: { primeiro: boolean; children: React.ReactNode }) {
-  const f = useCurrentFrame();
-  const opacidade = primeiro
-    ? interpolate(f, [0, 15], [0, 1], { extrapolateRight: 'clamp' })
-    : interpolate(f, [0, FUNDIDO], [0, 1], { extrapolateRight: 'clamp' });
-  return <AbsoluteFill style={{ opacity: opacidade }}>{children}</AbsoluteFill>;
-}
 
 // ---------------------------------------------------------------------------
 // Uma captura do painel, com a câmara a mover-se e a zona em foco
@@ -322,7 +245,7 @@ export function EcraRecortes({
 }
 
 // ---------------------------------------------------------------------------
-// Cartões de título
+// A marca
 // ---------------------------------------------------------------------------
 
 export function Marca({ cor, tamanho = 44 }: { cor: string; tamanho?: number }) {
@@ -358,140 +281,3 @@ export function Marca({ cor, tamanho = 44 }: { cor: string; tamanho?: number }) 
     </div>
   );
 }
-
-function CartaoTitulo({ cartao, duracao }: { cartao: Cartao; duracao: number }) {
-  const f = useCurrentFrame();
-  const fundo = cartao.escuro ? COR.tinta : COR.creme;
-  const texto = cartao.escuro ? COR.papel : COR.tinta;
-  const sobe = (atraso: number): CSSProperties => ({
-    opacity: interpolate(f, [atraso, atraso + 14], [0, 1], {
-      extrapolateLeft: 'clamp',
-      extrapolateRight: 'clamp',
-    }),
-    transform: `translateY(${interpolate(f, [atraso, atraso + 18], [24, 0], {
-      extrapolateLeft: 'clamp',
-      extrapolateRight: 'clamp',
-      easing: suave,
-    })}px)`,
-  });
-  const longo = cartao.titulo.length > 60;
-  const zoom = interpolate(f, [0, duracao], [1, 1.025], { extrapolateRight: 'clamp' });
-  return (
-    <AbsoluteFill
-      style={{
-        backgroundColor: fundo,
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '0 200px',
-      }}
-    >
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'flex-start',
-          gap: 36,
-          width: '100%',
-          maxWidth: 1400,
-          transform: `scale(${zoom})`,
-        }}
-      >
-        {cartao.marca ? (
-          <div style={sobe(0)}>
-            <Marca cor={texto} />
-          </div>
-        ) : null}
-        <div
-          style={{
-            ...sobe(cartao.marca ? 8 : 0),
-            fontFamily: TITULO,
-            fontWeight: 800,
-            fontSize: longo ? 76 : 104,
-            lineHeight: 1.06,
-            textWrap: 'balance',
-            letterSpacing: longo ? -1.5 : -2.5,
-            color: texto,
-          }}
-        >
-          {cartao.titulo}
-        </div>
-        {cartao.depois ? (
-          <div
-            style={{
-              ...sobe(cartao.marca ? 18 : 10),
-              fontSize: 40,
-              lineHeight: 1.3,
-              color: cartao.escuro ? '#C9D1DB' : COR.tinta2,
-            }}
-          >
-            {cartao.depois}
-          </div>
-        ) : null}
-      </div>
-    </AbsoluteFill>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Legendas
-// ---------------------------------------------------------------------------
-
-function Legenda({ bloco }: { bloco: BlocoTempo }) {
-  const f = useCurrentFrame();
-  const { fps } = useVideoConfig();
-  const t = f / fps;
-  const frases = bloco.frases;
-  if (t > bloco.fala + 0.25) return null;
-  const atual =
-    frases.find((x) => t >= x.inicio && t < x.fim) ?? (t < (frases[0]?.inicio ?? 0) ? frases[0] : frases.at(-1));
-  if (!atual) return null;
-  const municipe = bloco.bloco.voz === 'municipe';
-  return (
-    <div
-      style={{
-        position: 'absolute',
-        left: 0,
-        right: 0,
-        ...(bloco.bloco.legendaEmCima ? { top: 96 } : { bottom: 54 }),
-        display: 'flex',
-        justifyContent: 'center',
-        padding: '0 160px',
-      }}
-    >
-      <div
-        style={{
-          maxWidth: 1500,
-          padding: '18px 30px',
-          borderRadius: 20,
-          background: municipe ? 'rgba(255, 251, 245, 0.96)' : 'rgba(21, 38, 59, 0.93)',
-          color: municipe ? COR.tinta : COR.papel,
-          border: municipe ? `2px solid ${COR.linha}` : 'none',
-          fontSize: 36,
-          lineHeight: 1.32,
-          fontWeight: 500,
-          textAlign: 'center',
-          boxShadow: '0 10px 30px rgba(21,38,59,0.18)',
-        }}
-      >
-        {bloco.bloco.quem ? (
-          <span
-            style={{
-              display: 'block',
-              fontSize: 20,
-              fontWeight: 700,
-              letterSpacing: 2,
-              textTransform: 'uppercase',
-              color: municipe ? COR.terracota : COR.terracotaSuave,
-              marginBottom: 4,
-            }}
-          >
-            {bloco.bloco.quem}
-          </span>
-        ) : null}
-        {atual.texto}
-      </div>
-    </div>
-  );
-}
-
-export { ALTURA, LARGURA };
