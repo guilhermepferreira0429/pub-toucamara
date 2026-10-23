@@ -1,6 +1,6 @@
 /*
  * Tipos partilhados entre as partes do avaliador (ver a spec em
- * docs/superpowers/specs/2026-10-19-avaliador-design.md). Mudar isto mexe
+ * docs/arquivo/superpowers/specs/2026-10-19-avaliador-design.md). Mudar isto mexe
  * em todas as partes: acrescentar é seguro, alterar não.
  */
 

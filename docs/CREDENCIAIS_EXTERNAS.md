@@ -125,7 +125,7 @@ Variáveis: `ENTREGA_SUBMISSAO=balcao`, `BALCAO_URL`, `BALCAO_CREDENCIAL`.
 
 ## Avisos de emergência: números de toda a zona
 
-Fonte: `docs/A_MEIO.md` (linha "Avisos de emergência em massa": falta "a
+Fonte: `docs/arquivo/A_MEIO.md` (linha "Avisos de emergência em massa": falta "a
 fonte externa com os números de toda a zona (operadores / cell broadcast /
 ANEPC-SMPC)" e "acordo com a Proteção Civil ou operadores").
 

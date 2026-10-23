@@ -667,7 +667,9 @@ describe('Entregar o pedido em nome da pessoa (e2e)', () => {
     it('regresso do fornecedor real com um state desconhecido → página de link expirado', async () => {
       const r = await ctx
         .http()
-        .get('/v1/public/entregas/autenticacao/retorno?state=desconhecido&code=x')
+        .get(
+          '/v1/public/entregas/autenticacao/retorno?state=desconhecido&code=x',
+        )
         .expect(estado(302));
       expect(r.headers.location).toBe(`${WEB_URL}/expirado`);
     });

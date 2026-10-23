@@ -1,6 +1,6 @@
 # Avaliador
 
-Avalia o nosso agente (chat e voz) e as assistentes que as câmaras já têm nos sites, com as mesmas perguntas, o mesmo gabarito e o mesmo juiz. Design: [`docs/superpowers/specs/2026-10-19-avaliador-design.md`](../../docs/superpowers/specs/2026-10-19-avaliador-design.md).
+Avalia o nosso agente (chat e voz) e as assistentes que as câmaras já têm nos sites, com as mesmas perguntas, o mesmo gabarito e o mesmo juiz. Design: [`docs/superpowers/specs/2026-10-19-avaliador-design.md`](../../docs/arquivo/superpowers/specs/2026-10-19-avaliador-design.md).
 
 **Como o juiz decide:**
 - cada pergunta tem uma resposta certa (o gabarito), escrita a partir das fontes oficiais e aprovada por uma pessoa;

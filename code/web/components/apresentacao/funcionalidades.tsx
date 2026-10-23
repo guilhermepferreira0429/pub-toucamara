@@ -18,7 +18,7 @@ import { RodapeApresentacao, TopoApresentacao } from "./topo";
 
 /*
  * Tudo o que o Tou, Câmara? faz hoje, por área, com o estado de cada coisa.
- * Os estados batem com o código (docs/ESTADO.md, verificado item a item):
+ * Os estados batem com o código (docs/resumo/ESTADO.md, verificado item a item):
  * "a funcionar" de ponta a ponta, "em modo de teste" quando a ligação a um
  * sistema de fora é simulada, "dados de demonstração" quando os valores
  * ou os registos são de exemplo. O que ainda não existe está na /visao.
