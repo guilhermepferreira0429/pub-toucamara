@@ -122,6 +122,15 @@ const DIAS: [DiaSemana, string][] = [
   ["dom", "Dom"],
 ];
 
+function Numero({ rotulo, valor, destaque }: { rotulo: string; valor: number; destaque?: boolean }) {
+  return (
+    <Cartao className={`px-4 py-3 ${destaque && valor > 0 ? "border-terracota" : ""}`}>
+      <Rotulo>{rotulo}</Rotulo>
+      <p className="font-display text-2xl font-bold text-tinta">{valor}</p>
+    </Cartao>
+  );
+}
+
 function diaLongo(d: string): string {
   return new Intl.DateTimeFormat("pt-PT", { timeZone: "UTC", weekday: "long", day: "numeric", month: "long" }).format(
     new Date(`${d}T12:00:00Z`),
@@ -183,6 +192,15 @@ export function PaginaReservas() {
         }
       />
       <ErroLinha erro={demo.erro} className="mx-4 sm:mx-10 mb-4" />
+      {d.dados && (
+        <div className="grid grid-cols-2 gap-3 px-4 sm:px-10 pb-5 md:grid-cols-5">
+          <Numero rotulo="Por aprovar" valor={d.dados.contagens.por_aprovar} destaque />
+          <Numero rotulo="À espera do pagamento" valor={d.dados.contagens.por_pagar} />
+          <Numero rotulo="Confirmadas" valor={d.dados.contagens.confirmada} />
+          <Numero rotulo="Equipamentos" valor={equipamentos.length} />
+          <Numero rotulo="Lugares livres" valor={d.dados.sessoes.reduce((n, x) => n + x.livres, 0)} />
+        </div>
+      )}
       <div className="flex gap-1 overflow-x-auto px-4 pb-4 sm:px-10 [&>*]:shrink-0 [&>*]:whitespace-nowrap" role="tablist" aria-label="Vista">
         {separadores.map(([v, rotulo, n]) => (
           <button
