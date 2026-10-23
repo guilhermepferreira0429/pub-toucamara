@@ -1,4 +1,5 @@
 import { LayoutDashboard } from "lucide-react";
+import { MUNICIPIO } from "@/components/chamada/config";
 import Link from "next/link";
 import { Logo } from "@/components/ui/marca";
 
@@ -35,5 +36,37 @@ export function TopoApresentacao({ links }: { links: { href: string; nome: strin
         </div>
       </header>
     </>
+  );
+}
+
+/** O rodapé das páginas de apresentação (/, /visao, /funcionalidades). */
+export function RodapeApresentacao() {
+  return (
+    <footer className="border-t border-linha bg-papel">
+      <div className="mx-auto flex w-full max-w-[1120px] flex-col gap-8 px-5 py-12 sm:px-8 md:flex-row md:items-start md:justify-between">
+        <div className="flex flex-col gap-3">
+          <Logo tamanho={24} />
+          <p className="max-w-[360px] text-[14px] leading-relaxed text-tinta-3">
+            Feito para o Hack4Guimarães 2035, desafio &ldquo;Falar com a câmara sem burocracia&rdquo;.
+          </p>
+        </div>
+        <nav aria-label="Ligações" className="grid grid-cols-2 gap-x-10 gap-y-2.5 text-[14px]">
+          {[
+            ["/ligar", "Ligar"],
+            ["/chat", "Chat"],
+            ["/entrar", "Painel da câmara"],
+            ["/avaliacao", "Avaliação"],
+            [`/agora/${MUNICIPIO}`, "Perto de si"],
+            ["/regras", "Regras públicas"],
+            ["/visitar", "Visitar Guimarães"],
+            ["/acessibilidade", "Acessibilidade"],
+          ].map(([href, nome]) => (
+            <Link key={href} href={href} className="text-tinta-2 hover:text-terracota">
+              {nome}
+            </Link>
+          ))}
+        </nav>
+      </div>
+    </footer>
   );
 }

@@ -33,7 +33,7 @@ import Link from "next/link";
 import { MUNICIPIO } from "@/components/chamada/config";
 import { FonteOficial, Logo } from "@/components/ui/marca";
 import { NumerosAvaliacao } from "./numeros-avaliacao";
-import { TopoApresentacao } from "./topo";
+import { RodapeApresentacao, TopoApresentacao } from "./topo";
 
 /*
  * Página de apresentação (a raiz do site): o que é o Tou, Câmara?, onde se
@@ -96,6 +96,18 @@ const PRINCIPAIS: Acesso[] = [
 
 /** As páginas públicas que mostram o resto do produto. */
 const ACESSOS: Acesso[] = [
+  {
+    href: "/funcionalidades",
+    titulo: "Funcionalidades",
+    texto: "Tudo o que já faz, por área, com o estado de cada coisa: a funcionar, em teste ou com dados de exemplo.",
+    icone: ListChecks,
+  },
+  {
+    href: "/visao",
+    titulo: "Visão",
+    texto: "Para onde vamos: a câmara que não esquece, do concelho às outras 307 câmaras, e mais serviços.",
+    icone: Sparkles,
+  },
   {
     href: "/avaliacao",
     titulo: "Avaliação",
@@ -247,7 +259,7 @@ const CONFIANCA: { titulo: string; texto: string; icone: LucideIcon }[] = [
   },
 ];
 
-const PROXIMOS: { passo: string; existe: string; falta: string; icone: LucideIcon }[] = [
+export const PROXIMOS: { passo: string; existe: string; falta: string; icone: LucideIcon }[] = [
   {
     passo: "Número português",
     existe: "Assistente de voz, início e fim da chamada, chamadas feitas pela câmara.",
@@ -286,7 +298,7 @@ const PROXIMOS: { passo: string; existe: string; falta: string; icone: LucideIco
   },
 ];
 
-const PILOTO = [
+export const PILOTO = [
   "Medir a taxa de acerto com chamadas reais",
   "Os técnicos validarem as regras dos projetos de obras",
   "Carregar os dados reais da câmara",
@@ -294,7 +306,7 @@ const PILOTO = [
   "Acordo com a Proteção Civil para os avisos de emergência",
 ];
 
-function Secao({
+export function Secao({
   id,
   rotulo,
   titulo,
@@ -328,7 +340,7 @@ function Secao({
   );
 }
 
-function Lista({ itens, icone: Icone, cor }: { itens: string[]; icone: LucideIcon; cor: string }) {
+export function Lista({ itens, icone: Icone, cor }: { itens: string[]; icone: LucideIcon; cor: string }) {
   return (
     <ul className="flex flex-col gap-3">
       {itens.map((t) => (
@@ -413,7 +425,13 @@ function ConversaExemplo() {
 export function PaginaApresentacao() {
   return (
     <div className="flex min-h-dvh flex-col bg-creme font-body text-tinta">
-      <TopoApresentacao links={SECOES.map((s) => ({ href: `#${s.id}`, nome: s.nome }))} />
+      <TopoApresentacao
+        links={[
+          ...SECOES.map((s) => ({ href: `#${s.id}`, nome: s.nome })),
+          { href: "/funcionalidades", nome: "Funcionalidades" },
+          { href: "/visao", nome: "Visão" },
+        ]}
+      />
 
       <main id="conteudo" tabIndex={-1} className="flex flex-col outline-none">
         {/* Topo */}
@@ -694,6 +712,13 @@ export function PaginaApresentacao() {
               );
             })}
           </ul>
+          <Link
+            href="/visao"
+            className="inline-flex items-center gap-2 self-start text-[16px] font-semibold text-terracota-escuro underline underline-offset-4"
+          >
+            Ver a visão: do concelho às outras 307 câmaras
+            <ArrowRight className="size-4" aria-hidden />
+          </Link>
           <div className="flex flex-col gap-5 rounded-3xl bg-terracota p-6 text-white sm:p-8">
             <p className="font-display text-[24px] font-extrabold leading-tight">Depois: um piloto em Guimarães</p>
             <ul className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
@@ -708,32 +733,7 @@ export function PaginaApresentacao() {
         </Secao>
       </main>
 
-      <footer className="border-t border-linha bg-papel">
-        <div className="mx-auto flex w-full max-w-[1120px] flex-col gap-8 px-5 py-12 sm:px-8 md:flex-row md:items-start md:justify-between">
-          <div className="flex flex-col gap-3">
-            <Logo tamanho={24} />
-            <p className="max-w-[360px] text-[14px] leading-relaxed text-tinta-3">
-              Feito para o Hack4Guimarães 2035, desafio &ldquo;Falar com a câmara sem burocracia&rdquo;.
-            </p>
-          </div>
-          <nav aria-label="Ligações" className="grid grid-cols-2 gap-x-10 gap-y-2.5 text-[14px]">
-            {[
-              ["/ligar", "Ligar"],
-              ["/chat", "Chat"],
-              ["/entrar", "Painel da câmara"],
-              ["/avaliacao", "Avaliação"],
-              [`/agora/${MUNICIPIO}`, "Perto de si"],
-              ["/regras", "Regras públicas"],
-              ["/visitar", "Visitar Guimarães"],
-              ["/acessibilidade", "Acessibilidade"],
-            ].map(([href, nome]) => (
-              <Link key={href} href={href} className="text-tinta-2 hover:text-terracota">
-                {nome}
-              </Link>
-            ))}
-          </nav>
-        </div>
-      </footer>
+      <RodapeApresentacao />
     </div>
   );
 }
