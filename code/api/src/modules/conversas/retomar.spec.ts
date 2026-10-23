@@ -1,5 +1,6 @@
 import type { WebhookTranscricao } from './elevenlabs.js';
 import {
+  AVISO_GRAVACAO,
   anteriorDaChamada,
   esquemaInicioChamada,
   frasePendentes,
@@ -205,6 +206,7 @@ describe('variaveisInicio', () => {
       ultima_conversa_resumo: 'Pediu licença para abrir uma porta.',
       pendentes: '',
       ultima_conversa_id: ultima.id,
+      aviso_gravacao: AVISO_GRAVACAO,
     });
   });
 
