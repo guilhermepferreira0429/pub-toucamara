@@ -64,6 +64,15 @@ const COLUNAS_RESULTADO = `r.total, r.certas, r.passadas_bem, r.erradas, r.sem_r
  */
 const SO_MEDIDOS = `NOT coalesce((s.config->>'demonstracao')::boolean, false)`;
 
+/**
+ * A execução foi julgada pelo processo de referência: dois juízes às cegas e desempate com verificação nas
+ * fontes (avaliador 'consenso …'). É a medida publicada; uma ronda só com o juiz automático fica no histórico
+ * mas não passa à frente de uma com consenso.
+ */
+export const COM_CONSENSO = `EXISTS (SELECT 1 FROM avaliacao.respostas rr
+  JOIN avaliacao.avaliacoes aa ON aa.resposta_id = rr.id
+  WHERE rr.execucao_id = e.id AND aa.avaliador LIKE 'consenso%')`;
+
 /** A execução tem avaliação na escala por categorias (v2: dois juízes + desempate, ou o juiz v2). */
 const COM_CATEGORIAS = `EXISTS (SELECT 1 FROM avaliacao.resultados_categorias rc
   WHERE rc.execucao_id = e.id AND rc.categoria IS NULL AND rc.total > 0)`;
@@ -284,7 +293,8 @@ export class AvaliacaoService {
     const todas = await this.db.query<ResumoExecucao>(
       `SELECT e.id AS execucao_id, s.nome AS sistema, e.agente_versao, e.motivo,
               e.iniciada_em, e.terminada_em, ${COLUNAS_RESULTADO},
-              coalesce((s.config->>'demonstracao')::boolean, false) AS demonstracao
+              coalesce((s.config->>'demonstracao')::boolean, false) AS demonstracao,
+              ${COM_CONSENSO} AS consenso
        FROM avaliacao.execucoes e
        JOIN avaliacao.sistemas s ON s.id = e.sistema_id
        LEFT JOIN avaliacao.resultados r ON r.execucao_id = e.id AND r.categoria IS NULL
@@ -326,7 +336,8 @@ export class AvaliacaoService {
     let ultima: Record<string, unknown> | null = null;
     let erradas: unknown[] = [];
     let numeros: Awaited<ReturnType<typeof this.numerosSemFonte>> | null = null;
-    const u = ultimas[0];
+    // A última julgada pelo processo de referência (consenso); sem nenhuma, a mais recente.
+    const u = ultimas.find((e) => (e as { consenso?: boolean }).consenso) ?? ultimas[0];
     if (u) {
       const [categorias, linhas, nums] = await Promise.all([
         v2.has(u.execucao_id)
@@ -396,7 +407,7 @@ export class AvaliacaoService {
        LEFT JOIN avaliacao.resultados r ON r.execucao_id = e.id AND r.categoria IS NULL
        WHERE s.nosso AND s.adaptador = 'tou-chat' AND s.municipio_id = $1
          AND e.estado = 'terminada' AND NOT e.amostra AND ${SO_MEDIDOS}
-       ORDER BY ${COM_CATEGORIAS} DESC, e.terminada_em DESC NULLS LAST, e.id DESC
+       ORDER BY ${COM_CONSENSO} DESC, ${COM_CATEGORIAS} DESC, e.terminada_em DESC NULLS LAST, e.id DESC
        LIMIT 1`,
       [municipio.id],
     );
@@ -426,7 +437,7 @@ export class AvaliacaoService {
        LEFT JOIN avaliacao.resultados r ON r.execucao_id = e.id AND r.categoria IS NULL
        WHERE NOT s.nosso AND s.municipio_id = $1
          AND e.estado = 'terminada' AND NOT e.amostra AND ${SO_MEDIDOS}
-       ORDER BY (e.conjunto_id = $2) DESC, ${COM_CATEGORIAS} DESC, e.terminada_em DESC NULLS LAST, e.id DESC
+       ORDER BY (e.conjunto_id = $2) DESC, ${COM_CONSENSO} DESC, ${COM_CATEGORIAS} DESC, e.terminada_em DESC NULLS LAST, e.id DESC
        LIMIT 1`,
       [municipio.id, nosso.conjunto_id],
     );

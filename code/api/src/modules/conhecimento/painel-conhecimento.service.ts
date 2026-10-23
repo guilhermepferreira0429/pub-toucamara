@@ -6,7 +6,7 @@ import { DatabaseService, Tx } from '../../database/database.service.js';
 import { JobsService } from '../../jobs/jobs.service.js';
 import { AuditoriaService } from '../auditoria/auditoria.service.js';
 import { erroPublicacao } from './avaliacao.js';
-import { AvaliacaoService } from './avaliacao.service.js';
+import { AvaliacaoService, COM_CONSENSO } from './avaliacao.service.js';
 import {
   diffFactos,
   interno,
@@ -168,7 +168,7 @@ export class PainelConhecimentoService {
              AND NOT coalesce((s.config->>'demonstracao')::boolean, false)
              AND EXISTS (SELECT 1 FROM avaliacao.resultados_categorias rc
                          WHERE rc.execucao_id = e.id AND rc.categoria IS NULL AND rc.total > 0)
-           ORDER BY e.terminada_em DESC NULLS LAST, e.id DESC
+           ORDER BY ${COM_CONSENSO} DESC, e.terminada_em DESC NULLS LAST, e.id DESC
            LIMIT 1
          )
          SELECT rc.categoria, rc.terminada_em, rc.total,
