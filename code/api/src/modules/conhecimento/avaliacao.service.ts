@@ -169,7 +169,7 @@ export class AvaliacaoService {
                WHERE s.nosso AND s.adaptador = 'tou-chat' AND s.municipio_id = $1
                ORDER BY s.criado_em LIMIT 1) AS sistema_chat,
               e.id AS execucao_id, e.sistema, e.agente_versao, e.terminada_em,
-              coalesce(q.qualidade, r.taxa)::float8 AS taxa, coalesce(q.total, r.total) AS total,
+              coalesce(q.acerto, r.taxa)::float8 AS taxa, coalesce(q.total, r.total) AS total,
               coalesce(q.por_avaliar, r.por_avaliar) AS por_avaliar
        FROM (SELECT $1::uuid AS municipio_id) m
        LEFT JOIN agente_config a ON a.municipio_id = m.municipio_id
@@ -186,11 +186,10 @@ export class AvaliacaoService {
          LIMIT 1
        ) e ON true
        LEFT JOIN avaliacao.resultados r ON r.execucao_id = e.id AND r.categoria IS NULL
-       -- Escala v2: a qualidade é a das respostas que deu (certas ou maioritariamente certas / respondidas).
+       -- Escala v2: taxa de acerto = certas ou maioritariamente certas / todas as perguntas.
        LEFT JOIN LATERAL (
          SELECT rc.total, rc.por_avaliar,
-                round(100.0 * (rc.certa + rc.maioritariamente_certa)
-                      / nullif(rc.total - rc.nao_encontrou - rc.mandou_contactar - rc.inconclusiva - rc.sem_resposta, 0), 2) AS qualidade
+                round(100.0 * (rc.certa + rc.maioritariamente_certa) / rc.total, 2) AS acerto
          FROM avaliacao.resultados_categorias rc
          WHERE rc.execucao_id = e.id AND rc.categoria IS NULL AND rc.total > 0
        ) q ON true`,
@@ -332,8 +331,8 @@ export class AvaliacaoService {
         sem_resposta: t.sem_resposta,
         por_responder: t.por_responder,
         por_avaliar: t.por_avaliar,
-        // Qualidade das respostas dadas; "sabe responder" (certas / todas) vai à parte.
-        taxa: t.qualidade,
+        // Taxa de acerto: certas ou maioritariamente certas / todas as perguntas.
+        taxa: t.taxa,
         respondidas: t.respondidas,
         sabe: t.taxa,
       });
@@ -362,8 +361,8 @@ export class AvaliacaoService {
               l.map(({ execucao_id: _id, incompletas: _i, qualidade, taxa: sabe, ...c }) => ({
                 ...c,
                 passadas_bem: 0,
-                taxa: qualidade,
-                sabe,
+                taxa: sabe,
+                qualidade,
               })),
             )
           : this.db.query(

@@ -201,21 +201,13 @@ export function MapaConhecimento() {
     .reduce((s, t) => s + t.conversas_30d, 0);
   const coberturaRespostas = totalConversas ? Math.round((comResposta / totalConversas) * 100) : null;
 
-  // Com avaliação: medido. "Sabe responder" = respostas certas ou
-  // maioritariamente certas, pesadas pelo que os munícipes perguntaram nos
-  // últimos 30 dias (sem conversas, o total do teste); "Cobertura" = parte das
-  // perguntas a que respondeu; "Qualidade" = das que respondeu, as certas ou
-  // maioritariamente certas.
+  // Com avaliação: medido. "Sabe responder" = respostas certas ou maioritariamente
+  // certas em todas as perguntas do teste; "Cobertura" = parte das perguntas a que
+  // respondeu; "Qualidade" = das que respondeu, as certas ou maioritariamente certas.
   const av = m.avaliacao;
-  const pesados = m.temas
-    .map((t) => ({ c: t.conversas_30d, md: medidaDoTema(t, av) }))
-    .filter((x) => x.c > 0 && x.md && x.md.total > 0);
-  const pesoTotal = pesados.reduce((s, x) => s + x.c, 0);
-  const sabe = av
-    ? pesoTotal
-      ? Math.round(pesados.reduce((s, x) => s + x.c * (x.md!.certas / x.md!.total), 0) / pesoTotal * 100)
-      : Math.round((av.total.certas / av.total.total) * 100)
-    : coberturaRespostas;
+  // A mesma conta da página pública e do separador Qualidade: certas ou maioritariamente certas / todas
+  // as perguntas do teste (sem pesar pelos temas), com uma casa decimal.
+  const sabe = av ? Math.round((av.total.certas / av.total.total) * 1000) / 10 : coberturaRespostas;
   const cobertura = av ? Math.round((av.total.respondidas / av.total.total) * 100) : coberturaRespostas;
   const qualidadeMedida = av && av.total.respondidas
     ? Math.round((av.total.certas / av.total.respondidas) * 100)
@@ -252,7 +244,7 @@ export function MapaConhecimento() {
           </p>
           <div className="flex items-center gap-3.5">
             <span className="font-display text-[56px] leading-none font-extrabold text-white sm:text-[80px]">
-              {pct(sabe)}
+              {pct(sabe, av ? 1 : 0)}
             </span>
             <span className="font-display text-lg leading-tight font-semibold whitespace-pre-line text-white/80 sm:text-[22px]">
               {"do que os munícipes\nlhe perguntam"}

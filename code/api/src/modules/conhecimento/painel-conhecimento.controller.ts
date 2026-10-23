@@ -314,7 +314,7 @@ export class PainelConhecimentoController {
 
   /**
    * Corpo: { versao_id, forcar? }. Só publica com uma avaliação do agente
-   * (versão atual, taxa ≥ 80%); `forcar` salta o gate (equipa interna,
+   * (versão atual, taxa ≥ 75%); `forcar` salta o gate (equipa interna,
    * auditado). A câmara publica só quando a versão não precisa de mais nada
    * (`precisa_de` vazio; ver `edicao.ts`).
    */

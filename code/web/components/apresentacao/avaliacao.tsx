@@ -92,7 +92,9 @@ function acertou(v: Veredicto | null | undefined): boolean {
 }
 
 function pct(n: number | null | undefined): string {
-  return n === null || n === undefined ? "—" : `${Math.round(n)}%`;
+  return n === null || n === undefined
+    ? "—"
+    : `${n.toLocaleString("pt-PT", { maximumFractionDigits: 1, minimumFractionDigits: Number.isInteger(n) ? 0 : 1 })}%`;
 }
 
 function data(iso: string | null): string {

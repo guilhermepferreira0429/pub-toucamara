@@ -7,7 +7,7 @@ import type { Perfil } from '../auth/permissoes.js';
  *
  * 1. Toda a versão escrita pela câmara fica 'em_revisao' até ir para o ar.
  * 2. Publicar exige sempre o gate do avaliador (`avaliacao.ts`: execução da
- *    versão atual do agente com taxa ≥ 80%), tal como para a equipa.
+ *    versão atual do agente com taxa ≥ 75%), tal como para a equipa.
  * 3. Se a versão da câmara mudar factos (números, prazos, telefones, emails)
  *    face à versão no ar (ou à anterior, se nenhuma estiver no ar), precisa
  *    ainda da aprovação da equipa interna OU de uma execução do avaliador

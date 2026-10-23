@@ -20,8 +20,8 @@ describe('decidirPublicacao', () => {
   });
   const versao = '2026.10.19-1';
 
-  it('o limiar é 80%', () => {
-    expect(LIMIAR_PUBLICACAO).toBe(80);
+  it('o limiar é 75%', () => {
+    expect(LIMIAR_PUBLICACAO).toBe(75);
   });
 
   it('permite com a versão atual e taxa ≥ limiar', () => {
@@ -33,7 +33,7 @@ describe('decidirPublicacao', () => {
   });
 
   it('exatamente no limiar passa', () => {
-    expect(decidirPublicacao(exec({ taxa: 80 }), versao).permitir).toBe(true);
+    expect(decidirPublicacao(exec({ taxa: 75 }), versao).permitir).toBe(true);
   });
 
   it('sem execução: avaliacao_em_falta', () => {
@@ -73,12 +73,12 @@ describe('decidirPublicacao', () => {
   });
 
   it('abaixo do limiar: avaliacao_abaixo_do_limiar com a taxa', () => {
-    expect(decidirPublicacao(exec({ taxa: 79.99 }), versao)).toEqual({
+    expect(decidirPublicacao(exec({ taxa: 74.99 }), versao)).toEqual({
       permitir: false,
       motivo: 'avaliacao_abaixo_do_limiar',
       causa: 'abaixo',
       execucao_id: 'e1',
-      taxa: 79.99,
+      taxa: 74.99,
     });
   });
 
@@ -107,7 +107,7 @@ describe('erroPublicacao', () => {
     expect(e.codigo).toBe('avaliacao_em_falta');
     expect(e.detalhes).toMatchObject({
       causa: 'sem_execucao',
-      limiar: 80,
+      limiar: 75,
       versao_atual: 'v2',
       comando: 'avaliador executar --sistema "Tou · Teste" --motivo publicacao',
     });

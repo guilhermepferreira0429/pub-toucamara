@@ -19,7 +19,9 @@ interface Resumo {
 }
 
 function pct(n: number | null): string {
-  return n === null ? "—" : `${Math.round(n)}%`;
+  return n === null
+    ? "—"
+    : `${n.toLocaleString("pt-PT", { maximumFractionDigits: 1, minimumFractionDigits: Number.isInteger(n) ? 0 : 1 })}%`;
 }
 
 /**

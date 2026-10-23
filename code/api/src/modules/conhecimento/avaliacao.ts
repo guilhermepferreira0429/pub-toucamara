@@ -4,9 +4,9 @@ import { ErroApi } from '../../common/erros.js';
 /**
  * Gate de publicação (spec do avaliador, secção 9): nenhuma resposta curada
  * vai para o ar sem uma execução `tou-chat` do nosso agente, terminada, não
- * amostra, sobre a `agente_config.versao` atual, com taxa ≥ 80%.
+ * amostra, sobre a `agente_config.versao` atual, com taxa ≥ 75%.
  */
-export const LIMIAR_PUBLICACAO = 80;
+export const LIMIAR_PUBLICACAO = 75;
 
 /** A execução candidata (a mais recente que conta) e o seu total em `avaliacao.resultados`. */
 export interface ExecucaoGate {
